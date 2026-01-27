@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description"
+        content="Discover and live your next experience with Eventra - Your premier event discovery platform">
+    <meta name="keywords" content="events, festivals, seminars, concerts, cultural events">
+    <title>Eventra</title>
+
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="../css/variables.css">
+    <link rel="stylesheet" href="../css/style.css">
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="./assets/favicon.ico">
+</head>
+
+<body>
+    <!-- Header / Navigation -->
+    <header class="header">
+        <nav class="nav-container">
+            <div class="logo">EVENTRA</div>
+
+            <ul class="nav-menu">
+                <li><a href="#home">Home</a></li>
+                <li><a href="#events">Events</a></li>
+                <li><a href="#about">About</a></li>
+                <li><a href="#contact">Contact</a></li>
+            </ul>
+
+            <div class="nav-actions" style="display: flex; align-items: center; gap: 1rem;">
+                <a href="login.html" class="user-profile-link">
+                    <img src="https://ui-avatars.com/api/?name=User&background=FF5A5F&color=fff&size=128"
+                        alt="User Profile" class="user-icon" title="Login / Register">
+                </a>
+
+                <div class="mobile-menu-toggle">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero" id="home">
+        <img src="https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=1920&h=1080&fit=crop"
+            alt="Cultural Event" class="hero-background">
+        <div class="hero-overlay"></div>
+
+        <div class="hero-content">
+            <h1 class="hero-title">Discover & Live Your Next Experience</h1>
+
+            <div class="search-container">
+                <div class="search-wrapper">
+                    <input type="text" class="search-input" placeholder="Search for events..."
+                        aria-label="Search events">
+                    <button class="search-button" aria-label="Search">Search</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Main Content -->
+    <main class="main-content" id="events">
+        <!-- Trending Events -->
+        <section class="events-section">
+            <h2 class="section-title">Trending Events</h2>
+            <div class="events-grid" id="trending-events">
+                <!-- Events will be dynamically loaded here -->
+            </div>
+        </section>
+
+        <!-- Upcoming Events -->
+        <section class="events-section">
+            <h2 class="section-title">Upcoming Events</h2>
+            <div class="events-grid" id="upcoming-events">
+                <!-- Events will be dynamically loaded here -->
+            </div>
+        </section>
+
+        <!-- Nearby Events -->
+        <section class="events-section">
+            <h2 class="section-title">Nearby Events</h2>
+            <div class="events-grid" id="nearby-events">
+                <!-- Events will be dynamically loaded here -->
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer" id="contact">
+        <div class="footer-content">
+            <div class="footer-brand">
+                <h3>Eventra</h3>
+                <p class="footer-description">
+                    WELCOME TO EVENTRA, WONDERFUL EXPERIENCE WEBSITE WHERE YOU CAN EASILY SHOWCASE EVERYTHING
+                    YOU WANT TO SHARE WITH THE WORLD EASILY AND FASTER
+                </p>
+                <div class="social-links">
+                    <a href="#" class="social-icon facebook" aria-label="Facebook" title="Facebook">f</a>
+                    <a href="#" class="social-icon twitter" aria-label="Twitter" title="Twitter">𝕏</a>
+                    <a href="#" class="social-icon instagram" aria-label="Instagram" title="Instagram">📷</a>
+                    <a href="#" class="social-icon linkedin" aria-label="LinkedIn" title="LinkedIn">in</a>
+                </div>
+            </div>
+
+            <div class="footer-links" id="about">
+                <h4>Customer care</h4>
+                <ul>
+                    <li><a href="#help">Help center</a></li>
+                    <li><a href="#terms">Terms & Conditions</a></li>
+                    <li><a href="#privacy">Privacy policy</a></li>
+                    <li><a href="#cookie">Cookie policy</a></li>
+                    <li><a href="#survey">Survey & Feedback</a></li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="footer-bottom">
+            <p>&copy; 2026 Eventra Inc. | All rights reserved</p>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="./js/utils.js"></script>
+    <script src="./js/main.js"></script>
+</body>
+
+</html>
