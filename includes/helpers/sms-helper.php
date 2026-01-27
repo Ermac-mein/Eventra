@@ -1,0 +1,3 @@
+<?php
+// SMS helper functions
+?>

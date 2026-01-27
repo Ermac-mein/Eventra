@@ -1,0 +1,3 @@
+<?php
+// Ticket class
+?>

@@ -1,0 +1,3 @@
+<?php
+// Registration API endpoint
+?>

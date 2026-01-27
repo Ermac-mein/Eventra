@@ -1,0 +1,8 @@
+{
+  "name": "event-management-system",
+  "version": "1.0.0",
+  "description": "Comprehensive event management system with admin, client, and user portals",
+  "author": "",
+  "license": "MIT",
+  "dependencies": {}
+}

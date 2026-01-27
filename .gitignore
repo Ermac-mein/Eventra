@@ -1,0 +1,14 @@
+/vendor/
+/node_modules/
+/logs/*.log
+/uploads/*
+!/uploads/.gitkeep
+.env
+.DS_Store
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+composer.lock
+package-lock.json

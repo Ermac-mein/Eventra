@@ -1,0 +1,3 @@
+<?php
+// CORS middleware
+?>

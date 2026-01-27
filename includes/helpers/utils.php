@@ -1,0 +1,3 @@
+<?php
+// Utility helper functions
+?>

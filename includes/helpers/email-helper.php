@@ -1,0 +1,3 @@
+<?php
+// Email helper functions
+?>
