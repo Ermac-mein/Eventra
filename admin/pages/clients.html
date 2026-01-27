@@ -3,9 +3,189 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin - Clients</title>
+    <title>Clients Management - Eventra Admin</title>
+    <link rel="stylesheet" href="../css/admin-style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
 <body>
-    <!-- Clients Management Page -->
+    <aside class="sidebar">
+        <div class="sidebar-logo">EVENTRA</div>
+        <ul class="sidebar-menu">
+            <li class="menu-item"><a href="dashboard.html"><span>📊</span> Dashboard</a></li>
+            <li class="menu-item"><a href="events.html"><span>📅</span> Events</a></li>
+            <li class="menu-item"><a href="tickets.html"><span>🎫</span> Tickets</a></li>
+            <li class="menu-item"><a href="users.html"><span>👤</span> Users</a></li>
+            <li class="menu-item active"><a href="clients.html"><span>💼</span> Clients</a></li>
+        </ul>
+        <div class="sidebar-footer">
+            <li class="menu-item" style="list-style: none;"><a href="/public/pages/login.html"><span>🚪</span> Logout</a></li>
+        </div>
+    </aside>
+
+    <div class="main-layout">
+        <header class="header">
+            <div class="header-search">
+                <span class="search-icon">🔍</span>
+                <input type="text" placeholder="Search clients...">
+            </div>
+            <div class="header-actions">
+                <div class="action-icon">🔔</div>
+                <div class="action-icon">⚙️</div>
+                <div class="user-profile">
+                    <div class="user-avatar"></div>
+                    <span style="font-size: 0.9rem; font-weight: 500;"></span>
+                </div>
+            </div>
+        </header>
+
+        <main class="content-area">
+            <div class="page-header">
+                <div class="page-title">
+                    <h1>Clients</h1>
+                </div>
+                <button class="btn btn-primary btn-export">
+                    <span>📤</span> Export Data
+                </button>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <span class="stat-label">Client Checked-In</span>
+                    <span class="stat-value">100</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-label">Client Active</span>
+                    <span class="stat-value">30</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-label">Client Registered</span>
+                    <span class="stat-value">40</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-label">Client Follow-Up</span>
+                    <span class="stat-value">20</span>
+                </div>
+            </div>
+
+            <div class="table-container">
+                <div class="table-header">
+                    <h3>All Clients</h3>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>id</th>
+                            <th>Client Name</th>
+                            <th>email</th>
+                            <th>Location</th>
+                            <th>Phone Contact</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>cli0001</td>
+                            <td>Samuel Stephens</td>
+                            <td>stephen123@example.com</td>
+                            <td>Kaduna</td>
+                            <td>08098765432</td>
+                            <td><span class="status-badge status-offline">Offline</span></td>
+                        </tr>
+                        <tr>
+                            <td>cli0002</td>
+                            <td>Augustine Okoro</td>
+                            <td>okoro12@example.com</td>
+                            <td>Kaduna</td>
+                            <td>09098765433</td>
+                            <td><span class="status-badge status-concluded">Active</span></td>
+                        </tr>
+                        <tr>
+                            <td>cli0003</td>
+                            <td>Caleb Dauda</td>
+                            <td>dauda14@example.com</td>
+                            <td>Kebbi</td>
+                            <td>08098767654</td>
+                            <td><span class="status-badge status-offline">Offline</span></td>
+                        </tr>
+                        <tr>
+                            <td>cli0004</td>
+                            <td>Jacob Smith</td>
+                            <td>jacobsmith32@example.com</td>
+                            <td>Abuja</td>
+                            <td>07098765434</td>
+                            <td><span class="status-badge status-offline">Offline</span></td>
+                        </tr>
+                        <tr>
+                            <td>cli0005</td>
+                            <td>Nice Ben</td>
+                            <td>niceben45@example.com</td>
+                            <td>Abuja</td>
+                            <td>07098765434</td>
+                            <td><span class="status-badge status-offline">Offline</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div class="pagination">
+                    <span>Rows per page:</span>
+                    <select><option>10</option></select>
+                    <span>1 - 10 of 14</span>
+                    <span style="cursor: pointer;">&lt; &gt;</span>
+                </div>
+            </div>
+        </main>
+
+        <footer class="admin-footer" style="padding: 1.5rem 2rem; color: #7f8c8d; font-size: 0.85rem; border-top: 1px solid #edf2f7; background: white; margin-top: auto;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <p>&copy; 2026 Eventra Admin Panel. All rights reserved.</p>
+                <div style="display: flex; gap: 20px;">
+                    <a href="#" style="text-decoration: none; color: inherit;">Privacy Policy</a>
+                    <a href="#" style="text-decoration: none; color: inherit;">Support</a>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+
+    <!-- Notifications Drawer -->
+    <div class="drawer" id="notificationsDrawer">
+        <div class="drawer-header"><span class="back-arrow">←</span><h2>Notifications</h2></div>
+        <div class="drawer-content"><div class="notif-item"><div class="notif-icon">🔔</div><div class="notif-body"><p class="notif-text">New client proposal received from Apex.</p><div class="notif-meta"><span>1:00PM</span><span>02/01/2026</span></div></div></div></div>
+    </div>
+
+    <!-- Settings Drawer -->
+    <div class="drawer" id="settingsDrawer">
+        <div class="drawer-header"><span class="back-arrow">←</span><h2>Settings</h2></div>
+        <div class="drawer-content"><div class="settings-group"><div class="settings-item"><div class="settings-info"><h4>Dark Mode</h4><p>Enable dark theme</p></div><label class="switch"><input type="checkbox"><span class="slider"></span></label></div></div></div>
+    </div>
+
+    <!-- Profile Drawer -->
+    <div class="drawer" id="profileDrawer">
+        <div class="drawer-header">
+            <span class="back-arrow">←</span>
+            <h2 style="text-align: left; flex: none;">Client Profile</h2>
+            <div style="flex:1; text-align: right;"><span style="font-size: 1.2rem; cursor: pointer; color: #e74c3c;">🚪</span></div>
+        </div>
+        <div class="drawer-content">
+            <div class="profile-cover"></div>
+            <div class="profile-avatar-wrapper"><img src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400&fit=crop" class="profile-avatar-large" alt="Odinson"><div class="online-indicator"></div></div>
+            <div class="profile-main-info"><h3>Odinson Liam</h3><p>odinsonliam43@example.com</p></div>
+        </div>
+    </div>
+
+    <!-- Export Modal -->
+    <div class="modal-backdrop" id="exportModal">
+        <div class="modal">
+            <h2>Export Options</h2>
+            <p style="color: #7f8c8d; margin-bottom: 1rem;">Choose your preferred file format.</p>
+            <ul class="export-options">
+                <li class="export-option" data-format="General File">📄 Export as file</li>
+                <li class="export-option" data-format="CSV">📊 Export as CSV</li>
+                <li class="export-option" data-format="Excel">📗 Export as XLSX</li>
+                <li class="export-option" data-format="Word">📘 Export as DOC</li>
+            </ul>
+        </div>
+    </div>
+
+    <script src="../js/admin-main.js"></script>
 </body>
 </html>

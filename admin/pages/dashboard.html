@@ -3,9 +3,421 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin - Dashboard</title>
+    <title>Dashboard - Eventra Admin</title>
+    <link rel="stylesheet" href="../css/admin-style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
 <body>
-    <!-- Dashboard Page -->
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="sidebar-logo">EVENTRA</div>
+        <ul class="sidebar-menu">
+            <li class="menu-item active"><a href="dashboard.html"><span>📊</span> Dashboard</a></li>
+            <li class="menu-item"><a href="events.html"><span>📅</span> Events</a></li>
+            <li class="menu-item"><a href="tickets.html"><span>🎫</span> Tickets</a></li>
+            <li class="menu-item"><a href="users.html"><span>👤</span> Users</a></li>
+            <li class="menu-item"><a href="clients.html"><span>💼</span> Clients</a></li>
+        </ul>
+        <div class="sidebar-footer">
+            <li class="menu-item" style="list-style: none;"><a href="/public/pages/login.html"><span>🚪</span> Logout</a></li>
+        </div>
+    </aside>
+
+    <div class="main-layout">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-search">
+                <span class="search-icon">🔍</span>
+                <input type="text" placeholder="Search analytics...">
+            </div>
+            <div class="header-actions">
+                <div class="action-icon">🔔</div>
+                <div class="action-icon">⚙️</div>
+                <div class="user-profile">
+                    <div class="user-avatar"></div>
+                    <span style="font-size: 0.9rem; font-weight: 500;"></span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Content -->
+        <main class="content-area">
+            <div class="page-header">
+                <div class="page-title">
+                    <h1>Dashboard</h1>
+                </div>
+                <button class="btn btn-primary btn-export">
+                    <span>📤</span> Export Data
+                </button>
+            </div>
+
+            <!-- Stats Grid -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <span class="stat-label">Total Events</span>
+                    <span class="stat-value">100</span>
+                    <span style="color: var(--status-success); font-size: 0.8rem; font-weight: 600;">+12% vs last month</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-label">Active Users</span>
+                    <span class="stat-value">300</span>
+                    <span style="color: var(--status-success); font-size: 0.8rem; font-weight: 600;">+5% growth</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-label">Tickets Sold</span>
+                    <span class="stat-value">190</span>
+                    <span style="color: var(--status-warning); font-size: 0.8rem; font-weight: 600;">Steady flow</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-label">Total Clients</span>
+                    <span class="stat-value">40</span>
+                    <span style="color: var(--status-info); font-size: 0.8rem; font-weight: 600;">New 2 this week</span>
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 2fr 1.2fr; gap: 1.5rem;">
+                <!-- Main Analytics (Placeholder) -->
+                <div class="table-container" style="min-height: 320px; padding: 1.5rem; display: flex; align-items: center; justify-content: center; background: linear-gradient(180deg, #fff, #f8fafc);">
+                    <div style="text-align: center;">
+                        <span style="font-size: 4rem;">📈</span>
+                        <h3 style="margin-top: 1rem;">Performance Charts</h3>
+                        <p style="color: #7f8c8d;">Data visualization will appear here from DB.</p>
+                    </div>
+                </div>
+
+                <!-- Recent Activities (Enhanced) -->
+                <div class="table-container activity-card" style="padding: 1.25rem;">
+                    <div class="quick-card-header">
+                        <h3 style="font-size: 1.1rem;">Recent Activities</h3>
+                        <a href="#" style="font-size: 0.8rem; color: var(--admin-primary); text-decoration: none;">View all</a>
+                    </div>
+                    <div class="activity-list">
+                        <div class="activity-item">
+                            <div class="activity-icon" style="background: #e3f2fd; color: #2196f3;">🎭</div>
+                            <div class="activity-content">
+                                <div class="activity-details">New Event Created: "Music Fest"</div>
+                                <div class="activity-time">27mins ago</div>
+                            </div>
+                        </div>
+                        <div class="activity-item">
+                            <div class="activity-icon" style="background: #e8f5e9; color: #4caf50;">👤</div>
+                            <div class="activity-content">
+                                <div class="activity-details">User "John Doe" Registered</div>
+                                <div class="activity-time">45mins ago</div>
+                            </div>
+                        </div>
+                        <div class="activity-item">
+                            <div class="activity-icon" style="background: #fff3e0; color: #ff9800;">🎫</div>
+                            <div class="activity-content">
+                                <div class="activity-details">Ticket #TK0023 Sold</div>
+                                <div class="activity-time">1hour ago</div>
+                            </div>
+                        </div>
+                        <div class="activity-item">
+                            <div class="activity-icon" style="background: #f3e5f5; color: #9c27b0;">💼</div>
+                            <div class="activity-content">
+                                <div class="activity-details">Client "Peak Soft" Updated</div>
+                                <div class="activity-time">2hours ago</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Lists: Users & Clients -->
+            <div class="quick-list-grid">
+                <!-- Top Users -->
+                <div class="quick-card">
+                    <div class="quick-card-header">
+                        <h3 style="font-size: 1rem;">Top Users</h3>
+                        <a href="users.html" style="font-size: 0.8rem; color: var(--admin-primary); text-decoration: none;">Manage</a>
+                    </div>
+                    <div class="quick-item">
+                        <img src="https://ui-avatars.com/api/?name=Sam+Smith&background=random" class="small-avatar" alt="Avatar">
+                        <div style="flex:1">
+                            <div style="font-size: 0.9rem; font-weight: 600;">Sam Smith</div>
+                            <div style="font-size: 0.75rem; color: var(--admin-text-muted);">Active • Lagos</div>
+                        </div>
+                        <div class="status-badge status-active">Online</div>
+                    </div>
+                    <div class="quick-item">
+                        <img src="https://ui-avatars.com/api/?name=Sara+Stones&background=random" class="small-avatar" alt="Avatar">
+                        <div style="flex:1">
+                            <div style="font-size: 0.9rem; font-weight: 600;">Sara Stones</div>
+                            <div style="font-size: 0.75rem; color: var(--admin-text-muted);">Active • Abuja</div>
+                        </div>
+                        <div class="status-badge status-active">Online</div>
+                    </div>
+                    <div class="quick-item">
+                        <img src="https://ui-avatars.com/api/?name=Ben+Daniel&background=random" class="small-avatar" alt="Avatar">
+                        <div style="flex:1">
+                            <div style="font-size: 0.9rem; font-weight: 600;">Ben Daniel</div>
+                            <div style="font-size: 0.75rem; color: var(--admin-text-muted);">Offline • Kaduna</div>
+                        </div>
+                        <div class="status-badge status-offline">Offline</div>
+                    </div>
+                </div>
+
+                <!-- Active Clients -->
+                <div class="quick-card">
+                    <div class="quick-card-header">
+                        <h3 style="font-size: 1rem;">Active Clients</h3>
+                        <a href="clients.html" style="font-size: 0.8rem; color: var(--admin-primary); text-decoration: none;">Manage</a>
+                    </div>
+                    <div class="quick-item">
+                        <img src="https://ui-avatars.com/api/?name=Peak+Soft&background=0288d1&color=fff" class="small-avatar" alt="Avatar">
+                        <div style="flex:1">
+                            <div style="font-size: 0.9rem; font-weight: 600;">Peak Soft</div>
+                            <div style="font-size: 0.75rem; color: var(--admin-text-muted);">Tech Solutions</div>
+                        </div>
+                        <div class="status-badge status-active">Online</div>
+                    </div>
+                    <div class="quick-item">
+                        <img src="https://ui-avatars.com/api/?name=Global+Events&background=7b1fa2&color=fff" class="small-avatar" alt="Avatar">
+                        <div style="flex:1">
+                            <div style="font-size: 0.9rem; font-weight: 600;">Global Events</div>
+                            <div style="font-size: 0.75rem; color: var(--admin-text-muted);">Entertainment</div>
+                        </div>
+                        <div class="status-badge status-active">Online</div>
+                    </div>
+                    <div class="quick-item">
+                        <img src="https://ui-avatars.com/api/?name=Swift+Org&background=388e3c&color=fff" class="small-avatar" alt="Avatar">
+                        <div style="flex:1">
+                            <div style="font-size: 0.9rem; font-weight: 600;">Swift Org</div>
+                            <div style="font-size: 0.75rem; color: var(--admin-text-muted);">Corporate</div>
+                        </div>
+                        <div class="status-badge status-offline">Away</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Featured Events Slider -->
+            <div class="events-slider-section">
+                <div class="quick-card-header">
+                    <h3 style="font-size: 1.1rem;">Upcoming Events Showcase</h3>
+                    <a href="events.html" style="font-size: 0.8rem; color: var(--admin-primary); text-decoration: none;">View Schedule</a>
+                </div>
+                <div class="events-slider-track">
+                    <!-- Duplicate slides for infinite loop -->
+                    <div class="event-mini-card">
+                        <img src="https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=400&h=200&fit=crop" class="event-mini-img" alt="Event">
+                        <div class="event-mini-info">
+                            <div class="event-mini-title">Global Tech Summit</div>
+                            <div class="event-mini-meta"><span>Lagos</span><span>Jan 28</span></div>
+                        </div>
+                    </div>
+                    <div class="event-mini-card">
+                        <img src="https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?w=400&h=200&fit=crop" class="event-mini-img" alt="Event">
+                        <div class="event-mini-info">
+                            <div class="event-mini-title">Music & Arts Festival</div>
+                            <div class="event-mini-meta"><span>Kaduna</span><span>Feb 12</span></div>
+                        </div>
+                    </div>
+                    <div class="event-mini-card">
+                        <img src="https://images.unsplash.com/photo-1511795409834-ef04bbd61622?w=400&h=200&fit=crop" class="event-mini-img" alt="Event">
+                        <div class="event-mini-info">
+                            <div class="event-mini-title">Corporate Gala 2026</div>
+                            <div class="event-mini-meta"><span>Abuja</span><span>Mar 05</span></div>
+                        </div>
+                    </div>
+                    <div class="event-mini-card">
+                        <img src="https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=400&h=200&fit=crop" class="event-mini-img" alt="Event">
+                        <div class="event-mini-info">
+                            <div class="event-mini-title">Start-up Expo</div>
+                            <div class="event-mini-meta"><span>Lagos</span><span>Apr 15</span></div>
+                        </div>
+                    </div>
+                    <div class="event-mini-card">
+                        <img src="https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=400&h=200&fit=crop" class="event-mini-img" alt="Event">
+                        <div class="event-mini-info">
+                            <div class="event-mini-title">Design Week</div>
+                            <div class="event-mini-meta"><span>Kaduna</span><span>May 20</span></div>
+                        </div>
+                    </div>
+                    <!-- Clones for seamless loop -->
+                    <div class="event-mini-card">
+                        <img src="https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=400&h=200&fit=crop" class="event-mini-img" alt="Event">
+                        <div class="event-mini-info">
+                            <div class="event-mini-title">Global Tech Summit</div>
+                            <div class="event-mini-meta"><span>Lagos</span><span>Jan 28</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="admin-footer" style="padding: 1.5rem 2rem; color: #7f8c8d; font-size: 0.85rem; border-top: 1px solid #edf2f7; background: white; margin-top: auto;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <p>&copy; 2026 Eventra Admin Panel. All rights reserved.</p>
+                <div style="display: flex; gap: 20px;">
+                    <a href="#" style="text-decoration: none; color: inherit;">Privacy Policy</a>
+                    <a href="#" style="text-decoration: none; color: inherit;">Support</a>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    </div>
+
+    <!-- Notifications Drawer -->
+    <div class="drawer" id="notificationsDrawer">
+        <div class="drawer-header">
+            <span class="back-arrow">←</span>
+            <h2>Notifications</h2>
+        </div>
+        <div class="drawer-content">
+            <div class="notif-item">
+                <div class="notif-icon">🔔</div>
+                <div class="notif-body">
+                    <p class="notif-text">Lorem ipsum dolor sit amet consectetur. Vel amet adipiscing elementum id.</p>
+                    <div class="notif-meta"><span>7:00PM</span><span>01/01/2026</span></div>
+                </div>
+            </div>
+            <div class="notif-item">
+                <div class="notif-icon">🔔</div>
+                <div class="notif-body">
+                    <p class="notif-text">Lorem ipsum dolor sit amet consectetur. Vel amet adipiscing elementum id.</p>
+                    <div class="notif-meta"><span>8:30PM</span><span>01/01/2026</span></div>
+                </div>
+            </div>
+            <div class="notif-item">
+                <div class="notif-icon">🔔</div>
+                <div class="notif-body">
+                    <p class="notif-text">Lorem ipsum dolor sit amet consectetur. Vel amet adipiscing elementum id.</p>
+                    <div class="notif-meta"><span>9:00AM</span><span>02/01/2026</span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Drawer -->
+    <div class="drawer" id="settingsDrawer">
+        <div class="drawer-header">
+            <span class="back-arrow">←</span>
+            <h2>Settings</h2>
+        </div>
+        <div class="drawer-content">
+            <div class="settings-group">
+                <div class="settings-item">
+                    <div class="settings-info">
+                        <h4>Dark Mode</h4>
+                        <p>Enable dark theme for the interface</p>
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <div class="settings-item">
+                    <div class="settings-info">
+                        <h4>Email Notifications</h4>
+                        <p>Receive weekly activity reports</p>
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <div class="settings-item">
+                    <div class="settings-info">
+                        <h4>Desktop Push</h4>
+                        <p>Get real-time browser alerts</p>
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <div class="settings-item">
+                    <div class="settings-info">
+                        <h4>Public Profile</h4>
+                        <p>Allow others to see your stats</p>
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Profile Drawer -->
+    <div class="drawer" id="profileDrawer">
+        <div class="drawer-header">
+            <span class="back-arrow">←</span>
+            <h2 style="text-align: left; flex: none;">Client Profile</h2>
+            <div style="flex:1; text-align: right;">
+                <span style="font-size: 1.2rem; cursor: pointer; color: #e74c3c;">🚪</span>
+            </div>
+        </div>
+        <div class="drawer-content">
+            <div class="profile-cover"></div>
+            <div class="profile-avatar-wrapper">
+                <img src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400&fit=crop" class="profile-avatar-large" alt="Odinson">
+                <div class="online-indicator"></div>
+            </div>
+            <div class="profile-main-info">
+                <h3 class="profile-name">Odinson Liam</h3>
+                <p class="profile-email">odinsonliam43@example.com</p>
+            </div>
+            <div class="profile-details-list">
+                <div class="profile-detail-item">
+                    <span class="detail-label">Phone</span>
+                    <span class="detail-value">+2348190987654</span>
+                </div>
+                <div class="profile-detail-item">
+                    <span class="detail-label">Job Title</span>
+                    <span class="detail-value">Lawyer</span>
+                </div>
+                <div class="profile-detail-item">
+                    <span class="detail-label">Company</span>
+                    <span class="detail-value">Company</span>
+                </div>
+                <div class="profile-detail-item">
+                    <span class="detail-label">Address</span>
+                    <span class="detail-value">No.5 Kanta Road</span>
+                </div>
+                <div class="profile-detail-item">
+                    <span class="detail-label">City</span>
+                    <span class="detail-value">Kaduna South</span>
+                </div>
+                <div class="profile-detail-item">
+                    <span class="detail-label">State</span>
+                    <span class="detail-value">Kaduna</span>
+                </div>
+                <div class="profile-detail-item">
+                    <span class="detail-label">DOB</span>
+                    <span class="detail-value">1994-05-24</span>
+                </div>
+                <div class="profile-detail-item">
+                    <span class="detail-label">Gender</span>
+                    <span class="detail-value">Male</span>
+                </div>
+                <div class="profile-detail-item">
+                    <span class="detail-label">Created Date</span>
+                    <span class="detail-value">2026-01-21</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Export Modal -->
+    <div class="modal-backdrop" id="exportModal">
+        <div class="modal">
+            <h2>Export Options</h2>
+            <p style="color: #7f8c8d; margin-bottom: 1rem;">Choose your preferred file format.</p>
+            <ul class="export-options">
+                <li class="export-option" data-format="General File">📄 Export as file</li>
+                <li class="export-option" data-format="CSV">📊 Export as CSV</li>
+                <li class="export-option" data-format="Excel">📗 Export as XLSX</li>
+                <li class="export-option" data-format="Word">📘 Export as DOC</li>
+            </ul>
+        </div>
+    </div>
+
+    <script src="../js/admin-main.js"></script>
 </body>
 </html>
