@@ -3,6 +3,16 @@ document.addEventListener('DOMContentLoaded', () => {
     initSidebar();
     initDrawers();
     initPreviews();
+    
+    // Initialize admin authentication and profile
+    if (window.adminAuth) {
+        window.adminAuth.loadAdminProfile();
+    }
+    
+    // Initialize notification system
+    if (window.notificationManager) {
+        window.notificationManager.startPolling();
+    }
 });
 
 function initDrawers() {
@@ -36,7 +46,17 @@ function initDrawers() {
     }
 
     // Attach listeners to triggers
-    if (triggers.notifications) triggers.notifications.onclick = () => openDrawer('notifications');
+    if (triggers.notifications) {
+        triggers.notifications.onclick = () => {
+            openDrawer('notifications');
+            // Mark all notifications as read when drawer is opened
+            if (window.notificationManager) {
+                setTimeout(() => {
+                    window.notificationManager.markAsRead();
+                }, 500);
+            }
+        };
+    }
     if (triggers.settings) triggers.settings.onclick = () => openDrawer('settings');
     if (triggers.profile) triggers.profile.onclick = () => openDrawer('profile');
 
@@ -46,6 +66,17 @@ function initDrawers() {
     });
 
     backdrop.onclick = closeAll;
+    
+    // Add logout handler to profile drawer logout icon
+    const logoutIcon = document.querySelector('#profileDrawer .drawer-header span[style*="color: #e74c3c"]');
+    if (logoutIcon && window.adminAuth) {
+        logoutIcon.onclick = (e) => {
+            e.stopPropagation();
+            if (confirm('Are you sure you want to logout?')) {
+                window.adminAuth.handleLogout();
+            }
+        };
+    }
 }
 
 function initExportModal() {

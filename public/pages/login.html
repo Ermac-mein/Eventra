@@ -9,6 +9,9 @@
     <!-- Stylesheets -->
     <link rel="stylesheet" href="../css/login-style.css">
     <link rel="stylesheet" href="../css/login.css">
+    
+    <!-- Google Identity Services -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
     <div class="login-container">
@@ -90,7 +93,45 @@
         </div>
     </div>
 
+    <!-- Role Selection Modal (My Idea) -->
+    <div id="roleModal" class="modal-overlay">
+        <div class="modal-content role-selection-modal">
+            <h2 class="modal-title">Sign in as...</h2>
+            <p class="modal-desc">Please select your role for this account.</p>
+            
+            <div class="role-options">
+                <label class="role-option">
+                    <input type="radio" name="sign_role" value="user" checked>
+                    <div class="role-card">
+                        <span class="role-icon">👤</span>
+                        <div class="role-text">
+                            <strong>User</strong>
+                            <span>I want to find and buy tickets</span>
+                        </div>
+                    </div>
+                </label>
+                
+                <label class="role-option">
+                    <input type="radio" name="sign_role" value="client"Id="sign_role_client">
+                    <div class="role-card">
+                        <span class="role-icon">🏢</span>
+                        <div class="role-text">
+                            <strong>Client</strong>
+                            <span>I want to host and post events</span>
+                        </div>
+                    </div>
+                </label>
+            </div>
+            
+            <div class="modal-actions">
+                <button id="cancelRole" class="btn-secondary">Cancel</button>
+                <button id="confirmRole" class="btn-primary">Confirm & Sign In</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Scripts -->
+    <script src="../js/utils.js"></script>
     <script src="../js/login.js"></script>
 </body>
 </html>

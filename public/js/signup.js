@@ -70,23 +70,37 @@ document.addEventListener('DOMContentLoaded', () => {
         signupButton.disabled = true;
         signupButton.innerHTML = '<span class="spinner"></span> Creating account...';
 
-        // Simulate API call
         try {
-            await new Promise(resolve => setTimeout(resolve, 1500));
-            
-            // Show success
-            if (successMessage) {
-                successMessage.style.display = 'block';
-                successMessage.textContent = 'Account created successfully! Redirecting to login...';
-            }
-            
-            // Redirect after success
-            setTimeout(() => {
-                window.location.href = 'login.html';
-            }, 1500);
+            const response = await fetch('../../api/auth/register.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    name: fullNameInput.value,
+                    email: emailInput.value,
+                    password: passwordInput.value
+                })
+            });
+            const result = await response.json();
 
+            if (result.success) {
+                // Show success
+                if (successMessage) {
+                    successMessage.style.display = 'block';
+                    successMessage.textContent = 'Account created successfully! Redirecting to login...';
+                }
+                
+                // Redirect after success
+                setTimeout(() => {
+                    window.location.href = 'login.html';
+                }, 1500);
+            } else {
+                showError('passwordError', result.message || 'Registration failed. Please try again.');
+                signupButton.disabled = false;
+                signupButton.innerHTML = originalBtnText;
+            }
         } catch (error) {
-            showError('passwordError', 'Registration failed. Please try again.');
+            console.error('Error:', error);
+            showError('passwordError', 'An error occurred. Please try again later.');
             signupButton.disabled = false;
             signupButton.innerHTML = originalBtnText;
         }

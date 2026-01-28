@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Clients Management - Eventra Admin</title>
+    <title>Clients - Eventra Admin</title>
     <link rel="stylesheet" href="../css/admin-style.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
@@ -162,13 +162,18 @@
     <div class="drawer" id="profileDrawer">
         <div class="drawer-header">
             <span class="back-arrow">←</span>
-            <h2 style="text-align: left; flex: none;">Client Profile</h2>
-            <div style="flex:1; text-align: right;"><span style="font-size: 1.2rem; cursor: pointer; color: #e74c3c;">🚪</span></div>
+            <h2 style="text-align: left; flex: none;">Admin Profile</h2>
+            <div style="flex:1; text-align: right;">
+                <span style="font-size: 1.2rem; cursor: pointer; color: #e74c3c;">🚪</span>
+            </div>
         </div>
         <div class="drawer-content">
             <div class="profile-cover"></div>
-            <div class="profile-avatar-wrapper"><img src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400&fit=crop" class="profile-avatar-large" alt="Odinson"><div class="online-indicator"></div></div>
-            <div class="profile-main-info"><h3>Odinson Liam</h3><p>odinsonliam43@example.com</p></div>
+            <div class="profile-avatar-wrapper">
+                <img src="/public/assets/imgs/admin.png" class="profile-avatar-large" alt="profile pic">
+                <div class="online-indicator"></div>
+                <div class="profile-edit-icon" title="Change profile picture"></div>
+            </div>
         </div>
     </div>
 
@@ -186,6 +191,10 @@
         </div>
     </div>
 
+    <script src="../js/toast-notification.js"></script>
+    <script src="../js/admin-auth.js"></script>
+    <script src="../js/notification-manager.js"></script>
+    <script src="../js/profile-pic-upload.js"></script>
     <script src="../js/admin-main.js"></script>
 </body>
 </html>

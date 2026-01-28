@@ -89,6 +89,22 @@ const storage = {
   }
 };
 
+// Auth helpers
+function isAuthenticated() {
+  const user = storage.get('user');
+  const token = storage.get('auth_token');
+  return !!(user && token);
+}
+
+function handleAuthRedirect(targetURL) {
+  if (!isAuthenticated()) {
+    storage.set('redirect_after_login', targetURL || window.location.href);
+    window.location.href = 'login.html';
+    return false;
+  }
+  return true;
+}
+
 // Export utilities
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
@@ -97,6 +113,8 @@ if (typeof module !== 'undefined' && module.exports) {
     debounce,
     isValidEmail,
     showNotification,
-    storage
+    storage,
+    isAuthenticated,
+    handleAuthRedirect
   };
 }

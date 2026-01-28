@@ -2,20 +2,45 @@ document.addEventListener('DOMContentLoaded', () => {
     const loginForm = document.getElementById('loginForm');
     const emailInput = document.getElementById('email');
     const passwordInput = document.getElementById('password');
+    const rememberMeInput = document.getElementById('rememberMe');
     const togglePassword = document.getElementById('togglePassword');
     const loginButton = document.getElementById('loginButton');
     const successMessage = document.getElementById('successMessage');
     const googleSignIn = document.getElementById('googleSignIn');
+    const forgotPasswordLink = document.querySelector('.forgot-password');
+
+    // Role Modal Elements
+    const roleModal = document.getElementById('roleModal');
+    const cancelRole = document.getElementById('cancelRole');
+    const confirmRole = document.getElementById('confirmRole');
 
     // Toggle password visibility
     if (togglePassword && passwordInput) {
         togglePassword.addEventListener('click', () => {
             const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
             passwordInput.setAttribute('type', type);
-            
-            // Toggle icon (if using FontAwesome or similar, here we just change text for simplicity or would toggle classes)
-            // For this design, we'll just keep it simple
             togglePassword.textContent = type === 'password' ? '👁️' : '👁️‍🗨️';
+        });
+    }
+
+    // Forgot Password
+    if (forgotPasswordLink) {
+        forgotPasswordLink.addEventListener('click', async (e) => {
+            e.preventDefault();
+            const email = prompt("Enter your email address to reset password:");
+            if (email) {
+                try {
+                    const response = await fetch('../../api/auth/forgot-password.php', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email })
+                    });
+                    const result = await response.json();
+                    alert(result.message);
+                } catch (error) {
+                    alert("An error occurred. Please try again.");
+                }
+            }
         });
     }
 
@@ -23,8 +48,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (loginForm) {
         loginForm.addEventListener('submit', (e) => {
             e.preventDefault();
-            
-            // Basic validation
             let isValid = true;
             resetErrors();
 
@@ -44,12 +67,28 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Google Sign In Mock
+    // Google Sign In (Role Selection Flow)
     if (googleSignIn) {
         googleSignIn.addEventListener('click', () => {
-            console.log('Google Sign In clicked');
-            // Mock redirections
-            alert('Redirecting to Google Sign In...');
+            roleModal.style.display = 'flex';
+        });
+    }
+
+    if (cancelRole) {
+        cancelRole.addEventListener('click', () => {
+            roleModal.style.display = 'none';
+        });
+    }
+
+    if (confirmRole) {
+        confirmRole.addEventListener('click', () => {
+            const selectedRole = document.querySelector('input[name="sign_role"]:checked').value;
+            
+            // Set pending_role cookie (My Idea implementation)
+            document.cookie = `pending_role=${selectedRole}; max-age=300; path=/; samesite=lax`;
+            
+            roleModal.style.display = 'none';
+            handleGoogleSignIn();
         });
     }
 
@@ -64,48 +103,159 @@ document.addEventListener('DOMContentLoaded', () => {
             errorElement.textContent = message;
             errorElement.style.display = 'block';
         }
-        
-        // Find corresponding input to highlight
         const inputId = elementId.replace('Error', '');
         const inputElement = document.getElementById(inputId);
-        if (inputElement) {
-            inputElement.classList.add('error');
-        }
+        if (inputElement) inputElement.classList.add('error');
     }
 
     function resetErrors() {
-        const errors = document.querySelectorAll('.error-message');
-        errors.forEach(err => err.style.display = 'none');
-        
-        const inputs = document.querySelectorAll('.form-input');
-        inputs.forEach(input => input.classList.remove('error'));
+        document.querySelectorAll('.error-message').forEach(err => err.style.display = 'none');
+        document.querySelectorAll('.form-input').forEach(input => input.classList.remove('error'));
     }
 
     async function handleLogin() {
-        // Show loading state
         const originalBtnText = loginButton.innerHTML;
         loginButton.disabled = true;
         loginButton.innerHTML = '<span class="spinner"></span> Logging in...';
 
-        // Simulate API call
         try {
-            await new Promise(resolve => setTimeout(resolve, 1500));
-            
-            // Show success
-            if (successMessage) {
-                successMessage.classList.add('show');
-                successMessage.textContent = 'Login successful! Redirecting...';
-            }
-            
-            // Redirect after success
-            setTimeout(() => {
-                window.location.href = 'index.html';
-            }, 1000);
+            const response = await fetch('../../api/auth/login.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    email: emailInput.value,
+                    password: passwordInput.value,
+                    remember_me: rememberMeInput?.checked || false
+                })
+            });
 
+            const contentType = response.headers.get("content-type");
+            if (!contentType || !contentType.includes("application/json")) {
+                const text = await response.text();
+                console.error("Non-JSON response received:", text);
+                throw new Error("Server returned non-JSON response. Status: " + response.status);
+            }
+
+            const result = await response.json();
+
+            if (result.success) {
+                storage.set('user', result.user);
+                storage.set('auth_token', result.user.token);
+
+                if (successMessage) {
+                    successMessage.classList.add('show');
+                    successMessage.textContent = 'Login successful! Redirecting...';
+                }
+                
+                setTimeout(() => {
+                    if (result.user.role === 'admin') {
+                        window.location.href = '../../admin/pages/dashboard.html';
+                    } else if (result.user.role === 'client') {
+                        window.location.href = '../../client/pages/dashboard.html';
+                    } else {
+                        const redirectPath = storage.get('redirect_after_login') || 'index.html';
+                        storage.remove('redirect_after_login');
+                        window.location.href = redirectPath;
+                    }
+                }, 1000);
+            } else {
+                // If the message contains "Email", show it there, otherwise show at password
+                const errorElement = result.message?.toLowerCase().includes('email') ? 'emailError' : 'passwordError';
+                showError(errorElement, result.message || 'Invalid email or password');
+                loginButton.disabled = false;
+                loginButton.innerHTML = originalBtnText;
+            }
         } catch (error) {
-            showError('passwordError', 'Invalid email or password');
+            console.error('Error:', error);
+            showError('passwordError', 'An error occurred. Please try again later.');
             loginButton.disabled = false;
             loginButton.innerHTML = originalBtnText;
         }
     }
+
+    async function handleGoogleSignIn() {
+        const clientId = '373312677143-3gth0i8r9f6ikv985oelerv23qb6qqi8.apps.googleusercontent.com';
+        
+        if (typeof google === 'undefined') {
+            const errorMsg = 'Google Sign-in is currently blocked by your browser or an extension (e.g., ad-blocker, privacy extension).\n\nTo use Google Sign-in:\n1. Disable your ad blocker for this site\n2. Disable privacy extensions temporarily\n3. Try again\n\nAlternatively, you can sign in using email and password.';
+            alert(errorMsg);
+            return;
+        }
+
+        if (clientId === 'YOUR_GOOGLE_CLIENT_ID') {
+            alert('Google Client ID is not configured. Please follow the steps in docs/GOOGLE_SETUP.md');
+            return;
+        }
+
+        try {
+            google.accounts.id.initialize({
+                client_id: clientId,
+                callback: handleCredentialResponse,
+                auto_select: false,
+                cancel_on_tap_outside: true,
+            });
+
+            google.accounts.id.prompt();
+        } catch (error) {
+            console.error('Google Initialization Error:', error);
+            const errorMsg = 'Could not initialize Google Sign-in.\n\nPossible causes:\n- Ad blocker or privacy extension is blocking Google\n- Network connectivity issues\n- Browser security settings\n\nPlease try:\n1. Disabling ad blockers\n2. Using email/password login instead';
+            alert(errorMsg);
+        }
+    }
+
+    async function handleCredentialResponse(response) {
+        const decodedToken = parseJwt(response.credential);
+        const googleData = {
+            google_id: decodedToken.sub,
+            email: decodedToken.email,
+            name: decodedToken.name,
+            profile_pic: decodedToken.picture
+        };
+
+        try {
+            const res = await fetch('../../api/auth/google-handler.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(googleData)
+            });
+            
+            // Handle non-JSON responses (like 405 or 500 html errors)
+            const contentType = res.headers.get("content-type");
+            if (!contentType || !contentType.includes("application/json")) {
+                const text = await res.text();
+                console.error("Non-JSON response received:", text);
+                throw new Error("Server returned non-JSON response. Status: " + res.status);
+            }
+
+            const result = await res.json();
+
+            if (result.success) {
+                storage.set('user', result.user);
+                storage.set('auth_token', result.user.token);
+                
+                if (successMessage) {
+                    successMessage.classList.add('show');
+                    successMessage.textContent = 'Google Sign-in successful! Redirecting...';
+                }
+
+                setTimeout(() => {
+                    window.location.href = result.redirect || 'index.html';
+                }, 1000);
+            } else {
+                alert('Google Sign-in failed: ' + result.message);
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('An error occurred during Google Sign-in.');
+        }
+    }
+
+    function parseJwt(token) {
+        var base64Url = token.split('.')[1];
+        var base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        var jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function(c) {
+            return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+        }).join(''));
+        return JSON.parse(jsonPayload);
+    };
 });

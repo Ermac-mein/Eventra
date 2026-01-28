@@ -6,13 +6,18 @@
     <div class="header-actions">
         <div class="action-icon" data-drawer="notifications" title="Notifications">🔔</div>
         <div class="action-icon" data-drawer="settings" title="Settings">⚙️</div>
-        <div class="user-profile">
-            <div class="user-avatar"></div>
+        <div class="user-profile" id="userProfileTrigger">
+            <div class="user-avatar user-avatar-display"></div>
             <div style="text-align: left; line-height: 1.2;">
-                <div style="font-weight: 700; font-size: 0.9rem;">Odinson Liam</div>
-                <div style="font-size: 0.75rem; color: var(--client-text-muted);">Lawyer • Nigeria</div>
+                <div class="user-name-display" style="font-weight: 700; font-size: 0.9rem;">Loading...</div>
+                <div style="font-size: 0.75rem; color: var(--client-text-muted);">Client • Nigeria</div>
             </div>
             <span style="font-size: 0.8rem; color: var(--client-text-muted);">▼</span>
+
+            <!-- Simple Logout Popover or Menu -->
+            <div class="profile-dropdown" id="profileDropdown">
+                <a href="#" onclick="logout(); return false;" class="logout-link">🚪 Logout</a>
+            </div>
         </div>
     </div>
 </header>

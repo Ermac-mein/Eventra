@@ -151,6 +151,56 @@ body {
     cursor: pointer;
 }
 
+.head.user-profile {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 6px 12px;
+    background: #f8fafc;
+    border-radius: 12px;
+    cursor: pointer;
+    border: 1px solid var(--admin-border);
+    transition: all 0.2s ease;
+    position: relative;
+}
+
+.user-profile:hover {
+    background: #f1f5f9;
+}
+
+.profile-dropdown {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    width: 160px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+    border: 1px solid var(--admin-border);
+    margin-top: 8px;
+    display: none;
+    z-index: 1000;
+    overflow: hidden;
+}
+
+.user-profile:hover .profile-dropdown {
+    display: block;
+}
+
+.logout-link {
+    display: block;
+    padding: 12px 16px;
+    color: #ef4444;
+    text-decoration: none;
+    font-size: 0.9rem;
+    font-weight: 600;
+    transition: background 0.2s;
+}
+
+.logout-link:hover {
+    background: #fef2f2;
+}
+
 .user-avatar {
     width: 35px;
     height: 35px;
@@ -161,8 +211,6 @@ body {
 /* Content Area */
 .content-area {
     padding: 1.5rem;
-    max-width: 1400px;
-    margin: 0 auto;
     width: 100%;
 }
 
@@ -1021,7 +1069,7 @@ input:checked+.slider:before {
 
 .ticket-barcode-section {
     width: 70px;
-    background: white;
+    background: transparent;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1032,6 +1080,7 @@ input:checked+.slider:before {
     width: 60px;
     height: auto;
     transform: rotate(90deg);
+    content: url('/public/assets/imgs/barcode.png');
 }
 
 /* Event Preview Layout (Matches Image 3) */
@@ -1139,4 +1188,347 @@ input:checked+.slider:before {
 .event-price-final span {
     font-weight: 800;
     font-size: 1.4rem;
+}
+
+/* Toast Notification System */
+.toast-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-width: 400px;
+}
+
+.toast {
+    background: white;
+    border-radius: 12px;
+    padding: 1rem 1.25rem;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 300px;
+    opacity: 0;
+    transform: translateX(400px);
+    transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    border-left: 4px solid;
+}
+
+.toast.show {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+.toast-icon {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 1rem;
+    flex-shrink: 0;
+}
+
+.toast-message {
+    flex: 1;
+    font-size: 0.9rem;
+    font-weight: 500;
+    line-height: 1.4;
+}
+
+.toast-close {
+    cursor: pointer;
+    font-size: 1.5rem;
+    color: #7f8c8d;
+    line-height: 1;
+    opacity: 0.6;
+    transition: opacity 0.2s;
+}
+
+.toast-close:hover {
+    opacity: 1;
+}
+
+/* Toast Types */
+.toast-success {
+    border-left-color: var(--status-success);
+}
+
+.toast-success .toast-icon {
+    background: #d4edda;
+    color: var(--status-success);
+}
+
+.toast-error {
+    border-left-color: var(--status-error);
+}
+
+.toast-error .toast-icon {
+    background: #f8d7da;
+    color: var(--status-error);
+}
+
+.toast-warning {
+    border-left-color: var(--status-warning);
+}
+
+.toast-warning .toast-icon {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.toast-info {
+    border-left-color: var(--status-info);
+}
+
+.toast-info .toast-icon {
+    background: #d1ecf1;
+    color: var(--status-info);
+}
+
+/* Notification Badge */
+.notification-badge {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    background: var(--status-error);
+    color: white;
+    border-radius: 10px;
+    padding: 2px 6px;
+    font-size: 0.65rem;
+    font-weight: 700;
+    min-width: 18px;
+    text-align: center;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.1);
+    }
+}
+
+/* Unread notification styling */
+.notif-item.unread {
+    background: #e3f2fd;
+    border-left: 3px solid var(--admin-primary);
+}
+
+.notif-item.unread .notif-text {
+    font-weight: 600;
+}
+
+/* Profile Picture Upload Styles */
+.profile-edit-icon {
+    position: absolute;
+    bottom: 5px;
+    right: 5px;
+    width: 32px;
+    height: 32px;
+    background: var(--admin-primary);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    transition: all 0.3s ease;
+    z-index: 10;
+}
+
+.profile-edit-icon:hover {
+    background: #1565c0;
+    transform: scale(1.1);
+}
+
+.profile-edit-icon::before {
+    content: "✏️";
+    font-size: 16px;
+}
+
+/* Upload Modal */
+.profile-pic-upload-modal {
+    background: white;
+    border-radius: 16px;
+    width: 90%;
+    max-width: 500px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    animation: modalSlideIn 0.3s ease;
+}
+
+@keyframes modalSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-50px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.upload-modal-header {
+    padding: 1.5rem;
+    border-bottom: 1px solid var(--admin-border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.upload-modal-header h2 {
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin: 0;
+}
+
+.upload-modal-close {
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: var(--admin-text-muted);
+    transition: color 0.2s;
+}
+
+.upload-modal-close:hover {
+    color: var(--admin-text-main);
+}
+
+.upload-modal-body {
+    padding: 2rem;
+}
+
+.upload-dropzone {
+    border: 2px dashed var(--admin-primary);
+    border-radius: 12px;
+    padding: 3rem 2rem;
+    text-align: center;
+    background: #f8fafc;
+    transition: all 0.3s ease;
+}
+
+.upload-dropzone.dragover {
+    background: var(--admin-primary-light);
+    border-color: var(--admin-primary);
+    transform: scale(1.02);
+}
+
+.upload-icon {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+}
+
+.upload-text {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--admin-text-main);
+    margin-bottom: 0.5rem;
+}
+
+.upload-subtext {
+    color: var(--admin-text-muted);
+    margin-bottom: 1rem;
+}
+
+.upload-hint {
+    font-size: 0.85rem;
+    color: var(--admin-text-muted);
+    margin-top: 1rem;
+}
+
+.upload-preview {
+    position: relative;
+    border-radius: 12px;
+    overflow: hidden;
+    max-height: 400px;
+}
+
+.upload-preview img {
+    width: 100%;
+    height: auto;
+    display: block;
+    border-radius: 12px;
+}
+
+.btn-remove-preview {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 32px;
+    height: 32px;
+    background: rgba(231, 76, 60, 0.9);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    font-size: 1.5rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.btn-remove-preview:hover {
+    background: #e74c3c;
+    transform: scale(1.1);
+}
+
+.upload-progress {
+    text-align: center;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 8px;
+    background: #e0e0e0;
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 1rem;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--admin-primary), #42a5f5);
+    width: 0%;
+    transition: width 0.3s ease;
+}
+
+.progress-text {
+    font-size: 0.9rem;
+    color: var(--admin-text-muted);
+    font-weight: 500;
+}
+
+.upload-modal-footer {
+    padding: 1.5rem;
+    border-top: 1px solid var(--admin-border);
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+}
+
+.btn-secondary {
+    background: #e0e0e0;
+    color: var(--admin-text-main);
+}
+
+.btn-secondary:hover {
+    background: #d0d0d0;
+}
+
+.btn-primary:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.btn-primary:disabled:hover {
+    background: #ccc;
 }

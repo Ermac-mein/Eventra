@@ -3,7 +3,7 @@
 /logs/*.log
 /uploads/*
 !/uploads/.gitkeep
-.env
+# .env
 .DS_Store
 *.swp
 *.swo

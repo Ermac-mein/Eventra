@@ -115,7 +115,12 @@ function initUserIcon() {
   const userIcon = document.querySelector('.user-icon');
   if (userIcon) {
     userIcon.addEventListener('click', () => {
-      window.location.href = 'login.html';
+      if (isAuthenticated()) {
+        const user = storage.get('user');
+        window.location.href = user.role === 'admin' ? '/Eventra/admin/index.html' : '/Eventra/client/index.html';
+      } else {
+        window.location.href = 'login.html';
+      }
     });
   }
 }
@@ -164,6 +169,9 @@ function filterEvents(query) {
 
 // Create event card
 function createEventCard(event) {
+  const actionText = event.status || 'Buy Ticket';
+  const isBuyAction = actionText.toLowerCase().includes('buy') || actionText.toLowerCase().includes('register');
+  
   return `
     <div class="event-card">
       <img src="${event.image}" alt="${event.title}" class="event-image" loading="lazy">
@@ -179,11 +187,19 @@ function createEventCard(event) {
           <p class="event-price">${event.price}</p>
         </div>
         <div class="event-footer">
-          <span class="event-status">${event.status}</span>
+          <button class="event-status-btn" onclick="${isBuyAction ? `buyTicket(${event.id})` : ''}">${actionText}</button>
         </div>
       </div>
     </div>
   `;
+}
+
+// Buy ticket handler
+function buyTicket(eventId) {
+  if (handleAuthRedirect()) {
+    // Proceed to buy ticket
+    window.location.href = `pages/buy-ticket.html?id=${eventId}`;
+  }
 }
 
 // Render events
