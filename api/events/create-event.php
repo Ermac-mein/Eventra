@@ -42,7 +42,7 @@ try {
     $address = $_POST['address'] ?? '';
     $visibility = $_POST['visibility'] ?? 'all_states';
     $price = $_POST['price'] ?? 0.00;
-    $priority = $_POST['priority'] ?? 'normal';
+    $priority = $_POST['priority'] ?? 'nearby';
     $status = $_POST['status'] ?? 'draft';
     $scheduled_publish_time = !empty($_POST['scheduled_publish_time']) ? $_POST['scheduled_publish_time'] : null;
 
@@ -103,6 +103,15 @@ try {
     // Create notifications using helper functions
     require_once '../utils/notification-helper.php';
 
+    // Notify admin about event creation
+    $admin_id = getAdminUserId();
+    if ($admin_id) {
+        $client_name = $client['name'];
+        $admin_message = "New event created: '{$event_name}' by {$client_name} - Status: {$status}";
+        createNotification($admin_id, $admin_message, 'event_created', $client_id);
+    }
+
+    // Notify client
     if ($status === 'scheduled' && $scheduled_publish_time) {
         createEventScheduledNotification($client_id, $event_name, $scheduled_publish_time);
     } elseif ($status === 'published') {

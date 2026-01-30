@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Clients - Eventra Admin</title>
     <link rel="stylesheet" href="../css/admin-style.css">
+    <script src="../../public/js/utils.js"></script>
+    <script src="../../public/js/auth-guard.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
 <body>
@@ -84,44 +86,7 @@
                     </thead>
                     <tbody>
                         <tr>
-                            <td>cli0001</td>
-                            <td>Samuel Stephens</td>
-                            <td>stephen123@example.com</td>
-                            <td>Kaduna</td>
-                            <td>08098765432</td>
-                            <td><span class="status-badge status-offline">Offline</span></td>
-                        </tr>
-                        <tr>
-                            <td>cli0002</td>
-                            <td>Augustine Okoro</td>
-                            <td>okoro12@example.com</td>
-                            <td>Kaduna</td>
-                            <td>09098765433</td>
-                            <td><span class="status-badge status-concluded">Active</span></td>
-                        </tr>
-                        <tr>
-                            <td>cli0003</td>
-                            <td>Caleb Dauda</td>
-                            <td>dauda14@example.com</td>
-                            <td>Kebbi</td>
-                            <td>08098767654</td>
-                            <td><span class="status-badge status-offline">Offline</span></td>
-                        </tr>
-                        <tr>
-                            <td>cli0004</td>
-                            <td>Jacob Smith</td>
-                            <td>jacobsmith32@example.com</td>
-                            <td>Abuja</td>
-                            <td>07098765434</td>
-                            <td><span class="status-badge status-offline">Offline</span></td>
-                        </tr>
-                        <tr>
-                            <td>cli0005</td>
-                            <td>Nice Ben</td>
-                            <td>niceben45@example.com</td>
-                            <td>Abuja</td>
-                            <td>07098765434</td>
-                            <td><span class="status-badge status-offline">Offline</span></td>
+                            <td colspan="6" style="text-align: center; padding: 2rem; color: #999;">Loading clients...</td>
                         </tr>
                     </tbody>
                 </table>
@@ -195,6 +160,7 @@
     <script src="../js/admin-auth.js"></script>
     <script src="../js/notification-manager.js"></script>
     <script src="../js/profile-pic-upload.js"></script>
+    <script src="../js/pages/clients.js"></script>
     <script src="../js/admin-main.js"></script>
 </body>
 </html>

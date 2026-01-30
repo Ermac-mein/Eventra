@@ -54,23 +54,25 @@ try {
     $stmt->execute([$quantity, $event_id]);
 
     // Get user details
-    $stmt = $pdo->prepare("SELECT name FROM users WHERE id = ?");
+    $stmt = $pdo->prepare("SELECT name, email FROM users WHERE id = ?");
     $stmt->execute([$user_id]);
     $user = $stmt->fetch();
 
-    // Create notification for client
-    $message = "User '{$user['name']}' purchased {$quantity} ticket(s) for '{$event['event_name']}'";
-    $stmt = $pdo->prepare("INSERT INTO notifications (recipient_id, sender_id, message, type) VALUES (?, ?, ?, ?)");
-    $stmt->execute([$event['client_id'], $user_id, $message, 'ticket_purchased']);
+    // Create notifications for admin, client, and user using helper function
+    require_once '../utils/notification-helper.php';
+    $admin_id = getAdminUserId();
 
-    // Create notification for admin
-    $stmt = $pdo->prepare("SELECT id FROM users WHERE role = 'admin' LIMIT 1");
-    $stmt->execute();
-    $admin = $stmt->fetch();
-
-    if ($admin) {
-        $stmt = $pdo->prepare("INSERT INTO notifications (recipient_id, sender_id, message, type) VALUES (?, ?, ?, ?)");
-        $stmt->execute([$admin['id'], $user_id, $message, 'ticket_purchased']);
+    if ($admin_id) {
+        createTicketPurchaseNotification(
+            $admin_id,
+            $event['client_id'],
+            $user_id,
+            $user['name'],
+            $user['email'],
+            $event['event_name'],
+            $quantity,
+            $total_price
+        );
     }
 
     echo json_encode([

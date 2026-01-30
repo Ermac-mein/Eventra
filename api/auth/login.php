@@ -42,6 +42,16 @@ try {
         require_once '../utils/notification-helper.php';
         createLoginNotification($user['id'], $user['name'], $user['email']);
 
+        // Notify admin about user/client login
+        $admin_id = getAdminUserId();
+        if ($admin_id && $admin_id != $user['id']) {
+            if ($user['role'] === 'client') {
+                createClientLoginNotification($admin_id, $user['id'], $user['name'], $user['email']);
+            } elseif ($user['role'] === 'user') {
+                createUserLoginNotification($admin_id, $user['id'], $user['name'], $user['email'], 'user');
+            }
+        }
+
         // Set Session
         $expectedSessionName = 'EVENTRA_USER_SESS';
         if ($user['role'] === 'admin') {
@@ -77,6 +87,7 @@ try {
                 'name' => $user['name'],
                 'email' => $user['email'],
                 'role' => $user['role'],
+                'profile_pic' => $user['profile_pic'],
                 'token' => $token
             ]
         ]);

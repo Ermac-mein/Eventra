@@ -83,6 +83,16 @@ try {
     require_once '../utils/notification-helper.php';
     createLoginNotification($user['id'], $user['name'], $user['email']);
 
+    // Notify admin about user/client login
+    $admin_id = getAdminUserId();
+    if ($admin_id && $admin_id != $user['id']) {
+        if ($user['role'] === 'client') {
+            createClientLoginNotification($admin_id, $user['id'], $user['name'], $user['email']);
+        } elseif ($user['role'] === 'user') {
+            createUserLoginNotification($admin_id, $user['id'], $user['name'], $user['email'], 'user');
+        }
+    }
+
     // Clear the pending role cookie
     setcookie('pending_role', '', time() - 3600, "/");
 
@@ -92,8 +102,8 @@ try {
     } elseif ($user['role'] === 'admin') {
         $redirect = '../../admin/pages/dashboard.html';
     } else {
-        // Regular users go to landing page
-        $redirect = '../../public/pages/landing.html';
+        // Regular users go to index page
+        $redirect = '../../public/pages/index.html';
     }
 
     echo json_encode([
@@ -105,6 +115,7 @@ try {
             'name' => $user['name'],
             'email' => $user['email'],
             'role' => $user['role'],
+            'profile_pic' => $user['profile_pic'],
             'token' => $token
         ]
     ]);

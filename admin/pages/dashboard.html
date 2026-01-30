@@ -78,12 +78,16 @@
 
             <div style="display: grid; grid-template-columns: 2fr 1.2fr; gap: 1.5rem;">
                 <!-- Main Analytics (Placeholder) -->
-                <div class="table-container" style="min-height: 320px; padding: 1.5rem; display: flex; align-items: center; justify-content: center; background: linear-gradient(180deg, #fff, #f8fafc);">
-                    <div style="text-align: center;">
-                        <span style="font-size: 4rem;">📈</span>
-                        <h3 style="margin-top: 1rem;">Performance Charts</h3>
-                        <p style="color: #7f8c8d;">Data visualization will appear here from DB.</p>
+                <div class="table-container" style="min-height: 320px; padding: 1.5rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        <h3 style="font-size: 1.1rem;">Performance Analytics</h3>
+                        <select id="chartPeriodSelector" style="padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 0.85rem;">
+                            <option value="7days">Last 7 Days</option>
+                            <option value="30days">Last 30 Days</option>
+                            <option value="90days">Last 90 Days</option>
+                        </select>
                     </div>
+                    <canvas id="adminChart" style="max-height: 280px;"></canvas>
                 </div>
 
                 <!-- Recent Activities (Enhanced) -->
@@ -92,35 +96,8 @@
                         <h3 style="font-size: 1.1rem;">Recent Activities</h3>
                         <a href="#" style="font-size: 0.8rem; color: var(--admin-primary); text-decoration: none;">View all</a>
                     </div>
-                    <div class="activity-list">
-                        <div class="activity-item">
-                            <div class="activity-icon" style="background: #e3f2fd; color: #2196f3;">🎭</div>
-                            <div class="activity-content">
-                                <div class="activity-details">New Event Created: "Music Fest"</div>
-                                <div class="activity-time">27mins ago</div>
-                            </div>
-                        </div>
-                        <div class="activity-item">
-                            <div class="activity-icon" style="background: #e8f5e9; color: #4caf50;">👤</div>
-                            <div class="activity-content">
-                                <div class="activity-details">User "John Doe" Registered</div>
-                                <div class="activity-time">45mins ago</div>
-                            </div>
-                        </div>
-                        <div class="activity-item">
-                            <div class="activity-icon" style="background: #fff3e0; color: #ff9800;">🎫</div>
-                            <div class="activity-content">
-                                <div class="activity-details">Ticket #TK0023 Sold</div>
-                                <div class="activity-time">1hour ago</div>
-                            </div>
-                        </div>
-                        <div class="activity-item">
-                            <div class="activity-icon" style="background: #f3e5f5; color: #9c27b0;">💼</div>
-                            <div class="activity-content">
-                                <div class="activity-details">Client "Peak Soft" Updated</div>
-                                <div class="activity-time">2hours ago</div>
-                            </div>
-                        </div>
+                    <div class="activity-list" id="recentActivitiesList">
+                        <p style="text-align: center; color: #999; padding: 2rem;">Loading activities...</p>
                     </div>
                 </div>
             </div>
@@ -133,29 +110,8 @@
                         <h3 style="font-size: 1rem;">Top Users</h3>
                         <a href="users.html" style="font-size: 0.8rem; color: var(--admin-primary); text-decoration: none;">Manage</a>
                     </div>
-                    <div class="quick-item">
-                        <img src="https://ui-avatars.com/api/?name=Sam+Smith&background=random" class="small-avatar" alt="Avatar">
-                        <div style="flex:1">
-                            <div style="font-size: 0.9rem; font-weight: 600;">Sam Smith</div>
-                            <div style="font-size: 0.75rem; color: var(--admin-text-muted);">Active • Lagos</div>
-                        </div>
-                        <div class="status-badge status-active">Online</div>
-                    </div>
-                    <div class="quick-item">
-                        <img src="https://ui-avatars.com/api/?name=Sara+Stones&background=random" class="small-avatar" alt="Avatar">
-                        <div style="flex:1">
-                            <div style="font-size: 0.9rem; font-weight: 600;">Sara Stones</div>
-                            <div style="font-size: 0.75rem; color: var(--admin-text-muted);">Active • Abuja</div>
-                        </div>
-                        <div class="status-badge status-active">Online</div>
-                    </div>
-                    <div class="quick-item">
-                        <img src="https://ui-avatars.com/api/?name=Ben+Daniel&background=random" class="small-avatar" alt="Avatar">
-                        <div style="flex:1">
-                            <div style="font-size: 0.9rem; font-weight: 600;">Ben Daniel</div>
-                            <div style="font-size: 0.75rem; color: var(--admin-text-muted);">Offline • Kaduna</div>
-                        </div>
-                        <div class="status-badge status-offline">Offline</div>
+                    <div id="topUsersList">
+                        <p style="text-align: center; color: #999; padding: 2rem;">Loading users...</p>
                     </div>
                 </div>
 
@@ -165,29 +121,8 @@
                         <h3 style="font-size: 1rem;">Active Clients</h3>
                         <a href="clients.html" style="font-size: 0.8rem; color: var(--admin-primary); text-decoration: none;">Manage</a>
                     </div>
-                    <div class="quick-item">
-                        <img src="https://ui-avatars.com/api/?name=Peak+Soft&background=0288d1&color=fff" class="small-avatar" alt="Avatar">
-                        <div style="flex:1">
-                            <div style="font-size: 0.9rem; font-weight: 600;">Peak Soft</div>
-                            <div style="font-size: 0.75rem; color: var(--admin-text-muted);">Tech Solutions</div>
-                        </div>
-                        <div class="status-badge status-active">Online</div>
-                    </div>
-                    <div class="quick-item">
-                        <img src="https://ui-avatars.com/api/?name=Global+Events&background=7b1fa2&color=fff" class="small-avatar" alt="Avatar">
-                        <div style="flex:1">
-                            <div style="font-size: 0.9rem; font-weight: 600;">Global Events</div>
-                            <div style="font-size: 0.75rem; color: var(--admin-text-muted);">Entertainment</div>
-                        </div>
-                        <div class="status-badge status-active">Online</div>
-                    </div>
-                    <div class="quick-item">
-                        <img src="https://ui-avatars.com/api/?name=Swift+Org&background=388e3c&color=fff" class="small-avatar" alt="Avatar">
-                        <div style="flex:1">
-                            <div style="font-size: 0.9rem; font-weight: 600;">Swift Org</div>
-                            <div style="font-size: 0.75rem; color: var(--admin-text-muted);">Corporate</div>
-                        </div>
-                        <div class="status-badge status-offline">Away</div>
+                    <div id="activeClientsList">
+                        <p style="text-align: center; color: #999; padding: 2rem;">Loading clients...</p>
                     </div>
                 </div>
             </div>
@@ -198,51 +133,8 @@
                     <h3 style="font-size: 1.1rem;">Upcoming Events Showcase</h3>
                     <a href="events.html" style="font-size: 0.8rem; color: var(--admin-primary); text-decoration: none;">View Schedule</a>
                 </div>
-                <div class="events-slider-track">
-                    <!-- Duplicate slides for infinite loop -->
-                    <div class="event-mini-card">
-                        <img src="https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=400&h=200&fit=crop" class="event-mini-img" alt="Event">
-                        <div class="event-mini-info">
-                            <div class="event-mini-title">Global Tech Summit</div>
-                            <div class="event-mini-meta"><span>Lagos</span><span>Jan 28</span></div>
-                        </div>
-                    </div>
-                    <div class="event-mini-card">
-                        <img src="https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?w=400&h=200&fit=crop" class="event-mini-img" alt="Event">
-                        <div class="event-mini-info">
-                            <div class="event-mini-title">Music & Arts Festival</div>
-                            <div class="event-mini-meta"><span>Kaduna</span><span>Feb 12</span></div>
-                        </div>
-                    </div>
-                    <div class="event-mini-card">
-                        <img src="https://images.unsplash.com/photo-1511795409834-ef04bbd61622?w=400&h=200&fit=crop" class="event-mini-img" alt="Event">
-                        <div class="event-mini-info">
-                            <div class="event-mini-title">Corporate Gala 2026</div>
-                            <div class="event-mini-meta"><span>Abuja</span><span>Mar 05</span></div>
-                        </div>
-                    </div>
-                    <div class="event-mini-card">
-                        <img src="https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=400&h=200&fit=crop" class="event-mini-img" alt="Event">
-                        <div class="event-mini-info">
-                            <div class="event-mini-title">Start-up Expo</div>
-                            <div class="event-mini-meta"><span>Lagos</span><span>Apr 15</span></div>
-                        </div>
-                    </div>
-                    <div class="event-mini-card">
-                        <img src="https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=400&h=200&fit=crop" class="event-mini-img" alt="Event">
-                        <div class="event-mini-info">
-                            <div class="event-mini-title">Design Week</div>
-                            <div class="event-mini-meta"><span>Kaduna</span><span>May 20</span></div>
-                        </div>
-                    </div>
-                    <!-- Clones for seamless loop -->
-                    <div class="event-mini-card">
-                        <img src="https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=400&h=200&fit=crop" class="event-mini-img" alt="Event">
-                        <div class="event-mini-info">
-                            <div class="event-mini-title">Global Tech Summit</div>
-                            <div class="event-mini-meta"><span>Lagos</span><span>Jan 28</span></div>
-                        </div>
-                    </div>
+                <div class="events-slider-track" id="upcomingEventsSlider">
+                    <p style="text-align: center; color: #999; padding: 2rem;">Loading upcoming events...</p>
                 </div>
             </div>
         </main>
@@ -401,10 +293,12 @@
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <script src="../js/toast-notification.js"></script>
     <script src="../js/admin-auth.js"></script>
     <script src="../js/notification-manager.js"></script>
     <script src="../js/profile-pic-upload.js"></script>
+    <script src="../js/admin-chart.js"></script>
     <script src="../js/dashboard.js"></script>
     <script src="../js/admin-main.js"></script>
 </body>

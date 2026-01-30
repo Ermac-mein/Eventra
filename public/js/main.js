@@ -3,7 +3,8 @@ let eventsData = {
   hot: [],
   trending: [],
   featured: [],
-  upcoming: []
+  upcoming: [],
+  nearby: []
 };
 
 // Load events from API
@@ -17,7 +18,8 @@ async function loadEvents() {
       eventsData.hot = result.events.filter(e => e.priority === 'hot');
       eventsData.trending = result.events.filter(e => e.priority === 'trending');
       eventsData.featured = result.events.filter(e => e.priority === 'featured');
-      eventsData.upcoming = result.events.filter(e => e.priority === 'normal' || !e.priority);
+      eventsData.upcoming = result.events.filter(e => e.priority === 'upcoming');
+      eventsData.nearby = result.events.filter(e => e.priority === 'nearby');
 
       renderEvents();
     }
@@ -58,18 +60,31 @@ function initMobileMenu() {
   }
 }
 
-// User icon click handler
+// User icon and profile logic
 function initUserIcon() {
   const userIcon = document.querySelector('.user-icon');
-  if (userIcon) {
-    userIcon.addEventListener('click', () => {
-      if (isAuthenticated()) {
-        const user = storage.get('user');
-        window.location.href = user.role === 'admin' ? '/admin/index.html' : '/client/index.html';
-      } else {
-        window.location.href = 'login.html';
-      }
-    });
+  const userProfileLink = document.querySelector('.user-profile-link');
+  
+  // Check if logged in and update display
+  if (isAuthenticated()) {
+    const user = storage.get('user');
+    if (user && userIcon) {
+      // Use user's profile pic or fallback to avatar with their name
+      userIcon.src = user.profile_pic || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=FF5A5F&color=fff&size=128`;
+      userIcon.title = `Logged in as ${user.name}`;
+    }
+    
+    // If logged in, clicking the icon should do nothing
+    if (userProfileLink) {
+      userProfileLink.addEventListener('click', (e) => {
+        e.preventDefault();
+      });
+    }
+  } else {
+    // If not logged in, clicking should go to login page
+    if (userProfileLink) {
+      userProfileLink.href = 'login.html';
+    }
   }
 }
 
@@ -179,6 +194,13 @@ function renderEvents() {
     upcomingGrid.innerHTML = eventsData.upcoming.length > 0 
       ? eventsData.upcoming.map(createEventCard).join('') 
       : '<p style="text-align: center; color: #666; padding: 2rem;">No upcoming events at the moment</p>';
+  }
+
+  const nearbyGrid = document.getElementById('nearby-events-grid');
+  if (nearbyGrid) {
+    nearbyGrid.innerHTML = eventsData.nearby.length > 0 
+      ? eventsData.nearby.map(createEventCard).join('') 
+      : '<p style="text-align: center; color: #666; padding: 2rem;">No nearby events at the moment</p>';
   }
 }
 

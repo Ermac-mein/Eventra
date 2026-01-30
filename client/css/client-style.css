@@ -271,6 +271,8 @@ body {
 table { width: 100%; border-collapse: collapse; }
 th { text-align: left; padding: 1rem 1.5rem; background: #f9fafb; font-size: 0.8rem; text-transform: uppercase; color: var(--client-text-muted); letter-spacing: 0.5px; }
 td { padding: 1rem 1.5rem; border-bottom: 1px solid var(--client-border); font-size: 0.9rem; }
+.text-center { text-align: center; }
+.text-right { text-align: right; }
 .status-pill { padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; }
 
 /* Management Summary Cards (Flat White) */

@@ -56,11 +56,12 @@ function showCreateEventModal() {
 
                             <div class="form-group">
                                 <label>Priority Level</label>
-                                <select name="priority">
-                                    <option value="normal">Normal</option>
+                                <select name="priority" id="prioritySelect">
+                                    <option value="nearby">📍 Nearby</option>
                                     <option value="hot">🔥 Hot</option>
                                     <option value="trending">📈 Trending</option>
                                     <option value="featured">⭐ Featured</option>
+                                    <option value="upcoming">🕒 Upcoming</option>
                                 </select>
                             </div>
 
@@ -185,6 +186,50 @@ function showCreateEventModal() {
         const scheduledGroup = document.getElementById('scheduledTimeGroup');
         scheduledGroup.style.display = e.target.value === 'scheduled' ? 'block' : 'none';
     });
+
+    // Add priority change handler for nearby logic
+    document.getElementById('prioritySelect').addEventListener('change', function(e) {
+        const visibilitySelect = document.querySelector('select[name="visibility"]');
+        const stateSelect = document.querySelector('select[name="state"]');
+        const user = storage.get('user');
+
+        if (e.target.value === 'nearby') {
+            visibilitySelect.value = 'specific_state';
+            visibilitySelect.disabled = true;
+            
+            if (user && user.state && !stateSelect.value) {
+                stateSelect.value = user.state;
+            }
+
+            // Add a hidden input to ensure the value is still sent if disabled
+            if (!document.getElementById('hiddenVisibility')) {
+                const hidden = document.createElement('input');
+                hidden.type = 'hidden';
+                hidden.name = 'visibility';
+                hidden.value = 'specific_state';
+                hidden.id = 'hiddenVisibility';
+                e.target.form.appendChild(hidden);
+            }
+        } else {
+            visibilitySelect.disabled = false;
+            const hidden = document.getElementById('hiddenVisibility');
+            if (hidden) hidden.remove();
+        }
+    });
+
+    // Trigger initial check if needed (e.g. if default is nearby)
+    if (document.getElementById('prioritySelect').value === 'nearby') {
+        const visibilitySelect = document.querySelector('select[name="visibility"]');
+        visibilitySelect.value = 'specific_state';
+        visibilitySelect.disabled = true;
+        
+        const hidden = document.createElement('input');
+        hidden.type = 'hidden';
+        hidden.name = 'visibility';
+        hidden.value = 'specific_state';
+        hidden.id = 'hiddenVisibility';
+        document.getElementById('createEventForm').appendChild(hidden);
+    }
 }
 
 function closeCreateEventModal() {

@@ -215,9 +215,9 @@ function displayEventPreview(event) {
                     <button class="modal-close" onclick="closeEventPreviewModal()">×</button>
                 </div>
                 <div class="modal-body" style="padding: 0;">
-                    <!-- Event Image -->
+                    <!-- User Profile Image for Event Preview -->
                     <div style="width: 100%; height: 300px; overflow: hidden;">
-                        <img src="${event.image_path || ''}" 
+                        <img src="${(storage.get('user') || {}).profile_pic || 'https://ui-avatars.com/api/?name=' + encodeURIComponent((storage.get('user') || {}).name || 'User')}" 
                              style="width: 100%; height: 100%; object-fit: cover;">
                     </div>
 
@@ -231,11 +231,9 @@ function displayEventPreview(event) {
                                     <span style="padding: 0.25rem 0.75rem; background: ${getStatusBadgeColor(event.status)}; color: white; border-radius: 20px; font-size: 0.85rem;">
                                         ${event.status.toUpperCase()}
                                     </span>
-                                    ${event.priority !== 'normal' ? `
-                                        <span style="padding: 0.25rem 0.75rem; background: ${getPriorityBadgeColor(event.priority)}; color: white; border-radius: 20px; font-size: 0.85rem;">
-                                            ${event.priority.toUpperCase()}
-                                        </span>
-                                    ` : ''}
+                                    <span style="padding: 0.25rem 0.75rem; background: ${getPriorityBadgeColor(event.priority)}; color: white; border-radius: 20px; font-size: 0.85rem;">
+                                        ${getPriorityIcon(event.priority)} ${event.priority.toUpperCase()}
+                                    </span>
                                 </div>
                             </div>
                             <div style="text-align: right;">
@@ -375,9 +373,21 @@ function getPriorityBadgeColor(priority) {
         'hot': '#ef4444',
         'trending': '#f59e0b',
         'featured': '#8b5cf6',
-        'normal': '#6b7280'
+        'nearby': '#10b981',
+        'upcoming': '#3b82f6'
     };
     return colors[priority] || '#6b7280';
+}
+
+function getPriorityIcon(priority) {
+    const icons = {
+        'hot': '🔥',
+        'trending': '📈',
+        'featured': '⭐',
+        'nearby': '📍',
+        'upcoming': '🕒'
+    };
+    return icons[priority] || '';
 }
 
 function formatDate(dateString) {
@@ -425,9 +435,9 @@ function displayEventActionModal(event) {
                     <button class="modal-close" onclick="closeEventActionModal()">×</button>
                 </div>
                 <div class="modal-body">
-                    <!-- Event Image -->
+                    <!-- User Profile Image for Action Modal -->
                     <div style="width: 100%; height: 200px; overflow: hidden; border-radius: 12px; margin-bottom: 1.5rem;">
-                        <img src="${event.image_path || ''}" 
+                        <img src="${(storage.get('user') || {}).profile_pic || 'https://ui-avatars.com/api/?name=' + encodeURIComponent((storage.get('user') || {}).name || 'User')}" 
                              style="width: 100%; height: 100%; object-fit: cover;">
                     </div>
 
@@ -580,11 +590,12 @@ function showEditEventModal(event) {
 
                             <div class="form-group">
                                 <label>Priority Level</label>
-                                <select name="priority">
-                                    <option value="normal" ${event.priority === 'normal' ? 'selected' : ''}>Normal</option>
+                                <select name="priority" id="editPrioritySelect">
+                                    <option value="nearby" ${event.priority === 'nearby' || event.priority === 'normal' ? 'selected' : ''}>📍 Nearby</option>
                                     <option value="hot" ${event.priority === 'hot' ? 'selected' : ''}>🔥 Hot</option>
                                     <option value="trending" ${event.priority === 'trending' ? 'selected' : ''}>📈 Trending</option>
                                     <option value="featured" ${event.priority === 'featured' ? 'selected' : ''}>⭐ Featured</option>
+                                    <option value="upcoming" ${event.priority === 'upcoming' ? 'selected' : ''}>🕒 Upcoming</option>
                                 </select>
                             </div>
 
@@ -681,6 +692,49 @@ function showEditEventModal(event) {
 
     // Add form submit handler
     document.getElementById('editEventForm').addEventListener('submit', handleEventUpdate);
+
+    // Add priority change handler for nearby logic
+    document.getElementById('editPrioritySelect').addEventListener('change', function(e) {
+        const visibilitySelect = document.querySelector('#editEventForm select[name="visibility"]');
+        const stateSelect = document.querySelector('#editEventForm select[name="state"]');
+        const user = storage.get('user');
+
+        if (e.target.value === 'nearby') {
+            visibilitySelect.value = 'specific_state';
+            visibilitySelect.disabled = true;
+
+            if (user && user.state && !stateSelect.value) {
+                stateSelect.value = user.state;
+            }
+
+            if (!document.getElementById('editHiddenVisibility')) {
+                const hidden = document.createElement('input');
+                hidden.type = 'hidden';
+                hidden.name = 'visibility';
+                hidden.value = 'specific_state';
+                hidden.id = 'editHiddenVisibility';
+                e.target.form.appendChild(hidden);
+            }
+        } else {
+            visibilitySelect.disabled = false;
+            const hidden = document.getElementById('editHiddenVisibility');
+            if (hidden) hidden.remove();
+        }
+    });
+
+    // Trigger initial check
+    if (document.getElementById('editPrioritySelect').value === 'nearby') {
+        const visibilitySelect = document.querySelector('#editEventForm select[name="visibility"]');
+        visibilitySelect.value = 'specific_state';
+        visibilitySelect.disabled = true;
+        
+        const hidden = document.createElement('input');
+        hidden.type = 'hidden';
+        hidden.name = 'visibility';
+        hidden.value = 'specific_state';
+        hidden.id = 'editHiddenVisibility';
+        document.getElementById('editEventForm').appendChild(hidden);
+    }
 }
 
 function closeEditEventModal() {
@@ -744,8 +798,13 @@ function showTicketPreviewModal(ticket) {
                     <h2>Ticket Details</h2>
                     <button class="modal-close" onclick="closeTicketPreviewModal()">×</button>
                 </div>
-                <div class="modal-body">
-                    <div style="display: grid; gap: 1.5rem;">
+                <div class="modal-body" style="padding: 0;">
+                    <!-- User Profile Image for Ticket Preview -->
+                    <div style="width: 100%; height: 200px; overflow: hidden; border-radius: 12px 12px 0 0;">
+                        <img src="${(storage.get('user') || {}).profile_pic || 'https://ui-avatars.com/api/?name=' + encodeURIComponent((storage.get('user') || {}).name || 'User')}" 
+                             style="width: 100%; height: 100%; object-fit: cover;">
+                    </div>
+                    <div style="display: grid; gap: 1.5rem; padding: 1.5rem;">
                         <div>
                             <div style="font-size: 0.85rem; color: #666; margin-bottom: 0.25rem;">🎫 Ticket ID</div>
                             <div style="font-weight: 600;">${ticket.id}</div>

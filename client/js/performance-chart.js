@@ -31,12 +31,12 @@ async function loadChartData() {
         const user = storage.get('user');
         if (!user) return;
 
-        // Fetch events data
-        const response = await fetch(`../../api/events/get-events.php?client_id=${user.id}&limit=100`);
+        // Fetch chart data from new API
+        const response = await fetch('../../api/stats/get-chart-data.php?period=30days');
         const result = await response.json();
 
-        if (result.success && result.events) {
-            renderChart(result.events);
+        if (result.success && result.datasets) {
+            renderChartFromAPI(result);
         } else {
             renderEmptyChart();
         }
@@ -44,6 +44,89 @@ async function loadChartData() {
         console.error('Error loading chart data:', error);
         renderEmptyChart();
     }
+}
+
+function renderChartFromAPI(data) {
+    const ctx = document.getElementById('performanceChart');
+    if (!ctx) return;
+
+    // Destroy existing chart if any
+    if (performanceChart) {
+        performanceChart.destroy();
+    }
+
+    // Create new chart with API data
+    performanceChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: data.labels,
+            datasets: data.datasets.map(dataset => ({
+                ...dataset,
+                borderWidth: 3,
+                fill: true,
+                tension: 0.4,
+                pointRadius: 4,
+                pointHoverRadius: 6
+            }))
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top',
+                    labels: {
+                        usePointStyle: true,
+                        padding: 15,
+                        font: {
+                            size: 12,
+                            weight: '600'
+                        }
+                    }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    padding: 12,
+                    titleFont: {
+                        size: 14,
+                        weight: '700'
+                    },
+                    bodyFont: {
+                        size: 13
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        precision: 0,
+                        font: {
+                            size: 11
+                        }
+                    },
+                    grid: {
+                        color: 'rgba(0, 0, 0, 0.05)'
+                    }
+                },
+                x: {
+                    ticks: {
+                        font: {
+                            size: 11
+                        }
+                    },
+                    grid: {
+                        display: false
+                    }
+                }
+            },
+            interaction: {
+                intersect: false,
+                mode: 'index'
+            }
+        }
+    });
 }
 
 function renderChart(events) {

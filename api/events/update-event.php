@@ -94,7 +94,7 @@ try {
     $stmt->execute([
         $_POST['event_name'],
         $_POST['event_type'],
-        $_POST['priority'] ?? 'normal',
+        $_POST['priority'] ?? 'nearby',
         $_POST['event_date'],
         $_POST['event_time'],
         $_POST['price'],

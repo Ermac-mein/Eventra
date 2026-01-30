@@ -133,7 +133,7 @@ class NotificationManager {
                 ? { notification_id: notificationId }
                 : { mark_all: true };
 
-            const response = await fetch('../../api/notifications/mark-read.php', {
+            const response = await fetch('../../api/notifications/mark-notification-read.php', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -173,3 +173,10 @@ class NotificationManager {
 
 // Create global instance
 window.notificationManager = new NotificationManager();
+
+// Auto-start polling when page loads
+document.addEventListener('DOMContentLoaded', () => {
+    if (window.notificationManager) {
+        window.notificationManager.startPolling();
+    }
+});

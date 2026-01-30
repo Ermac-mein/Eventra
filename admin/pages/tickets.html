@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tickets - Eventra Admin</title>
     <link rel="stylesheet" href="../css/admin-style.css">
+    <script src="../../public/js/utils.js"></script>
+    <script src="../../public/js/auth-guard.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
 <body>
@@ -84,44 +86,7 @@
                     </thead>
                     <tbody>
                         <tr>
-                            <td>tek0001</td>
-                            <td>Birthday Party</td>
-                            <td>Free</td>
-                            <td>100</td>
-                            <td>Birthdays</td>
-                            <td><span class="status-badge status-ongoing">Ongoing</span></td>
-                        </tr>
-                        <tr>
-                            <td>tek0002</td>
-                            <td>Campaign</td>
-                            <td>₦2,000</td>
-                            <td>200</td>
-                            <td>Awareness Campaign</td>
-                            <td><span class="status-badge status-concluded">Concluded</span></td>
-                        </tr>
-                        <tr>
-                            <td>tek0003</td>
-                            <td>Church Launching</td>
-                            <td>Free</td>
-                            <td>300</td>
-                            <td>Religious Gatherings</td>
-                            <td><span class="status-badge status-ongoing">Ongoing</span></td>
-                        </tr>
-                        <tr>
-                            <td>tek0004</td>
-                            <td>Family Reunion</td>
-                            <td>Free</td>
-                            <td>100</td>
-                            <td>Family Gatherings</td>
-                            <td><span class="status-badge status-ongoing">Ongoing</span></td>
-                        </tr>
-                        <tr>
-                            <td>tek0005</td>
-                            <td>Orphanage Funding</td>
-                            <td>Free</td>
-                            <td>100</td>
-                            <td>Charity</td>
-                            <td><span class="status-badge status-ongoing">Ongoing</span></td>
+                            <td colspan="6" style="text-align: center; padding: 2rem; color: #999;">Loading tickets...</td>
                         </tr>
                     </tbody>
                 </table>
@@ -195,6 +160,7 @@
     <script src="../js/admin-auth.js"></script>
     <script src="../js/notification-manager.js"></script>
     <script src="../js/profile-pic-upload.js"></script>
+    <script src="../js/pages/tickets.js"></script>
     <script src="../js/admin-main.js"></script>
 </body>
 </html>

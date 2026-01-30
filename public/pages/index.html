@@ -33,7 +33,7 @@
             <div class="nav-actions" style="display: flex; align-items: center; gap: 1rem;">
                 <a href="login.html" class="user-profile-link">
                     <img src="https://ui-avatars.com/api/?name=User&background=FF5A5F&color=fff&size=128"
-                        alt="User Profile" class="user-icon" title="Login / Register">
+                        alt="User Profile" class="user-icon">
                 </a>
 
                 <div class="mobile-menu-toggle">
@@ -92,8 +92,16 @@
 
         <!-- Upcoming Events -->
         <section class="events-section" id="upcoming-events">
-            <h2 class="section-title">Upcoming Events</h2>
+            <h2 class="section-title">🕒 Upcoming Events</h2>
             <div class="events-grid" id="upcoming-events-grid">
+                <!-- Events will be dynamically loaded here -->
+            </div>
+        </section>
+
+        <!-- Nearby Events -->
+        <section class="events-section" id="nearby-events">
+            <h2 class="section-title">📍 Nearby Events</h2>
+            <div class="events-grid" id="nearby-events-grid">
                 <!-- Events will be dynamically loaded here -->
             </div>
         </section>
@@ -134,8 +142,8 @@
     </footer>
 
     <!-- Scripts -->
-    <script src="./js/utils.js"></script>
-    <script src="./js/main.js"></script>
+    <script src="../js/utils.js"></script>
+    <script src="../js/main.js"></script>
 </body>
 
 </html>

@@ -67,10 +67,10 @@ function updateEventsTable(events) {
             <td>${event.event_name}</td>
             <td>${event.state}</td>
             <td>₦${parseFloat(event.price).toLocaleString()}</td>
-            <td>${event.attendee_count || 0}</td>
+            <td class="text-center">${event.attendee_count || 0}</td>
             <td>${event.event_type}</td>
             <td><span style="color: ${getStatusColor(event.status)};">${event.status.charAt(0).toUpperCase() + event.status.slice(1)}</span></td>
-            <td>
+            <td class="text-center">
                 <div style="display: flex; gap: 0.5rem; justify-content: center;">
                     ${canEdit ? `
                         <button onclick="editEvent(${event.id})" class="action-icon-btn" title="Edit Event" style="background: none; border: none; cursor: pointer; font-size: 1.2rem; padding: 0.25rem 0.5rem; transition: transform 0.2s;">

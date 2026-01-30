@@ -10,9 +10,7 @@ require_once '../../includes/middleware/auth.php';
 
 try {
     // Optional check: if token exists, validate it. Otherwise, treat as guest.
-    error_log("[Debug] get-events.php entry. Session Name: " . session_name() . " | Session ID: " . session_id());
     if (isset($_SESSION['auth_token'])) {
-        error_log("[Debug] get-events.php calling checkAuth()");
         checkAuth();
     }
 
@@ -34,19 +32,19 @@ try {
 
     // Filter by status
     if ($status) {
-        $where_clauses[] = "status = ?";
+        $where_clauses[] = "e.status = ?";
         $params[] = $status;
     } else {
         // For public/users, only show published events
         if ($user_role !== 'admin' && $user_role !== 'client') {
-            $where_clauses[] = "status = 'published'";
+            $where_clauses[] = "e.status = 'published'";
         }
     }
 
     $where_sql = !empty($where_clauses) ? 'WHERE ' . implode(' AND ', $where_clauses) : '';
 
     // Get total count
-    $count_stmt = $pdo->prepare("SELECT COUNT(*) as total FROM events $where_sql");
+    $count_stmt = $pdo->prepare("SELECT COUNT(*) as total FROM events e $where_sql");
     $count_stmt->execute($params);
     $total = $count_stmt->fetch()['total'];
 
@@ -98,11 +96,9 @@ try {
     ]);
 
 } catch (PDOException $e) {
-    error_log("[Debug] get-events.php PDO Error: " . $e->getMessage());
     http_response_code(500);
     echo json_encode(['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);
 } catch (Exception $e) {
-    error_log("[Debug] get-events.php General Error: " . $e->getMessage());
     http_response_code(500);
     echo json_encode(['success' => false, 'message' => 'General error: ' . $e->getMessage()]);
 }

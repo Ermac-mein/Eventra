@@ -115,4 +115,70 @@ function getUnreadNotificationCount($user_id)
         return 0;
     }
 }
+
+/**
+ * Create an event deleted notification
+ */
+function createEventDeletedNotification($admin_id, $event_name, $deleted_by_name)
+{
+    $message = "Event '{$event_name}' has been deleted by {$deleted_by_name}";
+    return createNotification($admin_id, $message, 'event_deleted', null);
+}
+
+/**
+ * Create ticket purchase notifications for admin, client, and user
+ */
+function createTicketPurchaseNotification($admin_id, $client_id, $user_id, $buyer_name, $buyer_email, $event_name, $quantity, $total_price)
+{
+    // Notify admin with buyer info
+    $admin_message = "New ticket purchase: {$buyer_name} ({$buyer_email}) bought {$quantity} ticket(s) for '{$event_name}' - Total: ₦" . number_format($total_price, 2);
+    createNotification($admin_id, $admin_message, 'ticket_purchase', $user_id);
+
+    // Notify client with buyer info
+    $client_message = "New ticket sale: {$buyer_name} ({$buyer_email}) purchased {$quantity} ticket(s) for your event '{$event_name}' - Total: ₦" . number_format($total_price, 2);
+    createNotification($client_id, $client_message, 'ticket_purchase', $user_id);
+
+    // Notify user (buyer) with confirmation
+    $user_message = "Purchase confirmed! You bought {$quantity} ticket(s) for '{$event_name}' - Total: ₦" . number_format($total_price, 2);
+    createNotification($user_id, $user_message, 'ticket_purchase_confirmation', $user_id);
+
+    return true;
+}
+
+/**
+ * Create user login notification for admin
+ */
+function createUserLoginNotification($admin_id, $user_id, $user_name, $user_email, $user_role = 'user')
+{
+    $role_label = ucfirst($user_role);
+    $message = "{$role_label} login: {$user_name} ({$user_email}) has logged in";
+    return createNotification($admin_id, $message, 'user_login', $user_id);
+}
+
+/**
+ * Create client login notification for admin
+ */
+function createClientLoginNotification($admin_id, $client_id, $client_name, $client_email)
+{
+    $message = "Client login: {$client_name} ({$client_email}) has logged in";
+    return createNotification($admin_id, $message, 'client_login', $client_id);
+}
+
+/**
+ * Get admin user ID (first admin in the system)
+ */
+function getAdminUserId()
+{
+    global $pdo;
+
+    try {
+        $stmt = $pdo->prepare("SELECT id FROM users WHERE role = 'admin' LIMIT 1");
+        $stmt->execute();
+        $result = $stmt->fetch();
+        return $result['id'] ?? null;
+    } catch (PDOException $e) {
+        error_log("Failed to get admin user ID: " . $e->getMessage());
+        return null;
+    }
+}
 ?>
