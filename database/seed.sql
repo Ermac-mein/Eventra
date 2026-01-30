@@ -20,23 +20,3 @@ VALUES (
         'offline'
     );
 -- The password above is the hash for 'admin@@12345'
-
--- Seed a sample client
-INSERT INTO
-    users (name, email, role, status)
-VALUES (
-        'Sample Client',
-        'client@example.com',
-        'client',
-        'offline'
-    );
-
--- Seed a sample user
-INSERT INTO
-    users (name, email, role, status)
-VALUES (
-        'Sample User',
-        'user@example.com',
-        'user',
-        'offline'
-    );

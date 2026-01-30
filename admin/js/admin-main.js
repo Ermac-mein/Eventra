@@ -69,11 +69,34 @@ function initDrawers() {
     
     // Add logout handler to profile drawer logout icon
     const logoutIcon = document.querySelector('#profileDrawer .drawer-header span[style*="color: #e74c3c"]');
-    if (logoutIcon && window.adminAuth) {
-        logoutIcon.onclick = (e) => {
+    if (logoutIcon) {
+        logoutIcon.onclick = async (e) => {
             e.stopPropagation();
             if (confirm('Are you sure you want to logout?')) {
-                window.adminAuth.handleLogout();
+                try {
+                    const response = await fetch('../../api/auth/logout.php', {
+                        method: 'POST'
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        // Clear local storage
+                        storage.remove('user');
+                        storage.remove('auth_token');
+                        
+                        // Redirect to login
+                        window.location.href = '../../public/pages/login.html';
+                    } else {
+                        alert('Logout failed: ' + result.message);
+                    }
+                } catch (error) {
+                    console.error('Logout error:', error);
+                    // Clear local storage anyway
+                    storage.remove('user');
+                    storage.remove('auth_token');
+                    window.location.href = '../../public/pages/login.html';
+                }
             }
         };
     }

@@ -12,6 +12,7 @@ function checkAuth($requiredRole = null)
     $user_id = $_SESSION['user_id'] ?? null;
 
     if (!$token || !$user_id) {
+        error_log("[Auth Debug] Missing session data. Redirecting to login. User ID: " . ($user_id ?? 'None'));
         http_response_code(401);
         echo json_encode(['success' => false, 'message' => 'Unauthorized. Please login.']);
         exit;
@@ -24,6 +25,8 @@ function checkAuth($requiredRole = null)
         $authToken = $stmt->fetch();
 
         if (!$authToken || strtotime($authToken['expires_at']) < time()) {
+            error_log("[Auth Debug] Token expired or invalid for user_id: $user_id. Destroying session.");
+
             // Token expired or invalid
             $stmt = $pdo->prepare("UPDATE users SET status = 'offline' WHERE id = ?");
             $stmt->execute([$user_id]);
@@ -49,9 +52,9 @@ function checkAuth($requiredRole = null)
         $stmt = $pdo->prepare("UPDATE auth_tokens SET last_activity = CURRENT_TIMESTAMP WHERE token = ?");
         $stmt->execute([$token]);
 
-        // If the remaining time is less than 10 minutes, extend it (for session sliding)
-        if (strtotime($authToken['expires_at']) - time() < 600) {
-            $new_expiry = date('Y-m-d H:i:s', strtotime('+10 minutes'));
+        // If the remaining time is less than 30 minutes, extend it (for session sliding)
+        if (strtotime($authToken['expires_at']) - time() < 1800) {
+            $new_expiry = date('Y-m-d H:i:s', strtotime('+2 hours'));
             $stmt = $pdo->prepare("UPDATE auth_tokens SET expires_at = ? WHERE token = ?");
             $stmt->execute([$new_expiry, $token]);
         }

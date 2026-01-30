@@ -1,0 +1,300 @@
+/**
+ * Real-Time Notification System
+ * Polls for new notifications and displays them
+ */
+
+class NotificationManager {
+    constructor() {
+        this.pollingInterval = null;
+        this.pollDuration = 15000; // Poll every 15 seconds (reduced from 30)
+        this.lastNotificationId = 0;
+        this.isPolling = false;
+    }
+
+    // Start polling for notifications
+    startPolling() {
+        if (this.isPolling) return;
+        
+        this.isPolling = true;
+        
+        // Initial load
+        this.fetchNotifications();
+        
+        // Set up polling interval
+        this.pollingInterval = setInterval(() => {
+            this.fetchNotifications();
+        }, this.pollDuration);
+    }
+
+    // Stop polling
+    stopPolling() {
+        if (this.pollingInterval) {
+            clearInterval(this.pollingInterval);
+            this.pollingInterval = null;
+        }
+        this.isPolling = false;
+    }
+
+    // Fetch notifications from API
+    async fetchNotifications() {
+        try {
+            const response = await fetch('../../api/notifications/get-notifications.php');
+            const result = await response.json();
+
+            if (result.success) {
+                this.updateNotificationBadge(result.unread_count);
+                this.updateNotificationDrawer(result.notifications);
+                
+                // Update state manager with notification count
+                if (window.stateManager) {
+                    window.stateManager.setNotificationCount(result.unread_count || 0);
+                }
+                
+                // Check for new notifications
+                if (result.notifications.length > 0) {
+                    const latestId = result.notifications[0].id;
+                    if (latestId > this.lastNotificationId && this.lastNotificationId !== 0) {
+                        // New notification received
+                        this.showNewNotificationToast(result.notifications[0]);
+                    }
+                    this.lastNotificationId = latestId;
+                }
+            }
+        } catch (error) {
+            console.error('Error fetching notifications:', error);
+        }
+    }
+
+    // Update notification badge
+    updateNotificationBadge(count) {
+        let badge = document.querySelector('.notification-badge');
+        
+        if (!badge) {
+            // Create badge if it doesn't exist
+            const bellIcon = document.querySelector('[data-drawer="notifications"]');
+            if (bellIcon) {
+                badge = document.createElement('span');
+                badge.className = 'notification-badge';
+                badge.style.cssText = `
+                    position: absolute;
+                    top: -5px;
+                    right: -5px;
+                    background: #ef4444;
+                    color: white;
+                    border-radius: 50%;
+                    width: 18px;
+                    height: 18px;
+                    font-size: 0.7rem;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-weight: 700;
+                `;
+                bellIcon.style.position = 'relative';
+                bellIcon.appendChild(badge);
+            }
+        }
+
+        if (badge) {
+            if (count > 0) {
+                badge.textContent = count > 99 ? '99+' : count;
+                badge.style.display = 'flex';
+            } else {
+                badge.style.display = 'none';
+            }
+        }
+    }
+
+    // Update notification drawer content
+    updateNotificationDrawer(notifications) {
+        const drawer = document.getElementById('notificationDrawer');
+        if (!drawer) return;
+
+        const notificationList = document.getElementById('notificationList');
+        if (!notificationList) return;
+
+        if (!notifications || notifications.length === 0) {
+            notificationList.innerHTML = `
+                <div style="text-align: center; padding: 3rem 1rem; color: #9ca3af;">
+                    <div style="font-size: 3rem; margin-bottom: 1rem;">🔔</div>
+                    <p>No notifications yet</p>
+                </div>
+            `;
+            return;
+        }
+
+        notificationList.innerHTML = notifications.map(notif => {
+            const title = notif.title || notif.type.replace('_', ' ').toUpperCase();
+            return `
+                <div class="notification-item ${String(notif.is_read) === '0' ? 'unread' : ''}" 
+                     onclick="window.notificationManager.markSingleAsRead(${notif.id})"
+                     style="padding: 1rem; border-bottom: 1px solid #e5e7eb; cursor: pointer;">
+                    <div style="display: flex; gap: 1rem;">
+                        <div style="font-size: 1.5rem;">${getNotificationIcon(notif.type)}</div>
+                        <div style="flex: 1;">
+                            <div style="font-weight: 600; margin-bottom: 0.25rem;">${title}</div>
+                            <div style="font-size: 0.85rem; color: #6b7280; margin-bottom: 0.5rem;">${notif.message}</div>
+                            <div style="font-size: 0.75rem; color: #9ca3af;">${formatNotificationTime(notif.created_at)}</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    // Show toast notification for new notifications
+    showNewNotificationToast(notification) {
+        const toast = document.createElement('div');
+        toast.className = 'notification-toast';
+        toast.style.cssText = `
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            background: white;
+            padding: 1rem 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+            z-index: 9999;
+            max-width: 350px;
+            animation: slideInRight 0.3s ease;
+            border-left: 4px solid var(--client-primary);
+        `;
+
+        toast.innerHTML = `
+            <div style="display: flex; gap: 1rem; align-items: start;">
+                <div style="font-size: 1.5rem;">${getNotificationIcon(notification.type)}</div>
+                <div style="flex: 1;">
+                    <div style="font-weight: 700; margin-bottom: 0.25rem;">${notification.title}</div>
+                    <div style="font-size: 0.9rem; color: #6b7280;">${notification.message}</div>
+                </div>
+                <button onclick="this.parentElement.parentElement.remove()" 
+                        style="background: none; border: none; font-size: 1.2rem; cursor: pointer; color: #9ca3af;">×</button>
+            </div>
+        `;
+
+        document.body.appendChild(toast);
+
+        // Auto-remove after 5 seconds
+        setTimeout(() => {
+            toast.style.animation = 'slideOutRight 0.3s ease';
+            setTimeout(() => toast.remove(), 300);
+        }, 5000);
+    }
+
+    // Mark all notifications as read
+    async markAsRead() {
+        try {
+            const response = await fetch('../../api/notifications/mark-read.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ mark_all: true })
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                // Update UI
+                this.updateNotificationBadge(0);
+                
+                // Remove unread styling
+                const unreadItems = document.querySelectorAll('.notification-item.unread');
+                unreadItems.forEach(item => {
+                    item.classList.remove('unread');
+                    item.style.background = 'white';
+                });
+
+                if (window.stateManager) {
+                    window.stateManager.setNotificationCount(0);
+                }
+            }
+        } catch (error) {
+            console.error('Error marking notifications as read:', error);
+        }
+    }
+
+    // Mark single notification as read
+    async markSingleAsRead(notificationId) {
+        try {
+            const response = await fetch('../../api/notifications/mark-read.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ notification_id: notificationId })
+            });
+
+            const result = await response.json();
+            if (result.success) {
+                this.fetchNotifications(); // Refresh
+            }
+        } catch (error) {
+            console.error('Error marking single notification as read:', error);
+        }
+    }
+}
+
+// Helper functions
+function getNotificationIcon(type) {
+    const icons = {
+        'login': '🔐',
+        'event_created': '🎉',
+        'event_scheduled': '📅',
+        'event_published': '🚀',
+        'ticket_purchased': '🎫',
+        'user_registered': '👤',
+        'default': '🔔'
+    };
+    return icons[type] || icons.default;
+}
+
+function formatNotificationTime(timestamp) {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins} minute${diffMins > 1 ? 's' : ''} ago`;
+    if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+    if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+    
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+// Add CSS animations
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes slideInRight {
+        from {
+            opacity: 0;
+            transform: translateX(100px);
+        }
+        to {
+            opacity: 1;
+            transform: translateX(0);
+        }
+    }
+
+    @keyframes slideOutRight {
+        from {
+            opacity: 1;
+            transform: translateX(0);
+        }
+        to {
+            opacity: 0;
+            transform: translateX(100px);
+        }
+    }
+`;
+document.head.appendChild(style);
+
+// Create global instance
+window.notificationManager = new NotificationManager();
+
+// Auto-start polling when page loads
+document.addEventListener('DOMContentLoaded', () => {
+    const user = storage.get('user');
+    if (user) {
+        window.notificationManager.startPolling();
+    }
+});

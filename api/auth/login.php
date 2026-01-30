@@ -1,7 +1,6 @@
 <?php
 header('Content-Type: application/json');
 require_once '../../config/database.php';
-session_start();
 
 $data = json_decode(file_get_contents("php://input"), true);
 
@@ -23,8 +22,8 @@ try {
         // Generate alphanumeric access token (Security Feature for session tracking)
         $token = bin2hex(random_bytes(32));
 
-        // Expiration logic: 10 mins vs Remember Me (e.g., 30 days)
-        $expires_in = $remember_me ? '+30 days' : '+10 minutes';
+        // Expiration logic: 2 hours vs Remember Me (e.g., 30 days)
+        $expires_in = $remember_me ? '+30 days' : '+2 hours';
         $expires_at = date('Y-m-d H:i:s', strtotime($expires_in));
 
         // Delete old tokens for this user (Ensure only one active session/token)
@@ -39,30 +38,29 @@ try {
         $stmt = $pdo->prepare("UPDATE users SET status = 'active' WHERE id = ?");
         $stmt->execute([$user['id']]);
 
-        // Create login notification for admin
-        // Get admin user ID
-        $stmt = $pdo->prepare("SELECT id FROM users WHERE role = 'admin' LIMIT 1");
-        $stmt->execute();
-        $admin = $stmt->fetch();
-
-        if ($admin) {
-            $admin_id = $admin['id'];
-
-            // Create notification message based on role
-            if ($user['role'] === 'admin') {
-                $message = "Admin logged in";
-            } elseif ($user['role'] === 'client') {
-                $message = "Client '{$user['name']}' logged in";
-            } else {
-                $message = "User '{$user['name']}' logged in";
-            }
-
-            // Insert notification
-            $stmt = $pdo->prepare("INSERT INTO notifications (recipient_id, sender_id, message, type) VALUES (?, ?, ?, ?)");
-            $stmt->execute([$admin_id, $user['id'], $message, 'info']);
-        }
+        // Create login notification using helper
+        require_once '../utils/notification-helper.php';
+        createLoginNotification($user['id'], $user['name'], $user['email']);
 
         // Set Session
+        $expectedSessionName = 'EVENTRA_USER_SESS';
+        if ($user['role'] === 'admin') {
+            $expectedSessionName = 'EVENTRA_ADMIN_SESS';
+        } elseif ($user['role'] === 'client') {
+            $expectedSessionName = 'EVENTRA_CLIENT_SESS';
+        }
+
+        // If the current session name is not what we expect for this role,
+        // (which happens when logging in from the shared login page),
+        // we need to transition to the correct session name.
+        if (session_name() !== $expectedSessionName) {
+            $current_data = $_SESSION;
+            session_destroy();
+            session_name($expectedSessionName);
+            session_start();
+            $_SESSION = $current_data;
+        }
+
         $_SESSION['user_id'] = $user['id'];
         $_SESSION['role'] = $user['role'];
         $_SESSION['auth_token'] = $token;

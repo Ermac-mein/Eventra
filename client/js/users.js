@@ -1,0 +1,48 @@
+/**
+ * Client Users Page JavaScript
+ * Handles user display and preview
+ */
+
+document.addEventListener('DOMContentLoaded', async () => {
+    const user = storage.get('user');
+    
+    if (!user || user.role !== 'client') {
+        window.location.href = '../../public/pages/login.html';
+        return;
+    }
+
+    await loadUsers(user.id);
+});
+
+async function loadUsers(clientId) {
+    try {
+        const response = await fetch(`../../api/users/get-users.php?client_id=${clientId}`);
+        const result = await response.json();
+
+        if (result.success) {
+            updateUsersTable(result.users || []);
+        }
+    } catch (error) {
+        console.error('Error loading users:', error);
+    }
+}
+
+function updateUsersTable(users) {
+    const tbody = document.getElementById('usersTableBody');
+    if (!tbody) return;
+
+    if (users.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 2rem; color: var(--client-text-muted);">No users registered yet.</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = users.map(user => `
+        <tr style="cursor: pointer;" onclick='showUserPreviewModal(${JSON.stringify(user).replace(/'/g, "&#39;")})'>
+            <td>${user.name || 'N/A'}</td>
+            <td>${user.email || 'N/A'}</td>
+            <td><span style="color: ${user.status === 'active' ? '#10b981' : '#ef4444'};">${user.status ? user.status.toUpperCase() : 'N/A'}</span></td>
+            <td>${user.engagement || 'N/A'}</td>
+            <td>${user.date_joined || 'N/A'}</td>
+        </tr>
+    `).join('');
+}

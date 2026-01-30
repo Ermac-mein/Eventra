@@ -174,16 +174,27 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function handleGoogleSignIn() {
-        const clientId = '373312677143-3gth0i8r9f6ikv985oelerv23qb6qqi8.apps.googleusercontent.com';
+        // Fetch Google Client ID from server
+        let clientId;
+        try {
+            const configResponse = await fetch('../../api/config/get-google-config.php');
+            const configData = await configResponse.json();
+            
+            if (!configData.success || !configData.client_id) {
+                alert('Google Sign-in is not configured on the server. Please contact the administrator.');
+                return;
+            }
+            
+            clientId = configData.client_id;
+        } catch (error) {
+            console.error('Failed to fetch Google config:', error);
+            alert('Could not load Google Sign-in configuration. Please try again later.');
+            return;
+        }
         
         if (typeof google === 'undefined') {
             const errorMsg = 'Google Sign-in is currently blocked by your browser or an extension (e.g., ad-blocker, privacy extension).\n\nTo use Google Sign-in:\n1. Disable your ad blocker for this site\n2. Disable privacy extensions temporarily\n3. Try again\n\nAlternatively, you can sign in using email and password.';
             alert(errorMsg);
-            return;
-        }
-
-        if (clientId === 'YOUR_GOOGLE_CLIENT_ID') {
-            alert('Google Client ID is not configured. Please follow the steps in docs/GOOGLE_SETUP.md');
             return;
         }
 

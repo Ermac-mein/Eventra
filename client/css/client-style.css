@@ -3,8 +3,8 @@
     --client-bg-body: #f4f7fa;
     --client-bg-sidebar: #0a2540;
     --client-bg-card: #ffffff;
-    --client-primary: #635bff;
-    --client-primary-dark: #4b45cc;
+    --client-primary: #3498db;
+    --client-primary-dark: #3498db;
     --client-text-main: #1a1f36;
     --client-text-muted: #697386;
     --client-text-white: #ffffff;
@@ -12,7 +12,7 @@
     
     /* Vibrant Card Colors from Image */
     --card-green: #37d67a;
-    --card-purple: #7a73ff;
+    --card-bluee: #3498db;
     --card-blue: #0570de;
     --card-red: #e0245e;
     
@@ -162,7 +162,7 @@ body {
     width: 38px;
     height: 38px;
     border-radius: 50%;
-    background: url('https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100&h=100&fit=crop') center/cover;
+    background: url('') center/cover;
 }
 
 /* Page Content */
@@ -196,9 +196,10 @@ body {
 }
 
 .client-stat-card.green { background: var(--card-green); }
-.client-stat-card.purple { background: var(--card-purple); }
+.client-stat-card.purple { background: var(--card-blue); }
 .client-stat-card.blue { background: var(--card-blue); }
 .client-stat-card.red { background: var(--card-red); }
+.client-stat-card.orange { background: #ff9500; }
 
 .stat-header {
     display: flex;
@@ -292,11 +293,63 @@ td { padding: 1rem 1.5rem; border-bottom: 1px solid var(--client-border); font-s
 
 /* Buttons & Modals */
 .btn { padding: 0.6rem 1.2rem; border-radius: 8px; font-weight: 600; border: none; cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; gap: 8px; }
-.btn-primary { background: var(--client-primary); color: white; }
-.btn-primary:hover { background: var(--client-primary-dark); }
+.btn-primary { background: var(--card-blue); color: white; }
+.btn-primary:hover { background: var(--card-blue); }
 
-.modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 2000; }
-.modal-content { background: white; padding: 2rem; border-radius: 12px; width: 400px; box-shadow: 0 20px 40px rgba(0,0,0,0.2); }
+/* Standardized Modal System */
+.modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: none; /* Controlled by JS or .active class */
+    justify-content: center;
+    align-items: center;
+    z-index: 9000;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(4px);
+    transition: opacity 0.3s ease;
+}
+
+.modal-backdrop.active {
+    display: flex;
+    animation: fadeIn 0.2s ease-out;
+}
+
+.modal-content {
+    background: white;
+    padding: 2.5rem;
+    border-radius: 16px;
+    width: 500px;
+    max-width: 95vw;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    position: relative;
+    transform: translateY(0);
+    animation: slideUpScale 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideUpScale {
+    from { 
+        opacity: 0; 
+        transform: scale(0.95) translateY(20px); 
+    }
+    to { 
+        opacity: 1; 
+        transform: scale(1) translateY(0); 
+    }
+}
+
+/* Legacy Overrides to ensure compatibility during migration */
+.modal-overlay { 
+    display: none !important; 
+} 
+
 
 /* Drawers */
 .side-drawer { position: fixed; top: 0; right: -420px; width: 420px; height: 100%; background: white; z-index: 2500; transition: right 0.4s cubic-bezier(0.165, 0.84, 0.44, 1); box-shadow: -10px 0 30px rgba(0,0,0,0.1); }
@@ -677,8 +730,8 @@ td { padding: 1rem 1.5rem; border-bottom: 1px solid var(--client-border); font-s
     position: fixed;
     top: 0;
     left: 0;
-    width: 100%;
-    height: 100%;
+    width: 100vw;
+    height: 100vh;
     background: rgba(0, 0, 0, 0.5);
     display: none;
     justify-content: center;
@@ -724,7 +777,7 @@ td { padding: 1rem 1.5rem; border-bottom: 1px solid var(--client-border); font-s
 
 .export-option-v2:hover {
     background-color: #f0f7ff;
-    border-color: var(--client-primary);
+    border-color: var(--card-blue);
 }
 
 /* Preview Modals (Admin Style) */
@@ -732,8 +785,8 @@ td { padding: 1rem 1.5rem; border-bottom: 1px solid var(--client-border); font-s
     position: fixed;
     top: 0;
     left: 0;
-    width: 100%;
-    height: 100%;
+    width: 100vw;
+    height: 100vh;
     background: rgba(0, 0, 0, 0.6);
     backdrop-filter: blur(8px);
     display: none;
@@ -1058,7 +1111,7 @@ td { padding: 1rem 1.5rem; border-bottom: 1px solid var(--client-border); font-s
 }
 
 .event-social-actions span:hover {
-    color: var(--client-primary);
+    color: var(--card-blue);
 }
 
 .event-price-final {
@@ -1230,7 +1283,7 @@ td { padding: 1rem 1.5rem; border-bottom: 1px solid var(--client-border); font-s
 .radio-item input[type="radio"] {
     width: 18px;
     height: 18px;
-    accent-color: var(--client-primary);
+    accent-color: #3498db;
 }
 
 .upload-area {
@@ -1365,4 +1418,58 @@ td { padding: 1rem 1.5rem; border-bottom: 1px solid var(--client-border); font-s
 
 .btn-media-confirm:hover {
     background: #2980b9;
+}
+
+/* Modal Styles */
+.modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 2000;
+}
+
+.modal {
+    background: white;
+    padding: 2rem;
+    border-radius: var(--admin-radius);
+    width: 400px;
+    box-shadow: var(--admin-shadow);
+    animation: slideIn 0.3s ease;
+}
+
+.export-options {
+    list-style: none;
+    margin-top: 1.5rem;
+}
+
+.export-option {
+    padding: 1rem;
+    border: 1px solid var(--admin-border);
+    margin-bottom: 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.export-option:hover {
+    background-color: var(--admin-primary-light);
+    border-color: var(--admin-primary);
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }

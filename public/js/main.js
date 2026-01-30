@@ -1,84 +1,32 @@
-// Event data
-const eventsData = {
-  trending: [
-    {
-      id: 1,
-      title: 'Music Festival',
-      location: 'Accra',
-      price: '₦ 250',
-      status: 'Buy Ticket',
-      image: 'https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=600&h=400&fit=crop'
-    },
-    {
-      id: 2,
-      title: 'Naming Ceremony',
-      location: 'Tema',
-      price: 'Free',
-      status: 'Register',
-      image: 'https://images.unsplash.com/photo-1464366400600-7168b8af9bc3?w=600&h=400&fit=crop'
-    },
-    {
-      id: 3,
-      title: 'Technology Seminar',
-      location: 'Accra',
-      price: '₦ 250',
-      status: 'Buy Ticket',
-      image: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=600&h=400&fit=crop'
-    }
-  ],
-  upcoming: [
-    {
-      id: 4,
-      title: 'Church Launching',
-      location: 'Kumasi',
-      price: 'Free',
-      status: 'More Info',
-      image: 'https://images.unsplash.com/photo-1438232992991-995b7058bbb3?w=600&h=400&fit=crop'
-    },
-    {
-      id: 5,
-      title: 'Campaign',
-      location: 'Takoradi',
-      price: 'Free',
-      status: 'Save Slot',
-      image: 'https://images.unsplash.com/photo-1557804506-669a67965ba0?w=600&h=400&fit=crop'
-    },
-    {
-      id: 6,
-      title: 'Cultural Day',
-      location: 'Cape Coast',
-      price: 'Free',
-      status: 'More Info',
-      image: 'https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=600&h=400&fit=crop'
-    }
-  ],
-  nearby: [
-    {
-      id: 7,
-      title: 'Synergy Summit',
-      location: 'East Legon',
-      price: 'Free',
-      status: 'Register',
-      image: 'https://images.unsplash.com/photo-1466611653911-95081537e5b7?w=600&h=400&fit=crop'
-    },
-    {
-      id: 8,
-      title: 'Wonderfest',
-      location: 'Osu',
-      price: '₦ 200',
-      status: 'Buy Ticket',
-      image: 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=600&h=400&fit=crop'
-    },
-    {
-      id: 9,
-      title: 'Enchanted Evening',
-      location: 'Labadi',
-      price: '₦ 200',
-      status: 'Buy Ticket',
-      image: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=600&h=400&fit=crop'
-    }
-  ]
+// Event data - will be loaded from API
+let eventsData = {
+  hot: [],
+  trending: [],
+  featured: [],
+  upcoming: []
 };
+
+// Load events from API
+async function loadEvents() {
+  try {
+    const response = await fetch('../../api/events/get-events.php?status=published&limit=100');
+    const result = await response.json();
+
+    if (result.success && result.events) {
+      // Filter events by priority
+      eventsData.hot = result.events.filter(e => e.priority === 'hot');
+      eventsData.trending = result.events.filter(e => e.priority === 'trending');
+      eventsData.featured = result.events.filter(e => e.priority === 'featured');
+      eventsData.upcoming = result.events.filter(e => e.priority === 'normal' || !e.priority);
+
+      renderEvents();
+    }
+  } catch (error) {
+    console.error('Error loading events:', error);
+    // Fallback to empty arrays
+    renderEvents();
+  }
+}
 
 // Mobile menu toggle
 function initMobileMenu() {
@@ -117,7 +65,7 @@ function initUserIcon() {
     userIcon.addEventListener('click', () => {
       if (isAuthenticated()) {
         const user = storage.get('user');
-        window.location.href = user.role === 'admin' ? '/Eventra/admin/index.html' : '/Eventra/client/index.html';
+        window.location.href = user.role === 'admin' ? '/admin/index.html' : '/client/index.html';
       } else {
         window.location.href = 'login.html';
       }
@@ -169,25 +117,25 @@ function filterEvents(query) {
 
 // Create event card
 function createEventCard(event) {
-  const actionText = event.status || 'Buy Ticket';
-  const isBuyAction = actionText.toLowerCase().includes('buy') || actionText.toLowerCase().includes('register');
+  const price = event.price ? `₦${parseFloat(event.price).toLocaleString()}` : 'Free';
+  const actionText = 'Buy Ticket';
   
   return `
     <div class="event-card">
-      <img src="${event.image}" alt="${event.title}" class="event-image" loading="lazy">
+      <img src="${event.image_path || 'https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=600&h=400&fit=crop'}" alt="${event.event_name}" class="event-image" loading="lazy">
       <div class="event-info">
         <div class="event-header">
           <div>
-            <h3 class="event-title">${event.title}</h3>
+            <h3 class="event-title">${event.event_name}</h3>
           </div>
           <span class="share-icon" onclick="shareEvent(${event.id})" title="Share">⋮</span>
         </div>
         <div class="event-details">
-          <p class="event-location">${event.location}</p>
-          <p class="event-price">${event.price}</p>
+          <p class="event-location">${event.state}</p>
+          <p class="event-price">${price}</p>
         </div>
         <div class="event-footer">
-          <button class="event-status-btn" onclick="${isBuyAction ? `buyTicket(${event.id})` : ''}">${actionText}</button>
+          <button class="event-status-btn" onclick="buyTicket(${event.id})">${actionText}</button>
         </div>
       </div>
     </div>
@@ -204,22 +152,36 @@ function buyTicket(eventId) {
 
 // Render events
 function renderEvents() {
-  const trendingGrid = document.getElementById('trending-events');
-  const upcomingGrid = document.getElementById('upcoming-events');
-  const nearbyGrid = document.getElementById('nearby-events');
+  const hotGrid = document.getElementById('hot-events-grid');
+  const trendingGrid = document.getElementById('trending-events-grid');
+  const featuredGrid = document.getElementById('featured-events-grid');
+  const upcomingGrid = document.getElementById('upcoming-events-grid');
+
+  if (hotGrid) {
+    hotGrid.innerHTML = eventsData.hot.length > 0 
+      ? eventsData.hot.map(createEventCard).join('') 
+      : '<p style="text-align: center; color: #666; padding: 2rem;">No hot events at the moment</p>';
+  }
 
   if (trendingGrid) {
-    trendingGrid.innerHTML = eventsData.trending.map(createEventCard).join('');
+    trendingGrid.innerHTML = eventsData.trending.length > 0 
+      ? eventsData.trending.map(createEventCard).join('') 
+      : '<p style="text-align: center; color: #666; padding: 2rem;">No trending events at the moment</p>';
+  }
+
+  if (featuredGrid) {
+    featuredGrid.innerHTML = eventsData.featured.length > 0 
+      ? eventsData.featured.map(createEventCard).join('') 
+      : '<p style="text-align: center; color: #666; padding: 2rem;">No featured events at the moment</p>';
   }
 
   if (upcomingGrid) {
-    upcomingGrid.innerHTML = eventsData.upcoming.map(createEventCard).join('');
-  }
-
-  if (nearbyGrid) {
-    nearbyGrid.innerHTML = eventsData.nearby.map(createEventCard).join('');
+    upcomingGrid.innerHTML = eventsData.upcoming.length > 0 
+      ? eventsData.upcoming.map(createEventCard).join('') 
+      : '<p style="text-align: center; color: #666; padding: 2rem;">No upcoming events at the moment</p>';
   }
 }
+
 
 // Share event function
 function shareEvent(eventId) {
@@ -274,13 +236,14 @@ function initHeaderScroll() {
 
 // Initialize all functions
 function init() {
-  renderEvents();
+  loadEvents();
   initMobileMenu();
   initUserIcon();
   initSearch();
   initSmoothScroll();
   initHeaderScroll();
 }
+
 
 // Run when DOM is loaded
 if (document.readyState === 'loading') {

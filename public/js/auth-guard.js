@@ -17,14 +17,14 @@
         console.warn('Unauthorized access attempt or invalid role.');
         storage.remove('user');
         storage.remove('auth_token');
-        window.location.href = '/Eventra/public/pages/login.html';
+        window.location.href = '/public/pages/login.html';
         return;
     }
 
     // We can do this periodically or on every page load
     async function verifySession() {
         try {
-            const response = await fetch('/Eventra/api/notifications/realtime.php', {
+            const response = await fetch('/api/notifications/realtime.php', {
                 method: 'GET',
                 headers: {
                     'Authorization': `Bearer ${token}`
@@ -33,7 +33,7 @@
             if (response.status === 401 || response.status === 403) {
                 storage.remove('user');
                 storage.remove('auth_token');
-                window.location.href = '/Eventra/public/pages/login.html';
+                window.location.href = '/public/pages/login.html';
             }
         } catch (error) {
             console.error('Session verification failed:', error);
@@ -45,14 +45,14 @@
     // Make logout globally available
     window.logout = async function() {
         try {
-            const response = await fetch('/Eventra/api/auth/logout.php', {
+            const response = await fetch('/api/auth/logout.php', {
                 method: 'POST'
             });
             const result = await response.json();
             if (result.success) {
                 storage.remove('user');
                 storage.remove('auth_token');
-                window.location.href = '/Eventra/public/pages/login.html';
+                window.location.href = '/public/pages/login.html';
             } else {
                 alert('Logout failed: ' + result.message);
             }
@@ -61,7 +61,7 @@
             // Fallback: clear local storage anyway
             storage.remove('user');
             storage.remove('auth_token');
-            window.location.href = '/Eventra/public/pages/login.html';
+            window.location.href = '/public/pages/login.html';
         }
     };
 
