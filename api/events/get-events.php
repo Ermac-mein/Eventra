@@ -48,9 +48,12 @@ try {
     $count_stmt->execute($params);
     $total = $count_stmt->fetch()['total'];
 
-    // Get events with client information
+    // Get events with client information and favorite status if user is logged in
+    $user_id = $_SESSION['user_id'] ?? null;
+    $favorite_select = $user_id ? ", (SELECT COUNT(*) FROM favorites WHERE user_id = ? AND event_id = e.id) as is_favorite" : ", 0 as is_favorite";
+
     $sql = "
-        SELECT e.*, u.name as client_name, u.profile_pic as client_profile_pic
+        SELECT e.*, u.name as client_name, u.profile_pic as client_profile_pic $favorite_select
         FROM events e
         LEFT JOIN users u ON e.client_id = u.id
         $where_sql
@@ -58,13 +61,21 @@ try {
         LIMIT ? OFFSET ?
     ";
 
-    $params[] = (int) $limit;
-    $params[] = (int) $offset;
+    // Rebuild params to include user_id for the subquery if needed
+    $query_params = [];
+    if ($user_id) {
+        $query_params[] = $user_id;
+    }
+    foreach ($params as $p) {
+        $query_params[] = $p;
+    }
+    $query_params[] = (int) $limit;
+    $query_params[] = (int) $offset;
 
     $stmt = $pdo->prepare($sql);
 
-    // Bind positionally but ensure integers for LIMIT/OFFSET
-    foreach ($params as $key => $value) {
+    // Bind values
+    foreach ($query_params as $key => $value) {
         $stmt->bindValue($key + 1, $value, is_int($value) ? PDO::PARAM_INT : PDO::PARAM_STR);
     }
 

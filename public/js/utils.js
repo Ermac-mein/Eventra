@@ -32,7 +32,22 @@ function isValidEmail(email) {
 
 // Show notification
 function showNotification(message, type = 'info') {
-  // Create notification element
+  if (typeof Swal !== 'undefined') {
+    Swal.fire({
+      toast: true,
+      position: 'top-end',
+      icon: type === 'error' ? 'error' : type === 'success' ? 'success' : 'info',
+      title: message,
+      showConfirmButton: false,
+      timer: 3000,
+      timerProgressBar: true,
+      background: '#ffffff',
+      color: '#000000'
+    });
+    return;
+  }
+
+  // Fallback to legacy notification if Swal is not loaded
   const notification = document.createElement('div');
   notification.className = `notification notification-${type}`;
   notification.textContent = message;

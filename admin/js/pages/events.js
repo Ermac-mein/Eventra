@@ -27,7 +27,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         eventsTableBody.innerHTML = events.map(event => `
-            <tr data-id="${event.id}" data-image="${event.image_path || ''}">
+            <tr data-id="${event.id}" 
+                data-image="${event.image_path || ''}" 
+                data-tag="${event.tag || ''}" 
+                data-client-name="${(event.client_name || '').toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-') || ''}">
                 <td>${event.event_name}</td>
                 <td>${event.state || 'N/A'}</td>
                 <td>${event.price > 0 ? '₦' + parseFloat(event.price).toLocaleString() : 'Free'}</td>

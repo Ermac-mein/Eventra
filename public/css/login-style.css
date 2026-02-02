@@ -10,6 +10,7 @@ body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   height: 100vh;
   overflow: hidden;
+  background: linear-gradient(135deg, #0f172a 0%, transparent 100%); /* Base background for glass effect */
 }
 
 /* Main Container */
@@ -21,7 +22,7 @@ body {
 
 /* Left Side - Decorative */
 .login-left {
-  flex: 0 0 40%;
+  flex: 0 0 50%; /* Equal partition */
   background: linear-gradient(135deg, #0a1929 0%, #1a2332 100%);
   position: relative;
   overflow: hidden;
@@ -47,13 +48,71 @@ body {
   left: 0;
   width: 100%;
   height: 100%;
-  background: linear-gradient(135deg, rgba(10, 25, 41, 0.7) 0%, rgba(26, 35, 50, 0.8) 100%);
+  background: linear-gradient(135deg, rgba(10, 25, 41, 0.4) 0%, rgba(26, 35, 50, 0.6) 100%);
+  z-index: 2;
+}
+
+/* Slider Specifics */
+.slider-images {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+.slider-img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 1.5s ease-in-out;
+}
+
+.slider-img.active {
+  opacity: 1;
+}
+
+.slider-text {
+  position: relative;
+  z-index: 3;
+  color: white;
+  text-align: center;
+  padding: 2rem;
+  max-width: 80%;
+}
+
+.slider-text h2 {
+  font-size: 2.25rem;
+  margin-bottom: 1rem;
+  text-shadow: 0 2px 10px rgba(0,0,0,0.5);
+}
+
+.slider-text p {
+  font-size: 1.1rem;
+  opacity: 0.9;
+}
+
+/* Glassmorphism Effect */
+.glass-effect {
+  background: rgba(255, 255, 255, 0.1) !important; /* Reallly transparent glass */
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+  border-radius: 24px !important;
+  padding: 3.5rem !important;
+  color: white; /* Contrast for dark glass */
 }
 
 /* Right Side - Form */
 .login-right {
-  flex: 1;
-  background-color: var(--login-bg-right);
+  flex: 0 0 50%; /* Equal partition */
+  background: transparent; /* Show body background through right side */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -62,8 +121,8 @@ body {
 
 .login-form-container {
   width: 100%;
-  max-width: 420px;
-  animation: fadeInUp 0.6s ease;
+  max-width: 450px;
+  animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* Header */
@@ -75,13 +134,13 @@ body {
 .login-title {
   font-size: 2rem;
   font-weight: 700;
-  color: var(--login-text-dark);
+  color: #ffffff; /* White title for dark/glass theme */
   margin-bottom: 0.75rem;
 }
 
 .login-subtitle {
   font-size: 0.95rem;
-  color: var(--login-text-gray);
+  color: rgba(255, 255, 255, 0.7); /* Muted white */
 }
 
 .signup-link {
@@ -111,7 +170,7 @@ body {
   display: block;
   font-size: 0.875rem;
   font-weight: 500;
-  color: var(--login-text-dark);
+  color: white;
   margin-bottom: 0.5rem;
 }
 
@@ -127,12 +186,12 @@ body {
   padding-right: 2.75rem;
   font-size: 1rem;
   font-family: inherit;
-  border: 1.5px solid var(--login-border);
+  border: 1.5px solid rgba(255, 255, 255, 0.2);
   border-radius: 8px;
   outline: none;
   transition: var(--login-transition);
-  background-color: var(--login-input-bg);
-  color: var(--login-text-dark);
+  background-color: rgba(255, 255, 255, .05);
+  color: white;
 }
 
 .form-input::placeholder {
@@ -192,9 +251,9 @@ body {
   accent-color: var(--login-primary);
 }
 
-.remember-me label {
+.remember-me label, .remember-me span {
   font-size: 0.875rem;
-  color: var(--login-text-gray);
+  color: rgba(255, 255, 255, 0.8);
   cursor: pointer;
   user-select: none;
 }
@@ -261,7 +320,7 @@ body {
 
 .divider span {
   padding: 0 1rem;
-  color: var(--login-text-light);
+  color: rgba(255, 255, 255, 0.5);
   font-size: 0.875rem;
   font-weight: 500;
 }
@@ -272,9 +331,9 @@ body {
   padding: 0.875rem 1.5rem;
   font-size: 0.95rem;
   font-weight: 500;
-  color: var(--login-text-dark);
-  background-color: white;
-  border: 1.5px solid var(--login-border);
+  color: #1a2332;
+  background-color: rgba(255, 255, 255, 0.1);
+  border: 1.5px solid rgba(255, 255, 255, 0.2);
   border-radius: 8px;
   cursor: pointer;
   transition: var(--login-transition);
@@ -285,9 +344,10 @@ body {
 }
 
 .google-signin:hover {
-  background-color: #f8f9fa;
-  border-color: var(--login-text-gray);
+  background-color: var(--login-primary);
+  border-color: var(--login-primary-hover);
   box-shadow: var(--login-shadow-sm);
+  color: white;
 }
 
 .google-icon {
@@ -368,7 +428,10 @@ body {
 /* Responsive Design */
 @media (max-width: 968px) {
   .login-left {
-    flex: 0 0 35%;
+    display: none; /* Hide slider on smaller screens to focus on login */
+  }
+  .login-right {
+    flex: 0 0 100%;
   }
 }
 

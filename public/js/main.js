@@ -63,7 +63,13 @@ function initMobileMenu() {
 // User icon and profile logic
 function initUserIcon() {
   const userIcon = document.querySelector('.user-icon');
-  const userProfileLink = document.querySelector('.user-profile-link');
+  const userProfileBtn = document.getElementById('userProfileBtn');
+  const profileDropdown = document.getElementById('profileDropdown');
+  const viewProfile = document.getElementById('viewProfile');
+  const logoutBtn = document.getElementById('logoutBtn');
+  const profileSideModal = document.getElementById('profileSideModal');
+  const closeProfileModal = document.getElementById('closeProfileModal');
+  const profileEditForm = document.getElementById('profileEditForm');
   
   // Check if logged in and update display
   if (isAuthenticated()) {
@@ -74,16 +80,100 @@ function initUserIcon() {
       userIcon.title = `Logged in as ${user.name}`;
     }
     
-    // If logged in, clicking the icon should do nothing
-    if (userProfileLink) {
-      userProfileLink.addEventListener('click', (e) => {
-        e.preventDefault();
+    // Toggle dropdown
+    if (userProfileBtn) {
+      userProfileBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        profileDropdown.classList.toggle('show');
       });
     }
+
+    // Close dropdown on click outside
+    document.addEventListener('click', () => {
+      if (profileDropdown) profileDropdown.classList.remove('show');
+    });
+
+    // Logout logic
+    if (logoutBtn) {
+      logoutBtn.addEventListener('click', async (e) => {
+        e.preventDefault();
+        try {
+          const response = await fetch('../../api/auth/logout.php');
+          const result = await response.json();
+          if (result.success) {
+            storage.remove('user');
+            storage.remove('auth_token');
+            location.reload(); // Reload to reset state while remaining on home page
+          }
+        } catch (error) {
+          console.error('Logout error:', error);
+          // Fallback logout if API fails
+          storage.remove('user');
+          storage.remove('auth_token');
+          location.reload();
+        }
+      });
+    }
+
+    // Modal logic
+    if (viewProfile) {
+      viewProfile.addEventListener('click', (e) => {
+        e.preventDefault();
+        profileDropdown.classList.remove('show');
+        
+        // Populate modal with user data
+        const user = storage.get('user');
+        document.getElementById('modalProfilePic').src = user.profile_pic || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=FF5A5F&color=fff&size=128`;
+        document.getElementById('profileName').value = user.name || '';
+        document.getElementById('profileEmail').value = user.email || '';
+        document.getElementById('profilePhone').value = user.phone || '';
+        document.getElementById('profileState').value = user.state || '';
+        document.getElementById('profileCity').value = user.city || '';
+        document.getElementById('profileAddress').value = user.address || '';
+        
+        profileSideModal.classList.add('open');
+      });
+    }
+
+    if (closeProfileModal) {
+      closeProfileModal.addEventListener('click', () => {
+        profileSideModal.classList.remove('open');
+      });
+    }
+
+    if (profileEditForm) {
+      profileEditForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const formData = new FormData(profileEditForm);
+        
+        try {
+          const response = await fetch('../../api/users/update-profile.php', {
+            method: 'POST',
+            body: formData
+          });
+          const result = await response.json();
+          
+          if (result.success) {
+            storage.set('user', result.user);
+            showNotification('Profile updated successfully!', 'success');
+            profileSideModal.classList.remove('open');
+            initUserIcon(); // Refresh icons
+          } else {
+            showNotification(result.message || 'Error updating profile', 'error');
+          }
+        } catch (error) {
+          console.error('Update profile error:', error);
+          showNotification('System error occurred', 'error');
+        }
+      });
+    }
+    
   } else {
     // If not logged in, clicking should go to login page
-    if (userProfileLink) {
-      userProfileLink.href = 'login.html';
+    if (userProfileBtn) {
+      userProfileBtn.addEventListener('click', () => {
+        window.location.href = 'login.html';
+      });
     }
   }
 }
@@ -107,12 +197,24 @@ function handleSearch() {
   const searchInput = document.querySelector('.search-input');
   const query = searchInput.value.trim().toLowerCase();
   
-  if (query) {
-    console.log('Searching for:', query);
-    // Add search functionality here
-    // For now, just filter visible events
-    filterEvents(query);
-  }
+  const allCards = document.querySelectorAll('.event-card');
+  
+  allCards.forEach(card => {
+    const title = card.querySelector('.event-title').textContent.toLowerCase();
+    const location = card.querySelector('.event-location').textContent.toLowerCase();
+    const isFavorite = card.querySelector('.favorite-icon').classList.contains('active');
+    
+    const matchesQuery = query === '' || title.includes(query) || location.includes(query);
+    const matchesFavorite = query === 'favorites' || query === 'favorite' ? isFavorite : true;
+    
+    if (matchesQuery && matchesFavorite) {
+      card.style.display = 'block';
+    } else if (query === 'favorites' || query === 'favorite') {
+        card.style.display = isFavorite ? 'block' : 'none';
+    } else {
+      card.style.display = 'none';
+    }
+  });
 }
 
 function filterEvents(query) {
@@ -134,34 +236,62 @@ function filterEvents(query) {
 function createEventCard(event) {
   const price = event.price ? `₦${parseFloat(event.price).toLocaleString()}` : 'Free';
   const actionText = 'Buy Ticket';
+  const isFavorite = event.is_favorite ? 'active' : '';
   
   return `
-    <div class="event-card">
-      <img src="${event.image_path || 'https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=600&h=400&fit=crop'}" alt="${event.event_name}" class="event-image" loading="lazy">
+    <div class="event-card" data-id="${event.id}">
+      <div class="priority-label" style="position: absolute; top: 10px; left: 10px; z-index: 2; padding: 4px 10px; border-radius: 12px; font-size: 0.7rem; font-weight: 700; color: white; background: ${event.priority === 'hot' ? '#ff4757' : event.priority === 'trending' ? '#3742fa' : '#2ed573'}; text-transform: uppercase;">
+        ${event.priority || 'Event'}
+      </div>
+      <img src="${event.image_path || ''}" alt="${event.event_name}" class="event-image" loading="lazy">
       <div class="event-info">
         <div class="event-header">
           <div>
             <h3 class="event-title">${event.event_name}</h3>
           </div>
-          <span class="share-icon" onclick="shareEvent(${event.id})" title="Share">⋮</span>
+          <div class="event-actions">
+            <span class="action-icon favorite-icon ${isFavorite}" onclick="toggleFavorite(event, ${event.id})" title="Favorite">❤</span>
+            <span class="action-icon share-icon" onclick="shareEvent(event, ${event.id})" title="Share">↗</span>
+          </div>
         </div>
         <div class="event-details">
-          <p class="event-location">${event.state}</p>
+          <p class="event-location">📍 ${event.state}</p>
+          <div style="display: flex; align-items: center; margin-top: 5px;">
+              <div style="display: flex; margin-right: 8px;">
+                  ${[...Array(Math.min(parseInt(event.attendee_count || 0), 4))].map((_, i) => `
+                      <img src="https://ui-avatars.com/api/?name=User+${i}&background=random" 
+                           style="width: 20px; height: 20px; border-radius: 50%; border: 1px solid white; margin-left: ${i === 0 ? '0' : '-8px'};">
+                  `).join('')}
+              </div>
+              <span style="font-size: 0.75rem; color: #666;">${event.attendee_count || 0} attending</span>
+          </div>
           <p class="event-price">${price}</p>
         </div>
         <div class="event-footer">
-          <button class="event-status-btn" onclick="buyTicket(${event.id})">${actionText}</button>
+          <button class="event-status-btn" onclick="viewEventDetails('${event.tag}')">View Details</button>
         </div>
       </div>
     </div>
   `;
 }
 
-// Buy ticket handler
+// Redirect to new event details page
+function viewEventDetails(tag) {
+  if (!tag) {
+      showNotification('Event tag missing', 'error');
+      return;
+  }
+  window.location.href = `pages/event-details.html?event=${tag}`;
+}
+
+// Buy ticket handler (legacy, but updated)
 function buyTicket(eventId) {
-  if (handleAuthRedirect()) {
-    // Proceed to buy ticket
-    window.location.href = `pages/buy-ticket.html?id=${eventId}`;
+  // If we have the tag, use it. Otherwise fallback.
+  const card = document.querySelector(`.event-card[data-id="${eventId}"]`);
+  if (card && card.dataset.tag) {
+      viewEventDetails(card.dataset.tag);
+  } else {
+      window.location.href = `pages/buy-ticket.html?id=${eventId}`;
   }
 }
 
@@ -206,18 +336,58 @@ function renderEvents() {
 
 
 // Share event function
-function shareEvent(eventId) {
-  console.log('Sharing event:', eventId);
-  // Add share functionality here
+function shareEvent(e, eventId) {
+  if(e) e.stopPropagation();
+  
+  const shareUrl = `${window.location.origin}${window.location.pathname}?event=${eventId}`;
+  
   if (navigator.share) {
     navigator.share({
       title: 'Check out this event!',
       text: 'I found this amazing event on Eventra',
-      url: window.location.href
+      url: shareUrl
     }).catch(err => console.log('Error sharing:', err));
   } else {
-    alert('Share functionality coming soon!');
+    // Fallback: Copy to clipboard
+    navigator.clipboard.writeText(shareUrl).then(() => {
+        showNotification('Share link copied to clipboard!', 'success');
+    });
   }
+}
+
+// Favorite toggle function
+async function toggleFavorite(e, eventId) {
+    if(e) e.stopPropagation();
+    
+    if (!isAuthenticated()) {
+        showNotification('Please login to favorite events', 'info');
+        return;
+    }
+
+    try {
+        const response = await fetch('../../api/events/favorite.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ event_id: eventId })
+        });
+        const result = await response.json();
+
+        if (result.success) {
+            const card = document.querySelector(`.event-card[data-id="${eventId}"]`);
+            if (card) {
+                const favIcon = card.querySelector('.favorite-icon');
+                if (result.is_favorite) {
+                    favIcon.classList.add('active');
+                } else {
+                    favIcon.classList.remove('active');
+                }
+            }
+            showNotification(result.message, 'success');
+        }
+    } catch (error) {
+        console.error('Favorite toggle error:', error);
+        showNotification('Failed to update favorite', 'error');
+    }
 }
 
 // Smooth scroll for navigation

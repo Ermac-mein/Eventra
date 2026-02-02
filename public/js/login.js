@@ -27,7 +27,17 @@ document.addEventListener('DOMContentLoaded', () => {
     if (forgotPasswordLink) {
         forgotPasswordLink.addEventListener('click', async (e) => {
             e.preventDefault();
-            const email = prompt("Enter your email address to reset password:");
+            
+            const { value: email } = await Swal.fire({
+                title: 'Reset Password',
+                input: 'email',
+                inputLabel: 'Enter your email address',
+                inputPlaceholder: 'm@example.com',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33'
+            });
+
             if (email) {
                 try {
                     const response = await fetch('../../api/auth/forgot-password.php', {
@@ -36,9 +46,13 @@ document.addEventListener('DOMContentLoaded', () => {
                         body: JSON.stringify({ email })
                     });
                     const result = await response.json();
-                    alert(result.message);
+                    Swal.fire({
+                        title: result.success ? 'Success' : 'Error',
+                        text: result.message,
+                        icon: result.success ? 'success' : 'error'
+                    });
                 } catch (error) {
-                    alert("An error occurred. Please try again.");
+                    Swal.fire('Error', 'An error occurred. Please try again.', 'error');
                 }
             }
         });
@@ -181,20 +195,20 @@ document.addEventListener('DOMContentLoaded', () => {
             const configData = await configResponse.json();
             
             if (!configData.success || !configData.client_id) {
-                alert('Google Sign-in is not configured on the server. Please contact the administrator.');
+                Swal.fire('Configuration Error', 'Google Sign-in is not configured on the server. Please contact the administrator.', 'error');
                 return;
             }
             
             clientId = configData.client_id;
         } catch (error) {
             console.error('Failed to fetch Google config:', error);
-            alert('Could not load Google Sign-in configuration. Please try again later.');
+            Swal.fire('Error', 'Could not load Google Sign-in configuration. Please try again later.', 'error');
             return;
         }
         
         if (typeof google === 'undefined') {
             const errorMsg = 'Google Sign-in is currently blocked by your browser or an extension (e.g., ad-blocker, privacy extension).\n\nTo use Google Sign-in:\n1. Disable your ad blocker for this site\n2. Disable privacy extensions temporarily\n3. Try again\n\nAlternatively, you can sign in using email and password.';
-            alert(errorMsg);
+            Swal.fire('Blocked', errorMsg, 'warning');
             return;
         }
 
@@ -210,7 +224,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) {
             console.error('Google Initialization Error:', error);
             const errorMsg = 'Could not initialize Google Sign-in.\n\nPossible causes:\n- Ad blocker or privacy extension is blocking Google\n- Network connectivity issues\n- Browser security settings\n\nPlease try:\n1. Disabling ad blockers\n2. Using email/password login instead';
-            alert(errorMsg);
+            Swal.fire('Error', errorMsg, 'error');
         }
     }
 
@@ -253,11 +267,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     window.location.href = result.redirect || 'index.html';
                 }, 1000);
             } else {
-                alert('Google Sign-in failed: ' + result.message);
+                Swal.fire('Login Failed', result.message, 'error');
             }
         } catch (error) {
             console.error('Error:', error);
-            alert('An error occurred during Google Sign-in.');
+            Swal.fire('Error', 'An error occurred during Google Sign-in.', 'error');
         }
     }
 
@@ -269,4 +283,60 @@ document.addEventListener('DOMContentLoaded', () => {
         }).join(''));
         return JSON.parse(jsonPayload);
     };
+
+    // Event Image Slider Logic
+    async function initSlider() {
+        const sliderContainer = document.querySelector('.slider-images');
+        const sliderTitle = document.getElementById('sliderExtTitle');
+        const sliderLoc = document.getElementById('sliderEventLoc');
+        
+        if (!sliderContainer) return;
+
+        try {
+            const response = await fetch('../../api/events/get-events.php?status=published&limit=10');
+            const data = await response.json();
+
+            if (data.success && data.events.length > 0) {
+                const events = data.events.filter(e => e.image_path);
+                if (events.length === 0) return;
+
+                // Inject images
+                sliderContainer.innerHTML = events.map((event, index) => `
+                    <img src="${event.image_path}" 
+                         alt="${event.event_name}" 
+                         class="slider-img ${index === 0 ? 'active' : ''}" 
+                         data-index="${index}">
+                `).join('');
+
+                let currentIndex = 0;
+                
+                const updateSlider = () => {
+                    const images = document.querySelectorAll('.slider-img');
+                    images[currentIndex].classList.remove('active');
+                    
+                    currentIndex = (currentIndex + 1) % images.length;
+                    
+                    images[currentIndex].classList.add('active');
+                    
+                    // Update text with a small delay for fade
+                    setTimeout(() => {
+                        const event = events[currentIndex];
+                        sliderTitle.textContent = event.event_name;
+                        sliderLoc.textContent = `${event.state} - ${event.event_type}`;
+                    }, 500);
+                };
+
+                // Cycle every 5 seconds
+                setInterval(updateSlider, 5000);
+                
+                // Set initial text
+                sliderTitle.textContent = events[0].event_name;
+                sliderLoc.textContent = `${events[0].state} - ${events[0].event_type}`;
+            }
+        } catch (error) {
+            console.error('Slider init error:', error);
+        }
+    }
+
+    initSlider();
 });

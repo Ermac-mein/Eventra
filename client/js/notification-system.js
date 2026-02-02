@@ -123,7 +123,17 @@ class NotificationManager {
             return;
         }
 
-        notificationList.innerHTML = notifications.map(notif => {
+        let html = `
+            <div style="padding: 0.75rem 1rem; border-bottom: 1px solid #e5e7eb; display: flex; justify-content: flex-end; background: #f9fafb;">
+                <button onclick="window.notificationManager.clearAll()" 
+                        style="color: #ef4444; background: white; border: 1px solid #fee2e2; padding: 0.4rem 0.75rem; border-radius: 6px; cursor: pointer; font-size: 0.75rem; font-weight: 600; transition: all 0.2s;">
+                    Clear All
+                </button>
+            </div>
+            <div id="actualNotificationItems">
+        `;
+
+        html += notifications.map(notif => {
             const title = notif.title || notif.type.replace('_', ' ').toUpperCase();
             return `
                 <div class="notification-item ${String(notif.is_read) === '0' ? 'unread' : ''}" 
@@ -140,6 +150,9 @@ class NotificationManager {
                 </div>
             `;
         }).join('');
+
+        html += '</div>';
+        notificationList.innerHTML = html;
     }
 
     // Show toast notification for new notifications
@@ -227,6 +240,37 @@ class NotificationManager {
             }
         } catch (error) {
             console.error('Error marking single notification as read:', error);
+        }
+    }
+
+    async clearAll() {
+        const result = await Swal.fire({
+            title: 'Clear all notifications?',
+            text: "This action cannot be undone.",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#ef4444',
+            confirmButtonText: 'Yes, clear all'
+        });
+
+        if (!result.isConfirmed) return;
+
+        try {
+            const response = await fetch('../../api/notifications/clear-all.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+            const result = await response.json();
+            if (result.success) {
+                this.fetchNotifications();
+                if (typeof showNotification === 'function') {
+                    showNotification('Notifications cleared', 'success');
+                } else {
+                    Swal.fire('Cleared!', 'Notifications cleared', 'success');
+                }
+            }
+        } catch (error) {
+            console.error('Error clearing notifications:', error);
         }
     }
 }

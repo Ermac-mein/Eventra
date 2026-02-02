@@ -72,15 +72,26 @@ function initDrawers() {
     if (logoutIcon) {
         logoutIcon.onclick = async (e) => {
             e.stopPropagation();
-            if (confirm('Are you sure you want to logout?')) {
+            const result = await Swal.fire({
+                title: 'Logout Request',
+                text: 'Are you sure you want to logout from Eventra Admin?',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#e74c3c',
+                cancelButtonColor: '#95a5a6',
+                confirmButtonText: 'Yes, Logout',
+                cancelButtonText: 'Stay'
+            });
+
+            if (result.isConfirmed) {
                 try {
                     const response = await fetch('../../api/auth/logout.php', {
                         method: 'POST'
                     });
                     
-                    const result = await response.json();
+                    const resultData = await response.json();
                     
-                    if (result.success) {
+                    if (resultData.success) {
                         // Clear local storage
                         storage.remove('user');
                         storage.remove('auth_token');
@@ -88,7 +99,7 @@ function initDrawers() {
                         // Redirect to login
                         window.location.href = '../../public/pages/login.html';
                     } else {
-                        alert('Logout failed: ' + result.message);
+                        Swal.fire('Logout Failed', resultData.message, 'error');
                     }
                 } catch (error) {
                     console.error('Logout error:', error);
@@ -122,7 +133,7 @@ function initExportModal() {
         options.forEach(opt => {
             opt.addEventListener('click', () => {
                 const format = opt.dataset.format;
-                alert(`Exporting as ${format}...`);
+                Swal.fire('Exporting', `Exporting as ${format}...`, 'info');
                 modalBackdrop.style.display = 'none';
             });
         });
@@ -307,22 +318,48 @@ window.initPreviews = function() {
                     <div class="event-preview">
                         <div class="event-preview-image-box">
                             <img src="${eventImage}" class="event-preview-image" alt="Event">
+                            <div class="priority-badge" style="position: absolute; top: 1rem; right: 1rem; padding: 0.4rem 0.8rem; border-radius: 20px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: white; background: ${row.dataset.priority === 'hot' ? '#ff4757' : row.dataset.priority === 'trending' ? '#3742fa' : '#2ed573'};">
+                                ${row.dataset.priority || 'Standard'}
+                            </div>
                         </div>
                         <div class="event-preview-content">
-                            <div class="event-preview-main-info">
-                                <h1 class="event-preview-title">${event}</h1>
+                            <div class="event-preview-main-info" style="margin-bottom: 1rem;">
+                                <h1 class="event-preview-title" style="font-size: 1.5rem; margin-bottom: 0.25rem;">${event}</h1>
+                                <p style="color: #6b7280; font-size: 0.85rem;">Organized by: ${row.dataset.clientName || 'Eventra'}</p>
                             </div>
-                            <p class="event-preview-desc">
-                                Status: ${status} | Attendees: ${attendees}
-                            </p>
-                            <div class="event-preview-grid-details">
-                                <div class="event-grid-item">📂 ${category}</div>
-                                <div class="event-grid-item">📍 ${location}</div>
+                            
+                            <div style="margin-bottom: 1.5rem;">
+                                <label style="display: block; font-size: 0.75rem; color: #6b7280; margin-bottom: 0.5rem; text-transform: uppercase; font-weight: 600;">Attendees</label>
+                                <div style="display: flex; align-items: center; gap: 10px;">
+                                    <div style="display: flex;">
+                                        ${[...Array(Math.min(parseInt(attendees), 5))].map((_, i) => `
+                                            <img src="https://ui-avatars.com/api/?name=User+${i}&background=random" 
+                                                 style="width: 25px; height: 25px; border-radius: 50%; border: 2px solid white; margin-left: ${i === 0 ? '0' : '-10px'};">
+                                        `).join('')}
+                                    </div>
+                                    <span style="font-size: 0.85rem; color: #4b5563; font-weight: 600;">${attendees} people attending</span>
+                                </div>
                             </div>
-                            <div class="event-preview-footer">
+
+                            <div class="event-preview-grid-details" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 1rem;">
+                                <div class="event-grid-item" style="background: #f8fafc; padding: 0.6rem; border-radius: 6px; font-size: 0.85rem;">📂 ${category}</div>
+                                <div class="event-grid-item" style="background: #f8fafc; padding: 0.6rem; border-radius: 6px; font-size: 0.85rem;">📍 ${location}</div>
+                            </div>
+                            
+                            <div class="event-preview-footer" style="padding-top: 1rem; border-top: 1px solid #f1f5f9;">
                                 <div class="event-price-final">
-                                    <label>Price:</label>
-                                    <span>${price}</span>
+                                    <label style="font-size: 0.8rem; color: #64748b;">Ticket Price:</label>
+                                    <span style="font-size: 1.25rem; font-weight: 700; color: var(--primary-color);">${price}</span>
+                                </div>
+                            </div>
+                            <div class="event-preview-sharing" style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid #f1f5f9;">
+                                <div style="margin-bottom: 0.75rem;">
+                                    <label style="display: block; font-size: 0.7rem; color: #94a3b8; margin-bottom: 0.25rem; text-transform: uppercase; font-weight: 600;">Shareable Link</label>
+                                    <div style="display: flex; gap: 0.5rem; align-items: center;">
+                                        <input type="text" readonly value="${window.location.origin}/public/pages/event-details.html?event=${row.dataset.tag}&client=${row.dataset.clientName}" 
+                                               style="background: #f8fafc; padding: 0.4rem 0.6rem; border-radius: 4px; border: 1px solid #e2e8f0; font-family: monospace; font-size: 0.75rem; flex: 1; color: #475569;">
+                                        <button onclick="copyToClipboard('${window.location.origin}/public/pages/event-details.html?event=${row.dataset.tag}&client=${row.dataset.clientName}', 'Link copied!')" style="background: #ef4444; color: white; border: none; padding: 0.4rem 0.6rem; border-radius: 4px; cursor: pointer; font-size: 0.75rem; font-weight: 600;">Copy</button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -338,3 +375,24 @@ window.initPreviews = function() {
         };
     });
 }
+
+window.copyToClipboard = function(text, successMsg) {
+    if (!text) return;
+    navigator.clipboard.writeText(text).then(() => {
+        if (window.showToast) {
+            window.showToast(successMsg, 'success');
+        } else {
+            Swal.fire({
+                toast: true,
+                position: 'top-end',
+                icon: 'success',
+                title: successMsg,
+                showConfirmButton: false,
+                timer: 2000
+            });
+        }
+    }).catch(err => {
+        console.error('Failed to copy:', err);
+        Swal.fire('Error', 'Failed to copy to clipboard', 'error');
+    });
+};

@@ -12,6 +12,13 @@ if ($_SESSION['role'] !== 'admin') {
     exit;
 }
 
+// Auto-delete notifications older than 2 days
+try {
+    $pdo->prepare("DELETE FROM notifications WHERE created_at < DATE_SUB(NOW(), INTERVAL 2 DAY)")->execute();
+} catch (Exception $e) {
+    // Non-critical, continue
+}
+
 try {
     // Fetch all notifications for admin, ordered by newest first
     $stmt = $pdo->prepare("

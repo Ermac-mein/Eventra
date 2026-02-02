@@ -64,7 +64,8 @@ try {
             e.event_date,
             e.event_time,
             e.state as event_state,
-            e.image_path as event_image
+            e.image_path as event_image,
+            (SELECT name FROM users WHERE id = e.client_id) as organiser_name
         FROM tickets t
         JOIN users u ON t.user_id = u.id
         JOIN events e ON t.event_id = e.id

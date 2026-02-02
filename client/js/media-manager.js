@@ -164,7 +164,18 @@ function downloadFile(filePath, fileName) {
 }
 
 async function deleteMedia(mediaId) {
-    if (!confirm('Are you sure you want to delete this file?')) return;
+    const result = await Swal.fire({
+        title: 'Delete Media?',
+        text: 'Are you sure you want to delete this file? This will permanently remove it from your storage.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#ef4444',
+        cancelButtonColor: '#9ca3af',
+        confirmButtonText: 'Yes, Delete',
+        cancelButtonText: 'Keep it'
+    });
+
+    if (!result.isConfirmed) return;
 
     try {
         const response = await fetch('../../api/media/delete-media.php', {

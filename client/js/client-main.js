@@ -16,7 +16,17 @@ document.addEventListener('DOMContentLoaded', () => {
  * Clears all storage, stops polling, and redirects to login
  */
 async function logout() {
-    if (!confirm('Are you sure you want to logout?')) {
+    const result = await Swal.fire({
+        title: 'Are you sure?',
+        text: "You will be logged out of your session!",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#ef4444',
+        cancelButtonColor: '#9ca3af',
+        confirmButtonText: 'Yes, logout!'
+    });
+
+    if (!result.isConfirmed) {
         return;
     }
 
@@ -194,3 +204,24 @@ function debounce(func, wait) {
         timeout = setTimeout(later, wait);
     };
 }
+
+window.copyToClipboard = function(text, successMsg) {
+    if (!text) return;
+    navigator.clipboard.writeText(text).then(() => {
+        if (typeof showNotification === 'function') {
+            showNotification(successMsg, 'success');
+        } else {
+            Swal.fire({
+                toast: true,
+                position: 'top-end',
+                icon: 'success',
+                title: successMsg,
+                showConfirmButton: false,
+                timer: 2000
+            });
+        }
+    }).catch(err => {
+        console.error('Failed to copy:', err);
+        Swal.fire('Error', 'Failed to copy to clipboard', 'error');
+    });
+};

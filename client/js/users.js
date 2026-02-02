@@ -40,9 +40,18 @@ function updateUsersTable(users) {
         <tr style="cursor: pointer;" onclick='showUserPreviewModal(${JSON.stringify(user).replace(/'/g, "&#39;")})'>
             <td>${user.name || 'N/A'}</td>
             <td>${user.email || 'N/A'}</td>
+            <td>${user.phone || 'N/A'}</td>
+            <td>${user.state || 'N/A'}</td>
+            <td>${user.client_name || 'Direct'}</td>
             <td><span style="color: ${user.status === 'active' ? '#10b981' : '#ef4444'};">${user.status ? user.status.toUpperCase() : 'N/A'}</span></td>
             <td>${user.engagement || 'N/A'}</td>
-            <td>${user.date_joined || 'N/A'}</td>
+            <td>${formatDate(user.created_at)}</td>
         </tr>
     `).join('');
+}
+
+function formatDate(dateString) {
+    if (!dateString) return 'N/A';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
 }

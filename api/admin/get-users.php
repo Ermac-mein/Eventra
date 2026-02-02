@@ -31,10 +31,11 @@ try {
     $total_records = $count_stmt->fetchColumn();
 
     // Get users
-    $sql = "SELECT id, name, email, profile_pic, city, state, phone, status, created_at 
-            FROM users 
+    $sql = "SELECT u.id, u.name, u.email, u.profile_pic, u.city, u.state, u.phone, u.status, u.created_at,
+            (SELECT name FROM users WHERE id = (SELECT client_id FROM events WHERE id = (SELECT event_id FROM tickets WHERE user_id = u.id LIMIT 1))) as client_name
+            FROM users u
             $where_clause 
-            ORDER BY created_at DESC 
+            ORDER BY u.created_at DESC 
             LIMIT ? OFFSET ?";
 
     $stmt = $pdo->prepare($sql);

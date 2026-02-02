@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Event Details - Eventra</title>
+    
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="../css/variables.css">
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+    
+    <style>
+        .event-details-hero {
+            height: 60vh;
+            position: relative;
+            background-size: cover;
+            background-position: center;
+            display: flex;
+            align-items: flex-end;
+            padding: 4rem 2rem;
+            color: white;
+        }
+
+        .hero-info-overlay {
+            background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            z-index: 1;
+        }
+
+        .hero-content {
+            position: relative;
+            z-index: 2;
+            max-width: 1200px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .priority-badge {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            margin-bottom: 1rem;
+            background: rgba(255, 90, 95, 0.9);
+        }
+
+        .event-main-content {
+            max-width: 1200px;
+            margin: -4rem auto 4rem;
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 2rem;
+            padding: 0 2rem;
+            position: relative;
+            z-index: 3;
+        }
+
+        .event-info-card, .event-booking-card {
+            background: white;
+            padding: 2.5rem;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .attendee-stack {
+            display: flex;
+            align-items: center;
+            margin-top: 1.5rem;
+        }
+
+        .attendee-icons {
+            display: flex;
+            margin-right: 1rem;
+        }
+
+        .attendee-icon {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            border: 2px solid white;
+            margin-left: -12px;
+            background: #eee;
+        }
+
+        .attendee-icon:first-child { margin-left: 0; }
+
+        .booking-price {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin-bottom: 1.5rem;
+        }
+
+        .booking-btn {
+            width: 100%;
+            padding: 1rem;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .booking-btn:hover { transform: translateY(-3px); }
+
+        .meta-item {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+            align-items: center;
+            color: #4b5563;
+        }
+
+        .meta-icon { font-size: 1.5rem; }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <nav class="nav-container">
+            <div class="logo" onclick="window.location.href='index.html'" style="cursor: pointer;">EVENTRA</div>
+            <div class="nav-actions">
+                <button class="btn-secondary" onclick="window.location.href='index.html'">Back to Home</button>
+            </div>
+        </nav>
+    </header>
+
+    <div id="eventHero" class="event-details-hero">
+        <div class="hero-info-overlay"></div>
+        <div class="hero-content">
+            <div id="priorityBadge" class="priority-badge">Upcoming</div>
+            <h1 id="eventTitle" style="font-size: 3.5rem; font-weight: 800; margin-bottom: 0.5rem;">Event Loading...</h1>
+            <p id="eventSummary" style="font-size: 1.2rem; opacity: 0.9;">Please wait while we fetch the details.</p>
+        </div>
+    </div>
+
+    <main class="event-main-content">
+        <div class="event-info-card">
+            <h2 style="margin-bottom: 1.5rem;">About this Event</h2>
+            <p id="eventDescription" style="line-height: 1.8; color: #4b5563; margin-bottom: 2rem;"></p>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+                <div>
+                    <h3>Details</h3>
+                    <div class="meta-item"><span class="meta-icon">📍</span> <span id="eventAddress"></span></div>
+                    <div class="meta-item"><span class="meta-icon">📅</span> <span id="eventDate"></span></div>
+                    <div class="meta-item"><span class="meta-icon">🕒</span> <span id="eventTime"></span></div>
+                </div>
+                <div>
+                    <h3>Attendees</h3>
+                    <div class="attendee-stack">
+                        <div class="attendee-icons" id="attendeeStack">
+                            <!-- Icons injected here -->
+                        </div>
+                        <span id="attendeeCountDisplay" style="font-weight: 600; color: #6b7280;"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="event-booking-card">
+            <h3 style="margin-bottom: 0.5rem;">Get Your Tickets</h3>
+            <p style="color: #6b7280; font-size: 0.9rem; margin-bottom: 1.5rem;">Hosted by <span id="clientName" style="color: var(--primary-color); font-weight: 600;"></span></p>
+            
+            <div class="booking-price" id="eventPrice">₦0</div>
+            
+            <div style="margin-bottom: 1.5rem;">
+                <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Quantity</label>
+                <input type="number" id="ticketQuantity" value="1" min="1" class="form-input" style="width: 100%;">
+            </div>
+
+            <button id="bookNowBtn" class="booking-btn">Book Now</button>
+            
+            <p style="text-align: center; margin-top: 1.5rem; font-size: 0.8rem; color: #9ca3af;">
+                Secure checkout powered by Eventra Pay
+            </p>
+        </div>
+    </main>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="../js/utils.js"></script>
+    <script src="../js/event-details.js"></script>
+</body>
+</html>

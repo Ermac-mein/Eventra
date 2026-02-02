@@ -9,23 +9,29 @@
     <!-- Stylesheets -->
     <link rel="stylesheet" href="../css/login-style.css">
     <link rel="stylesheet" href="../css/login.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
     
-    <!-- Google Identity Services -->
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
     <div class="login-container">
-        <!-- Left Side: Architectural/Geometric Background -->
-        <div class="login-left">
-            <img src="../assets/imgs/login.png" 
-                 alt="Geometric Design" 
-                 class="decorative-image">
+        <!-- Left Side: Event Image Slider -->
+        <div class="login-left" id="eventSlider">
+            <div class="slider-images">
+                <!-- Images will be injected here -->
+            </div>
             <div class="overlay-gradient"></div>
+            <div class="slider-text">
+                <h2 id="sliderExtTitle">Experience the Best Events</h2>
+                <p id="sliderEventLoc">Discover and join amazing experiences around you.</p>
+            </div>
         </div>
 
-        <!-- Right Side: Login Form -->
+        <!-- Right Side: Login Form with Glassmorphism -->
         <div class="login-right">
-            <div class="login-form-container">
+            <div class="login-form-container glass-effect">
                 <div id="successMessage" class="success-message"></div>
                 
                 <header class="login-header">

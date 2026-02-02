@@ -31,7 +31,14 @@ try {
         $params[] = $status;
     }
 
+    $client_id = $_GET['client_id'] ?? null;
     $where_sql = !empty($where_clauses) ? 'WHERE ' . implode(' AND ', $where_clauses) : '';
+
+    if ($client_id) {
+        // If client_id is provided, only get users who bought tickets for this client's events
+        $where_sql = ($where_sql ? $where_sql . ' AND ' : 'WHERE ') . "u.id IN (SELECT DISTINCT user_id FROM tickets t INNER JOIN events e ON t.event_id = e.id WHERE e.client_id = ?)";
+        $params[] = $client_id;
+    }
 
     // Get total count
     $count_stmt = $pdo->prepare("SELECT COUNT(*) as total FROM users $where_sql");
@@ -41,11 +48,12 @@ try {
     // Get users
     $sql = "
         SELECT 
-            id, name, email, role, google_id, profile_pic, phone, job_title,
-            company, address, city, state, dob, gender, status, created_at
-        FROM users
+            u.id, u.name, u.email, u.role, u.google_id, u.profile_pic, u.phone, u.job_title,
+            u.company, u.address, u.city, u.state, u.dob, u.gender, u.status, u.created_at,
+            (SELECT name FROM users WHERE id = (SELECT client_id FROM events WHERE id = (SELECT event_id FROM tickets WHERE user_id = u.id LIMIT 1))) as client_name
+        FROM users u
         $where_sql
-        ORDER BY created_at DESC
+        ORDER BY u.created_at DESC
         LIMIT ? OFFSET ?
     ";
 

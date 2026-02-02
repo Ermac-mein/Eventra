@@ -54,6 +54,19 @@ try {
     $stmt->execute([$client_id]);
     $media_uploads = $stmt->fetch()['total'];
 
+    // Get referral stats for this client
+    $stmt = $pdo->prepare("
+        SELECT 
+            COUNT(*) as tickets,
+            COUNT(DISTINCT user_id) as users
+        FROM tickets 
+        WHERE referred_by_id = ?
+    ");
+    $stmt->execute([$client_id]);
+    $referral_data = $stmt->fetch();
+    $referred_tickets = $referral_data['tickets'];
+    $referred_users = $referral_data['users'];
+
     // Get total revenue for client's events
     $stmt = $pdo->prepare("
         SELECT COALESCE(SUM(t.total_price), 0) as revenue
@@ -105,7 +118,9 @@ try {
             'total_tickets' => (int) $total_tickets,
             'total_users' => (int) $total_users,
             'media_uploads' => (int) $media_uploads,
-            'total_revenue' => (float) $total_revenue
+            'total_revenue' => (float) $total_revenue,
+            'referred_tickets' => (int) $referred_tickets,
+            'referred_users' => (int) $referred_users
         ],
         'upcoming_events_list' => $upcoming_events_list,
         'recent_sales' => $recent_sales

@@ -15,6 +15,12 @@ $email = $data['email'];
 $name = $data['name'] ?? 'Google User';
 $profile_pic = $data['profile_pic'] ?? null;
 
+// Additional fields from Google (if any) or elsewhere
+$phone = $data['phone'] ?? null;
+$address = $data['address'] ?? null;
+$city = $data['city'] ?? null;
+$state = $data['state'] ?? null;
+
 // Read selected role from cookie (My Idea implementation)
 $selected_role = $_COOKIE['pending_role'] ?? 'user';
 if (!in_array($selected_role, ['client', 'user'])) {
@@ -29,14 +35,12 @@ try {
 
     if ($user) {
         // Update user if needed
-        if (!$user['google_id']) {
-            $stmt = $pdo->prepare("UPDATE users SET google_id = ?, profile_pic = ? WHERE id = ?");
-            $stmt->execute([$google_id, $profile_pic, $user['id']]);
-        }
+        $stmt = $pdo->prepare("UPDATE users SET google_id = ?, profile_pic = COALESCE(?, profile_pic), phone = COALESCE(?, phone), address = COALESCE(?, address), city = COALESCE(?, city), state = COALESCE(?, state) WHERE id = ?");
+        $stmt->execute([$google_id, $profile_pic, $phone, $address, $city, $state, $user['id']]);
     } else {
         // Create new user with selected role
-        $stmt = $pdo->prepare("INSERT INTO users (name, email, google_id, profile_pic, role) VALUES (?, ?, ?, ?, ?)");
-        $stmt->execute([$name, $email, $google_id, $profile_pic, $selected_role]);
+        $stmt = $pdo->prepare("INSERT INTO users (name, email, google_id, profile_pic, role, phone, address, city, state) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        $stmt->execute([$name, $email, $google_id, $profile_pic, $selected_role, $phone, $address, $city, $state]);
 
         $stmt = $pdo->prepare("SELECT * FROM users WHERE id = ?");
         $stmt->execute([$pdo->lastInsertId()]);

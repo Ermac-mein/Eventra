@@ -511,9 +511,18 @@ function closeEventActionModal() {
 }
 
 async function publishEvent(eventId) {
-    if (!confirm('Are you sure you want to publish this event? It will be visible to all users.')) {
-        return;
-    }
+    const result = await Swal.fire({
+        title: 'Publish Event?',
+        text: 'Are you sure you want to publish this event? It will be visible to all users on the platform.',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#10b981',
+        cancelButtonColor: '#9ca3af',
+        confirmButtonText: 'Yes, Publish',
+        cancelButtonText: 'Wait'
+    });
+
+    if (!result.isConfirmed) return;
 
     try {
         const response = await fetch('../../api/events/publish-event.php', {

@@ -40,10 +40,11 @@ function updateTicketsTable(tickets) {
         <tr style="cursor: pointer;" onclick='showTicketPreviewModal(${JSON.stringify(ticket).replace(/'/g, "&#39;")})'>
             <td>${ticket.id}</td>
             <td>${ticket.event_name || 'N/A'}</td>
-            <td>${ticket.buyer_name || 'N/A'}</td>
-            <td>₦${parseFloat(ticket.price || 0).toLocaleString()}</td>
+            <td>${ticket.buyer_name || ticket.user_name || 'N/A'}</td>
+            <td>₦${parseFloat(ticket.total_price || ticket.price || 0).toLocaleString()}</td>
+            <td>${ticket.organiser_name || 'Direct'}</td>
             <td>${ticket.purchase_date || 'N/A'}</td>
-            <td><span style="color: ${ticket.status === 'confirmed' ? '#10b981' : '#ef4444'};">${ticket.status ? ticket.status.toUpperCase() : 'N/A'}</span></td>
+            <td><span style="color: ${ticket.status === 'confirmed' || ticket.status === 'active' ? '#10b981' : '#ef4444'};">${ticket.status ? ticket.status.toUpperCase() : 'N/A'}</span></td>
         </tr>
     `).join('');
 }

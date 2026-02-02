@@ -12,6 +12,7 @@
     <!-- Stylesheets -->
     <link rel="stylesheet" href="../css/variables.css">
     <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
 
     <!-- Favicon -->
     <link rel="icon" type="image/x-icon" href="./assets/favicon.ico">
@@ -31,19 +32,69 @@
             </ul>
 
             <div class="nav-actions" style="display: flex; align-items: center; gap: 1rem;">
-                <a href="login.html" class="user-profile-link">
-                    <img src="https://ui-avatars.com/api/?name=User&background=FF5A5F&color=fff&size=128"
-                        alt="User Profile" class="user-icon">
-                </a>
-
-                <div class="mobile-menu-toggle">
-                    <span></span>
-                    <span></span>
-                    <span></span>
+                <div class="user-profile-container">
+                    <button class="user-profile-btn" id="userProfileBtn">
+                        <div class="user-icon-wrapper">
+                            <img src="https://ui-avatars.com/api/?name=User&background=FF5A5F&color=fff&size=128"
+                                alt="User Profile" class="user-icon">
+                            <div class="user-online-status"></div>
+                        </div>
+                    </button>
+                    <div class="profile-dropdown" id="profileDropdown">
+                        <a href="#" id="viewProfile">Profile</a>
+                        <hr>
+                        <a href="#" id="logoutBtn">Logout</a>
+                    </div>
                 </div>
             </div>
         </nav>
     </header>
+
+    <!-- Profile Side Modal -->
+    <div id="profileSideModal" class="side-modal">
+        <div class="side-modal-content">
+            <div class="side-modal-header">
+                <h2>User Profile</h2>
+                <button class="close-modal" id="closeProfileModal">&times;</button>
+            </div>
+            <div class="side-modal-body">
+                <div class="profile-pic-large">
+                    <img id="modalProfilePic" src="" alt="Profile Picture">
+                    <label for="profilePicUpload" class="edit-pic-overlay">
+                        <span>Edit</span>
+                        <input type="file" id="profilePicUpload" hidden accept="image/*">
+                    </label>
+                </div>
+                <form id="profileEditForm">
+                    <div class="form-group">
+                        <label>Full Name</label>
+                        <input type="text" id="profileName" name="name" class="form-input">
+                    </div>
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" id="profileEmail" name="email" class="form-input" disabled>
+                    </div>
+                    <div class="form-group">
+                        <label>Phone</label>
+                        <input type="text" id="profilePhone" name="phone" class="form-input">
+                    </div>
+                    <div class="form-group">
+                        <label>State</label>
+                        <input type="text" id="profileState" name="state" class="form-input">
+                    </div>
+                    <div class="form-group">
+                        <label>City</label>
+                        <input type="text" id="profileCity" name="city" class="form-input">
+                    </div>
+                    <div class="form-group">
+                        <label>Address</label>
+                        <textarea id="profileAddress" name="address" class="form-input"></textarea>
+                    </div>
+                    <button type="submit" class="save-profile-btn">Save Changes</button>
+                </form>
+            </div>
+        </div>
+    </div>
 
     <!-- Hero Section -->
     <section class="hero" id="home">
@@ -142,6 +193,7 @@
     </footer>
 
     <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="../js/utils.js"></script>
     <script src="../js/main.js"></script>
 </body>

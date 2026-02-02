@@ -30,9 +30,11 @@ try {
     $count_stmt->execute($params);
     $total_records = $count_stmt->fetchColumn();
 
-    // Get clients with event count
+    // Get clients with event count and referral stats
     $sql = "SELECT u.id, u.name, u.email, u.profile_pic, u.company, u.job_title, u.state, u.phone, u.status, u.created_at,
-            (SELECT COUNT(*) FROM events WHERE client_id = u.id) as event_count
+            (SELECT COUNT(*) FROM events WHERE client_id = u.id) as event_count,
+            (SELECT COUNT(*) FROM tickets WHERE referred_by_id = u.id) as referred_tickets_count,
+            (SELECT COUNT(DISTINCT user_id) FROM tickets WHERE referred_by_id = u.id) as referred_users_count
             FROM users u
             $where_clause 
             ORDER BY u.created_at DESC 

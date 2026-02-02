@@ -86,10 +86,21 @@ class NotificationManager {
             return;
         }
 
+        // Add Clear All Button
+        const headerActions = document.createElement('div');
+        headerActions.style.cssText = 'padding: 1rem; border-bottom: 1px solid #edf2f7; display: flex; justify-content: flex-end;';
+        headerActions.innerHTML = `<button onclick="window.notificationManager.clearAll()" style="color: #e74c3c; background: none; border: 1px solid #e74c3c; padding: 0.4rem 0.8rem; border-radius: 4px; cursor: pointer; font-size: 0.8rem; font-weight: 600;">Clear All</button>`;
+        drawerContent.appendChild(headerActions);
+
+        // Container for notifications
+        const listContainer = document.createElement('div');
+        listContainer.className = 'notif-list-container';
+        drawerContent.appendChild(listContainer);
+
         // Render each notification
         this.notifications.forEach(notif => {
             const notifItem = this.createNotificationElement(notif);
-            drawerContent.appendChild(notifItem);
+            listContainer.appendChild(notifItem);
         });
     }
 
@@ -150,6 +161,38 @@ class NotificationManager {
             }
         } catch (error) {
             console.error('Error marking notification as read:', error);
+        }
+    }
+
+    async clearAll() {
+        const result = await Swal.fire({
+            title: 'Clear All Notifications?',
+            text: 'Are you sure you want to delete all your notifications? This action cannot be undone.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#e74c3c',
+            cancelButtonColor: '#95a5a6',
+            confirmButtonText: 'Yes, Clear All',
+            cancelButtonText: 'Cancel'
+        });
+
+        if (!result.isConfirmed) return;
+        
+        try {
+            const response = await fetch('../../api/notifications/clear-all.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include'
+            });
+            const result = await response.json();
+            if (result.success) {
+                this.notifications = [];
+                this.unreadCount = 0;
+                this.updateNotificationUI();
+                if (typeof showToast === 'function') showToast('All notifications cleared', 'success');
+            }
+        } catch (error) {
+            console.error('Error clearing notifications:', error);
         }
     }
 

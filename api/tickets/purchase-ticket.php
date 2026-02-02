@@ -16,11 +16,20 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'user') {
 $data = json_decode(file_get_contents("php://input"), true);
 $event_id = $data['event_id'] ?? null;
 $quantity = $data['quantity'] ?? 1;
+$referred_by_client_name = $data['referred_by_client'] ?? null;
 $user_id = $_SESSION['user_id'];
 
 if (!$event_id || $quantity < 1) {
     echo json_encode(['success' => false, 'message' => 'Invalid event ID or quantity']);
     exit;
+}
+
+$referred_by_id = null;
+if ($referred_by_client_name) {
+    // Lookup client ID by name (slugified search)
+    $stmt = $pdo->prepare("SELECT id FROM users WHERE role = 'client' AND (name = ? OR REPLACE(LOWER(name), ' ', '-') = ?)");
+    $stmt->execute([$referred_by_client_name, $referred_by_client_name]);
+    $referred_by_id = $stmt->fetchColumn() ?: null;
 }
 
 try {
@@ -42,10 +51,10 @@ try {
 
     // Insert ticket
     $stmt = $pdo->prepare("
-        INSERT INTO tickets (event_id, user_id, quantity, total_price, ticket_code, status)
-        VALUES (?, ?, ?, ?, ?, 'active')
+        INSERT INTO tickets (event_id, user_id, referred_by_id, quantity, total_price, ticket_code, status)
+        VALUES (?, ?, ?, ?, ?, ?, 'active')
     ");
-    $stmt->execute([$event_id, $user_id, $quantity, $total_price, $ticket_code]);
+    $stmt->execute([$event_id, $user_id, $referred_by_id, $quantity, $total_price, $ticket_code]);
 
     $ticket_id = $pdo->lastInsertId();
 
