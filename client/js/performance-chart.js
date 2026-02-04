@@ -55,75 +55,149 @@ function renderChartFromAPI(data) {
         performanceChart.destroy();
     }
 
+    const chartCtx = ctx.getContext('2d');
+    
+    // Create gradients
+    const blueGradient = chartCtx.createLinearGradient(0, 0, 0, 400);
+    blueGradient.addColorStop(0, 'rgba(99, 91, 255, 0.3)');
+    blueGradient.addColorStop(1, 'rgba(99, 91, 255, 0)');
+
+    const greenGradient = chartCtx.createLinearGradient(0, 0, 0, 400);
+    greenGradient.addColorStop(0, 'rgba(55, 214, 122, 0.2)');
+    greenGradient.addColorStop(1, 'rgba(55, 214, 122, 0)');
+
     // Create new chart with API data
     performanceChart = new Chart(ctx, {
-        type: 'line',
+        type: 'bar', // Base type
         data: {
             labels: data.labels,
-            datasets: data.datasets.map(dataset => ({
-                ...dataset,
-                borderWidth: 3,
-                fill: true,
-                tension: 0.4,
-                pointRadius: 4,
-                pointHoverRadius: 6
-            }))
+            datasets: data.datasets.map(dataset => {
+                const isRevenue = dataset.label.toLowerCase().includes('revenue');
+                return {
+                    label: dataset.label,
+                    data: dataset.data,
+                    type: isRevenue ? 'line' : 'bar',
+                    borderColor: isRevenue ? '#37d67a' : '#635bff',
+                    backgroundColor: isRevenue ? greenGradient : '#635bff',
+                    borderWidth: isRevenue ? 3 : 0,
+                    borderRadius: isRevenue ? 0 : 6,
+                    tension: 0.4,
+                    fill: isRevenue,
+                    yAxisID: isRevenue ? 'y1' : 'y',
+                    order: isRevenue ? 1 : 2,
+                    pointRadius: isRevenue ? 4 : 0,
+                    pointHoverRadius: isRevenue ? 6 : 0,
+                    pointBackgroundColor: '#fff',
+                    pointBorderWidth: 2
+                };
+            })
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            interaction: {
+                mode: 'index',
+                intersect: false,
+            },
             plugins: {
                 legend: {
-                    display: true,
                     position: 'top',
+                    align: 'end',
                     labels: {
                         usePointStyle: true,
-                        padding: 15,
+                        pointStyle: 'circle',
+                        padding: 20,
                         font: {
+                            family: "'Inter', sans-serif",
                             size: 12,
                             weight: '600'
                         }
                     }
                 },
                 tooltip: {
-                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    backgroundColor: '#1f2937',
                     padding: 12,
+                    cornerRadius: 8,
                     titleFont: {
-                        size: 14,
+                        size: 13,
                         weight: '700'
                     },
                     bodyFont: {
                         size: 13
+                    },
+                    callbacks: {
+                        label: function(context) {
+                            let label = context.dataset.label || '';
+                            if (label) {
+                                label += ': ';
+                            }
+                            if (label.includes('Revenue')) {
+                                label += '₦' + context.parsed.y.toLocaleString();
+                            } else {
+                                label += context.parsed.y.toLocaleString();
+                            }
+                            return label;
+                        }
                     }
                 }
             },
             scales: {
                 y: {
+                    type: 'linear',
+                    display: true,
+                    position: 'left',
                     beginAtZero: true,
+                    grid: {
+                        drawBorder: false,
+                        color: 'rgba(0, 0, 0, 0.05)'
+                    },
                     ticks: {
-                        precision: 0,
                         font: {
                             size: 11
                         }
                     },
+                    title: {
+                        display: true,
+                        text: 'Volume',
+                        font: {
+                            weight: '600',
+                            size: 11
+                        }
+                    }
+                },
+                y1: {
+                    type: 'linear',
+                    display: true,
+                    position: 'right',
+                    beginAtZero: true,
                     grid: {
-                        color: 'rgba(0, 0, 0, 0.05)'
+                        drawOnChartArea: false, // only want the grid lines for one axis
+                    },
+                    ticks: {
+                        font: {
+                            size: 11
+                        },
+                        callback: (value) => '₦' + (value >= 1000 ? (value/1000) + 'k' : value)
+                    },
+                    title: {
+                        display: true,
+                        text: 'Revenue (₦)',
+                        font: {
+                            weight: '600',
+                            size: 11
+                        }
                     }
                 },
                 x: {
+                    grid: {
+                        display: false
+                    },
                     ticks: {
                         font: {
                             size: 11
                         }
-                    },
-                    grid: {
-                        display: false
                     }
                 }
-            },
-            interaction: {
-                intersect: false,
-                mode: 'index'
             }
         }
     });

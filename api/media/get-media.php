@@ -20,10 +20,13 @@ try {
     $where_clauses = ["client_id = ?"];
     $params = [$client_id];
 
+    // Folder filtering removed as column does not exist
+    /*
     if ($folder_name) {
         $where_clauses[] = "folder_name = ?";
         $params[] = $folder_name;
     }
+    */
 
     if ($file_type) {
         $where_clauses[] = "file_type = ?";
@@ -42,21 +45,23 @@ try {
     $media = $stmt->fetchAll();
 
     // Get statistics
+    // Removed total_folders count
     $stats_stmt = $pdo->prepare("
         SELECT 
             COUNT(*) as total_files,
             SUM(file_size) as total_size,
             SUM(CASE WHEN file_type = 'image' THEN 1 ELSE 0 END) as total_images,
             SUM(CASE WHEN file_type = 'video' THEN 1 ELSE 0 END) as total_videos,
-            SUM(CASE WHEN file_type = 'document' THEN 1 ELSE 0 END) as total_documents,
-            COUNT(DISTINCT folder_name) as total_folders
+            SUM(CASE WHEN file_type = 'document' THEN 1 ELSE 0 END) as total_documents
         FROM media
         WHERE client_id = ?
     ");
     $stats_stmt->execute([$client_id]);
     $stats = $stats_stmt->fetch();
 
-    // Get folder list
+    // Get folder list - REMOVED
+    $folders = [];
+    /*
     $folders_stmt = $pdo->prepare("
         SELECT DISTINCT folder_name, COUNT(*) as file_count
         FROM media
@@ -65,6 +70,7 @@ try {
     ");
     $folders_stmt->execute([$client_id]);
     $folders = $folders_stmt->fetchAll();
+    */
 
     echo json_encode([
         'success' => true,

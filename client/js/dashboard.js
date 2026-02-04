@@ -22,7 +22,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 async function loadClientProfile(clientId) {
     try {
-        const response = await fetch(`../../api/users/get-profile.php?user_id=${clientId}`);
+        const response = await fetch(`../../api/users/get-profile.php`);
         const result = await response.json();
 
         if (result.success) {
@@ -32,8 +32,15 @@ async function loadClientProfile(clientId) {
             const profileAvatar = document.querySelector('.user-avatar');
             
             // Set profile picture
-            if (profileAvatar && user.profile_pic) {
-                profileAvatar.style.backgroundImage = `url(${user.profile_pic})`;
+            // Set profile picture with fallback
+            if (profileAvatar) {
+                if (user.profile_pic) {
+                    profileAvatar.style.backgroundImage = `url(${user.profile_pic})`;
+                } else {
+                    // Default avatar using UI Avatars
+                    const defaultAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || user.business_name || 'User')}&background=random&color=fff`;
+                    profileAvatar.style.backgroundImage = `url(${defaultAvatar})`;
+                }
                 profileAvatar.style.backgroundSize = 'cover';
                 profileAvatar.style.backgroundPosition = 'center';
             }

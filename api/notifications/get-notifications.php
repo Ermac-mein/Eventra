@@ -15,8 +15,8 @@ $offset = $_GET['offset'] ?? 0;
 $is_read = $_GET['is_read'] ?? null;
 
 try {
-    // Auto-delete notifications older than 2 days
-    $cleanup_stmt = $pdo->prepare("DELETE FROM notifications WHERE created_at < DATE_SUB(NOW(), INTERVAL 2 DAY)");
+    // Auto-delete notifications older than 30 days
+    $cleanup_stmt = $pdo->prepare("DELETE FROM notifications WHERE created_at < DATE_SUB(NOW(), INTERVAL 30 DAY)");
     $cleanup_stmt->execute();
     // Build query
     $where_clauses = ["recipient_auth_id = ?"];

@@ -55,6 +55,10 @@ try {
     $media_uploads = $stmt->fetch()['total'];
 
     // Get referral stats for this client
+    // Note: referred_by_id column does not exist in tickets table yet.
+    $referred_tickets = 0;
+    $referred_users = 0;
+    /*
     $stmt = $pdo->prepare("
         SELECT 
             COUNT(*) as tickets,
@@ -66,6 +70,7 @@ try {
     $referral_data = $stmt->fetch();
     $referred_tickets = $referral_data['tickets'];
     $referred_users = $referral_data['users'];
+    */
 
     // Get total revenue for client's events
     $stmt = $pdo->prepare("
@@ -97,13 +102,14 @@ try {
     $stmt = $pdo->prepare("
         SELECT 
             t.*,
-            u.name as user_name,
-            u.email as user_email,
+            u.display_name as user_name,
+            a.email as user_email,
             u.profile_pic as user_profile_pic,
             e.event_name
         FROM tickets t
         INNER JOIN events e ON t.event_id = e.id
         INNER JOIN users u ON t.user_id = u.id
+        INNER JOIN auth_accounts a ON u.auth_id = a.id
         WHERE e.client_id = ?
         ORDER BY t.purchase_date DESC
         LIMIT 10

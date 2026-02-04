@@ -2,6 +2,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initExportModal();
     initSidebar();
     initDrawers();
+    initLogout();
     initPreviews();
     initSettings();
     
@@ -67,49 +68,72 @@ function initDrawers() {
     });
 
     backdrop.onclick = closeAll;
-    
-    // Add logout handler to profile drawer logout icon
-    const logoutIcon = document.querySelector('#profileDrawer .drawer-header span[style*="color: #e74c3c"]');
-    if (logoutIcon) {
-        logoutIcon.onclick = async (e) => {
-            e.stopPropagation();
-            const result = await Swal.fire({
-                title: 'Logout Request',
-                text: 'Are you sure you want to logout from Eventra Admin?',
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonColor: '#e74c3c',
-                cancelButtonColor: '#95a5a6',
-                confirmButtonText: 'Yes, Logout',
-                cancelButtonText: 'Stay'
-            });
+}
 
-            if (result.isConfirmed) {
-                try {
-                    const response = await fetch('../../api/auth/logout.php', {
-                        method: 'POST'
-                    });
-                    
-                    const resultData = await response.json();
-                    
-                    if (resultData.success) {
-                        // Clear local storage
-                        storage.remove('user');
-                        storage.remove('auth_token');
-                        
-                        // Redirect to login
-                        window.location.href = '../../public/pages/login.html';
-                    } else {
-                        Swal.fire('Logout Failed', resultData.message, 'error');
-                    }
-                } catch (error) {
-                    console.error('Logout error:', error);
-                    // Clear local storage anyway
-                    storage.remove('user');
-                    storage.remove('auth_token');
-                    window.location.href = '../../public/pages/login.html';
-                }
+/**
+ * Global logout function for Admin
+ */
+async function logout() {
+    const result = await Swal.fire({
+        title: 'Logout Request',
+        text: 'Are you sure you want to logout from Eventra Admin?',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#e74c3c',
+        cancelButtonColor: '#95a5a6',
+        confirmButtonText: 'Yes, Logout',
+        cancelButtonText: 'Stay'
+    });
+
+    if (result.isConfirmed) {
+        try {
+            const response = await fetch('../../api/auth/logout.php', {
+                method: 'POST'
+            });
+            
+            const resultData = await response.json();
+            
+            if (resultData.success) {
+                // Clear local storage
+                storage.remove('user');
+                storage.remove('auth_token');
+                
+                // Redirect to login
+                window.location.href = '../../public/pages/login.html';
+            } else {
+                Swal.fire('Logout Failed', resultData.message, 'error');
             }
+        } catch (error) {
+            console.error('Logout error:', error);
+            // Clear local storage anyway
+            storage.remove('user');
+            storage.remove('auth_token');
+            window.location.href = '../../public/pages/login.html';
+        }
+    }
+}
+
+// Make logout globally accessible
+window.logout = logout;
+
+function initLogout() {
+    // Attach to any element with class 'logout-link'
+    document.querySelectorAll('.logout-link, [onclick*="logout"]').forEach(link => {
+        // Remove inline onclick if it exists to prevent double firing, 
+        // or just ensure the inline one calls the global function we just defined.
+        // If they use onclick="logout()", it calls window.logout, which matches our function.
+        // So we mainly need to handle elements that rely on listeners.
+        
+        // Ensure pointer cursor
+        link.style.cursor = 'pointer';
+    });
+
+    // Specific listeners if needed (e.g. ID-based)
+    const logoutBtn = document.getElementById('logoutBtn');
+    if (logoutBtn) {
+        logoutBtn.onclick = (e) => {
+            e.preventDefault();
+            logout();
         };
     }
 }

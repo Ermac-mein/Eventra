@@ -232,13 +232,13 @@ function displayEventPreview(event) {
                                         ${event.status.toUpperCase()}
                                     </span>
                                     <span style="padding: 0.25rem 0.75rem; background: ${getPriorityBadgeColor(event.priority)}; color: white; border-radius: 20px; font-size: 0.85rem;">
-                                        ${getPriorityIcon(event.priority)} ${event.priority.toUpperCase()}
+                                        ${getPriorityIcon(event.priority)} ${event.priority === 'standard' ? 'NEARBY' : event.priority.toUpperCase()}
                                     </span>
                                 </div>
                             </div>
                             <div style="text-align: right;">
                                 <div style="font-size: 1.5rem; font-weight: 700; color: var(--client-primary);">
-                                    ₦${parseFloat(event.price).toLocaleString()}
+                                    ${parseFloat(event.price) === 0 ? 'Free' : '₦' + parseFloat(event.price).toLocaleString()}
                                 </div>
                                 <div style="font-size: 0.85rem; color: #666;">Ticket Price</div>
                             </div>
@@ -252,7 +252,10 @@ function displayEventPreview(event) {
                             </div>
                             <div>
                                 <div style="font-size: 0.85rem; color: #666; margin-bottom: 0.25rem;">📍 Location</div>
-                                <div style="font-weight: 600;">${event.state}</div>
+                                <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.address + ', ' + event.state)}" target="_blank" 
+                                   style="font-weight: 600; color: var(--client-primary); text-decoration: none; display: flex; align-items: center; gap: 4px; hover:underline;">
+                                    ${event.state} ↗
+                                </a>
                             </div>
                             <div>
                                 <div style="font-size: 0.85rem; color: #666; margin-bottom: 0.25rem;">🎭 Category</div>
@@ -348,14 +351,18 @@ function shareEvent(link) {
 }
 
 // Helper Functions
-function getNigerianStates() {
-    return [
+function getNigerianStates(includeGlobal = false) {
+    const states = [
         'Abia', 'Adamawa', 'Akwa Ibom', 'Anambra', 'Bauchi', 'Bayelsa', 'Benue', 'Borno',
         'Cross River', 'Delta', 'Ebonyi', 'Edo', 'Ekiti', 'Enugu', 'FCT', 'Gombe', 'Imo',
         'Jigawa', 'Kaduna', 'Kano', 'Katsina', 'Kebbi', 'Kogi', 'Kwara', 'Lagos', 'Nasarawa',
         'Niger', 'Ogun', 'Ondo', 'Osun', 'Oyo', 'Plateau', 'Rivers', 'Sokoto', 'Taraba',
         'Yobe', 'Zamfara'
     ];
+    if (includeGlobal) {
+        states.unshift('All States');
+    }
+    return states;
 }
 
 function getStatusBadgeColor(status) {
@@ -374,6 +381,7 @@ function getPriorityBadgeColor(priority) {
         'trending': '#f59e0b',
         'featured': '#8b5cf6',
         'nearby': '#10b981',
+        'standard': '#10b981', // Display 'standard' as 'nearby' color
         'upcoming': '#3b82f6'
     };
     return colors[priority] || '#6b7280';
@@ -385,6 +393,7 @@ function getPriorityIcon(priority) {
         'trending': '📈',
         'featured': '⭐',
         'nearby': '📍',
+        'standard': '📍', // Display 'standard' as 'nearby' icon
         'upcoming': '🕒'
     };
     return icons[priority] || '';
@@ -459,7 +468,7 @@ function displayEventActionModal(event) {
                         </div>
                         <div>
                             <div style="font-size: 0.85rem; color: #666; margin-bottom: 0.25rem;">💰 Price</div>
-                            <div style="font-weight: 600;">₦${parseFloat(event.price).toLocaleString()}</div>
+                            <div style="font-weight: 600;">${parseFloat(event.price) === 0 ? 'Free' : '₦' + parseFloat(event.price).toLocaleString()}</div>
                         </div>
                         <div>
                             <div style="font-size: 0.85rem; color: #666; margin-bottom: 0.25rem;">📊 Status</div>
@@ -644,17 +653,9 @@ function showEditEventModal(event) {
                             <div class="form-group">
                                 <label>State *</label>
                                 <select name="state" required>
-                                    ${getNigerianStates().map(state => 
+                                    ${getNigerianStates(true).map(state => 
                                         `<option value="${state}" ${event.state === state ? 'selected' : ''}>${state}</option>`
                                     ).join('')}
-                                </select>
-                            </div>
-
-                            <div class="form-group">
-                                <label>Visibility</label>
-                                <select name="visibility">
-                                    <option value="all_states" ${event.visibility === 'all_states' ? 'selected' : ''}>All States</option>
-                                    <option value="specific_state" ${event.visibility === 'specific_state' ? 'selected' : ''}>Specific State Only</option>
                                 </select>
                             </div>
                         </div>
@@ -702,48 +703,7 @@ function showEditEventModal(event) {
     // Add form submit handler
     document.getElementById('editEventForm').addEventListener('submit', handleEventUpdate);
 
-    // Add priority change handler for nearby logic
-    document.getElementById('editPrioritySelect').addEventListener('change', function(e) {
-        const visibilitySelect = document.querySelector('#editEventForm select[name="visibility"]');
-        const stateSelect = document.querySelector('#editEventForm select[name="state"]');
-        const user = storage.get('user');
-
-        if (e.target.value === 'nearby') {
-            visibilitySelect.value = 'specific_state';
-            visibilitySelect.disabled = true;
-
-            if (user && user.state && !stateSelect.value) {
-                stateSelect.value = user.state;
-            }
-
-            if (!document.getElementById('editHiddenVisibility')) {
-                const hidden = document.createElement('input');
-                hidden.type = 'hidden';
-                hidden.name = 'visibility';
-                hidden.value = 'specific_state';
-                hidden.id = 'editHiddenVisibility';
-                e.target.form.appendChild(hidden);
-            }
-        } else {
-            visibilitySelect.disabled = false;
-            const hidden = document.getElementById('editHiddenVisibility');
-            if (hidden) hidden.remove();
-        }
-    });
-
-    // Trigger initial check
-    if (document.getElementById('editPrioritySelect').value === 'nearby') {
-        const visibilitySelect = document.querySelector('#editEventForm select[name="visibility"]');
-        visibilitySelect.value = 'specific_state';
-        visibilitySelect.disabled = true;
-        
-        const hidden = document.createElement('input');
-        hidden.type = 'hidden';
-        hidden.name = 'visibility';
-        hidden.value = 'specific_state';
-        hidden.id = 'editHiddenVisibility';
-        document.getElementById('editEventForm').appendChild(hidden);
-    }
+    // Logic for visibility binding removed as requested
 }
 
 function closeEditEventModal() {
@@ -828,7 +788,7 @@ function showTicketPreviewModal(ticket) {
                         </div>
                         <div>
                             <div style="font-size: 0.85rem; color: #666; margin-bottom: 0.25rem;">💰 Price</div>
-                            <div style="font-weight: 600;">₦${parseFloat(ticket.price || 0).toLocaleString()}</div>
+                            <div style="font-weight: 600;">${parseFloat(ticket.price || 0) === 0 ? 'Free' : '₦' + parseFloat(ticket.price || 0).toLocaleString()}</div>
                         </div>
                         <div>
                             <div style="font-size: 0.85rem; color: #666; margin-bottom: 0.25rem;">📆 Purchase Date</div>

@@ -44,68 +44,61 @@ try {
     $dob = $_POST['dob'] ?? null;
     $gender = $_POST['gender'] ?? null;
 
+    // Determine table and allowed fields based on role
+    $role = $_SESSION['role'] ?? 'user';
+    $table = 'users';
+    $allowed_fields = ['phone', 'dob', 'gender', 'profile_pic'];
+    $name_column = 'display_name';
+
+    if ($role === 'client') {
+        $table = 'clients';
+        $allowed_fields = ['phone', 'company', 'address', 'city', 'state', 'profile_pic'];
+        $name_column = 'business_name';
+    } elseif ($role === 'admin') {
+        $table = 'admins';
+        $allowed_fields = ['profile_pic'];
+        $name_column = 'name';
+    }
+
     // Build update query
     $update_fields = [];
     $params = [];
 
+    // Handle Name Field Mapping
     if ($name) {
-        $update_fields[] = "name = ?";
+        $update_fields[] = "$name_column = ?";
         $params[] = $name;
     }
-    if ($phone) {
-        $update_fields[] = "phone = ?";
-        $params[] = $phone;
-    }
-    if ($job_title) {
-        $update_fields[] = "job_title = ?";
-        $params[] = $job_title;
-    }
-    if ($company) {
-        $update_fields[] = "company = ?";
-        $params[] = $company;
-    }
-    if ($address) {
-        $update_fields[] = "address = ?";
-        $params[] = $address;
-    }
-    if ($city) {
-        $update_fields[] = "city = ?";
-        $params[] = $city;
-    }
-    if ($state) {
-        $update_fields[] = "state = ?";
-        $params[] = $state;
-    }
-    if ($dob) {
-        $update_fields[] = "dob = ?";
-        $params[] = $dob;
-    }
-    if ($gender) {
-        $update_fields[] = "gender = ?";
-        $params[] = $gender;
-    }
-    if ($profile_pic) {
-        $update_fields[] = "profile_pic = ?";
-        $params[] = $profile_pic;
+
+    // Handle Standard Fields
+    $fields_map = [
+        'phone' => $phone,
+        'job_title' => $job_title, // Note: job_title is not in schema for any table currently, ignoring or needing specific handling if added later
+        'company' => $company,
+        'address' => $address,
+        'city' => $city,
+        'state' => $state,
+        'dob' => $dob,
+        'gender' => $gender,
+        'profile_pic' => $profile_pic
+    ];
+
+    foreach ($fields_map as $field => $value) {
+        if ($value !== null && in_array($field, $allowed_fields)) {
+            $update_fields[] = "$field = ?";
+            $params[] = $value;
+        }
     }
 
     if (empty($update_fields)) {
-        echo json_encode(['success' => false, 'message' => 'No fields to update']);
+        echo json_encode(['success' => false, 'message' => 'No matching fields to update for this role']);
         exit;
     }
 
     $params[] = $user_id;
     $update_sql = implode(', ', $update_fields);
 
-    // Determine table
-    $role = $_SESSION['role'] ?? 'user';
-    $table = 'users';
-    if ($role === 'client')
-        $table = 'clients';
-    if ($role === 'admin')
-        $table = 'admins';
-
-    $stmt = $pdo->prepare("UPDATE $table SET $update_sql WHERE id = ?");
+    $stmt = $pdo->prepare("UPDATE $table SET $update_sql WHERE auth_id = ?"); // Changed WHERE id to WHERE auth_id
     $stmt->execute($params);
 
     // Get updated user

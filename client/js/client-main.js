@@ -6,10 +6,59 @@
 // Initialize logout functionality
 document.addEventListener('DOMContentLoaded', () => {
     initLogout();
-    initNotifications();
+    initLogout();
+    // initNotifications(); // Handled by drawer-system.js
+    initSearch();
     initSearch();
     initProfileClick();
+    loadGlobalProfile();
 });
+
+/**
+ * Loads the user profile globally to update header avatar
+ */
+async function loadGlobalProfile() {
+    try {
+        // Check if we have user data in storage first for immediate display
+        const storedUser = storage.get('user');
+        if (storedUser) {
+            updateGlobalAvatar(storedUser);
+        }
+
+        // Fetch fresh data
+        const response = await fetch('../../api/users/get-profile.php');
+        
+        if (response.status === 401) {
+            window.location.href = '../../public/pages/login.html';
+            return;
+        }
+
+        const result = await response.json();
+
+        if (result.success) {
+            storage.set('user', result.user);
+            updateGlobalAvatar(result.user);
+        }
+    } catch (error) {
+        console.error('Error loading global profile:', error);
+    }
+}
+
+function updateGlobalAvatar(user) {
+    const avatars = document.querySelectorAll('.user-avatar');
+    avatars.forEach(avatar => {
+        if (user.profile_pic) {
+            avatar.style.backgroundImage = `url(${user.profile_pic})`;
+        } else {
+            // Fallback to UI Avatars
+            const name = user.name || user.business_name || 'User';
+            const defaultAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random&color=fff`;
+            avatar.style.backgroundImage = `url(${defaultAvatar})`;
+        }
+        avatar.style.backgroundSize = 'cover';
+        avatar.style.backgroundPosition = 'center';
+    });
+}
 
 /**
  * Global logout function
@@ -101,15 +150,11 @@ function initLogout() {
     });
 }
 
-function initNotifications() {
-    const notificationIcon = document.querySelector('[data-drawer="notifications"]');
-    if (notificationIcon) {
-        notificationIcon.addEventListener('click', async () => {
-            await loadNotifications();
-        });
-    }
-}
+// Notification initialization is handled by drawer-system.js
+// function initNotifications() { ... } removed to prevent conflict
 
+// loadNotifications logic is now handled by notification-system.js and drawer-system.js
+/*
 async function loadNotifications() {
     try {
         const response = await fetch('../../api/notifications/get-notifications.php');
@@ -130,6 +175,7 @@ async function loadNotifications() {
         console.error('Error loading notifications:', error);
     }
 }
+*/
 
 function initSearch() {
     const searchInput = document.querySelector('.header-search input');

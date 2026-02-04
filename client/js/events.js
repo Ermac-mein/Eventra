@@ -72,7 +72,11 @@ function updateEventsTable(events) {
             data-image="${event.image_path || ''}">
             <td>${event.event_name}</td>
             <td>${event.state}</td>
-            <td>₦${parseFloat(event.price).toLocaleString()}</td>
+            <td>
+                ${parseFloat(event.price) === 0 
+                    ? '<span style="background: #ecfdf5; color: #10b981; padding: 2px 8px; border-radius: 4px; font-weight: 600; font-size: 0.8rem;">Free</span>' 
+                    : `₦${parseFloat(event.price).toLocaleString()}`}
+            </td>
             <td class="text-center">
                 <div style="display: flex; align-items: center; justify-content: center; gap: 5px;">
                     ${event.attendee_count || 0}
@@ -247,6 +251,9 @@ async function previewEvent(eventId) {
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
                     <div style="background: #f3f4f6; padding: 0.75rem; border-radius: 8px;">📂 ${category}</div>
                     <div style="background: #f3f4f6; padding: 0.75rem; border-radius: 8px;">📍 ${location}</div>
+                    <div style="background: #f3f4f6; padding: 0.75rem; border-radius: 8px;">
+                        💰 ${price.includes('Free') || price === '0' || parseFloat(price.replace(/[^0-9.]/g, '')) === 0 ? 'Free' : price}
+                    </div>
                 </div>
 
                 <div style="margin-bottom: 1.5rem;">

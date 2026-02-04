@@ -50,7 +50,9 @@ try {
 
     // Get events with client information and favorite status if user is logged in
     $user_id = $_SESSION['user_id'] ?? null;
-    $favorite_select = $user_id ? ", (SELECT COUNT(*) FROM favorites WHERE user_id = ? AND event_id = e.id) as is_favorite" : ", 0 as is_favorite";
+    // Favorites table does not exist, setting is_favorite to 0
+    // $favorite_select = $user_id ? ", (SELECT COUNT(*) FROM favorites WHERE user_id = ? AND event_id = e.id) as is_favorite" : ", 0 as is_favorite";
+    $favorite_select = ", 0 as is_favorite";
 
     $sql = "
         SELECT e.*, u.business_name as client_name, u.profile_pic as client_profile_pic $favorite_select
@@ -62,10 +64,13 @@ try {
     ";
 
     // Rebuild params to include user_id for the subquery if needed
+    // User ID param removed as favorites subquery was removed
     $query_params = [];
+    /*
     if ($user_id) {
         $query_params[] = $user_id;
     }
+    */
     foreach ($params as $p) {
         $query_params[] = $p;
     }

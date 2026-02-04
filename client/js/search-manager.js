@@ -23,43 +23,29 @@ async function initializeSearch() {
 }
 
 async function loadAllEventsForSearch() {
-    try {
-        const user = storage.get('user');
-        const response = await fetch(`../../api/events/get-events.php?client_id=${user.id}&limit=1000`);
-        const result = await response.json();
-
-        if (result.success && result.events) {
-            allEvents = result.events;
-        }
-    } catch (error) {
-        console.error('Error loading events for search:', error);
-    }
+    // No longer pre-loading all events for server-side search
+    return;
 }
 
-function performSearch(query) {
+async function performSearch(query) {
     if (!query || query.trim().length < 2) {
         hideSearchResults();
         return;
     }
 
-    const searchTerm = query.toLowerCase().trim();
-    
-    // Search across multiple fields
-    const results = allEvents.filter(event => {
-        return (
-            event.event_name?.toLowerCase().includes(searchTerm) ||
-            event.description?.toLowerCase().includes(searchTerm) ||
-            event.state?.toLowerCase().includes(searchTerm) ||
-            event.event_type?.toLowerCase().includes(searchTerm) ||
-            event.tag?.toLowerCase().includes(searchTerm)
-        );
-    });
+    try {
+        const response = await fetch(`../../api/utils/search.php?q=${encodeURIComponent(query)}`);
+        const result = await response.json();
 
-    displaySearchResults(results, query);
+        if (result.success) {
+            displaySearchResults(result.results, query);
+        }
+    } catch (error) {
+        console.error('Error performing search:', error);
+    }
 }
 
 function displaySearchResults(results, query) {
-    // Remove existing results
     let resultsContainer = document.getElementById('searchResults');
     
     if (!resultsContainer) {
@@ -72,11 +58,12 @@ function displaySearchResults(results, query) {
             right: 0;
             background: white;
             border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            max-height: 400px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            max-height: 500px;
             overflow-y: auto;
             z-index: 1000;
             margin-top: 8px;
+            border: 1px solid #e5e7eb;
         `;
         
         const searchContainer = document.querySelector('.header-search');
@@ -84,34 +71,72 @@ function displaySearchResults(results, query) {
         searchContainer.appendChild(resultsContainer);
     }
 
-    if (results.length === 0) {
+    const hasResults = results.events.length > 0 || results.tickets.length > 0 || results.users.length > 0;
+
+    if (!hasResults) {
         resultsContainer.innerHTML = `
-            <div style="padding: 1.5rem; text-align: center; color: var(--client-text-muted);">
-                No results found for "${query}"
+            <div style="padding: 2rem; text-align: center; color: #9ca3af;">
+                <div style="font-size: 2rem; margin-bottom: 0.5rem;">🔍</div>
+                <p>No results found for "${query}"</p>
             </div>
         `;
         resultsContainer.style.display = 'block';
         return;
     }
 
-    resultsContainer.innerHTML = results.map(event => `
-        <div class="search-result-item" onclick="goToEvent(${event.id})" style="
-            padding: 1rem;
-            border-bottom: 1px solid #f1f4f8;
-            cursor: pointer;
-            transition: background 0.2s;
-        " onmouseover="this.style.background='#f9fafb'" onmouseout="this.style.background='white'">
-            <div style="font-weight: 600; margin-bottom: 0.25rem;">${highlightText(event.event_name, query)}</div>
-            <div style="font-size: 0.875rem; color: var(--client-text-muted); margin-bottom: 0.25rem;">
-                ${event.event_type} • ${event.state} • ${event.status}
-            </div>
-            <div style="font-size: 0.75rem; color: var(--client-text-muted);">
-                ${event.event_date} at ${event.event_time}
-            </div>
-        </div>
-    `).join('');
+    let html = '';
 
+    // Events Section
+    if (results.events.length > 0) {
+        html += `<div style="padding: 0.75rem 1rem; background: #f9fafb; font-size: 0.7rem; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid #f1f4f8;">Events</div>`;
+        html += results.events.map(event => `
+            <div class="search-result-item" onclick="goToEvent(${event.id})" style="padding: 0.75rem 1rem; border-bottom: 1px solid #f1f4f8; cursor: pointer; display: flex; align-items: center; gap: 12px;">
+                <div style="width: 32px; height: 32px; border-radius: 6px; background: #f3f4f6; display: flex; align-items: center; justify-content: center; font-size: 1rem;">📅</div>
+                <div style="flex: 1;">
+                    <div style="font-weight: 600; font-size: 0.9rem; color: #111827;">${highlightText(event.title, query)}</div>
+                    <div style="font-size: 0.75rem; color: #6b7280;">${event.subtitle} • ${event.state}</div>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    // Tickets Section
+    if (results.tickets.length > 0) {
+        html += `<div style="padding: 0.75rem 1rem; background: #f9fafb; font-size: 0.7rem; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid #f1f4f8;">Tickets</div>`;
+        html += results.tickets.map(ticket => `
+            <div class="search-result-item" onclick="window.location.href='tickets.html?highlight=${ticket.id}'" style="padding: 0.75rem 1rem; border-bottom: 1px solid #f1f4f8; cursor: pointer; display: flex; align-items: center; gap: 12px;">
+                <div style="width: 32px; height: 32px; border-radius: 6px; background: #fef2f2; display: flex; align-items: center; justify-content: center; font-size: 1rem;">🎫</div>
+                <div style="flex: 1;">
+                    <div style="font-weight: 600; font-size: 0.9rem; color: #111827;">${highlightText(ticket.title, query)}</div>
+                    <div style="font-size: 0.75rem; color: #6b7280;">Event: ${ticket.subtitle} • Bought by: ${ticket.extra}</div>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    // Users Section
+    if (results.users.length > 0) {
+        html += `<div style="padding: 0.75rem 1rem; background: #f9fafb; font-size: 0.7rem; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid #f1f4f8;">Users</div>`;
+        html += results.users.map(user => `
+            <div class="search-result-item" onclick="window.location.href='users.html?highlight=${user.id}'" style="padding: 0.75rem 1rem; border-bottom: 1px solid #f1f4f8; cursor: pointer; display: flex; align-items: center; gap: 12px;">
+                <div style="width: 32px; height: 32px; border-radius: 50%; background: #eef2ff; display: flex; align-items: center; justify-content: center; font-size: 1rem;">👤</div>
+                <div style="flex: 1;">
+                    <div style="font-weight: 600; font-size: 0.9rem; color: #111827;">${highlightText(user.title, query)}</div>
+                    <div style="font-size: 0.75rem; color: #6b7280;">${user.subtitle}</div>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    resultsContainer.innerHTML = html;
     resultsContainer.style.display = 'block';
+
+    // Add hover effects dynamically
+    const items = resultsContainer.querySelectorAll('.search-result-item');
+    items.forEach(item => {
+        item.onmouseover = () => item.style.background = '#f9fafb';
+        item.onmouseout = () => item.style.background = 'white';
+    });
 
     // Close results when clicking outside
     document.addEventListener('click', function closeResults(e) {
@@ -132,12 +157,10 @@ function hideSearchResults() {
 function highlightText(text, query) {
     if (!query) return text;
     const regex = new RegExp(`(${query})`, 'gi');
-    return text.replace(regex, '<mark style="background: #fef3c7; padding: 0 2px;">$1</mark>');
+    return text.replace(regex, '<mark style="background: rgba(99, 91, 255, 0.1); color: var(--client-primary); padding: 0 2px; border-radius: 2px;">$1</mark>');
 }
 
 function goToEvent(eventId) {
-    // If on events page, scroll to event
-    // Otherwise, navigate to events page
     window.location.href = `events.html?highlight=${eventId}`;
     hideSearchResults();
 }

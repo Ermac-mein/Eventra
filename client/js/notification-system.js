@@ -39,11 +39,18 @@ class NotificationManager {
     async fetchNotifications() {
         try {
             const response = await fetch('../../api/notifications/get-notifications.php');
+            
+            if (response.status === 401) {
+                this.stopPolling();
+                window.location.href = '../../public/pages/login.html';
+                return;
+            }
+
             const result = await response.json();
 
             if (result.success) {
-                this.updateNotificationBadge(result.unread_count);
-                this.updateNotificationDrawer(result.notifications);
+                this.updateNotificationBadge(result.unread_count || 0);
+                this.updateNotificationDrawer(result.notifications || []);
                 
                 // Update state manager with notification count
                 if (window.stateManager) {
@@ -51,7 +58,7 @@ class NotificationManager {
                 }
                 
                 // Check for new notifications
-                if (result.notifications.length > 0) {
+                if (result.notifications && Array.isArray(result.notifications) && result.notifications.length > 0) {
                     const latestId = result.notifications[0].id;
                     if (latestId > this.lastNotificationId && this.lastNotificationId !== 0) {
                         // New notification received
@@ -77,18 +84,22 @@ class NotificationManager {
                 badge.className = 'notification-badge';
                 badge.style.cssText = `
                     position: absolute;
-                    top: -5px;
-                    right: -5px;
+                    top: -6px;
+                    right: -6px;
                     background: #ef4444;
                     color: white;
                     border-radius: 50%;
-                    width: 18px;
+                    min-width: 18px;
                     height: 18px;
+                    padding: 0 4px;
                     font-size: 0.7rem;
                     display: flex;
                     align-items: center;
                     justify-content: center;
                     font-weight: 700;
+                    border: 2px solid white;
+                    z-index: 10;
+                    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
                 `;
                 bellIcon.style.position = 'relative';
                 bellIcon.appendChild(badge);

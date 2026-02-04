@@ -35,8 +35,8 @@ try {
     $auth_id = $pdo->lastInsertId();
 
     // 4. Insert into clients
-    $stmt = $pdo->prepare("INSERT INTO clients (auth_id, business_name) VALUES (?, ?)");
-    $stmt->execute([$auth_id, $name]);
+    $stmt = $pdo->prepare("INSERT INTO clients (auth_id, business_name, name, email) VALUES (?, ?, ?, ?)");
+    $stmt->execute([$auth_id, $name, $name, $email]);
 
     $pdo->commit();
 

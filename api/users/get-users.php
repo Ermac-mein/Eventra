@@ -48,10 +48,18 @@ try {
     // Get users
     $sql = "
         SELECT 
-            a.id, u.display_name as name, a.email, a.role, u.profile_pic, u.phone,
-            u.address, u.city, u.state, u.dob, u.gender, a.is_active as status, a.created_at
+            a.id, 
+            COALESCE(u.display_name, c.business_name, a.email) as name, 
+            a.email, 
+            a.role, 
+            COALESCE(u.profile_pic, c.profile_pic) as profile_pic, 
+            COALESCE(u.phone, c.phone) as phone,
+            c.address, c.city, c.state, u.dob, u.gender, 
+            a.is_active as status, 
+            a.created_at
         FROM auth_accounts a
         LEFT JOIN users u ON a.id = u.auth_id
+        LEFT JOIN clients c ON a.id = c.auth_id
         $where_sql
         ORDER BY a.created_at DESC
         LIMIT ? OFFSET ?

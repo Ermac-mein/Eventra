@@ -24,7 +24,21 @@ function resolveEntity($email)
     $auth = $stmt->fetch(PDO::FETCH_ASSOC);
 
     if (!$auth) {
-        return false;
+        // Fallback: Check if the email exists in the clients table (users might log in with their profile email)
+        $stmt = $pdo->prepare("SELECT auth_id FROM clients WHERE email = ?");
+        $stmt->execute([$email]);
+        $client_auth_id = $stmt->fetchColumn();
+
+        if ($client_auth_id) {
+            // Found in clients table, now fetch the auth account using the retrieved auth_id
+            $stmt = $pdo->prepare("SELECT * FROM auth_accounts WHERE id = ? AND is_active = 1");
+            $stmt->execute([$client_auth_id]);
+            $auth = $stmt->fetch(PDO::FETCH_ASSOC);
+        }
+
+        if (!$auth) {
+            return false;
+        }
     }
 
     // Role-based retrieval for full profile

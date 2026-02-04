@@ -42,7 +42,12 @@ try {
     $address = $_POST['address'] ?? '';
     $visibility = $_POST['visibility'] ?? 'all_states';
     $price = $_POST['price'] ?? 0.00;
-    $priority = $_POST['priority'] ?? 'nearby';
+
+    // Validate priority
+    $allowed_priorities = ['nearby', 'hot', 'trending', 'upcoming', 'featured'];
+    $priority_input = $_POST['priority'] ?? 'nearby';
+    $priority = in_array($priority_input, $allowed_priorities) ? $priority_input : 'nearby';
+
     $status = $_POST['status'] ?? 'draft';
     $scheduled_publish_time = !empty($_POST['scheduled_publish_time']) ? $_POST['scheduled_publish_time'] : null;
 
@@ -59,11 +64,21 @@ try {
     // Auto-generate tag from event name (lowercase, hyphenated)
     $tag = strtolower(str_replace(' ', '-', preg_replace('/[^A-Za-z0-9 ]/', '', $event_name)));
 
-    // Auto-generate external link with event name and client name
-    $stmt = $pdo->prepare("SELECT name FROM users WHERE id = ?");
-    $stmt->execute([$client_id]);
-    $client = $stmt->fetch();
-    $client_name = strtolower(str_replace(' ', '-', preg_replace('/[^A-Za-z0-9 ]/', '', $client['name'])));
+    // Fetch Client ID (PK) and Name using Auth ID
+    // The events table FK references clients(id), NOT auth_accounts(id)
+    $stmt = $pdo->prepare("SELECT id, name FROM clients WHERE auth_id = ?");
+    $stmt->execute([$client_id]); // $client_id here is actually the auth_id from session
+    $client_data = $stmt->fetch();
+
+    if (!$client_data) {
+        throw new Exception("Client profile not found for this account.");
+    }
+
+    $real_client_id = $client_data['id']; // This is the actual PK for clients table
+
+    // Fallback if name is missing (should not happen)
+    $raw_client_name = $client_data['name'] ?? 'client';
+    $client_name = strtolower(str_replace(' ', '-', preg_replace('/[^A-Za-z0-9 ]/', '', $raw_client_name)));
 
     $base_url = $_ENV['APP_URL'] ?? 'http://localhost:8000';
     $external_link = $base_url . '/public/pages/event-details.html?event=' . $tag . '&client=' . $client_name;
@@ -78,7 +93,7 @@ try {
     ");
 
     $stmt->execute([
-        $client_id,
+        $real_client_id, // Use the correct foreign key
         $event_name,
         $description,
         $event_type,

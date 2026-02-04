@@ -5,18 +5,15 @@
  */
 header('Content-Type: application/json');
 require_once '../../config/database.php';
+require_once '../../includes/middleware/auth.php';
 
 // Check authentication
-if (!isset($_SESSION['user_id'])) {
-    http_response_code(401);
-    echo json_encode(['success' => false, 'message' => 'Unauthorized']);
-    exit;
-}
+$current_user_id = checkAuth();
 
-$user_id = $_GET['user_id'] ?? $_SESSION['user_id'];
+$user_id = $_GET['user_id'] ?? $current_user_id;
 
 // Check if requesting own profile or admin
-if ($user_id != $_SESSION['user_id'] && $_SESSION['role'] !== 'admin') {
+if ($user_id != $current_user_id && $_SESSION['role'] !== 'admin') {
     http_response_code(403);
     echo json_encode(['success' => false, 'message' => 'Access denied']);
     exit;

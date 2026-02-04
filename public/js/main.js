@@ -74,12 +74,23 @@ function initUserIcon() {
   const closeLoginModal = document.getElementById('closeLoginModal');
   
   // Check if logged in and update display
+  const defaultUserIcon = document.getElementById('defaultUserIcon');
+  const userProfileImg = document.getElementById('userProfileImg');
+  const userOnlineStatus = document.querySelector('.user-online-status');
+
   if (isAuthenticated()) {
     const user = storage.get('user');
-    if (user && userIcon) {
-      // Use user's profile pic or fallback to avatar with their name
-      userIcon.src = user.profile_pic || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=FF5A5F&color=fff&size=128`;
-      userIcon.title = `Logged in as ${user.name}`;
+    if (user) {
+      // Show profile image, hide default SVG
+      if (userProfileImg) {
+          userProfileImg.src = user.profile_pic || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=FF5A5F&color=fff&size=128`;
+          userProfileImg.title = `Logged in as ${user.name}`;
+          userProfileImg.style.display = 'block';
+      }
+      if (defaultUserIcon) defaultUserIcon.style.display = 'none';
+      
+      // Show active status
+      if (userOnlineStatus) userOnlineStatus.style.display = 'block';
     }
     
     // Toggle dropdown
