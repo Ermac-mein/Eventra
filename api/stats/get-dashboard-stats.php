@@ -83,7 +83,7 @@ try {
         $stmt = $pdo->query("SELECT COUNT(*) as count FROM tickets WHERE status = 'active'");
         $stats['tickets_sold'] = $stmt->fetch()['count'] ?? 0;
 
-        $stmt = $pdo->query("SELECT COUNT(*) as count FROM users WHERE role = 'user'");
+        $stmt = $pdo->query("SELECT COUNT(*) as count FROM auth_accounts WHERE role = 'user' AND is_active = 1");
         $stats['total_users'] = $stmt->fetch()['count'] ?? 0;
 
         $stmt = $pdo->query("SELECT COUNT(*) as count FROM media");

@@ -36,7 +36,7 @@
                 
                 <header class="login-header">
                     <h1 class="login-title">Welcome Back!</h1>
-                    <p class="login-subtitle">
+                     <p class="login-signup-prompt" id="signupPrompt">
                         Don't have an account? <a href="signup.html" class="signup-link">Sign Up</a>
                     </p>
                 </header>
@@ -83,58 +83,24 @@
                     <button type="submit" id="loginButton" class="login-button">Login</button>
 
                     <!-- Divider -->
-                    <div class="divider">
+                    <div class="divider" id="authDivider">
                         <span>OR</span>
                     </div>
 
                     <!-- Google Sign In -->
-                    <button type="button" id="googleSignIn" class="google-signin">
-                        <img src="https://www.gstatic.com/images/branding/product/1x/gsa_512dp.png" 
-                             alt="Google Icon" 
-                             class="google-icon">
-                        Sign in with Google
-                    </button>
+                    <div id="googleContainer">
+                        <button type="button" id="googleSignIn" class="google-signin">
+                            <img src="https://www.gstatic.com/images/branding/product/1x/gsa_512dp.png" 
+                                 alt="Google Icon" 
+                                 class="google-icon">
+                            Sign in with Google
+                        </button>
+                    </div>
                 </form>
             </div>
         </div>
     </div>
 
-    <!-- Role Selection Modal (My Idea) -->
-    <div id="roleModal" class="modal-overlay">
-        <div class="modal-content role-selection-modal">
-            <h2 class="modal-title">Sign in as...</h2>
-            <p class="modal-desc">Please select your role for this account.</p>
-            
-            <div class="role-options">
-                <label class="role-option">
-                    <input type="radio" name="sign_role" value="user" checked>
-                    <div class="role-card">
-                        <span class="role-icon">👤</span>
-                        <div class="role-text">
-                            <strong>User</strong>
-                            <span>I want to find and buy tickets</span>
-                        </div>
-                    </div>
-                </label>
-                
-                <label class="role-option">
-                    <input type="radio" name="sign_role" value="client" id="sign_role_client">
-                    <div class="role-card">
-                        <span class="role-icon">🏢</span>
-                        <div class="role-text">
-                            <strong>Client</strong>
-                            <span>I want to host and post events</span>
-                        </div>
-                    </div>
-                </label>
-            </div>
-            
-            <div class="modal-actions">
-                <button id="cancelRole" class="btn-secondary">Cancel</button>
-                <button id="confirmRole" class="btn-primary">Confirm & Sign In</button>
-            </div>
-        </div>
-    </div>
 
     <!-- Scripts -->
     <script src="../js/utils.js"></script>

@@ -21,7 +21,7 @@ function createNotification($recipient_id, $message, $type = 'info', $sender_id 
 
     try {
         $stmt = $pdo->prepare("
-            INSERT INTO notifications (recipient_id, sender_id, message, type, is_read, created_at)
+            INSERT INTO notifications (recipient_auth_id, sender_auth_id, message, type, is_read, created_at)
             VALUES (?, ?, ?, ?, 0, NOW())
         ");
 
@@ -106,7 +106,7 @@ function getUnreadNotificationCount($user_id)
     global $pdo;
 
     try {
-        $stmt = $pdo->prepare("SELECT COUNT(*) as count FROM notifications WHERE recipient_id = ? AND is_read = 0");
+        $stmt = $pdo->prepare("SELECT COUNT(*) as count FROM notifications WHERE recipient_auth_id = ? AND is_read = 0");
         $stmt->execute([$user_id]);
         $result = $stmt->fetch();
         return $result['count'] ?? 0;
@@ -165,6 +165,24 @@ function createClientLoginNotification($admin_id, $client_id, $client_name, $cli
 }
 
 /**
+ * Create admin login notification for themselves (indicator)
+ */
+function createAdminLoginNotification($admin_id)
+{
+    $message = "System Admin logged in";
+    return createNotification($admin_id, $message, 'admin_login', $admin_id);
+}
+
+/**
+ * Create admin logout notification for themselves
+ */
+function createAdminLogoutNotification($admin_id)
+{
+    $message = "System Admin logged out";
+    return createNotification($admin_id, $message, 'admin_logout', $admin_id);
+}
+
+/**
  * Get admin user ID (first admin in the system)
  */
 function getAdminUserId()
@@ -172,7 +190,7 @@ function getAdminUserId()
     global $pdo;
 
     try {
-        $stmt = $pdo->prepare("SELECT id FROM users WHERE role = 'admin' LIMIT 1");
+        $stmt = $pdo->prepare("SELECT id FROM auth_accounts WHERE role = 'admin' LIMIT 1");
         $stmt->execute();
         $result = $stmt->fetch();
         return $result['id'] ?? null;

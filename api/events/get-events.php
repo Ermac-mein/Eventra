@@ -26,7 +26,7 @@ try {
 
     // Filter by client_id if provided
     if ($client_id) {
-        $where_clauses[] = "client_id = ?";
+        $where_clauses[] = "e.client_id = ?";
         $params[] = $client_id;
     }
 
@@ -53,9 +53,9 @@ try {
     $favorite_select = $user_id ? ", (SELECT COUNT(*) FROM favorites WHERE user_id = ? AND event_id = e.id) as is_favorite" : ", 0 as is_favorite";
 
     $sql = "
-        SELECT e.*, u.name as client_name, u.profile_pic as client_profile_pic $favorite_select
+        SELECT e.*, u.business_name as client_name, u.profile_pic as client_profile_pic $favorite_select
         FROM events e
-        LEFT JOIN users u ON e.client_id = u.id
+        LEFT JOIN clients u ON e.client_id = u.auth_id
         $where_sql
         ORDER BY e.created_at DESC
         LIMIT ? OFFSET ?
@@ -91,7 +91,7 @@ try {
                 SUM(CASE WHEN status = 'published' THEN 1 ELSE 0 END) as published_events,
                 SUM(CASE WHEN status = 'scheduled' THEN 1 ELSE 0 END) as scheduled_events,
                 SUM(CASE WHEN status = 'draft' THEN 1 ELSE 0 END) as draft_events,
-                SUM(attendee_count) as total_attendees
+                IFNULL(SUM(attendee_count), 0) as total_attendees
             FROM events
             WHERE client_id = ?
         ");

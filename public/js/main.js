@@ -70,6 +70,8 @@ function initUserIcon() {
   const profileSideModal = document.getElementById('profileSideModal');
   const closeProfileModal = document.getElementById('closeProfileModal');
   const profileEditForm = document.getElementById('profileEditForm');
+  const loginModal = document.getElementById('loginModal');
+  const closeLoginModal = document.getElementById('closeLoginModal');
   
   // Check if logged in and update display
   if (isAuthenticated()) {
@@ -168,14 +170,114 @@ function initUserIcon() {
       });
     }
     
-  } else {
-    // If not logged in, clicking should go to login page
-    if (userProfileBtn) {
-      userProfileBtn.addEventListener('click', () => {
-        window.location.href = 'login.html';
-      });
+    } else {
+        // If not logged in, clicking should show the centered login modal
+        if (userProfileBtn) {
+            userProfileBtn.addEventListener('click', () => {
+                if (loginModal) {
+                    loginModal.style.display = 'flex';
+                    setTimeout(() => loginModal.classList.add('show'), 10);
+                }
+            });
+        }
+        
+        if (closeLoginModal) {
+            closeLoginModal.addEventListener('click', () => {
+                if (loginModal) {
+                    loginModal.classList.remove('show');
+                    setTimeout(() => loginModal.style.display = 'none', 300);
+                }
+            });
+        }
+        
+        // Close on backdrop click
+        window.addEventListener('click', (e) => {
+            if (e.target === loginModal) {
+                loginModal.classList.remove('show');
+                setTimeout(() => loginModal.style.display = 'none', 300);
+            }
+        });
     }
-  }
+}
+
+// Google Auth Logic for Homepage
+async function initGoogleAuth() {
+    if (isAuthenticated()) return;
+
+    try {
+        const response = await fetch('../../api/config/get-google-config.php');
+        const data = await response.json();
+
+        if (data.success && data.client_id) {
+            // Check if google is defined
+            if (typeof google !== 'undefined') {
+                google.accounts.id.initialize({
+                    client_id: data.client_id,
+                    callback: handleGoogleCredentialResponse,
+                    auto_select: false,
+                    cancel_on_tap_outside: true,
+                });
+
+                const container = document.getElementById('googleSignInContainer');
+                if (container) {
+                    google.accounts.id.renderButton(container, {
+                        type: 'standard',
+                        theme: 'outline',
+                        size: 'large',
+                        text: 'signin_with',
+                        shape: 'rectangular',
+                        logo_alignment: 'left',
+                        width: '320'
+                    });
+                }
+            } else {
+                console.error('Google GSI script not loaded');
+            }
+        } else {
+            console.error('Failed to load Google config:', data.message);
+        }
+    } catch (error) {
+        console.error('Google Auth Init Error:', error);
+    }
+}
+
+async function handleGoogleCredentialResponse(response) {
+    try {
+        // Show loading state
+        const container = document.getElementById('googleSignInContainer');
+        if (container) container.innerHTML = '<div class="spinner"></div> Signing in...';
+
+        const res = await fetch('../../api/auth/google-handler.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({
+                credential: response.credential,
+                intent: 'user'
+            })
+        });
+
+        const result = await res.json();
+
+        if (result.success) {
+            storage.set('user', result.user);
+            storage.set('auth_token', result.user.token);
+            
+            showNotification('Google Sign-in successful!', 'success');
+            
+            setTimeout(() => {
+                location.reload(); // Refresh to update UI
+            }, 1000);
+        } else {
+            showNotification(result.message || 'Login failed', 'error');
+            // Reset button
+            initGoogleAuth();
+        }
+    } catch (error) {
+        console.error('Google Response Error:', error);
+        showNotification('An error occurred during Google Sign-in', 'error');
+        initGoogleAuth();
+    }
 }
 
 // Search functionality
@@ -434,6 +536,7 @@ function init() {
   initSearch();
   initSmoothScroll();
   initHeaderScroll();
+  initGoogleAuth();
 }
 
 

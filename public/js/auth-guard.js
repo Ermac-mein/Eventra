@@ -12,12 +12,21 @@
         requiredRole = 'client';
     }
 
-    // Basic client-side check
-    if (!user || !token || (requiredRole && user.role !== requiredRole)) {
+    const basePath = currentPath.includes('/pages/') ? '../../' : (currentPath.includes('/admin/') || currentPath.includes('/client/')) ? '../' : './';
+
+    // Basic client-side check (Case-Insensitive)
+    if (!user || !token || (requiredRole && (!user.role || user.role.toLowerCase() !== requiredRole.toLowerCase()))) {
         console.warn('Unauthorized access attempt or invalid role.');
         storage.remove('user');
         storage.remove('auth_token');
-        window.location.href = '/public/pages/login.html';
+        
+        // Redirect to selection gate for Admin/Client paths
+        
+        if (requiredRole) {
+            window.location.href = basePath + 'public/pages/auth-gate.html';
+        } else {
+            window.location.href = basePath + 'public/pages/login.html';
+        }
         return;
     }
 
@@ -33,7 +42,7 @@
             if (response.status === 401 || response.status === 403) {
                 storage.remove('user');
                 storage.remove('auth_token');
-                window.location.href = '/public/pages/login.html';
+                window.location.href = basePath + 'public/pages/login.html';
             }
         } catch (error) {
             console.error('Session verification failed:', error);
@@ -52,7 +61,7 @@
             if (result.success) {
                 storage.remove('user');
                 storage.remove('auth_token');
-                window.location.href = '/public/pages/login.html';
+                window.location.href = basePath + 'public/pages/login.html';
             } else {
                 alert('Logout failed: ' + result.message);
             }
@@ -61,7 +70,7 @@
             // Fallback: clear local storage anyway
             storage.remove('user');
             storage.remove('auth_token');
-            window.location.href = '/public/pages/login.html';
+            window.location.href = basePath + 'public/pages/login.html';
         }
     };
 
@@ -73,7 +82,8 @@
         userNameDisplays.forEach(el => el.textContent = user.name);
         userAvatarDisplays.forEach(el => {
             if (user.profile_pic) {
-                el.style.backgroundImage = `url(${user.profile_pic})`;
+                const picPath = user.profile_pic.startsWith('/') ? user.profile_pic.substring(1) : user.profile_pic;
+                el.style.backgroundImage = `url(${basePath}${picPath})`;
                 el.style.backgroundSize = 'cover';
             }
         });

@@ -7,7 +7,7 @@ require_once '../../config/database.php';
 $user_id = checkAuth();
 
 // Verify user is admin
-$stmt = $pdo->prepare("SELECT role FROM users WHERE id = ?");
+$stmt = $pdo->prepare("SELECT role FROM auth_accounts WHERE id = ?");
 $stmt->execute([$user_id]);
 $user = $stmt->fetch();
 
@@ -81,12 +81,27 @@ if (!move_uploaded_file($file['tmp_name'], $uploadPath)) {
 
 // Delete old profile picture if it exists and is not the default
 try {
-    $stmt = $pdo->prepare("SELECT profile_pic FROM users WHERE id = ?");
+    $stmt = $pdo->prepare("SELECT profile_pic FROM admins WHERE auth_id = ?");
     $stmt->execute([$user_id]);
     $oldPic = $stmt->fetchColumn();
 
-    if ($oldPic && $oldPic !== '/public/assets/imgs/admin.png' && file_exists('../../' . $oldPic)) {
-        unlink('../../' . $oldPic);
+    // Standardize check: ignore defaults and nulls
+    $defaults = ['/public/assets/imgs/admin.png', 'public/assets/imgs/admin.png', '../../public/assets/imgs/admin.png'];
+
+    if ($oldPic && !in_array($oldPic, $defaults)) {
+        // Resolve absolute path for unlink
+        $unlinkPath = $oldPic;
+        if (strpos($oldPic, '/') === 0) {
+            $unlinkPath = '../../' . substr($oldPic, 1);
+        } elseif (strpos($oldPic, '../../') !== 0) {
+            $unlinkPath = '../../' . $oldPic;
+        } else {
+            $unlinkPath = $oldPic;
+        }
+
+        if (file_exists($unlinkPath)) {
+            unlink($unlinkPath);
+        }
     }
 } catch (Exception $e) {
     // Continue even if old file deletion fails
@@ -94,7 +109,7 @@ try {
 
 // Update database
 try {
-    $stmt = $pdo->prepare("UPDATE users SET profile_pic = ?, updated_at = NOW() WHERE id = ?");
+    $stmt = $pdo->prepare("UPDATE admins SET profile_pic = ?, updated_at = NOW() WHERE auth_id = ?");
     $stmt->execute([$dbPath, $user_id]);
 
     echo json_encode([

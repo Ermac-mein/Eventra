@@ -13,23 +13,28 @@ if ($_SESSION['role'] !== 'admin') {
 }
 
 try {
-    // Fetch admin profile data
+    // Fetch admin profile data from auth_accounts and joined admins table
     $stmt = $pdo->prepare("
         SELECT 
-            id,
-            name,
-            email,
-            profile_pic,
-            status,
-            created_at,
-            updated_at
-        FROM users 
-        WHERE id = ? AND role = 'admin'
+            ad.id,
+            ad.name,
+            a.email,
+            ad.profile_pic,
+            a.is_active,
+            ad.created_at,
+            ad.updated_at
+        FROM auth_accounts a
+        JOIN admins ad ON a.id = ad.auth_id
+        WHERE a.id = ?
     ");
     $stmt->execute([$user_id]);
     $admin = $stmt->fetch();
 
     if ($admin) {
+        // Map is_active back to 'active' for frontend consistency if needed, 
+        // but often 1/0 is fine or 'active'/'inactive'
+        $admin['status'] = $admin['is_active'] ? 'active' : 'inactive';
+
         echo json_encode([
             'success' => true,
             'admin' => $admin

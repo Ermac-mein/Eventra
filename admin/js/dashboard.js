@@ -181,6 +181,8 @@ function getActivityIcon(type) {
         'ticket_purchase': '🎫',
         'user_login': '👤',
         'client_login': '💼',
+        'admin_login': '⚡',
+        'admin_logout': '🌙',
         'login': '🔐'
     };
     return icons[type] || '📌';
@@ -194,6 +196,8 @@ function getActivityColor(type) {
         'ticket_purchase': { bg: '#fff3e0', text: '#ff9800' },
         'user_login': { bg: '#f3e5f5', text: '#9c27b0' },
         'client_login': { bg: '#e1f5fe', text: '#03a9f4' },
+        'admin_login': { bg: '#fff4e5', text: '#ff9800' },
+        'admin_logout': { bg: '#f1f5f9', text: '#64748b' },
         'login': { bg: '#f3e5f5', text: '#9c27b0' }
     };
     return colors[type] || { bg: '#f5f5f5', text: '#666' };

@@ -22,12 +22,12 @@ try {
     $stmt = $pdo->query("SELECT COUNT(*) as total FROM events WHERE status = 'published'");
     $published_events = $stmt->fetch()['total'];
 
-    // Get active users count (regular users)
-    $stmt = $pdo->query("SELECT COUNT(*) as total FROM users WHERE role = 'user'");
+    // Get active users count (regular users with an auth account)
+    $stmt = $pdo->query("SELECT COUNT(*) as total FROM auth_accounts WHERE role = 'user' AND is_active = 1");
     $active_users = $stmt->fetch()['total'];
 
     // Get total clients count
-    $stmt = $pdo->query("SELECT COUNT(*) as total FROM users WHERE role = 'client'");
+    $stmt = $pdo->query("SELECT COUNT(*) as total FROM auth_accounts WHERE role = 'client' AND is_active = 1");
     $total_clients = $stmt->fetch()['total'];
 
     // Get total revenue from tickets
@@ -39,12 +39,16 @@ try {
             n.id,
             n.message,
             n.type,
+            n.is_read,
             n.created_at,
-            u.name as sender_name,
-            u.profile_pic as sender_profile_pic
+            a.email as sender_name,
+            COALESCE(u.profile_pic, c.profile_pic, adm.profile_pic) as sender_profile_pic
         FROM notifications n
-        LEFT JOIN users u ON n.sender_id = u.id
-        WHERE n.recipient_id = ?
+        LEFT JOIN auth_accounts a ON n.sender_auth_id = a.id
+        LEFT JOIN users u ON a.id = u.auth_id
+        LEFT JOIN clients c ON a.id = c.auth_id
+        LEFT JOIN admins adm ON a.id = adm.auth_id
+        WHERE n.recipient_auth_id = ?
         ORDER BY n.created_at DESC
         LIMIT 10
     ");
@@ -54,17 +58,17 @@ try {
     // Get top users (users with most ticket purchases)
     $stmt = $pdo->query("
         SELECT 
-            u.id,
-            u.name,
-            u.email,
-            u.profile_pic,
-            u.state,
-            u.status,
+            a.id,
+            p.display_name as name,
+            a.email,
+            p.profile_pic,
+            IF(a.is_active = 1, 'active', 'inactive') as status,
             COUNT(t.id) as ticket_count
-        FROM users u
-        LEFT JOIN tickets t ON u.id = t.user_id
-        WHERE u.role = 'user'
-        GROUP BY u.id
+        FROM auth_accounts a
+        JOIN users p ON a.id = p.auth_id
+        LEFT JOIN tickets t ON a.id = t.user_id
+        WHERE a.role = 'user'
+        GROUP BY a.id
         ORDER BY ticket_count DESC
         LIMIT 5
     ");
@@ -73,17 +77,18 @@ try {
     // Get active clients (clients with most events)
     $stmt = $pdo->query("
         SELECT 
-            u.id,
-            u.name,
-            u.email,
-            u.profile_pic,
-            u.company,
-            u.status,
+            a.id,
+            p.business_name as name,
+            a.email,
+            p.profile_pic,
+            p.company,
+            IF(a.is_active = 1, 'active', 'inactive') as status,
             COUNT(e.id) as event_count
-        FROM users u
-        LEFT JOIN events e ON u.id = e.client_id
-        WHERE u.role = 'client'
-        GROUP BY u.id
+        FROM auth_accounts a
+        JOIN clients p ON a.id = p.auth_id
+        LEFT JOIN events e ON a.id = e.client_id
+        WHERE a.role = 'client'
+        GROUP BY a.id
         ORDER BY event_count DESC
         LIMIT 5
     ");
@@ -93,10 +98,10 @@ try {
     $stmt = $pdo->query("
         SELECT 
             e.*,
-            u.name as client_name,
+            p.business_name as client_name,
             COUNT(t.id) as ticket_count
         FROM events e
-        LEFT JOIN users u ON e.client_id = u.id
+        LEFT JOIN clients p ON e.client_id = p.auth_id
         LEFT JOIN tickets t ON e.id = t.event_id
         WHERE e.status = 'published' AND e.event_date >= CURDATE()
         GROUP BY e.id

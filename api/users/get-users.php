@@ -22,12 +22,12 @@ try {
     $params = [];
 
     if ($role) {
-        $where_clauses[] = "role = ?";
+        $where_clauses[] = "a.role = ?";
         $params[] = $role;
     }
 
     if ($status) {
-        $where_clauses[] = "status = ?";
+        $where_clauses[] = "a.status = ?";
         $params[] = $status;
     }
 
@@ -41,19 +41,19 @@ try {
     }
 
     // Get total count
-    $count_stmt = $pdo->prepare("SELECT COUNT(*) as total FROM users $where_sql");
+    $count_stmt = $pdo->prepare("SELECT COUNT(*) as total FROM auth_accounts a LEFT JOIN users u ON a.id = u.auth_id $where_sql");
     $count_stmt->execute($params);
     $total = $count_stmt->fetch()['total'];
 
     // Get users
     $sql = "
         SELECT 
-            u.id, u.name, u.email, u.role, u.google_id, u.profile_pic, u.phone, u.job_title,
-            u.company, u.address, u.city, u.state, u.dob, u.gender, u.status, u.created_at,
-            (SELECT name FROM users WHERE id = (SELECT client_id FROM events WHERE id = (SELECT event_id FROM tickets WHERE user_id = u.id LIMIT 1))) as client_name
-        FROM users u
+            a.id, u.display_name as name, a.email, a.role, u.profile_pic, u.phone,
+            u.address, u.city, u.state, u.dob, u.gender, a.is_active as status, a.created_at
+        FROM auth_accounts a
+        LEFT JOIN users u ON a.id = u.auth_id
         $where_sql
-        ORDER BY u.created_at DESC
+        ORDER BY a.created_at DESC
         LIMIT ? OFFSET ?
     ";
 
@@ -76,8 +76,8 @@ try {
             COUNT(*) as total_users,
             SUM(CASE WHEN role = 'user' THEN 1 ELSE 0 END) as total_regular_users,
             SUM(CASE WHEN role = 'client' THEN 1 ELSE 0 END) as total_clients,
-            SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) as active_users
-        FROM users
+            SUM(CASE WHEN is_active = 1 THEN 1 ELSE 0 END) as active_users
+        FROM auth_accounts
     ");
     $stats_stmt->execute();
     $stats = $stats_stmt->fetch();

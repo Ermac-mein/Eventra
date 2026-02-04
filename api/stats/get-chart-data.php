@@ -56,7 +56,7 @@ try {
         // Users registered per day
         $stmt = $pdo->prepare("
             SELECT DATE(created_at) as date, COUNT(*) as count
-            FROM users
+            FROM auth_accounts
             WHERE created_at >= ? AND role = 'user'
             GROUP BY DATE(created_at)
             ORDER BY date ASC

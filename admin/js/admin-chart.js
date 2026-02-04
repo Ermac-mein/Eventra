@@ -31,14 +31,28 @@ async function initAdminChart(period = '7days') {
             type: 'line',
             data: {
                 labels: result.labels,
-                datasets: result.datasets.map(dataset => ({
-                    ...dataset,
-                    tension: 0.4,
-                    fill: true,
-                    borderWidth: 2,
-                    pointRadius: 3,
-                    pointHoverRadius: 5
-                }))
+                datasets: result.datasets.map(dataset => {
+                    const color = dataset.borderColor || 'rgb(59, 130, 246)';
+                    const gradient = ctx.getContext('2d').createLinearGradient(0, 0, 0, 300);
+                    gradient.addColorStop(0, color.replace('rgb', 'rgba').replace(')', ', 0.3)'));
+                    gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+
+                    return {
+                        ...dataset,
+                        tension: 0.45,
+                        fill: true,
+                        backgroundColor: gradient,
+                        borderWidth: 3,
+                        pointRadius: 4,
+                        pointBackgroundColor: color,
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2,
+                        pointHoverRadius: 6,
+                        pointHoverBackgroundColor: color,
+                        pointHoverBorderColor: '#fff',
+                        pointHoverBorderWidth: 2
+                    };
+                })
             },
             options: {
                 responsive: true,

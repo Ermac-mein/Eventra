@@ -57,18 +57,20 @@ try {
     $sql = "
         SELECT 
             t.*,
-            u.name as user_name,
-            u.email as user_email,
+            u.display_name as user_name,
+            a.email as user_email,
             u.profile_pic as user_profile_pic,
             e.event_name,
             e.event_date,
             e.event_time,
             e.state as event_state,
             e.image_path as event_image,
-            (SELECT name FROM users WHERE id = e.client_id) as organiser_name
+            c.business_name as organiser_name
         FROM tickets t
-        JOIN users u ON t.user_id = u.id
+        LEFT JOIN auth_accounts a ON t.user_id = a.id
+        LEFT JOIN users u ON a.id = u.auth_id
         JOIN events e ON t.event_id = e.id
+        LEFT JOIN clients c ON e.client_id = c.auth_id
         $where_sql
         ORDER BY t.purchase_date DESC
         LIMIT ? OFFSET ?

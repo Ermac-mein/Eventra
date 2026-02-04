@@ -3,6 +3,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initSidebar();
     initDrawers();
     initPreviews();
+    initSettings();
     
     // Initialize admin authentication and profile
     if (window.adminAuth) {
@@ -396,3 +397,33 @@ window.copyToClipboard = function(text, successMsg) {
         Swal.fire('Error', 'Failed to copy to clipboard', 'error');
     });
 };
+
+function initSettings() {
+    const darkModeToggle = document.getElementById('darkModeToggle');
+    const notifToggle = document.getElementById('notifToggle');
+
+    // Load dark mode preference
+    if (localStorage.getItem('dark-mode') === 'enabled') {
+        document.body.classList.add('dark-mode');
+        if (darkModeToggle) darkModeToggle.checked = true;
+    }
+
+    if (darkModeToggle) {
+        darkModeToggle.addEventListener('change', () => {
+            if (darkModeToggle.checked) {
+                document.body.classList.add('dark-mode');
+                localStorage.setItem('dark-mode', 'enabled');
+            } else {
+                document.body.classList.remove('dark-mode');
+                localStorage.setItem('dark-mode', 'disabled');
+            }
+        });
+    }
+
+    if (notifToggle) {
+        notifToggle.addEventListener('change', () => {
+            const status = notifToggle.checked ? 'enabled' : 'disabled';
+            if (window.showToast) window.showToast(`Notifications ${status}`, 'info');
+        });
+    }
+}

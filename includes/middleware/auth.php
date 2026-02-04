@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../../config/database.php';
+require_once __DIR__ . '/../helpers/entity-resolver.php';
 
 function checkAuth($requiredRole = null)
 {
@@ -19,40 +20,51 @@ function checkAuth($requiredRole = null)
     }
 
     try {
-        // Check token validity and inactivity (10 minutes)
-        $stmt = $pdo->prepare("SELECT * FROM auth_tokens WHERE token = ? AND user_id = ?");
+        // Check token validity
+        $stmt = $pdo->prepare("SELECT * FROM auth_tokens WHERE token = ? AND auth_id = ?");
         $stmt->execute([$token, $user_id]);
         $authToken = $stmt->fetch();
 
         if (!$authToken || strtotime($authToken['expires_at']) < time()) {
-            error_log("[Auth Debug] Token expired or invalid for user_id: $user_id. Destroying session.");
-
             // Token expired or invalid
-            $stmt = $pdo->prepare("UPDATE users SET status = 'offline' WHERE id = ?");
-            $stmt->execute([$user_id]);
+            error_log("[Auth Debug] Token expired or invalid. User ID: $user_id");
+            invalidateSession($user_id, $token);
+            exit;
+        }
 
-            $stmt = $pdo->prepare("DELETE FROM auth_tokens WHERE token = ?");
-            $stmt->execute([$token]);
+        // 1. Real-time Role Validation - Query auth_accounts instead of users
+        $stmt = $pdo->prepare("SELECT role, is_active FROM auth_accounts WHERE id = ?");
+        $stmt->execute([$user_id]);
+        $user = $stmt->fetch();
 
-            session_destroy();
-            http_response_code(401);
-            echo json_encode(['success' => false, 'message' => 'Session expired. Please login again.']);
+        if (!$user || $user['is_active'] != 1) {
+            logSecurityEvent($user_id, null, 'unauthorized_access', 'session', "User inactive or not found during auth check.");
+            error_log("[Auth Debug] User inactive or not found. User ID: $user_id");
+            invalidateSession($user_id, $token);
+            exit;
+        }
+
+        // 2. Session Integrity: Ensure session role matches database role (Case-Insensitive)
+        if (strtolower($_SESSION['role']) !== strtolower($user['role'])) {
+            logSecurityEvent($user_id, null, 'role_mismatch', 'session', "Detected role mismatch: Session({$_SESSION['role']}) != DB({$user['role']})");
+            error_log("[Auth Debug] Role mismatch detected! Session: {$_SESSION['role']}, DB: {$user['role']}. User ID: $user_id");
+            invalidateSession($user_id, $token);
             exit;
         }
 
         // Check if role matches if required
-        if ($requiredRole && $_SESSION['role'] !== $requiredRole) {
+        if ($requiredRole && $user['role'] !== $requiredRole) {
+            logSecurityEvent($user_id, null, 'unauthorized_access', 'session', "Insufficient permissions for role: {$user['role']}. Required: $requiredRole");
             http_response_code(403);
             echo json_encode(['success' => false, 'message' => 'Forbidden. Insufficient permissions.']);
             exit;
         }
 
-        // Update last activity and extend expiration by 10 minutes ONLY IF it's a short session
-        // If it was "Remember Me", it will have a much longer expires_at which we should respect.
+        // Update last activity
         $stmt = $pdo->prepare("UPDATE auth_tokens SET last_activity = CURRENT_TIMESTAMP WHERE token = ?");
         $stmt->execute([$token]);
 
-        // If the remaining time is less than 30 minutes, extend it (for session sliding)
+        // Session sliding
         if (strtotime($authToken['expires_at']) - time() < 1800) {
             $new_expiry = date('Y-m-d H:i:s', strtotime('+2 hours'));
             $stmt = $pdo->prepare("UPDATE auth_tokens SET expires_at = ? WHERE token = ?");
@@ -65,5 +77,23 @@ function checkAuth($requiredRole = null)
         echo json_encode(['success' => false, 'message' => 'Auth check failed: ' . $e->getMessage()]);
         exit;
     }
+}
+
+function invalidateSession($user_id, $token)
+{
+    global $pdo;
+
+    // Log the invalidation event
+    logSecurityEvent($user_id, null, 'logout', 'system', "Session invalidated due to security check or logout.");
+
+    $stmt = $pdo->prepare("DELETE FROM auth_tokens WHERE token = ?");
+    $stmt->execute([$token]);
+
+    if (session_status() === PHP_SESSION_ACTIVE) {
+        session_destroy();
+    }
+
+    http_response_code(401);
+    echo json_encode(['success' => false, 'message' => 'Session invalid or role changed. Please login again.']);
 }
 ?>

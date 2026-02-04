@@ -113,8 +113,17 @@ function isAuthenticated() {
 
 function handleAuthRedirect(targetURL) {
   if (!isAuthenticated()) {
+    const path = window.location.pathname;
+    const basePath = path.includes('/pages/') ? '../../' : (path.includes('/admin/') || path.includes('/client/')) ? '../' : './';
+    
     storage.set('redirect_after_login', targetURL || window.location.href);
-    window.location.href = 'login.html';
+    
+    // If target is admin or client, go to gate
+    if (targetURL && (targetURL.includes('/admin/') || targetURL.includes('/client/'))) {
+      window.location.href = basePath + 'public/pages/auth-gate.html';
+    } else {
+      window.location.href = basePath + 'public/pages/login.html';
+    }
     return false;
   }
   return true;

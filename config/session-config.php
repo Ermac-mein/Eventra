@@ -1,7 +1,7 @@
 <?php
 // Enable strict error reporting for debugging
 error_reporting(E_ALL);
-ini_set('display_errors', 1);
+ini_set('display_errors', 0);
 
 // Prevent multiple session starts
 if (session_status() === PHP_SESSION_ACTIVE) {

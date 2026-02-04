@@ -13,6 +13,10 @@
     <link rel="stylesheet" href="../css/variables.css">
     <link rel="stylesheet" href="../css/style.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+    
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
 
     <!-- Favicon -->
     <link rel="icon" type="image/x-icon" href="./assets/favicon.ico">
@@ -175,6 +179,15 @@
                 </div>
             </div>
 
+            <div class="footer-links">
+                <h4>Partner with us</h4>
+                <ul>
+                    <li><a href="auth-gate.html">Partner Portal</a></li>
+                    <li><a href="signup.html">Become a Client</a></li>
+                    <li><a href="auth-gate.html?role=admin">Admin Login</a></li>
+                </ul>
+            </div>
+
             <div class="footer-links" id="about">
                 <h4>Customer care</h4>
                 <ul>
@@ -191,6 +204,23 @@
             <p>&copy; 2026 Eventra Inc. | All rights reserved</p>
         </div>
     </footer>
+
+    <!-- Login Modal (For Guests) -->
+    <div id="loginModal" class="centered-modal">
+        <div class="modal-card glass-effect">
+            <button class="close-modal" id="closeLoginModal">&times;</button>
+            <div class="modal-header">
+                <div class="modal-logo">EVENTRA</div>
+                <h2>Welcome Back</h2>
+                <p>Sign in to discover and manage amazing experiences</p>
+            </div>
+            <div class="modal-body">
+                <div id="googleSignInContainer" class="google-btn-wrapper">
+                    <!-- Google button will be rendered here -->
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>

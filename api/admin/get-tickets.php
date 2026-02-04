@@ -19,7 +19,7 @@ try {
     $where_clause = "";
 
     if (!empty($search)) {
-        $where_clause = "WHERE e.event_name LIKE ? OR u.name LIKE ? OR t.ticket_code LIKE ?";
+        $where_clause = "WHERE e.event_name LIKE ? OR u.display_name LIKE ? OR t.ticket_code LIKE ?";
         $search_param = "%$search%";
         $params = [$search_param, $search_param, $search_param];
     }
@@ -27,19 +27,19 @@ try {
     // Get total count
     $count_sql = "SELECT COUNT(*) FROM tickets t 
                   JOIN events e ON t.event_id = e.id 
-                  JOIN users u ON t.user_id = u.id 
+                  JOIN users u ON t.user_id = u.auth_id 
                   $where_clause";
     $count_stmt = $pdo->prepare($count_sql);
     $count_stmt->execute($params);
     $total_records = $count_stmt->fetchColumn();
 
     // Get tickets
-    $sql = "SELECT t.*, e.event_name, e.image_path as event_image, u.name as user_name, e.tag as category 
+    $sql = "SELECT t.*, e.event_name, e.image_path as event_image, u.display_name as user_name, e.tag as category 
             FROM tickets t 
             JOIN events e ON t.event_id = e.id 
-            JOIN users u ON t.user_id = u.id 
+            JOIN users u ON t.user_id = u.auth_id 
             $where_clause 
-            ORDER BY t.created_at DESC 
+            ORDER BY t.purchase_date DESC 
             LIMIT ? OFFSET ?";
 
     $stmt = $pdo->prepare($sql);

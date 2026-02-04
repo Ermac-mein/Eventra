@@ -7,14 +7,24 @@ $user_id = checkAuth(); // Ensure user is logged in
 
 try {
     // Fetch unread notifications
-    $stmt = $pdo->prepare("SELECT * FROM notifications WHERE recipient_id = ? AND is_read = FALSE ORDER BY created_at DESC");
+    $stmt = $pdo->prepare("SELECT * FROM notifications WHERE recipient_auth_id = ? AND is_read = FALSE ORDER BY created_at DESC");
     $stmt->execute([$user_id]);
     $notifications = $stmt->fetchAll();
 
     // Also fetch active users/clients status if user is admin/client
     $usersStatus = [];
     if ($_SESSION['role'] === 'admin' || $_SESSION['role'] === 'client') {
-        $stmt = $pdo->prepare("SELECT id, name, role, status FROM users WHERE id != ?");
+        // Query auth_accounts joined with profile info
+        $sql = "
+            SELECT a.id, COALESCE(u.display_name, c.business_name, adm.name) as name, a.role, 
+                   COALESCE(u.status, c.status, 'active') as status 
+            FROM auth_accounts a
+            LEFT JOIN users u ON a.id = u.auth_id
+            LEFT JOIN clients c ON a.id = c.auth_id
+            LEFT JOIN admins adm ON a.id = adm.auth_id
+            WHERE a.id != ? AND a.is_active = 1
+        ";
+        $stmt = $pdo->prepare($sql);
         $stmt->execute([$user_id]);
         $usersStatus = $stmt->fetchAll();
     }

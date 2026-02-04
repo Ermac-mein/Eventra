@@ -27,7 +27,7 @@ if (!$event_id || $quantity < 1) {
 $referred_by_id = null;
 if ($referred_by_client_name) {
     // Lookup client ID by name (slugified search)
-    $stmt = $pdo->prepare("SELECT id FROM users WHERE role = 'client' AND (name = ? OR REPLACE(LOWER(name), ' ', '-') = ?)");
+    $stmt = $pdo->prepare("SELECT id FROM clients WHERE name = ? OR REPLACE(LOWER(name), ' ', '-') = ?");
     $stmt->execute([$referred_by_client_name, $referred_by_client_name]);
     $referred_by_id = $stmt->fetchColumn() ?: null;
 }

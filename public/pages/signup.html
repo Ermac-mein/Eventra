@@ -3,41 +3,53 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Create your Eventra client account">
     <title>Sign Up - Eventra</title>
-    <link rel="stylesheet" href="../css/signup.css">
-    <link rel="stylesheet" href="../css/signup-style.css">
+    
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="../css/login-style.css">
+    <link rel="stylesheet" href="../css/login.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+    
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 <body>
     <div class="login-container">
-        <!-- Left Side: Architectural/Geometric Background -->
-        <div class="login-left">
-            <img src="../assets/imgs/login.png" 
-                 alt="Geometric Design" 
-                 class="decorative-image">
+        <!-- Left Side: Architectural Background -->
+        <!-- Left Side: Event Image Slider -->
+        <div class="login-left" id="eventSlider">
+            <div class="slider-images">
+                <!-- Images will be injected here -->
+            </div>
             <div class="overlay-gradient"></div>
+            <div class="slider-text">
+                <h2 id="sliderExtTitle">Experience the Best Events</h2>
+                <p id="sliderEventLoc">Discover and join amazing experiences around you.</p>
+            </div>
         </div>
 
-        <!-- Right Side: Signup Form -->
+        <!-- Right Side: Signup Form with Glassmorphism -->
         <div class="login-right">
-            <div class="login-form-container">
-                <a href="login.html" class="back-button" aria-label="Go back to login"></a>
+            <div class="login-form-container glass-effect">
+                <div id="successMessage" class="success-message"></div>
                 
                 <header class="login-header">
-                    <h1 class="login-title">Sign Up</h1>
+                    <h1 class="login-title">Client Registration</h1>
                     <p class="login-subtitle">
-                        Already have an account? <a href="login.html" class="signup-link">Login</a>
+                        Already have an account? <a href="login.html?role=client" class="signup-link">Login</a>
                     </p>
                 </header>
 
                 <form id="signupForm" class="login-form">
                     <!-- Full Name Field -->
                     <div class="form-group">
-                        <label for="fullName" class="form-label">Full Name</label>
+                        <label for="fullName" class="form-label">Company or Full Name</label>
                         <div class="input-wrapper">
                             <input type="text" 
                                    id="fullName" 
                                    class="form-input" 
-                                   placeholder="Enter Full Name" 
+                                   placeholder="Enter Name" 
                                    required>
                             <span class="input-icon">👤</span>
                         </div>
@@ -46,7 +58,7 @@
 
                     <!-- Email Field -->
                     <div class="form-group">
-                        <label for="email" class="form-label">Email</label>
+                        <label for="email" class="form-label">Email Address</label>
                         <div class="input-wrapper">
                             <input type="email" 
                                    id="email" 
@@ -67,22 +79,24 @@
                                    class="form-input" 
                                    placeholder="••••••••" 
                                    required>
-                            <span class="input-icon">🔒</span>
+                            <span id="togglePassword" class="toggle-password">👁️</span>
                         </div>
                         <div id="passwordError" class="error-message"></div>
                     </div>
 
                     <!-- Submit Button -->
-                    <button type="submit" id="signupButton" class="login-button">Sign Up</button>
+                    <button type="submit" id="signupButton" class="login-button">Create Client Account</button>
+                    
+                    <p style="text-align: center; font-size: 0.8rem; color: rgba(255,255,255,0.5); margin-top: 1.5rem;">
+                        By signing up, you agree to our Terms of Service and Privacy Policy.
+                    </p>
                 </form>
-
-                <div id="successMessage" class="success-message">
-                    Registration successful! Redirecting to login...
-                </div>
             </div>
         </div>
     </div>
 
+    <!-- Scripts -->
+    <script src="../js/utils.js"></script>
     <script src="../js/signup.js"></script>
 </body>
 </html>

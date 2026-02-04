@@ -5,6 +5,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const passwordInput = document.getElementById('password');
     const signupButton = document.getElementById('signupButton');
     const successMessage = document.getElementById('successMessage');
+    const togglePassword = document.getElementById('togglePassword');
+
+    // Toggle password visibility
+    if (togglePassword && passwordInput) {
+        togglePassword.addEventListener('click', () => {
+            const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+            passwordInput.setAttribute('type', type);
+            togglePassword.textContent = type === 'password' ? '👁️' : '👁️‍🗨️';
+        });
+    }
 
     // Form submission
     if (signupForm) {
@@ -16,7 +26,7 @@ document.addEventListener('DOMContentLoaded', () => {
             resetErrors();
 
             if (fullNameInput.value.trim().length < 2) {
-                showError('fullNameError', 'Please enter your full name');
+                showError('fullNameError', 'Please enter your company or full name');
                 isValid = false;
             }
 
@@ -83,16 +93,26 @@ document.addEventListener('DOMContentLoaded', () => {
             const result = await response.json();
 
             if (result.success) {
-                // Show success
-                if (successMessage) {
-                    successMessage.style.display = 'block';
-                    successMessage.textContent = 'Account created successfully! Redirecting to login...';
+                // Premium Success Feedback
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Account Created!',
+                        text: 'Your client account is ready. Redirecting to login...',
+                        timer: 2000,
+                        showConfirmButton: false,
+                        background: 'rgba(30, 41, 59, 0.95)',
+                        color: '#fff'
+                    });
+                } else if (successMessage) {
+                    successMessage.classList.add('show');
+                    successMessage.textContent = 'Client account created successfully! Redirecting to login...';
                 }
                 
                 // Redirect after success
                 setTimeout(() => {
-                    window.location.href = 'login.html';
-                }, 1500);
+                    window.location.href = 'login.html?role=client';
+                }, 2100);
             } else {
                 showError('passwordError', result.message || 'Registration failed. Please try again.');
                 signupButton.disabled = false;

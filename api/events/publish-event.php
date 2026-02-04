@@ -46,18 +46,18 @@ try {
 
     // Create notification for client
     $message = "Your event '{$event['event_name']}' has been published and is now live!";
-    $stmt = $pdo->prepare("INSERT INTO notifications (recipient_id, sender_id, message, type) VALUES (?, ?, ?, ?)");
+    $stmt = $pdo->prepare("INSERT INTO notifications (recipient_auth_id, sender_auth_id, message, type) VALUES (?, ?, ?, ?)");
     $stmt->execute([$event['client_id'], $user_id, $message, 'event_published']);
 
     // Create notification for admin if client published
     if ($_SESSION['role'] === 'client') {
-        $stmt = $pdo->prepare("SELECT id FROM users WHERE role = 'admin' LIMIT 1");
+        $stmt = $pdo->prepare("SELECT id FROM auth_accounts WHERE role = 'admin' LIMIT 1");
         $stmt->execute();
         $admin = $stmt->fetch();
 
         if ($admin) {
             $message = "Event '{$event['event_name']}' has been published";
-            $stmt = $pdo->prepare("INSERT INTO notifications (recipient_id, sender_id, message, type) VALUES (?, ?, ?, ?)");
+            $stmt = $pdo->prepare("INSERT INTO notifications (recipient_auth_id, sender_auth_id, message, type) VALUES (?, ?, ?, ?)");
             $stmt->execute([$admin['id'], $user_id, $message, 'event_published']);
         }
     }

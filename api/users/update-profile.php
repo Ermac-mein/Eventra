@@ -97,11 +97,19 @@ try {
     $params[] = $user_id;
     $update_sql = implode(', ', $update_fields);
 
-    $stmt = $pdo->prepare("UPDATE users SET $update_sql WHERE id = ?");
+    // Determine table
+    $role = $_SESSION['role'] ?? 'user';
+    $table = 'users';
+    if ($role === 'client')
+        $table = 'clients';
+    if ($role === 'admin')
+        $table = 'admins';
+
+    $stmt = $pdo->prepare("UPDATE $table SET $update_sql WHERE id = ?");
     $stmt->execute($params);
 
     // Get updated user
-    $stmt = $pdo->prepare("SELECT * FROM users WHERE id = ?");
+    $stmt = $pdo->prepare("SELECT * FROM $table WHERE id = ?");
     $stmt->execute([$user_id]);
     $user = $stmt->fetch();
     unset($user['password']);

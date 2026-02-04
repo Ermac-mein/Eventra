@@ -23,7 +23,20 @@ if ($user_id != $_SESSION['user_id'] && $_SESSION['role'] !== 'admin') {
 }
 
 try {
-    $stmt = $pdo->prepare("SELECT * FROM users WHERE id = ?");
+    $role = $_SESSION['role'] ?? 'user';
+    $table = 'users';
+    if ($role === 'client')
+        $table = 'clients';
+    if ($role === 'admin')
+        $table = 'admins';
+
+    // Join with auth_accounts to get the role
+    $stmt = $pdo->prepare("
+        SELECT a.role, a.email, p.* 
+        FROM auth_accounts a 
+        LEFT JOIN $table p ON a.id = p.auth_id 
+        WHERE a.id = ?
+    ");
     $stmt->execute([$user_id]);
     $user = $stmt->fetch();
 

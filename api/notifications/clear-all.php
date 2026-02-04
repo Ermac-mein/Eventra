@@ -11,7 +11,7 @@ require_once '../../includes/middleware/auth.php';
 $user_id = checkAuth();
 
 try {
-    $stmt = $pdo->prepare("DELETE FROM notifications WHERE recipient_id = ?");
+    $stmt = $pdo->prepare("DELETE FROM notifications WHERE recipient_auth_id = ?");
     $stmt->execute([$user_id]);
 
     echo json_encode([

@@ -8,11 +8,18 @@ require_once '../../config/database.php';
 
 try {
     $user_id = $_SESSION['user_id'] ?? null;
+    $role = $_SESSION['role'] ?? 'user';
     $auth_token = $_SESSION['auth_token'] ?? null;
+
+    $table = 'users';
+    if ($role === 'client')
+        $table = 'clients';
+    if ($role === 'admin')
+        $table = 'admins';
 
     if ($user_id) {
         // Get user info for notification
-        $stmt = $pdo->prepare("SELECT name FROM users WHERE id = ?");
+        $stmt = $pdo->prepare("SELECT name FROM $table WHERE id = ?");
         $stmt->execute([$user_id]);
         $user = $stmt->fetch();
 
@@ -23,7 +30,7 @@ try {
         }
 
         // Update user status to offline
-        $stmt = $pdo->prepare("UPDATE users SET status = 'offline' WHERE id = ?");
+        $stmt = $pdo->prepare("UPDATE $table SET status = 'offline' WHERE id = ?");
         $stmt->execute([$user_id]);
 
         // Delete auth tokens

@@ -9,10 +9,44 @@ document.addEventListener('DOMContentLoaded', () => {
     const googleSignIn = document.getElementById('googleSignIn');
     const forgotPasswordLink = document.querySelector('.forgot-password');
 
-    // Role Modal Elements
-    const roleModal = document.getElementById('roleModal');
-    const cancelRole = document.getElementById('cancelRole');
-    const confirmRole = document.getElementById('confirmRole');
+    // Role Context (Detected from URL role/intent or body data-intent)
+    const urlParams = new URLSearchParams(window.location.search);
+    const roleParam = urlParams.get('role');
+    const intentParam = urlParams.get('intent');
+    const trigger = urlParams.get('trigger');
+    
+    // Final intent resolution
+    const intent = roleParam || intentParam || document.body.getAttribute('data-intent') || null;
+
+    // Security Gate: Redirect to role selection if no intent is provided
+    // Exception: If we are on the homepage (or coming from one with specific trigger)
+    const isHomepageFlow = intent === 'user' || trigger === 'google';
+    if (!intent && !isHomepageFlow) {
+        window.location.href = 'auth-gate.html';
+        return;
+    }
+
+    // Role-Specific UI Adjustments
+    if (intent === 'admin') {
+        if (googleSignIn) {
+            const googleContainer = document.getElementById('googleContainer');
+            const authDivider = document.getElementById('authDivider');
+            if (googleContainer) googleContainer.style.display = 'none';
+            if (authDivider) authDivider.style.display = 'none';
+        }
+        const signupPrompt = document.getElementById('signupPrompt');
+        if (signupPrompt) signupPrompt.style.display = 'none';
+        
+        console.log("Admin context activated: Google Sign-In and Signup disabled.");
+    } else if (intent === 'client') {
+        console.log("Client context activated.");
+    } else if (intent === 'user') {
+        // Users only use Google
+        const loginForm = document.getElementById('loginForm');
+        // We might want to hide the password form for "users" if they are only Google
+        // But for now, let's just ensure Google is available.
+        console.log("User context activated: Google Sign-In primary.");
+    }
 
     // Toggle password visibility
     if (togglePassword && passwordInput) {
@@ -23,87 +57,16 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Forgot Password
-    if (forgotPasswordLink) {
-        forgotPasswordLink.addEventListener('click', async (e) => {
-            e.preventDefault();
-            
-            const { value: email } = await Swal.fire({
-                title: 'Reset Password',
-                input: 'email',
-                inputLabel: 'Enter your email address',
-                inputPlaceholder: 'm@example.com',
-                showCancelButton: true,
-                confirmButtonColor: '#3085d6',
-                cancelButtonColor: '#d33'
-            });
-
-            if (email) {
-                try {
-                    const response = await fetch('../../api/auth/forgot-password.php', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ email })
-                    });
-                    const result = await response.json();
-                    Swal.fire({
-                        title: result.success ? 'Success' : 'Error',
-                        text: result.message,
-                        icon: result.success ? 'success' : 'error'
-                    });
-                } catch (error) {
-                    Swal.fire('Error', 'An error occurred. Please try again.', 'error');
-                }
-            }
-        });
-    }
-
-    // Form submission
-    if (loginForm) {
-        loginForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            let isValid = true;
-            resetErrors();
-
-            if (!validateEmail(emailInput.value)) {
-                showError('emailError', 'Please enter a valid email address');
-                isValid = false;
-            }
-
-            if (passwordInput.value.length < 6) {
-                showError('passwordError', 'Password must be at least 6 characters');
-                isValid = false;
-            }
-
-            if (isValid) {
-                handleLogin();
-            }
-        });
-    }
-
-    // Google Sign In (Role Selection Flow)
+    // Google Sign In (Immediate Trigger)
     if (googleSignIn) {
         googleSignIn.addEventListener('click', () => {
-            roleModal.style.display = 'flex';
-        });
-    }
-
-    if (cancelRole) {
-        cancelRole.addEventListener('click', () => {
-            roleModal.style.display = 'none';
-        });
-    }
-
-    if (confirmRole) {
-        confirmRole.addEventListener('click', () => {
-            const selectedRole = document.querySelector('input[name="sign_role"]:checked').value;
-            
-            // Set pending_role cookie (My Idea implementation)
-            document.cookie = `pending_role=${selectedRole}; max-age=300; path=/; samesite=lax`;
-            
-            roleModal.style.display = 'none';
             handleGoogleSignIn();
         });
+        
+        // Auto-trigger if requested (e.g., from homepage)
+        if (trigger === 'google' && intent === 'user') {
+            handleGoogleSignIn();
+        }
     }
 
     function validateEmail(email) {
@@ -127,19 +90,39 @@ document.addEventListener('DOMContentLoaded', () => {
         document.querySelectorAll('.form-input').forEach(input => input.classList.remove('error'));
     }
 
+    // Helper to detect project root depth
+    function getBasePath() {
+        const path = window.location.pathname;
+        // If we are in /public/pages/ or similar depth 2 path
+        if (path.includes('/pages/')) return '../../';
+        // If we are in /admin/ or /client/ (depth 1)
+        return '../';
+    }
+
+    // Add form submission listener
+    if (loginForm) {
+        loginForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            handleLogin();
+        });
+    }
+    const basePath = getBasePath();
+
     async function handleLogin() {
         const originalBtnText = loginButton.innerHTML;
         loginButton.disabled = true;
         loginButton.innerHTML = '<span class="spinner"></span> Logging in...';
 
         try {
-            const response = await fetch('../../api/auth/login.php', {
+            const response = await fetch(basePath + 'api/auth/login.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
                 body: JSON.stringify({
                     email: emailInput.value,
                     password: passwordInput.value,
-                    remember_me: rememberMeInput?.checked || false
+                    remember_me: rememberMeInput?.checked || false,
+                    intent: intent
                 })
             });
 
@@ -151,27 +134,35 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             const result = await response.json();
+            console.log("Login Result:", result);
 
             if (result.success) {
                 storage.set('user', result.user);
                 storage.set('auth_token', result.user.token);
 
-                if (successMessage) {
+                // Premium Feedback
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Welcome Back!',
+                        text: `Logging you in as ${result.user.name}...`,
+                        timer: 1500,
+                        showConfirmButton: false,
+                        background: 'rgba(30, 41, 59, 0.95)',
+                        color: '#fff',
+                        backdrop: 'rgba(15, 23, 42, 0.8)'
+                    });
+                } else if (successMessage) {
                     successMessage.classList.add('show');
                     successMessage.textContent = 'Login successful! Redirecting...';
                 }
                 
                 setTimeout(() => {
-                    if (result.user.role === 'admin') {
-                        window.location.href = '../../admin/pages/dashboard.html';
-                    } else if (result.user.role === 'client') {
-                        window.location.href = '../../client/pages/dashboard.html';
-                    } else {
-                        const redirectPath = storage.get('redirect_after_login') || 'index.html';
-                        storage.remove('redirect_after_login');
-                        window.location.href = redirectPath;
-                    }
-                }, 1000);
+                    const redirectUrl = result.redirect || 'public/pages/index.html';
+                    const cleanRedirect = redirectUrl.startsWith('/') ? redirectUrl.substring(1) : redirectUrl;
+                    const finalTarget = basePath + cleanRedirect;
+                    window.location.href = finalTarget;
+                }, 1600);
             } else {
                 // If the message contains "Email", show it there, otherwise show at password
                 const errorElement = result.message?.toLowerCase().includes('email') ? 'emailError' : 'passwordError';
@@ -191,7 +182,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Fetch Google Client ID from server
         let clientId;
         try {
-            const configResponse = await fetch('../../api/config/get-google-config.php');
+            const configResponse = await fetch(basePath + 'api/config/get-google-config.php');
             const configData = await configResponse.json();
             
             if (!configData.success || !configData.client_id) {
@@ -238,10 +229,13 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         try {
-            const res = await fetch('../../api/auth/google-handler.php', {
+            const res = await fetch(basePath + 'api/auth/google-handler.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(googleData)
+                body: JSON.stringify({
+                    ...googleData,
+                    intent: intent
+                })
             });
             
             // Handle non-JSON responses (like 405 or 500 html errors)
@@ -258,14 +252,26 @@ document.addEventListener('DOMContentLoaded', () => {
                 storage.set('user', result.user);
                 storage.set('auth_token', result.user.token);
                 
-                if (successMessage) {
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Authenticated!',
+                        text: 'Google Sign-in successful. Redirecting...',
+                        timer: 1500,
+                        showConfirmButton: false,
+                        background: 'rgba(30, 41, 59, 0.95)',
+                        color: '#fff'
+                    });
+                } else if (successMessage) {
                     successMessage.classList.add('show');
                     successMessage.textContent = 'Google Sign-in successful! Redirecting...';
                 }
 
                 setTimeout(() => {
-                    window.location.href = result.redirect || 'index.html';
-                }, 1000);
+                    const redirectUrl = result.redirect || 'public/pages/index.html';
+                    const cleanRedirect = redirectUrl.startsWith('/') ? redirectUrl.substring(1) : redirectUrl;
+                    window.location.href = basePath + cleanRedirect;
+                }, 1600);
             } else {
                 Swal.fire('Login Failed', result.message, 'error');
             }
@@ -293,7 +299,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!sliderContainer) return;
 
         try {
-            const response = await fetch('../../api/events/get-events.php?status=published&limit=10');
+            const response = await fetch(basePath + 'api/events/get-events.php?status=published&limit=10');
             const data = await response.json();
 
             if (data.success && data.events.length > 0) {

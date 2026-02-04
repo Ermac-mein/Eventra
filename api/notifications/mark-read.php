@@ -11,7 +11,7 @@ $data = json_decode(file_get_contents("php://input"), true);
 try {
     if (isset($data['notification_id'])) {
         // Mark single notification as read
-        $stmt = $pdo->prepare("UPDATE notifications SET is_read = 1 WHERE id = ? AND recipient_id = ?");
+        $stmt = $pdo->prepare("UPDATE notifications SET is_read = 1 WHERE id = ? AND recipient_auth_id = ?");
         $stmt->execute([$data['notification_id'], $user_id]);
 
         echo json_encode([
@@ -20,7 +20,7 @@ try {
         ]);
     } elseif (isset($data['mark_all'])) {
         // Mark all notifications as read
-        $stmt = $pdo->prepare("UPDATE notifications SET is_read = 1 WHERE recipient_id = ?");
+        $stmt = $pdo->prepare("UPDATE notifications SET is_read = 1 WHERE recipient_auth_id = ?");
         $stmt->execute([$user_id]);
 
         echo json_encode([

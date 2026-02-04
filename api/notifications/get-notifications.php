@@ -19,7 +19,7 @@ try {
     $cleanup_stmt = $pdo->prepare("DELETE FROM notifications WHERE created_at < DATE_SUB(NOW(), INTERVAL 2 DAY)");
     $cleanup_stmt->execute();
     // Build query
-    $where_clauses = ["recipient_id = ?"];
+    $where_clauses = ["recipient_auth_id = ?"];
     $params = [$user_id];
 
     if ($is_read !== null) {
@@ -33,10 +33,12 @@ try {
     $sql = "
         SELECT 
             n.*,
-            u.name as sender_name,
-            u.profile_pic as sender_profile_pic
+            a.email as sender_name,
+            COALESCE(u.profile_pic, c.profile_pic) as sender_profile_pic
         FROM notifications n
-        LEFT JOIN users u ON n.sender_id = u.id
+        LEFT JOIN auth_accounts a ON n.sender_auth_id = a.id
+        LEFT JOIN users u ON a.id = u.auth_id
+        LEFT JOIN clients c ON a.id = c.auth_id
         WHERE $where_sql
         ORDER BY n.created_at DESC
         LIMIT ? OFFSET ?
@@ -56,7 +58,7 @@ try {
     $notifications = $stmt->fetchAll();
 
     // Get unread count
-    $count_stmt = $pdo->prepare("SELECT COUNT(*) as unread FROM notifications WHERE recipient_id = ? AND is_read = 0");
+    $count_stmt = $pdo->prepare("SELECT COUNT(*) as unread FROM notifications WHERE recipient_auth_id = ? AND is_read = 0");
     $count_stmt->execute([$user_id]);
     $unread_count = $count_stmt->fetch()['unread'];
 

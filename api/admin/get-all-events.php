@@ -19,21 +19,21 @@ try {
     $where_clause = "";
 
     if (!empty($search)) {
-        $where_clause = "WHERE e.event_name LIKE ? OR u.name LIKE ? OR e.state LIKE ?";
+        $where_clause = "WHERE e.event_name LIKE ? OR u.business_name LIKE ? OR e.state LIKE ?";
         $search_param = "%$search%";
         $params = [$search_param, $search_param, $search_param];
     }
 
     // Get total count
-    $count_sql = "SELECT COUNT(*) FROM events e LEFT JOIN users u ON e.client_id = u.id $where_clause";
+    $count_sql = "SELECT COUNT(*) FROM events e LEFT JOIN clients u ON e.client_id = u.id $where_clause";
     $count_stmt = $pdo->prepare($count_sql);
     $count_stmt->execute($params);
     $total_records = $count_stmt->fetchColumn();
 
     // Get events
-    $sql = "SELECT e.*, u.name as client_name 
+    $sql = "SELECT e.*, u.business_name as client_name 
             FROM events e 
-            LEFT JOIN users u ON e.client_id = u.id 
+            LEFT JOIN clients u ON e.client_id = u.id 
             $where_clause 
             ORDER BY e.created_at DESC 
             LIMIT ? OFFSET ?";

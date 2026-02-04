@@ -111,7 +111,7 @@ try {
 
     // Create notification
     $message = "Event '{$_POST['event_name']}' has been updated";
-    $stmt = $pdo->prepare("INSERT INTO notifications (recipient_id, sender_id, message, type) VALUES (?, ?, ?, ?)");
+    $stmt = $pdo->prepare("INSERT INTO notifications (recipient_auth_id, sender_auth_id, message, type) VALUES (?, ?, ?, ?)");
     $stmt->execute([$event['client_id'], $user_id, $message, 'event_updated']);
 
     echo json_encode([

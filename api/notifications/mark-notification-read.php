@@ -27,7 +27,7 @@ if (isset($data['notification_id'])) {
 } elseif (isset($data['mark_all']) && $data['mark_all'] === true) {
     // Mark all notifications as read for this user
     try {
-        $stmt = $pdo->prepare("UPDATE notifications SET is_read = 1 WHERE recipient_id = ? AND is_read = 0");
+        $stmt = $pdo->prepare("UPDATE notifications SET is_read = 1 WHERE recipient_auth_id = ? AND is_read = 0");
         $stmt->execute([$user_id]);
 
         echo json_encode([
@@ -60,7 +60,7 @@ try {
 
     // Mark notifications as read (only if they belong to the current user)
     $query = "UPDATE notifications SET is_read = 1 
-              WHERE id IN ($placeholders) AND recipient_id = ? AND is_read = 0";
+              WHERE id IN ($placeholders) AND recipient_auth_id = ? AND is_read = 0";
 
     $params = array_merge($notification_ids, [$user_id]);
     $stmt = $pdo->prepare($query);
