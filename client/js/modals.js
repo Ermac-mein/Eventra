@@ -9,7 +9,7 @@ function showProfileEditModal() {
     if (!user) return;
 
     const modalHTML = `
-        <div id="profileEditModal" class="modal-backdrop active">
+        <div id="profileEditModal" class="modal-backdrop active" role="dialog" aria-modal="true" aria-hidden="false">
             <div class="modal-content" style="max-width: 600px; max-height: 90vh; overflow-y: auto;">
                 <div class="modal-header">
                     <h2>Edit Profile</h2>
@@ -165,7 +165,7 @@ async function handleProfileUpdate(e) {
 function showEventPreviewModal(eventId) {
     // Show loading
     const loadingHTML = `
-        <div id="eventPreviewModal" class="modal-backdrop active">
+        <div id="eventPreviewModal" class="modal-backdrop active" role="dialog" aria-modal="true" aria-hidden="false">
             <div class="modal-content" style="max-width: 800px;">
                 <div class="modal-header">
                     <h2>Event Details</h2>
@@ -208,7 +208,7 @@ async function fetchEventDetails(eventId) {
 
 function displayEventPreview(event) {
     const modalContent = `
-        <div id="eventPreviewModal" class="modal-backdrop active">
+        <div id="eventPreviewModal" class="modal-backdrop active" role="dialog" aria-modal="true" aria-hidden="false">
             <div class="modal-content" style="max-width: 900px; max-height: 90vh; overflow-y: auto;">
                 <div class="modal-header">
                     <h2>Event Preview</h2>
@@ -310,8 +310,13 @@ function displayEventPreview(event) {
                             <button onclick="editEvent(${event.id})" class="btn btn-primary" style="flex: 1;">
                                 ✏️ Edit Event
                             </button>
+                            ${event.status !== 'published' ? `
+                                <button onclick="publishEvent(${event.id})" class="btn btn-primary" style="flex: 1; background: var(--card-blue);">
+                                    ✓ Publish
+                                </button>
+                            ` : ''}
                             <button onclick="shareEvent('${event.external_link}')" class="btn btn-secondary" style="flex: 1;">
-                                🔗 Share Event
+                                🔗 Share
                             </button>
                             <button onclick="closeEventPreviewModal()" class="btn btn-secondary">
                                 Close
@@ -410,116 +415,10 @@ function formatDate(dateString) {
 }
 
 // Event Action Modal (for publishing/canceling events)
-function showEventActionModal(eventId) {
-    // Fetch event details first
-    fetchEventForAction(eventId);
-}
 
-async function fetchEventForAction(eventId) {
-    try {
-        const user = storage.get('user');
-        const response = await fetch(`../../api/events/get-events.php?client_id=${user.id}&limit=100`);
-        const result = await response.json();
-
-        if (result.success) {
-            const event = result.events.find(e => e.id == eventId);
-            if (event) {
-                displayEventActionModal(event);
-            } else {
-                showNotification('Event not found', 'error');
-            }
-        }
-    } catch (error) {
-        console.error('Error fetching event:', error);
-        showNotification('Failed to load event details', 'error');
-    }
-}
-
-function displayEventActionModal(event) {
-    const modalContent = `
-        <div id="eventActionModal" class="modal-backdrop active">
-            <div class="modal-content" style="max-width: 700px; max-height: 90vh; overflow-y: auto;">
-                <div class="modal-header">
-                    <h2>Event Details</h2>
-                    <button class="modal-close" onclick="closeEventActionModal()">×</button>
-                </div>
-                <div class="modal-body">
-                    <!-- User Profile Image for Action Modal -->
-                    <div style="width: 100%; height: 200px; overflow: hidden; border-radius: 12px; margin-bottom: 1.5rem;">
-                        <img src="${(storage.get('user') || {}).profile_pic || 'https://ui-avatars.com/api/?name=' + encodeURIComponent((storage.get('user') || {}).name || 'User')}" 
-                             style="width: 100%; height: 100%; object-fit: cover;">
-                    </div>
-
-                    <!-- Event Info -->
-                    <h3 style="font-size: 1.5rem; margin-bottom: 1rem;">${event.event_name}</h3>
-                    
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
-                        <div>
-                            <div style="font-size: 0.85rem; color: #666; margin-bottom: 0.25rem;">📅 Date & Time</div>
-                            <div style="font-weight: 600;">${formatDate(event.event_date)} at ${event.event_time}</div>
-                        </div>
-                        <div>
-                            <div style="font-size: 0.85rem; color: #666; margin-bottom: 0.25rem;">📍 Location</div>
-                            <div style="font-weight: 600;">${event.state}</div>
-                        </div>
-                        <div>
-                            <div style="font-size: 0.85rem; color: #666; margin-bottom: 0.25rem;">🎭 Category</div>
-                            <div style="font-weight: 600;">${event.event_type}</div>
-                        </div>
-                        <div>
-                            <div style="font-size: 0.85rem; color: #666; margin-bottom: 0.25rem;">💰 Price</div>
-                            <div style="font-weight: 600;">${parseFloat(event.price) === 0 ? 'Free' : '₦' + parseFloat(event.price).toLocaleString()}</div>
-                        </div>
-                        <div>
-                            <div style="font-size: 0.85rem; color: #666; margin-bottom: 0.25rem;">📊 Status</div>
-                            <div style="font-weight: 600; color: ${getStatusBadgeColor(event.status)};">${event.status.toUpperCase()}</div>
-                        </div>
-                        <div>
-                            <div style="font-size: 0.85rem; color: #666; margin-bottom: 0.25rem;">👥 Attendees</div>
-                            <div style="font-weight: 600;">${event.attendee_count || 0} registered</div>
-                        </div>
-                    </div>
-
-                    <!-- Description -->
-                    <div style="margin-bottom: 1.5rem;">
-                        <h4 style="margin-bottom: 0.75rem;">About This Event</h4>
-                        <p style="line-height: 1.6; color: #555;">${event.description}</p>
-                    </div>
-
-                    <!-- Action Buttons -->
-                    <div style="display: flex; gap: 1rem; margin-top: 2rem;">
-                        ${event.status !== 'published' ? `
-                            <button onclick="publishEvent(${event.id})" class="btn btn-primary" style="flex: 1; background: var(--card-blue);">
-                                ✓ Publish Event
-                            </button>
-                        ` : `
-                            <button class="btn btn-secondary" style="flex: 1; opacity: 0.5; cursor: not-allowed;" disabled>
-                                Already Published
-                            </button>
-                        `}
-                        <button onclick="closeEventActionModal()" class="btn btn-secondary" style="flex: 1;">
-                            Cancel
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
-
-    // Remove existing modal if any
-    const existing = document.getElementById('eventActionModal');
-    if (existing) existing.remove();
-
-    // Add new modal
-    document.body.insertAdjacentHTML('beforeend', modalContent);
-}
-
-function closeEventActionModal() {
-    const modal = document.getElementById('eventActionModal');
-    if (modal) modal.remove();
-}
 
 async function publishEvent(eventId) {
+    if (document.activeElement) document.activeElement.blur();
     const result = await Swal.fire({
         title: 'Publish Event?',
         text: 'Are you sure you want to publish this event? It will be visible to all users on the platform.',
@@ -559,7 +458,7 @@ async function publishEvent(eventId) {
 // Edit Event Modal
 function showEditEventModal(event) {
     const modalHTML = `
-        <div id="editEventModal" class="modal-backdrop active">
+        <div id="editEventModal" class="modal-backdrop active" role="dialog" aria-modal="true" aria-hidden="false">
             <div class="modal-content" style="max-width: 800px; max-height: 90vh; overflow-y: auto;">
                 <div class="modal-header">
                     <h2>Edit Event</h2>
@@ -761,7 +660,7 @@ async function handleEventUpdate(e) {
 // Ticket Preview Modal
 function showTicketPreviewModal(ticket) {
     const modalContent = `
-        <div id="ticketPreviewModal" class="modal-backdrop active">
+        <div id="ticketPreviewModal" class="modal-backdrop active" role="dialog" aria-modal="true" aria-hidden="false">
             <div class="modal-content" style="max-width: 600px;">
                 <div class="modal-header">
                     <h2>Ticket Details</h2>
@@ -825,7 +724,7 @@ function closeTicketPreviewModal() {
 // User Preview Modal
 function showUserPreviewModal(user) {
     const modalContent = `
-        <div id="userPreviewModal" class="modal-backdrop active">
+        <div id="userPreviewModal" class="modal-backdrop active" role="dialog" aria-modal="true" aria-hidden="false">
             <div class="modal-content" style="max-width: 600px;">
                 <div class="modal-header">
                     <h2>User Details</h2>
@@ -907,8 +806,6 @@ window.previewProfilePic = previewProfilePic;
 window.showEventPreviewModal = showEventPreviewModal;
 window.closeEventPreviewModal = closeEventPreviewModal;
 window.shareEvent = shareEvent;
-window.showEventActionModal = showEventActionModal;
-window.closeEventActionModal = closeEventActionModal;
 window.publishEvent = publishEvent;
 window.showEditEventModal = showEditEventModal;
 window.closeEditEventModal = closeEditEventModal;

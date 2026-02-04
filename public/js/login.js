@@ -28,6 +28,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Role-Specific UI Adjustments
     if (intent === 'admin') {
+        const sliderText = document.querySelector('.slider-text');
+        if (sliderText) sliderText.style.display = 'none';
+        
         if (googleSignIn) {
             const googleContainer = document.getElementById('googleContainer');
             const authDivider = document.getElementById('authDivider');
@@ -37,14 +40,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const signupPrompt = document.getElementById('signupPrompt');
         if (signupPrompt) signupPrompt.style.display = 'none';
         
-        console.log("Admin context activated: Google Sign-In and Signup disabled.");
+        console.log("Admin context activated: UI adjusted.");
     } else if (intent === 'client') {
+        const sliderText = document.querySelector('.slider-text');
+        if (sliderText) sliderText.style.display = 'none';
         console.log("Client context activated.");
     } else if (intent === 'user') {
         // Users only use Google
         const loginForm = document.getElementById('loginForm');
-        // We might want to hide the password form for "users" if they are only Google
-        // But for now, let's just ensure Google is available.
         console.log("User context activated: Google Sign-In primary.");
     }
 
@@ -293,8 +296,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // Event Image Slider Logic
     async function initSlider() {
         const sliderContainer = document.querySelector('.slider-images');
-        const sliderTitle = document.getElementById('sliderExtTitle');
-        const sliderLoc = document.getElementById('sliderEventLoc');
         
         if (!sliderContainer) return;
 
@@ -306,7 +307,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const events = data.events.filter(e => e.image_path);
                 if (events.length === 0) return;
 
-                // Inject images
+                // Inject images (using high quality placeholder or actual path)
                 sliderContainer.innerHTML = events.map((event, index) => `
                     <img src="${event.image_path}" 
                          alt="${event.event_name}" 
@@ -318,26 +319,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 const updateSlider = () => {
                     const images = document.querySelectorAll('.slider-img');
+                    if (images.length === 0) return;
+                    
                     images[currentIndex].classList.remove('active');
-                    
                     currentIndex = (currentIndex + 1) % images.length;
-                    
                     images[currentIndex].classList.add('active');
-                    
-                    // Update text with a small delay for fade
-                    setTimeout(() => {
-                        const event = events[currentIndex];
-                        sliderTitle.textContent = event.event_name;
-                        sliderLoc.textContent = `${event.state} - ${event.event_type}`;
-                    }, 500);
                 };
 
                 // Cycle every 5 seconds
                 setInterval(updateSlider, 5000);
-                
-                // Set initial text
-                sliderTitle.textContent = events[0].event_name;
-                sliderLoc.textContent = `${events[0].state} - ${events[0].event_type}`;
             }
         } catch (error) {
             console.error('Slider init error:', error);

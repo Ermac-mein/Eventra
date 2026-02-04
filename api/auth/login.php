@@ -31,9 +31,18 @@ try {
     }
 
     // 2. Validate Role Compatibility with Flow
-    if (strtolower($user['role']) !== $intent) {
-        logSecurityEvent($user['id'], $email, 'login_failure', 'password', "Role mismatch: User is " . $user['role'] . " but tried to login as $intent");
-        echo json_encode(['success' => false, 'message' => "Access denied. This account is not authorized for the " . ucfirst($intent) . " portal."]);
+    // If no intent or intent is 'user', but user has a higher role, block it.
+    // The homepage login is for 'user' only.
+    $effectiveIntent = $intent;
+    if ($effectiveIntent === 'user' && in_array($userRole, ['admin', 'client'])) {
+        logSecurityEvent($user['id'], $email, 'login_failure', 'password', "Role blocked: $userRole tried to login via user flow");
+        echo json_encode(['success' => false, 'message' => "This account is a " . ucfirst($userRole) . " account. Please use the appropriate portal to login."]);
+        exit;
+    }
+
+    if ($userRole !== $effectiveIntent && $effectiveIntent !== 'user') {
+        logSecurityEvent($user['id'], $email, 'login_failure', 'password', "Role mismatch: User is $userRole but tried as $effectiveIntent");
+        echo json_encode(['success' => false, 'message' => "Access denied. Use the " . ucfirst($effectiveIntent) . " portal."]);
         exit;
     }
 

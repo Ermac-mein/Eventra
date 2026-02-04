@@ -28,6 +28,12 @@ try {
     if ($user) {
         // 2. Validate Role Compatibility with Intent
         if (strtolower($user['role']) !== $intent) {
+            // If user is admin/client but intent is user, block.
+            if ($intent === 'user' && in_array(strtolower($user['role']), ['admin', 'client'])) {
+                logSecurityEvent($user['id'], $email, 'login_failure', 'google', "Role blocked: " . $user['role'] . " tried user Google login");
+                echo json_encode(['success' => false, 'message' => "This Google account is linked to a " . ucfirst($user['role']) . " account. Please use the specific portal login."]);
+                exit;
+            }
             logSecurityEvent($user['id'], $email, 'login_failure', 'google', "Role mismatch: Found as " . $user['role'] . " but intent was $intent");
             echo json_encode(['success' => false, 'message' => "This identity is already bound to a " . ucfirst($user['role']) . " account and cannot be used as $intent."]);
             exit;

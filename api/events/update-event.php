@@ -22,6 +22,20 @@ if (!$event_id) {
 }
 
 try {
+    // RESOLVE: Get the actual client_id from the auth_id in session
+    // The events table uses clients.id as client_id, while session stores auth_accounts.id
+    $client_stmt = $pdo->prepare("SELECT id FROM clients WHERE auth_id = ?");
+    $client_stmt->execute([$user_id]);
+    $client_row = $client_stmt->fetch();
+
+    if (!$client_row && $_SESSION['role'] !== 'admin') {
+        http_response_code(403);
+        echo json_encode(['success' => false, 'message' => 'Client profile not found.']);
+        exit;
+    }
+
+    $real_client_id = $client_row['id'] ?? null;
+
     // Get current event details
     $stmt = $pdo->prepare("SELECT * FROM events WHERE id = ?");
     $stmt->execute([$event_id]);
@@ -33,21 +47,22 @@ try {
     }
 
     // Check if user owns the event or is admin
-    if ($_SESSION['role'] !== 'admin' && $event['client_id'] != $user_id) {
+    if ($_SESSION['role'] !== 'admin' && $event['client_id'] != $real_client_id) {
+        error_log("[Update Event Debug] Role: " . $_SESSION['role'] . " | Event Client ID: " . $event['client_id'] . " | User Real Client ID: " . $real_client_id);
         http_response_code(403);
         echo json_encode(['success' => false, 'message' => 'You do not have permission to update this event']);
         exit;
     }
 
-    // CRITICAL: Prevent editing published events
-    if ($event['status'] === 'published') {
-        http_response_code(403);
-        echo json_encode([
-            'success' => false,
-            'message' => 'Published events cannot be edited. Only draft and scheduled events can be modified.'
-        ]);
-        exit;
-    }
+    // CRITICAL: Prevent editing published events - Removed as per user request
+    // if ($event['status'] === 'published') {
+    //     http_response_code(403);
+    //     echo json_encode([
+    //         'success' => false,
+    //         'message' => 'Published events cannot be edited. Only draft and scheduled events can be modified.'
+    //     ]);
+    //     exit;
+    // }
 
     // Handle image upload if provided
     $image_path = $event['image_path']; // Keep existing image by default
@@ -110,17 +125,23 @@ try {
     ]);
 
     // Create notification
+    // Resolve client's auth_id for notification recipient
+    $auth_stmt = $pdo->prepare("SELECT auth_id FROM clients WHERE id = ?");
+    $auth_stmt->execute([$event['client_id']]);
+    $recipient_auth_id = $auth_stmt->fetchColumn();
+
     $message = "Event '{$_POST['event_name']}' has been updated";
     $stmt = $pdo->prepare("INSERT INTO notifications (recipient_auth_id, sender_auth_id, message, type) VALUES (?, ?, ?, ?)");
-    $stmt->execute([$event['client_id'], $user_id, $message, 'event_updated']);
+    $stmt->execute([$recipient_auth_id, $user_id, $message, 'event_updated']);
 
     echo json_encode([
         'success' => true,
         'message' => 'Event updated successfully'
     ]);
 
-} catch (PDOException $e) {
+} catch (Throwable $e) {
+    error_log("[Update Event Global Error] " . $e->getMessage() . "\n" . $e->getTraceAsString());
     http_response_code(500);
-    echo json_encode(['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);
+    echo json_encode(['success' => false, 'message' => 'Internal server error: ' . $e->getMessage()]);
 }
 ?>

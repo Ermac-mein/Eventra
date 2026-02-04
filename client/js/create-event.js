@@ -7,7 +7,7 @@ function showCreateEventModal() {
     if (!user) return;
 
     const modalHTML = `
-        <div id="createEventModal" class="modal-backdrop active">
+        <div id="createEventModal" class="modal-backdrop active" role="dialog" aria-modal="true" aria-hidden="false">
             <div class="modal-content" style="max-width: 800px; max-height: 90vh; overflow-y: auto;">
                 <div class="modal-header">
                     <h2>Create New Event</h2>

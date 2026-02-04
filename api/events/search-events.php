@@ -16,12 +16,14 @@ try {
     $limit = $_GET['limit'] ?? 20;
 
     // Build search query
-    $where_clauses = ["status = 'published'"];
+    $where_clauses = ["e.status = 'published'"];
     $params = [];
+
+    error_log("[Search Debug] Query: $query | Limit: $limit");
 
     // Search by event name or description
     if (!empty($query)) {
-        $where_clauses[] = "(event_name LIKE ? OR description LIKE ?)";
+        $where_clauses[] = "(e.event_name LIKE ? OR e.description LIKE ?)";
         $search_term = "%$query%";
         $params[] = $search_term;
         $params[] = $search_term;
@@ -29,33 +31,34 @@ try {
 
     // Filter by state
     if (!empty($state)) {
-        $where_clauses[] = "state = ?";
+        $where_clauses[] = "e.state = ?";
         $params[] = $state;
     }
 
     // Filter by category/event_type
     if (!empty($category)) {
-        $where_clauses[] = "event_type = ?";
+        $where_clauses[] = "e.event_type = ?";
         $params[] = $category;
     }
 
     // Filter by date range
     if (!empty($date_from)) {
-        $where_clauses[] = "event_date >= ?";
+        $where_clauses[] = "e.event_date >= ?";
         $params[] = $date_from;
     }
     if (!empty($date_to)) {
-        $where_clauses[] = "event_date <= ?";
+        $where_clauses[] = "e.event_date <= ?";
         $params[] = $date_to;
     }
 
     // Filter by priority
     if (!empty($priority)) {
-        $where_clauses[] = "priority = ?";
+        $where_clauses[] = "e.priority = ?";
         $params[] = $priority;
     }
 
     $where_sql = implode(' AND ', $where_clauses);
+    error_log("[Search Debug] SQL Where: $where_sql");
 
     // Execute search
     $sql = "
@@ -64,20 +67,26 @@ try {
         LEFT JOIN clients u ON e.client_id = u.id
         WHERE $where_sql
         ORDER BY 
-            CASE priority
+            CASE e.priority
                 WHEN 'featured' THEN 1
                 WHEN 'hot' THEN 2
                 WHEN 'trending' THEN 3
                 ELSE 4
             END,
-            event_date ASC
+            e.event_date ASC
         LIMIT ?
     ";
 
     $params[] = (int) $limit;
 
     $stmt = $pdo->prepare($sql);
-    $stmt->execute($params);
+
+    // Bind parameters
+    foreach ($params as $key => $value) {
+        $stmt->bindValue($key + 1, $value, is_int($value) ? PDO::PARAM_INT : PDO::PARAM_STR);
+    }
+
+    $stmt->execute();
     $events = $stmt->fetchAll();
 
     echo json_encode([
@@ -86,8 +95,9 @@ try {
         'count' => count($events)
     ]);
 
-} catch (PDOException $e) {
+} catch (Throwable $e) {
+    error_log("[Search Global Error] " . $e->getMessage() . "\n" . $e->getTraceAsString());
     http_response_code(500);
-    echo json_encode(['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);
+    echo json_encode(['success' => false, 'message' => 'Internal server error: ' . $e->getMessage()]);
 }
 ?>

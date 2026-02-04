@@ -16,40 +16,27 @@
 </head>
 <body>
     <div class="login-container">
-        <!-- Left Side: Architectural Background -->
-        <!-- Left Side: Event Image Slider -->
-        <div class="login-left" id="eventSlider">
-            <div class="slider-images">
-                <!-- Images will be injected here -->
-            </div>
-            <div class="overlay-gradient"></div>
-            <div class="slider-text">
-                <h2 id="sliderExtTitle">Experience the Best Events</h2>
-                <p id="sliderEventLoc">Discover and join amazing experiences around you.</p>
-            </div>
-        </div>
-
-        <!-- Right Side: Signup Form with Glassmorphism -->
-        <div class="login-right">
+        <!-- Left Side: Signup Form with Glassmorphism -->
+        <div class="login-left">
             <div class="login-form-container glass-effect">
                 <div id="successMessage" class="success-message"></div>
                 
                 <header class="login-header">
-                    <h1 class="login-title">Client Registration</h1>
-                    <p class="login-subtitle">
-                        Already have an account? <a href="login.html?role=client" class="signup-link">Login</a>
+                    <h1 class="login-title" id="signupTitle">Create Account</h1>
+                    <p class="login-signup-prompt" id="loginPrompt">
+                        Already have an account? <a href="login.html" class="signup-link" id="loginLink">Log In</a>
                     </p>
                 </header>
 
                 <form id="signupForm" class="login-form">
                     <!-- Full Name Field -->
                     <div class="form-group">
-                        <label for="fullName" class="form-label">Company or Full Name</label>
+                        <label for="fullName" class="form-label">Full Name</label>
                         <div class="input-wrapper">
                             <input type="text" 
                                    id="fullName" 
                                    class="form-input" 
-                                   placeholder="Enter Name" 
+                                   placeholder="John Doe" 
                                    required>
                             <span class="input-icon">👤</span>
                         </div>
@@ -85,13 +72,36 @@
                     </div>
 
                     <!-- Submit Button -->
-                    <button type="submit" id="signupButton" class="login-button">Create Client Account</button>
+                    <button type="submit" id="signupButton" class="login-button">Create Account</button>
                     
+                    <!-- Divider -->
+                    <div class="divider" id="authDivider">
+                        <span>OR</span>
+                    </div>
+
+                    <!-- Google Sign In/Up -->
+                    <div id="googleContainer">
+                        <button type="button" id="googleSignUp" class="google-signin">
+                            <img src="https://www.gstatic.com/images/branding/product/1x/gsa_512dp.png" 
+                                 alt="Google Icon" 
+                                 class="google-icon">
+                            Sign up with Google
+                        </button>
+                    </div>
+
                     <p style="text-align: center; font-size: 0.8rem; color: rgba(255,255,255,0.5); margin-top: 1.5rem;">
                         By signing up, you agree to our Terms of Service and Privacy Policy.
                     </p>
                 </form>
             </div>
+        </div>
+
+        <!-- Right Side: Event Image Slider -->
+        <div class="login-right" id="eventSlider">
+            <div class="slider-images">
+                <!-- Images will be injected here -->
+            </div>
+            <div class="overlay-gradient"></div>
         </div>
     </div>
 

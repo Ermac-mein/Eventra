@@ -23,6 +23,19 @@ if (!$event_id) {
 }
 
 try {
+    // Resolve client_id from auth_id
+    $stmt = $pdo->prepare("SELECT id FROM clients WHERE auth_id = ?");
+    $stmt->execute([$user_id]);
+    $client = $stmt->fetch();
+
+    if (!$client && $_SESSION['role'] !== 'admin') {
+        http_response_code(403);
+        echo json_encode(['success' => false, 'message' => 'Client profile not found']);
+        exit;
+    }
+
+    $resolved_client_id = $client ? $client['id'] : null;
+
     // Get event details
     $stmt = $pdo->prepare("SELECT * FROM events WHERE id = ?");
     $stmt->execute([$event_id]);
@@ -34,7 +47,7 @@ try {
     }
 
     // Check if user is the client who created the event or admin
-    if ($_SESSION['role'] !== 'admin' && $event['client_id'] != $user_id) {
+    if ($_SESSION['role'] !== 'admin' && $event['client_id'] != $resolved_client_id) {
         http_response_code(403);
         echo json_encode(['success' => false, 'message' => 'You do not have permission to publish this event']);
         exit;
@@ -45,9 +58,22 @@ try {
     $stmt->execute([$event_id]);
 
     // Create notification for client
+    // For notifications, we need the auth_id. If a client is publishing, it's their own $user_id.
+    // However, if an admin publishes, we need the client's auth_id.
+    $recipient_auth_id = $user_id; // Default to current user
+    if ($_SESSION['role'] === 'admin') {
+        // Find the client's auth_id from their client_id
+        $stmt = $pdo->prepare("SELECT auth_id FROM clients WHERE id = ?");
+        $stmt->execute([$event['client_id']]);
+        $client_auth = $stmt->fetch();
+        if ($client_auth) {
+            $recipient_auth_id = $client_auth['auth_id'];
+        }
+    }
+
     $message = "Your event '{$event['event_name']}' has been published and is now live!";
     $stmt = $pdo->prepare("INSERT INTO notifications (recipient_auth_id, sender_auth_id, message, type) VALUES (?, ?, ?, ?)");
-    $stmt->execute([$event['client_id'], $user_id, $message, 'event_published']);
+    $stmt->execute([$recipient_auth_id, $user_id, $message, 'event_published']);
 
     // Create notification for admin if client published
     if ($_SESSION['role'] === 'client') {
@@ -56,7 +82,7 @@ try {
         $admin = $stmt->fetch();
 
         if ($admin) {
-            $message = "Event '{$event['event_name']}' has been published";
+            $message = "Event '{$event['event_name']}' has been published by a client";
             $stmt = $pdo->prepare("INSERT INTO notifications (recipient_auth_id, sender_auth_id, message, type) VALUES (?, ?, ?, ?)");
             $stmt->execute([$admin['id'], $user_id, $message, 'event_published']);
         }
@@ -67,8 +93,8 @@ try {
         'message' => 'Event published successfully'
     ]);
 
-} catch (PDOException $e) {
+} catch (Throwable $e) {
     http_response_code(500);
-    echo json_encode(['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);
+    echo json_encode(['success' => false, 'message' => 'Server error: ' . $e->getMessage()]);
 }
 ?>

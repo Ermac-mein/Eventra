@@ -255,6 +255,7 @@ class NotificationManager {
     }
 
     async clearAll() {
+        if (document.activeElement) document.activeElement.blur();
         const result = await Swal.fire({
             title: 'Clear all notifications?',
             text: "This action cannot be undone.",

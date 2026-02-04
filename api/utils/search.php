@@ -36,8 +36,13 @@ try {
         $params = [$searchTerm, $searchTerm, $searchTerm];
 
         if ($userRole === 'client') {
-            $sql .= " AND client_id = ?";
-            $params[] = $userId;
+            // Resolve real client_id from auth_id
+            $c_stmt = $pdo->prepare("SELECT id FROM clients WHERE auth_id = ?");
+            $c_stmt->execute([$userId]);
+            $realClientId = $c_stmt->fetchColumn();
+
+            $sql .= " AND e.client_id = ?";
+            $params[] = $realClientId;
         } elseif ($userRole !== 'admin') {
             $sql .= " AND status = 'published'";
         }

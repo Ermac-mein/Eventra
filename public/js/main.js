@@ -110,17 +110,31 @@ function initUserIcon() {
     if (logoutBtn) {
       logoutBtn.addEventListener('click', async (e) => {
         e.preventDefault();
+        
+        const result = await Swal.fire({
+          title: 'Are you sure?',
+          text: "You will be logged out of your session!",
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonColor: '#ff5a5f',
+          cancelButtonColor: '#9ca3af',
+          confirmButtonText: 'Yes, logout!',
+          background: 'rgba(30, 41, 59, 0.95)',
+          color: '#fff'
+        });
+
+        if (!result.isConfirmed) return;
+
         try {
           const response = await fetch('../../api/auth/logout.php');
           const result = await response.json();
           if (result.success) {
             storage.remove('user');
             storage.remove('auth_token');
-            location.reload(); // Reload to reset state while remaining on home page
+            location.reload();
           }
         } catch (error) {
           console.error('Logout error:', error);
-          // Fallback logout if API fails
           storage.remove('user');
           storage.remove('auth_token');
           location.reload();

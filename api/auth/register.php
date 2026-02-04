@@ -13,7 +13,7 @@ if (!isset($data['name']) || !isset($data['email']) || !isset($data['password'])
 $name = $data['name'];
 $email = $data['email'];
 $password = $data['password'];
-$role = 'client'; // Strictly client-only registration
+$role = $data['role'] ?? 'client'; // Default to client registration if not specified
 
 try {
     // 1. Prevent Cross-Entity Collision

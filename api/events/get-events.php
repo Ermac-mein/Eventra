@@ -57,7 +57,7 @@ try {
     $sql = "
         SELECT e.*, u.business_name as client_name, u.profile_pic as client_profile_pic $favorite_select
         FROM events e
-        LEFT JOIN clients u ON e.client_id = u.auth_id
+        LEFT JOIN clients u ON e.client_id = u.id
         $where_sql
         ORDER BY e.created_at DESC
         LIMIT ? OFFSET ?

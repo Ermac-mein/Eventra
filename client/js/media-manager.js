@@ -73,7 +73,7 @@ async function loadMedia() {
 function createNewFolder() {
     // Show folder creation modal with improved close button
     const modalHTML = `
-        <div id="folderModal" class="modal-backdrop active">
+        <div id="folderModal" class="modal-backdrop active" role="dialog" aria-modal="true" aria-hidden="false">
             <div class="modal-content" style="max-width: 500px;">
                 <div class="modal-header">
                     <h2>Create New Folder</h2>
@@ -160,6 +160,7 @@ async function handleFolderCreation(e) {
 function uploadFile() {
     // Enforce folder creation before upload
     if (!hasFolders) {
+        if (document.activeElement) document.activeElement.blur();
         Swal.fire({
             title: 'No Folders Found',
             text: 'You must create a folder before uploading files.',
@@ -227,6 +228,7 @@ function downloadFile(filePath, fileName) {
 }
 
 async function deleteMedia(mediaId) {
+    if (document.activeElement) document.activeElement.blur();
     const result = await Swal.fire({
         title: 'Delete Media?',
         text: 'Are you sure you want to delete this file? This will permanently remove it from your storage.',

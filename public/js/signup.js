@@ -6,6 +6,34 @@ document.addEventListener('DOMContentLoaded', () => {
     const signupButton = document.getElementById('signupButton');
     const successMessage = document.getElementById('successMessage');
     const togglePassword = document.getElementById('togglePassword');
+    const googleSignUp = document.getElementById('googleSignUp');
+    const signupTitle = document.getElementById('signupTitle');
+    const loginLink = document.getElementById('loginLink');
+
+    // Role Context (Detected from URL role/intent or body data-intent)
+    const urlParams = new URLSearchParams(window.location.search);
+    const roleParam = urlParams.get('role');
+    const intentParam = urlParams.get('intent');
+    const intent = roleParam || intentParam || document.body.getAttribute('data-intent') || 'client';
+
+    // Role-Specific UI Adjustments
+    if (intent === 'admin') {
+        if (googleSignUp) {
+            const googleContainer = document.getElementById('googleContainer');
+            const authDivider = document.getElementById('authDivider');
+            if (googleContainer) googleContainer.style.display = 'none';
+            if (authDivider) authDivider.style.display = 'none';
+        }
+        if (signupTitle) signupTitle.textContent = 'Admin Registration';
+        if (signupButton) signupButton.textContent = 'Create Admin Account';
+        if (loginLink) loginLink.href = `login.html?role=admin`;
+        
+        console.log("Admin registration context activated.");
+    } else {
+        if (signupTitle) signupTitle.textContent = (intent === 'client') ? 'Client Registration' : 'Create Account';
+        if (signupButton) signupButton.textContent = (intent === 'client') ? 'Create Client Account' : 'Sign Up';
+        if (loginLink) loginLink.href = `login.html?role=${intent}`;
+    }
 
     // Toggle password visibility
     if (togglePassword && passwordInput) {
@@ -13,6 +41,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
             passwordInput.setAttribute('type', type);
             togglePassword.textContent = type === 'password' ? '👁️' : '👁️‍🗨️';
+        });
+    }
+
+    // Google Sign Up
+    if (googleSignUp) {
+        googleSignUp.addEventListener('click', () => {
+            handleGoogleSignUp();
         });
     }
 
@@ -26,7 +61,7 @@ document.addEventListener('DOMContentLoaded', () => {
             resetErrors();
 
             if (fullNameInput.value.trim().length < 2) {
-                showError('fullNameError', 'Please enter your company or full name');
+                showError('fullNameError', 'Please enter your full name');
                 isValid = false;
             }
 
@@ -58,7 +93,6 @@ document.addEventListener('DOMContentLoaded', () => {
             errorElement.style.display = 'block';
         }
         
-        // Find corresponding input to highlight
         const inputId = elementId.replace('Error', '');
         const inputElement = document.getElementById(inputId);
         if (inputElement) {
@@ -75,7 +109,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function handleSignup() {
-        // Show loading state
         const originalBtnText = signupButton.innerHTML;
         signupButton.disabled = true;
         signupButton.innerHTML = '<span class="spinner"></span> Creating account...';
@@ -87,18 +120,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 body: JSON.stringify({
                     name: fullNameInput.value,
                     email: emailInput.value,
-                    password: passwordInput.value
+                    password: passwordInput.value,
+                    role: intent
                 })
             });
             const result = await response.json();
 
             if (result.success) {
-                // Premium Success Feedback
                 if (typeof Swal !== 'undefined') {
                     Swal.fire({
                         icon: 'success',
                         title: 'Account Created!',
-                        text: 'Your client account is ready. Redirecting to login...',
+                        text: result.message || 'Redirecting to login...',
                         timer: 2000,
                         showConfirmButton: false,
                         background: 'rgba(30, 41, 59, 0.95)',
@@ -106,12 +139,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     });
                 } else if (successMessage) {
                     successMessage.classList.add('show');
-                    successMessage.textContent = 'Client account created successfully! Redirecting to login...';
+                    successMessage.textContent = 'Account created successfully! Redirecting...';
                 }
                 
-                // Redirect after success
                 setTimeout(() => {
-                    window.location.href = 'login.html?role=client';
+                    window.location.href = `login.html?role=${intent}`;
                 }, 2100);
             } else {
                 showError('passwordError', result.message || 'Registration failed. Please try again.');
@@ -125,4 +157,106 @@ document.addEventListener('DOMContentLoaded', () => {
             signupButton.innerHTML = originalBtnText;
         }
     }
+
+    async function handleGoogleSignUp() {
+        // This leverages the same handler as login, which creates account if it doesn't exist
+        // We'll mimic the login logic to check for config and initialize Google
+        try {
+            const configResponse = await fetch('../../api/config/get-google-config.php');
+            const configData = await configResponse.json();
+            
+            if (!configData.success || !configData.client_id) {
+                Swal.fire('Error', 'Google configuration missing.', 'error');
+                return;
+            }
+
+            if (typeof google === 'undefined') {
+                Swal.fire('Blocked', 'Google script not loaded. Check ad-blockers.', 'warning');
+                return;
+            }
+
+            google.accounts.id.initialize({
+                client_id: configData.client_id,
+                callback: handleGoogleResponse,
+            });
+            google.accounts.id.prompt();
+
+        } catch (error) {
+            console.error('Google Sign-up error:', error);
+            Swal.fire('Error', 'Failed to initialize Google Sign-up.', 'error');
+        }
+    }
+
+    async function handleGoogleResponse(response) {
+        try {
+            const res = await fetch('../../api/auth/google-handler.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    credential: response.credential,
+                    intent: intent
+                })
+            });
+            const result = await res.json();
+
+            if (result.success) {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Account Ready!',
+                    text: 'Signed up with Google. Redirecting...',
+                    timer: 1500,
+                    showConfirmButton: false,
+                    background: 'rgba(30, 41, 59, 0.95)',
+                    color: '#fff'
+                });
+                setTimeout(() => {
+                    window.location.href = result.redirect || `main.html`;
+                }, 1600);
+            } else {
+                Swal.fire('Registration Failed', result.message, 'error');
+            }
+        } catch (error) {
+            console.error('Google registration error:', error);
+            Swal.fire('Error', 'An error occurred during Google Sign-up.', 'error');
+        }
+    }
+
+    // Event Image Slider Logic
+    async function initSlider() {
+        const sliderContainer = document.querySelector('.slider-images');
+        if (!sliderContainer) return;
+
+        try {
+            const response = await fetch('../../api/events/get-events.php?status=published&limit=10');
+            const data = await response.json();
+
+            if (data.success && data.events.length > 0) {
+                const events = data.events.filter(e => e.image_path);
+                if (events.length === 0) return;
+
+                sliderContainer.innerHTML = events.map((event, index) => `
+                    <img src="${event.image_path}" 
+                         alt="${event.event_name}" 
+                         class="slider-img ${index === 0 ? 'active' : ''}" 
+                         data-index="${index}">
+                `).join('');
+
+                let currentIndex = 0;
+                const updateSlider = () => {
+                    const images = document.querySelectorAll('.slider-img');
+                    if (images.length === 0) return;
+                    
+                    images[currentIndex].classList.remove('active');
+                    currentIndex = (currentIndex + 1) % images.length;
+                    images[currentIndex].classList.add('active');
+                };
+
+                setInterval(updateSlider, 5000);
+            }
+        } catch (error) {
+            console.error('Slider init error:', error);
+        }
+    }
+
+    initSlider();
 });
