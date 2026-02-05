@@ -79,7 +79,8 @@ function initUserIcon() {
   const userOnlineStatus = document.querySelector('.user-online-status');
 
   if (isAuthenticated()) {
-    const user = storage.get('user');
+    const keys = typeof getRoleKeys === 'function' ? getRoleKeys() : { user: 'user' };
+    const user = storage.get(keys.user) || storage.get('user');
     if (user) {
       // Show profile image, hide default SVG
       if (userProfileImg) {
@@ -129,8 +130,13 @@ function initUserIcon() {
           const response = await fetch('../../api/auth/logout.php');
           const result = await response.json();
           if (result.success) {
+            // Clear all possible user keys
             storage.remove('user');
             storage.remove('auth_token');
+            storage.remove('client_user');
+            storage.remove('client_auth_token');
+            storage.remove('admin_user');
+            storage.remove('admin_auth_token');
             location.reload();
           }
         } catch (error) {
@@ -149,7 +155,7 @@ function initUserIcon() {
         profileDropdown.classList.remove('show');
         
         // Populate modal with user data
-        const user = storage.get('user');
+        const user = storage.get(keys.user) || storage.get('user');
         document.getElementById('modalProfilePic').src = user.profile_pic || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=FF5A5F&color=fff&size=128`;
         document.getElementById('profileName').value = user.name || '';
         document.getElementById('profileEmail').value = user.email || '';
@@ -181,7 +187,7 @@ function initUserIcon() {
           const result = await response.json();
           
           if (result.success) {
-            storage.set('user', result.user);
+            storage.set(keys.user, result.user);
             showNotification('Profile updated successfully!', 'success');
             profileSideModal.classList.remove('open');
             initUserIcon(); // Refresh icons
@@ -285,8 +291,9 @@ async function handleGoogleCredentialResponse(response) {
         const result = await res.json();
 
         if (result.success) {
-            storage.set('user', result.user);
-            storage.set('auth_token', result.user.token);
+            const keys = typeof getRoleKeys === 'function' ? getRoleKeys() : { user: 'user', token: 'auth_token' };
+            storage.set(keys.user, result.user);
+            storage.set(keys.token, result.user.token);
             
             showNotification('Google Sign-in successful!', 'success');
             

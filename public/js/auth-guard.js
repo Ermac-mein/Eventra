@@ -1,91 +1,39 @@
+/**
+ * Eventra Auth Guard
+ * Protects routes based on user role and authentication status.
+ */
 
 (function() {
-    const user = storage.get('user');
-    const token = storage.get('auth_token');
+    // 1. Identify required role from context (URL or body attribute)
     const currentPath = window.location.pathname;
-
-    // Determine required role based on path
     let requiredRole = null;
+
     if (currentPath.includes('/admin/')) {
         requiredRole = 'admin';
     } else if (currentPath.includes('/client/')) {
         requiredRole = 'client';
     }
 
-    const basePath = currentPath.includes('/pages/') ? '../../' : (currentPath.includes('/admin/') || currentPath.includes('/client/')) ? '../' : './';
+    if (!requiredRole) return; // Not a protected area
 
-    // Basic client-side check (Case-Insensitive)
-    if (!user || !token || (requiredRole && (!user.role || user.role.toLowerCase() !== requiredRole.toLowerCase()))) {
-        console.warn('Unauthorized access attempt or invalid role.');
-        storage.remove('user');
-        storage.remove('auth_token');
-        
-        // Redirect to selection gate for Admin/Client paths
-        
-        if (requiredRole) {
-            window.location.href = basePath + 'public/pages/auth-gate.html';
-        } else {
-            window.location.href = basePath + 'public/pages/login.html';
-        }
+    // 2. Check Storage
+    const storageKey = requiredRole === 'admin' ? 'admin_user' : 'client_user';
+    const userStr = localStorage.getItem(storageKey); 
+    
+    let user = null;
+    try {
+        const stored = localStorage.getItem(storageKey);
+        user = stored ? JSON.parse(stored) : null;
+    } catch (e) {
+        console.error('Auth Guard: Failed to parse user storage', e);
+    }
+
+    if (!user || user.role !== requiredRole) {
+        console.warn(`Auth Guard: Unauthorized access to ${requiredRole} area. Redirecting...`);
+        const basePath = currentPath.includes('/pages/') ? '../../' : '../';
+        window.location.href = basePath + 'public/pages/login.html';
         return;
     }
 
-    // We can do this periodically or on every page load
-    async function verifySession() {
-        try {
-            const response = await fetch('/api/notifications/realtime.php', {
-                method: 'GET',
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
-            if (response.status === 401 || response.status === 403) {
-                storage.remove('user');
-                storage.remove('auth_token');
-                window.location.href = basePath + 'public/pages/login.html';
-            }
-        } catch (error) {
-            console.error('Session verification failed:', error);
-        }
-    }
-
-    // verifySession(); // Enabled for real-time check
-
-    // Make logout globally available
-    window.logout = async function() {
-        try {
-            const response = await fetch('/api/auth/logout.php', {
-                method: 'POST'
-            });
-            const result = await response.json();
-            if (result.success) {
-                storage.remove('user');
-                storage.remove('auth_token');
-                window.location.href = basePath + 'public/pages/login.html';
-            } else {
-                alert('Logout failed: ' + result.message);
-            }
-        } catch (error) {
-            console.error('Logout error:', error);
-            // Fallback: clear local storage anyway
-            storage.remove('user');
-            storage.remove('auth_token');
-            window.location.href = basePath + 'public/pages/login.html';
-        }
-    };
-
-    // Update UI with user info if elements exist
-    document.addEventListener('DOMContentLoaded', () => {
-        const userNameDisplays = document.querySelectorAll('.user-name-display');
-        const userAvatarDisplays = document.querySelectorAll('.user-avatar-display');
-
-        userNameDisplays.forEach(el => el.textContent = user.name);
-        userAvatarDisplays.forEach(el => {
-            if (user.profile_pic) {
-                const picPath = user.profile_pic.startsWith('/') ? user.profile_pic.substring(1) : user.profile_pic;
-                el.style.backgroundImage = `url(${basePath}${picPath})`;
-                el.style.backgroundSize = 'cover';
-            }
-        });
-    });
+    console.log(`Auth Guard: Successfully authenticated as ${requiredRole}`);
 })();

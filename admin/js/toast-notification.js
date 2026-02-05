@@ -30,8 +30,13 @@ class ToastNotification {
         };
         
         toast.innerHTML = `
-            <span class="toast-icon">${icons[type] || icons.info}</span>
-            <span class="toast-message">${message}</span>
+            <div class="toast-content">
+                <div class="toast-header">
+                    <span class="toast-icon">${icons[type] || icons.info}</span>
+                    <span class="toast-title">${type.charAt(0).toUpperCase() + type.slice(1)}</span>
+                </div>
+                <span class="toast-message">${message || 'Notification'}</span>
+            </div>
             <span class="toast-close" onclick="this.parentElement.remove()">×</span>
         `;
 
@@ -42,8 +47,10 @@ class ToastNotification {
 
         // Auto remove
         setTimeout(() => {
-            toast.classList.remove('show');
-            setTimeout(() => toast.remove(), 300);
+            if (toast.parentElement) {
+                toast.classList.remove('show');
+                setTimeout(() => toast.remove(), 300);
+            }
         }, duration);
 
         return toast;
@@ -68,3 +75,4 @@ class ToastNotification {
 
 // Create global instance
 window.toast = new ToastNotification();
+window.showToast = (msg, type) => window.toast.show(msg, type);

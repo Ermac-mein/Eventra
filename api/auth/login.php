@@ -33,7 +33,9 @@ try {
     // 2. Validate Role Compatibility with Flow
     // If no intent or intent is 'user', but user has a higher role, block it.
     // The homepage login is for 'user' only.
-    $effectiveIntent = $intent;
+    $userRole = strtolower($user['role'] ?? '');
+    $effectiveIntent = strtolower($intent);
+
     if ($effectiveIntent === 'user' && in_array($userRole, ['admin', 'client'])) {
         logSecurityEvent($user['id'], $email, 'login_failure', 'password', "Role blocked: $userRole tried to login via user flow");
         echo json_encode(['success' => false, 'message' => "This account is a " . ucfirst($userRole) . " account. Please use the appropriate portal to login."]);
@@ -77,7 +79,6 @@ try {
         logSecurityEvent($user['id'], $email, 'login_success', 'password', "Logged in as " . $user['role']);
 
         // 3. Set Entity-Scoped Session
-        $userRole = strtolower($user['role']);
         $expectedSessionName = 'EVENTRA_USER_SESS';
         if ($userRole === 'admin') {
             $expectedSessionName = 'EVENTRA_ADMIN_SESS';
@@ -97,10 +98,17 @@ try {
         $_SESSION['role'] = $userRole;
         $_SESSION['auth_token'] = $token;
 
-        // Create login notification for Admin
+        // Create login notification for Admin/Client
         if ($userRole === 'admin') {
             require_once '../../api/utils/notification-helper.php';
             createAdminLoginNotification($user['id']);
+        } elseif ($userRole === 'client') {
+            require_once '../../api/utils/notification-helper.php';
+            $adminId = getAdminUserId();
+            if ($adminId) {
+                createClientLoginNotification($adminId, $user['id'], $user['name'], $user['email']);
+            }
+            createLoginNotification($user['id'], $user['name'], $user['email']);
         }
 
         $redirect = ($userRole === 'admin') ? 'admin/pages/adminDashboard.html' :

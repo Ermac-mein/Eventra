@@ -87,8 +87,14 @@ function resolveEntityByGoogleId($googleId, $email = null)
 
 /**
  * Generates a custom ID for Clients and Users.
- * NOT NEEDED anymore as we use BIGINT UNSIGNED AUTO_INCREMENT in the new schema.
+ * Format: ACC-YYYYMMDD-HEX6
  */
+function generateInternalId()
+{
+    $date = date('Ymd');
+    $hex = strtoupper(bin2hex(random_bytes(3)));
+    return "ACC-$date-$hex";
+}
 
 /**
  * Checks if an email can be registered for a specific role.
@@ -125,8 +131,23 @@ function getAuthPolicy($role, $method, $user = null)
         return ['allowed' => true];
     }
 
-    // New schema logic
-    if ($role === 'user' || $role === 'client') {
+    if ($role === 'user') {
+        if ($method === 'password') {
+            return [
+                'allowed' => false,
+                'message' => 'User accounts are restricted to Google Sign-In only.'
+            ];
+        }
+        return ['allowed' => true];
+    }
+
+    if ($role === 'client') {
+        if ($user && $user['auth_method'] === 'password' && $method === 'google') {
+            return [
+                'allowed' => false,
+                'message' => 'This account is bound to Password authentication and cannot use Google.'
+            ];
+        }
         return ['allowed' => true];
     }
 

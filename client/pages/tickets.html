@@ -5,38 +5,74 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tickets | Eventra Client</title>
     <link rel="stylesheet" href="../css/client-style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../css/modal-styles.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="../../public/js/utils.js"></script>
     <script src="../../public/js/auth-guard.js"></script>
 </head>
 <body>
+    <!-- Sidebar -->
     <aside class="sidebar">
         <div class="sidebar-logo">EVENTRA</div>
         <ul class="sidebar-menu">
-            <li class="menu-item"><a href="clientDashboard.html"><span>📊</span> Dashboard</a></li>
-            <li class="menu-item"><a href="events.html"><span>📅</span> Events</a></li>
-            <li class="menu-item active"><a href="tickets.html"><span>🎫</span> Tickets</a></li>
-            <li class="menu-item"><a href="users.html"><span>👥</span> Users</a></li>
-            <li class="menu-item"><a href="media.html"><span>📁</span> Media</a></li>
+            <li class="menu-item">
+                <a href="clientDashboard.html">
+                    <i data-lucide="layout-dashboard"></i>
+                    <span>Dashboard</span>
+                </a>
+            </li>
+            <li class="menu-item">
+                <a href="events.html">
+                    <i data-lucide="calendar"></i>
+                    <span>Events</span>
+                </a>
+            </li>
+            <li class="menu-item active">
+                <a href="tickets.html">
+                    <i data-lucide="ticket"></i>
+                    <span>Tickets</span>
+                </a>
+            </li>
+            <li class="menu-item">
+                <a href="users.html">
+                    <i data-lucide="users"></i>
+                    <span>Users</span>
+                </a>
+            </li>
+            <li class="menu-item">
+                <a href="media.html">
+                    <i data-lucide="folder-closed"></i>
+                    <span>Media</span>
+                </a>
+            </li>
         </ul>
         <div class="sidebar-footer">
-            <a href="#" onclick="logout(); return false;" style="color: white; text-decoration: none; font-size: 0.9rem;"><span>🚪</span> Logout</a>
+            <a href="../../public/pages/login.html" id="logoutBtn" style="color: white; text-decoration: none; font-size: 0.95rem; display: flex; align-items: center; gap: 12px; opacity: 0.7; transition: opacity 0.3s;">
+                <i data-lucide="log-out"></i>
+                <span>Logout</span>
+            </a>
         </div>
     </aside>
 
     <div class="main-layout">
+        <!-- Header -->
         <header class="header">
             <div class="header-search">
-                <span class="search-icon">🔍</span>
+                <i data-lucide="search" class="search-icon"></i>
                 <input type="text" placeholder="Search tickets...">
             </div>
             <div class="header-actions">
-                <button id="globalExportBtn" class="btn btn-primary" style="display: none; padding: 0.5rem 1rem; font-size: 0.8rem; margin-right: 1rem;">Export</button>
-                <div class="action-icon" data-drawer="notifications">🔔</div>
-                <div class="action-icon" data-drawer="settings">⚙️</div>
+                <button id="globalExportBtn" class="btn btn-primary">
+                    <i data-lucide="download"></i>
+                    <span>Export</span>
+                </button>
+                <div class="action-icon" data-drawer="notifications">
+                    <i data-lucide="bell"></i>
+                </div>
                 <div class="user-profile">
-                    <div class="user-avatar"></div>
+                    <div class="user-avatar" style="background: var(--grad-indigo);"></div>
                 </div>
             </div>
         </header>
@@ -101,5 +137,9 @@
     <script src="../js/modals.js"></script>
     <script src="../js/tickets.js"></script>
     <script src="../js/client-main.js"></script>
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+    </script>
 </body>
 </html>

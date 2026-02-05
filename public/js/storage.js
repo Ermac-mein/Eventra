@@ -37,7 +37,10 @@ if (typeof storage === 'undefined') {
 
         clear: function() {
             try {
-                localStorage.clear();
+                // Non-destructive clear (Only client-side keys)
+                localStorage.removeItem('client_user');
+                localStorage.removeItem('client_auth_token');
+                localStorage.removeItem('redirect_after_login');
                 return true;
             } catch (error) {
                 console.error('Error clearing storage:', error);

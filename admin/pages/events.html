@@ -6,37 +6,68 @@
     <title>Events - Eventra Admin</title>
     <link rel="stylesheet" href="../css/admin-style.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
     <script src="../../public/js/utils.js"></script>
     <script src="../../public/js/auth-guard.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
 <body>
+    <!-- Sidebar -->
     <aside class="sidebar">
         <div class="sidebar-logo">EVENTRA</div>
         <ul class="sidebar-menu">
-            <li class="menu-item"><a href="adminDashboard.html"><span>📊</span> Dashboard</a></li>
-            <li class="menu-item active"><a href="events.html"><span>📅</span> Events</a></li>
-            <li class="menu-item"><a href="tickets.html"><span>🎫</span> Tickets</a></li>
-            <li class="menu-item"><a href="users.html"><span>👤</span> Users</a></li>
-            <li class="menu-item"><a href="clients.html"><span>💼</span> Clients</a></li>
+            <li class="menu-item">
+                <a href="adminDashboard.html">
+                    <i data-lucide="layout-dashboard"></i>
+                    <span>Dashboard</span>
+                </a>
+            </li>
+            <li class="menu-item active">
+                <a href="events.html">
+                    <i data-lucide="calendar"></i>
+                    <span>Events</span>
+                </a>
+            </li>
+            <li class="menu-item">
+                <a href="tickets.html">
+                    <i data-lucide="ticket"></i>
+                    <span>Tickets</span>
+                </a>
+            </li>
+            <li class="menu-item">
+                <a href="users.html">
+                    <i data-lucide="users"></i>
+                    <span>Users</span>
+                </a>
+            </li>
+            <li class="menu-item">
+                <a href="clients.html">
+                    <i data-lucide="briefcase"></i>
+                    <span>Clients</span>
+                </a>
+            </li>
         </ul>
         <div class="sidebar-footer">
-            <li class="menu-item" style="list-style: none;"><a href="../../public/pages/login.html"><span>🚪</span> Logout</a></li>
+            <a href="../../public/pages/login.html" id="logoutBtn" style="color: white; text-decoration: none; font-size: 0.95rem; display: flex; align-items: center; gap: 12px; opacity: 0.7; transition: opacity 0.3s;">
+                <i data-lucide="log-out"></i>
+                <span>Logout</span>
+            </a>
         </div>
     </aside>
 
     <div class="main-layout">
         <header class="header">
             <div class="header-search">
-                <span class="search-icon">🔍</span>
-                <input type="text" placeholder="Search events...">
+                <i data-lucide="search" class="search-icon"></i>
+                <input type="text" id="globalSearchInput" placeholder="Search events...">
+                <div id="searchResultsDropdown" class="search-results-dropdown"></div>
             </div>
             <div class="header-actions">
-                <div class="action-icon">🔔</div>
-                <div class="action-icon">⚙️</div>
+                <div class="action-icon">
+                    <i data-lucide="bell"></i>
+                </div>
                 <div class="user-profile">
-                    <div class="user-avatar"></div>
-                    <span style="font-size: 0.9rem; font-weight: 500;"></span>
+                    <div class="user-avatar" style="background: var(--admin-primary);"></div>
                 </div>
             </div>
         </header>
@@ -44,143 +75,137 @@
         <main class="content-area">
             <div class="page-header">
                 <div class="page-title">
-                    <h1>Events</h1>
+                    <h1 style="font-size: 1.75rem; font-weight: 800;">Events Management</h1>
                 </div>
                 <button class="btn btn-primary btn-export">
-                    <span>📤</span> Export Data
+                    <i data-lucide="download"></i>
+                    <span>Export Data</span>
                 </button>
             </div>
 
             <div class="stats-grid">
                 <div class="stat-card">
-                    <span class="stat-label">Events Created</span>
-                    <span class="stat-value">0</span>
+                    <div class="stat-header">
+                        <span class="stat-label">Events Created</span>
+                        <i data-lucide="calendar-plus" class="stat-icon"></i>
+                    </div>
+                    <span class="stat-value" id="eventsCreated">0</span>
                 </div>
                 <div class="stat-card">
-                    <span class="stat-label">Events Published</span>
-                    <span class="stat-value">0</span>
+                    <div class="stat-header">
+                        <span class="stat-label">Events Published</span>
+                        <i data-lucide="check-circle" class="stat-icon"></i>
+                    </div>
+                    <span class="stat-value" id="eventsPublished">0</span>
                 </div>
                 <div class="stat-card">
-                    <span class="stat-label">Events Deleted</span>
-                    <span class="stat-value">0</span>
+                    <div class="stat-header">
+                        <span class="stat-label">Events Deleted</span>
+                        <i data-lucide="trash-2" class="stat-icon"></i>
+                    </div>
+                    <span class="stat-value" id="eventsDeleted">0</span>
                 </div>
                 <div class="stat-card">
-                    <span class="stat-label">Events Scheduled</span>
-                    <span class="stat-value">0</span>
+                    <div class="stat-header">
+                        <span class="stat-label">Events Scheduled</span>
+                        <i data-lucide="clock" class="stat-icon"></i>
+                    </div>
+                    <span class="stat-value" id="eventsScheduled">0</span>
                 </div>
             </div>
 
-            <div class="table-container">
-                <div class="table-header">
-                    <h3>All Events</h3>
+            <div class="table-container" style="padding: 2rem; border-radius: 16px;">
+                <div class="table-header" style="margin-bottom: 1.5rem; padding: 0; border: none;">
+                    <h3 style="font-size: 1.25rem; font-weight: 700;">All Events</h3>
                 </div>
-                <table>
+                <table style="width: 100%; border-collapse: separate; border-spacing: 0 10px;">
                     <thead>
                         <tr>
-                            <th>Event Name</th>
-                            <th>Location</th>
-                            <th>Price</th>
-                            <th>Attendees</th>
-                            <th>Category</th>
-                            <th>Status</th>
+                            <th style="background: transparent; border-bottom: 2px solid #f1f5f9;">Event Name</th>
+                            <th style="background: transparent; border-bottom: 2px solid #f1f5f9;">Location</th>
+                            <th style="background: transparent; border-bottom: 2px solid #f1f5f9;">Price</th>
+                            <th style="background: transparent; border-bottom: 2px solid #f1f5f9;">Attendees</th>
+                            <th style="background: transparent; border-bottom: 2px solid #f1f5f9;">Category</th>
+                            <th style="background: transparent; border-bottom: 2px solid #f1f5f9;">Status</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody id="eventsTableBody">
                         <tr>
-                            <td colspan="6" style="text-align: center; padding: 2rem; color: #999;">Loading events...</td>
+                            <td colspan="6" style="text-align: center; padding: 3rem; color: var(--admin-text-muted);">Loading events...</td>
                         </tr>
                     </tbody>
                 </table>
-                <div class="pagination">
+                <div class="pagination" style="margin-top: 2rem; border-top: 1px solid #f1f5f9; padding-top: 1.5rem;">
                     <span>Rows per page:</span>
-                    <select><option>10</option></select>
-                    <span>1 - 10 of 14</span>
-                    <span style="cursor: pointer;">&lt; &gt;</span>
+                    <select style="padding: 0.4rem; border-radius: 8px; border: 1px solid var(--admin-border);"><option>10</option></select>
+                    <span id="paginationInfo">1 - 10 of 0</span>
+                    <div style="display: flex; gap: 10px;">
+                        <button class="btn btn-secondary" style="background: #f1f5f9; padding: 0.5rem;"><i data-lucide="chevron-left"></i></button>
+                        <button class="btn btn-secondary" style="background: #f1f5f9; padding: 0.5rem;"><i data-lucide="chevron-right"></i></button>
+                    </div>
                 </div>
             </div>
         </main>
 
-        <footer class="admin-footer" style="padding: 1.5rem 2rem; color: #7f8c8d; font-size: 0.85rem; border-top: 1px solid #edf2f7; background: white; margin-top: auto;">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <p>&copy; 2026 Eventra Admin Panel. All rights reserved.</p>
-                <div style="display: flex; gap: 20px;">
-                    <a href="#" style="text-decoration: none; color: inherit;">Privacy Policy</a>
-                    <a href="#" style="text-decoration: none; color: inherit;">Support</a>
+        <footer style="padding: 3rem; border-top: 1px solid var(--admin-border); background: #fff; margin-top: auto;">
+            <div style="max-width: 1400px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; font-size: 0.9rem; color: var(--admin-text-muted);">
+                <div>&copy; 2026 Eventra Admin. Elite Management Panel.</div>
+                <div style="display: flex; gap: 2.5rem;">
+                    <a href="#" style="text-decoration: none; color: inherit; transition: color 0.3s;">Terms</a>
+                    <a href="#" style="text-decoration: none; color: inherit; transition: color 0.3s;">Help</a>
                 </div>
             </div>
         </footer>
     </div>
 
-
     <!-- Notifications Drawer -->
     <div class="drawer" id="notificationsDrawer">
-        <div class="drawer-header"><span class="back-arrow">←</span><h2>Notifications</h2></div>
-        <div class="drawer-content">
-            <div class="notif-item">
-                <div class="notif-icon">🔔</div>
-                <div class="notif-body">
-                    <p class="notif-text">Lorem ipsum dolor sit amet consectetur. Vel amet adipiscing elementum id.</p>
-                    <div class="notif-meta"><span>7:00PM</span><span>01/01/2026</span></div>
-                </div>
-            </div>
+        <div class="drawer-header">
+            <i data-lucide="arrow-left" class="back-arrow"></i>
+            <h2>Notifications</h2>
         </div>
-    </div>
-
-    <!-- Settings Drawer -->
-    <div class="drawer" id="settingsDrawer">
-        <div class="drawer-header"><span class="back-arrow">←</span><h2>Settings</h2></div>
-        <div class="drawer-content">
-            <div class="settings-group">
-                <div class="settings-item">
-                    <div class="settings-info"><h4>Dark Mode</h4><p>Enable dark theme</p></div>
-                    <label class="switch"><input type="checkbox"><span class="slider"></span></label>
-                </div>
-                <div class="settings-item">
-                    <div class="settings-info"><h4>Notifications</h4><p>Enable desktop alerts</p></div>
-                    <label class="switch"><input type="checkbox" checked><span class="slider"></span></label>
-                </div>
-            </div>
-        </div>
+        <div class="drawer-content"></div>
     </div>
 
     <!-- Profile Drawer -->
     <div class="drawer" id="profileDrawer">
         <div class="drawer-header">
-            <span class="back-arrow">←</span>
-            <h2 style="text-align: left; flex: none;">Admin Profile</h2>
-            <div style="flex:1; text-align: right;">
-                <span style="font-size: 1.2rem; cursor: pointer; color: #e74c3c;">🚪</span>
-            </div>
+            <i data-lucide="arrow-left" class="back-arrow"></i>
+            <h2>Admin Profile</h2>
         </div>
         <div class="drawer-content">
-            <div class="profile-cover"></div>
+            <div class="profile-cover" style="background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);"></div>
             <div class="profile-avatar-wrapper">
-                <img src="../../public/assets/imgs/admin.png" class="profile-avatar-large" alt="profile pic">
+                <div class="profile-avatar-large" style="background: var(--admin-primary); border: 4px solid white;"></div>
                 <div class="online-indicator"></div>
-                <div class="profile-edit-icon" title="Change profile picture"></div>
             </div>
+            <div class="profile-main-info" id="profileDetailContent"></div>
         </div>
     </div>
 
     <!-- Export Modal -->
     <div class="modal-backdrop" id="exportModal">
-        <div class="modal">
-            <h2>Export Options</h2>
-            <p style="color: #7f8c8d; margin-bottom: 1rem;">Choose your preferred file format.</p>
-            <ul class="export-options">
-                <li class="export-option" data-format="General File">📄 Export as file</li>
-                <li class="export-option" data-format="CSV">📊 Export as CSV</li>
-                <li class="export-option" data-format="Excel">📗 Export as XLSX</li>
-                <li class="export-option" data-format="Word">📘 Export as DOC</li>
+        <div class="modal" style="padding: 2.5rem; border-radius: 20px;">
+            <h2 style="font-size: 1.5rem; font-weight: 800; margin-bottom: 0.5rem;">Export Data</h2>
+            <p style="color: var(--admin-text-muted); margin-bottom: 2rem;">Choose your preferred format.</p>
+            <ul class="export-options" style="margin: 0;">
+                <li class="export-option" data-format="CSV"><i data-lucide="file-text" style="color: #4CAF50;"></i> Export as CSV</li>
+                <li class="export-option" data-format="Excel"><i data-lucide="file-spreadsheet" style="color: #2196F3;"></i> Export as Excel</li>
+                <li class="export-option" data-format="PDF"><i data-lucide="file" style="color: #F44336;"></i> Export as PDF</li>
             </ul>
         </div>
     </div>
 
+    <script src="../../public/js/storage.js"></script>
     <script src="../js/toast-notification.js"></script>
     <script src="../js/admin-auth.js"></script>
     <script src="../js/notification-manager.js"></script>
     <script src="../js/profile-pic-upload.js"></script>
+    <script src="../js/search-manager.js"></script>
     <script src="../js/pages/events.js"></script>
     <script src="../js/admin-main.js"></script>
+    <script>
+        lucide.createIcons();
+    </script>
 </body>
 </html>

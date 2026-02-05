@@ -105,9 +105,14 @@ function updateEventsTable(events) {
             <td><span style="color: ${getStatusColor(event.status)}; font-weight: 600;">${event.status.charAt(0).toUpperCase() + event.status.slice(1)}</span></td>
             <td class="text-center" onclick="event.stopPropagation()">
                 <div style="display: flex; gap: 0.5rem; justify-content: center;">
-                    <button onclick="editEvent(${event.id})" class="action-icon-btn" title="Edit Event" style="background: none; border: none; cursor: pointer; font-size: 1.2rem; padding: 0.25rem 0.5rem; transition: transform 0.2s;">
-                        ✏️
-                    </button>
+                    ${event.status === 'published' 
+                        ? `<button class="action-icon-btn" title="Published events cannot be edited" style="background: none; border: none; cursor: not-allowed; font-size: 1.2rem; padding: 0.25rem 0.5rem; opacity: 0.4;">
+                               🔒
+                           </button>`
+                        : `<button onclick="editEvent(${event.id})" class="action-icon-btn" title="Edit Event" style="background: none; border: none; cursor: pointer; font-size: 1.2rem; padding: 0.25rem 0.5rem; transition: transform 0.2s;">
+                               ✏️
+                           </button>`
+                    }
                     <button onclick="deleteEvent(${event.id})" class="action-icon-btn" title="Delete Event" style="background: none; border: none; cursor: pointer; font-size: 1.2rem; padding: 0.25rem 0.5rem; transition: transform 0.2s;">
                         🗑️
                     </button>
@@ -150,11 +155,7 @@ async function editEvent(eventId) {
         if (result.success) {
             const event = result.events.find(e => e.id == eventId);
             if (event) {
-                // Check if event is published - Restriction removed as per user request
-                // if (event.status === 'published') {
-                //     showNotification('Published events cannot be edited. Only draft and scheduled events can be modified.', 'error');
-                //     return;
-                // }
+                // The user wants to allow editing published events
                 showEditEventModal(event);
             } else {
                 showNotification('Event not found', 'error');
@@ -392,6 +393,11 @@ async function publishEvent(eventId) {
             if (previewBackdrop) {
                 previewBackdrop.querySelector('.preview-close').click();
             }
+            // Trigger dashboard stat update if on dashboard
+            if (window.loadDashboardStats) {
+                window.loadDashboardStats(storage.get('user').id);
+            }
+            
             // Reload page to reflect changes
             setTimeout(() => window.location.reload(), 1000);
         } else {

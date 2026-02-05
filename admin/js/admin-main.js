@@ -94,9 +94,9 @@ async function logout() {
             const resultData = await response.json();
             
             if (resultData.success) {
-                // Clear local storage
-                storage.remove('user');
-                storage.remove('auth_token');
+                // Clear local storage (namespaced)
+                storage.remove('admin_user');
+                storage.remove('admin_auth_token');
                 
                 // Redirect to login
                 window.location.href = '../../public/pages/login.html';
@@ -106,8 +106,8 @@ async function logout() {
         } catch (error) {
             console.error('Logout error:', error);
             // Clear local storage anyway
-            storage.remove('user');
-            storage.remove('auth_token');
+            storage.remove('admin_user');
+            storage.remove('admin_auth_token');
             window.location.href = '../../public/pages/login.html';
         }
     }

@@ -59,10 +59,18 @@ class NotificationManager {
                 
                 // Check for new notifications
                 if (result.notifications && Array.isArray(result.notifications) && result.notifications.length > 0) {
-                    const latestId = result.notifications[0].id;
-                    if (latestId > this.lastNotificationId && this.lastNotificationId !== 0) {
-                        // New notification received
-                        this.showNewNotificationToast(result.notifications[0]);
+                    const latestNotif = result.notifications[0];
+                    const latestId = latestNotif.id;
+                    
+                    // Logic: Show toast if it's a new ID OR if it's a very recent login notification (within 30 seconds)
+                    // and we haven't shown it yet this session.
+                    const isVeryRecent = (new Date() - new Date(latestNotif.created_at)) < 30000;
+                    const isLoginType = latestNotif.type === 'login';
+                    
+                    if ((latestId > this.lastNotificationId && this.lastNotificationId !== 0) || 
+                        (this.lastNotificationId === 0 && isVeryRecent && isLoginType)) {
+                        // New or recent login notification received
+                        this.showNewNotificationToast(latestNotif);
                     }
                     this.lastNotificationId = latestId;
                 }

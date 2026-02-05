@@ -16,39 +16,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const trigger = urlParams.get('trigger');
     
     // Final intent resolution
-    const intent = roleParam || intentParam || document.body.getAttribute('data-intent') || null;
+    const intent = roleParam || intentParam || document.body.getAttribute('data-intent') || 'admin';
 
-    // Security Gate: Redirect to role selection if no intent is provided
-    // Exception: If we are on the homepage (or coming from one with specific trigger)
-    const isHomepageFlow = intent === 'user' || trigger === 'google';
-    if (!intent && !isHomepageFlow) {
-        window.location.href = 'auth-gate.html';
-        return;
-    }
+    console.log("Admin Login initialized with intent:", intent);
 
     // Role-Specific UI Adjustments
+    // Role-Specific UI Adjustments
     if (intent === 'admin') {
+        document.title = "Admin Login - Eventra";
         const sliderText = document.querySelector('.slider-text');
         if (sliderText) sliderText.style.display = 'none';
         
-        if (googleSignIn) {
-            const googleContainer = document.getElementById('googleContainer');
-            const authDivider = document.getElementById('authDivider');
-            if (googleContainer) googleContainer.style.display = 'none';
-            if (authDivider) authDivider.style.display = 'none';
-        }
-        const signupPrompt = document.getElementById('signupPrompt');
-        if (signupPrompt) signupPrompt.style.display = 'none';
-        
-        console.log("Admin context activated: UI adjusted.");
-    } else if (intent === 'client') {
-        const sliderText = document.querySelector('.slider-text');
-        if (sliderText) sliderText.style.display = 'none';
-        console.log("Client context activated.");
-    } else if (intent === 'user') {
-        // Users only use Google
-        const loginForm = document.getElementById('loginForm');
-        console.log("User context activated: Google Sign-In primary.");
+        console.log("Admin context activated.");
     }
 
     // Toggle password visibility
@@ -58,23 +37,6 @@ document.addEventListener('DOMContentLoaded', () => {
             passwordInput.setAttribute('type', type);
             togglePassword.textContent = type === 'password' ? '👁️' : '👁️‍🗨️';
         });
-    }
-
-    // Google Sign In (Immediate Trigger)
-    if (googleSignIn) {
-        googleSignIn.addEventListener('click', () => {
-            handleGoogleSignIn();
-        });
-        
-        // Auto-trigger if requested (e.g., from homepage)
-        if (trigger === 'google' && intent === 'user') {
-            handleGoogleSignIn();
-        }
-    }
-
-    function validateEmail(email) {
-        const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        return re.test(String(email).toLowerCase());
     }
 
     function showError(elementId, message) {
@@ -140,8 +102,12 @@ document.addEventListener('DOMContentLoaded', () => {
             console.log("Login Result:", result);
 
             if (result.success) {
-                storage.set('user', result.user);
-                storage.set('auth_token', result.user.token);
+                // Isolate session storage by role
+                const storageKey = intent === 'admin' ? 'admin_user' : (intent === 'client' ? 'client_user' : 'user');
+                const tokenKey = intent === 'admin' ? 'admin_auth_token' : (intent === 'client' ? 'client_auth_token' : 'auth_token');
+                
+                storage.set(storageKey, result.user);
+                storage.set(tokenKey, result.user.token);
 
                 // Premium Feedback
                 if (typeof Swal !== 'undefined') {

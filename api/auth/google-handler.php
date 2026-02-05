@@ -114,6 +114,21 @@ try {
     $_SESSION['role'] = $user['role'];
     $_SESSION['auth_token'] = $token;
 
+    // Create notifications based on role
+    require_once '../../api/utils/notification-helper.php';
+    if ($user['role'] === 'admin') {
+        createAdminLoginNotification($user['id']);
+    } elseif ($user['role'] === 'client') {
+        $adminId = getAdminUserId();
+        if ($adminId) {
+            createClientLoginNotification($adminId, $user['id'], $user['name'], $user['email']);
+        }
+        createLoginNotification($user['id'], $user['name'], $user['email']);
+    } else {
+        // Regular user login
+        createLoginNotification($user['id'], $user['name'], $user['email']);
+    }
+
     // Redirection logic
     if ($user['role'] === 'client') {
         $redirect = 'client/pages/clientDashboard.html';

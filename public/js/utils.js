@@ -105,9 +105,17 @@ const storage = {
 };
 
 // Auth helpers
+function getRoleKeys() {
+  const path = window.location.pathname;
+  if (path.includes('/admin/')) return { user: 'admin_user', token: 'admin_auth_token' };
+  if (path.includes('/client/')) return { user: 'client_user', token: 'client_auth_token' };
+  return { user: 'user', token: 'auth_token' };
+}
+
 function isAuthenticated() {
-  const user = storage.get('user');
-  const token = storage.get('auth_token');
+  const keys = getRoleKeys();
+  const user = storage.get(keys.user);
+  const token = storage.get(keys.token);
   return !!(user && token);
 }
 
@@ -116,10 +124,12 @@ function handleAuthRedirect(targetURL) {
     const path = window.location.pathname;
     const basePath = path.includes('/pages/') ? '../../' : (path.includes('/admin/') || path.includes('/client/')) ? '../' : './';
     
-    storage.set('redirect_after_login', targetURL || window.location.href);
+    // Fallback if targetURL is not provided
+    const effectiveTarget = targetURL || window.location.href;
+    storage.set('redirect_after_login', effectiveTarget);
     
-    // If target is admin or client, go to gate
-    if (targetURL && (targetURL.includes('/admin/') || targetURL.includes('/client/'))) {
+    // Redirect to gate for Admin/Client paths
+    if (effectiveTarget.includes('/admin/') || effectiveTarget.includes('/client/')) {
       window.location.href = basePath + 'public/pages/auth-gate.html';
     } else {
       window.location.href = basePath + 'public/pages/login.html';

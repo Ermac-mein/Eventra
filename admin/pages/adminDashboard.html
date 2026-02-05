@@ -6,23 +6,52 @@
     <title>Dashboard - Eventra Admin</title>
     <link rel="stylesheet" href="../css/admin-style.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="/public/js/utils.js"></script>
-    <script src="/public/js/auth-guard.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="../../public/js/utils.js"></script>
+    <script src="../../public/js/auth-guard.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
 <body>
     <!-- Sidebar -->
     <aside class="sidebar">
         <div class="sidebar-logo">EVENTRA</div>
         <ul class="sidebar-menu">
-            <li class="menu-item active"><a href="adminDashboard.html"><span>📊</span> Dashboard</a></li>
-            <li class="menu-item"><a href="events.html"><span>📅</span> Events</a></li>
-            <li class="menu-item"><a href="tickets.html"><span>🎫</span> Tickets</a></li>
-            <li class="menu-item"><a href="users.html"><span>👤</span> Users</a></li>
-            <li class="menu-item"><a href="clients.html"><span>💼</span> Clients</a></li>
+            <li class="menu-item active">
+                <a href="adminDashboard.html">
+                    <i data-lucide="layout-dashboard"></i>
+                    <span>Dashboard</span>
+                </a>
+            </li>
+            <li class="menu-item">
+                <a href="events.html">
+                    <i data-lucide="calendar"></i>
+                    <span>Events</span>
+                </a>
+            </li>
+            <li class="menu-item">
+                <a href="tickets.html">
+                    <i data-lucide="ticket"></i>
+                    <span>Tickets</span>
+                </a>
+            </li>
+            <li class="menu-item">
+                <a href="users.html">
+                    <i data-lucide="users"></i>
+                    <span>Users</span>
+                </a>
+            </li>
+            <li class="menu-item">
+                <a href="clients.html">
+                    <i data-lucide="briefcase"></i>
+                    <span>Clients</span>
+                </a>
+            </li>
         </ul>
         <div class="sidebar-footer">
-            <li class="menu-item" style="list-style: none;"><a href="../../public/pages/login.html"><span>🚪</span> Logout</a></li>
+            <a href="../../public/pages/login.html" id="logoutBtn" style="color: white; text-decoration: none; font-size: 0.95rem; display: flex; align-items: center; gap: 12px; opacity: 0.7; transition: opacity 0.3s;">
+                <i data-lucide="log-out"></i>
+                <span>Logout</span>
+            </a>
         </div>
     </aside>
 
@@ -30,15 +59,16 @@
         <!-- Header -->
         <header class="header">
             <div class="header-search">
-                <span class="search-icon">🔍</span>
+                <i data-lucide="search" class="search-icon"></i>
                 <input type="text" id="globalSearchInput" placeholder="Search events, users, clients...">
                 <div id="searchResultsDropdown" class="search-results-dropdown"></div>
             </div>
             <div class="header-actions">
-                <div class="action-icon">🔔</div>
-                <div class="action-icon">⚙️</div>
+                <div class="action-icon">
+                    <i data-lucide="bell"></i>
+                </div>
                 <div class="user-profile">
-                    <div class="user-avatar"></div>
+                    <div class="user-avatar" style="background: var(--admin-primary);"></div>
                 </div>
             </div>
         </header>
@@ -47,235 +77,159 @@
         <main class="content-area">
             <div class="page-header">
                 <div class="page-title">
-                    <h1>Dashboard</h1>
+                    <h1 style="font-size: 1.75rem; font-weight: 800;">Dashboard Overview</h1>
                 </div>
                 <button class="btn btn-primary btn-export">
-                    <span>📤</span> Export Data
+                    <i data-lucide="download"></i>
+                    <span>Export Data</span>
                 </button>
             </div>
 
-            <!-- Stats Grid -->
+            <!-- Stats Grid (Neutral as requested) -->
             <div class="stats-grid">
                 <div class="stat-card">
-                    <span class="stat-label">Total Events</span>
-                    <span class="stat-value">0</span>
-                    <span style="color: var(--status-success); font-size: 0.8rem; font-weight: 600;"></span>
+                    <div class="stat-header">
+                        <span class="stat-label">Total Events</span>
+                        <i data-lucide="calendar" class="stat-icon"></i>
+                    </div>
+                    <span class="stat-value" id="totalEventsCount">0</span>
                 </div>
                 <div class="stat-card">
-                    <span class="stat-label">Active Users</span>
-                    <span class="stat-value">0</span>
-                    <span style="color: var(--status-success); font-size: 0.8rem; font-weight: 600;"></span>
+                    <div class="stat-header">
+                        <span class="stat-label">Active Users</span>
+                        <i data-lucide="users" class="stat-icon"></i>
+                    </div>
+                    <span class="stat-value" id="activeUsersCount">0</span>
                 </div>
                 <div class="stat-card">
-                    <span class="stat-label">Total Clients</span>
-                    <span class="stat-value">0</span>
-                    <span style="color: var(--status-warning); font-size: 0.8rem; font-weight: 600;"></span>
+                    <div class="stat-header">
+                        <span class="stat-label">Total Clients</span>
+                        <i data-lucide="briefcase" class="stat-icon"></i>
+                    </div>
+                    <span class="stat-value" id="totalClientsCount">0</span>
                 </div>
                 <div class="stat-card">
-                    <span class="stat-label">Revenue</span>
-                    <span class="stat-value">₦0</span>
-                    <span style="color: var(--status-info); font-size: 0.8rem; font-weight: 600;"></span>
+                    <div class="stat-header">
+                        <span class="stat-label">Revenue</span>
+                        <i data-lucide="credit-card" class="stat-icon"></i>
+                    </div>
+                    <span class="stat-value" id="totalRevenue">₦0</span>
                 </div>
             </div>
 
-            <div style="display: grid; grid-template-columns: 2fr 1.2fr; gap: 1.5rem;">
-                <!-- Main Analytics (Placeholder) -->
-                <div class="table-container" style="min-height: 320px; padding: 1.5rem;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                        <h3 style="font-size: 1.1rem;">Performance Analytics</h3>
-                        <select id="chartPeriodSelector" style="padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 0.85rem;">
+            <div style="display: grid; grid-template-columns: 2fr 1.2fr; gap: 2rem;">
+                <!-- Main Analytics -->
+                <div class="table-container" style="padding: 2rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                        <h3 style="font-size: 1.25rem; font-weight: 700;">Performance Analytics</h3>
+                        <select id="chartPeriodSelector" style="padding: 0.6rem 1rem; border: 1px solid var(--admin-border); border-radius: 12px; font-size: 0.9rem; outline: none; background: #fff;">
                             <option value="7days">Last 7 Days</option>
                             <option value="30days">Last 30 Days</option>
                             <option value="90days">Last 90 Days</option>
                         </select>
                     </div>
-                    <canvas id="adminChart" style="max-height: 280px;"></canvas>
+                    <canvas id="adminChart" style="max-height: 350px;"></canvas>
                 </div>
 
-                <!-- Recent Activities (Enhanced) -->
-                <div class="table-container activity-card" style="padding: 1.25rem;">
-                    <div class="quick-card-header">
-                        <h3 style="font-size: 1.1rem;">Recent Activities</h3>
-                        <a href="#" style="font-size: 0.8rem; color: var(--admin-primary); text-decoration: none;">View all</a>
+                <!-- Recent Activities -->
+                <div class="table-container activity-card" style="padding: 2rem;">
+                    <div class="quick-card-header" style="margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: center;">
+                        <h3 style="font-size: 1.25rem; font-weight: 700;">Recent Activities</h3>
+                        <a href="#" style="font-size: 0.9rem; color: var(--admin-primary); text-decoration: none; font-weight: 600;">View all</a>
                     </div>
                     <div class="activity-list" id="recentActivitiesList">
-                        <p style="text-align: center; color: #999; padding: 2rem;">Loading activities...</p>
+                        <p style="text-align: center; color: var(--admin-text-muted); padding: 2rem;">Loading activities...</p>
                     </div>
                 </div>
             </div>
 
-            <!-- Quick Lists: Users & Clients -->
-            <div class="quick-list-grid">
-                <!-- Top Users -->
-                <div class="quick-card">
-                    <div class="quick-card-header">
-                        <h3 style="font-size: 1rem;">Top Users</h3>
-                        <a href="users.html" style="font-size: 0.8rem; color: var(--admin-primary); text-decoration: none;">Manage</a>
+            <!-- Quick Lists -->
+            <div class="quick-list-grid" style="margin-top: 2rem;">
+                <div class="quick-card" style="padding: 2rem; border-radius: 16px; border: 1px solid var(--admin-border);">
+                    <div class="quick-card-header" style="margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center;">
+                        <h3 style="font-size: 1.15rem; font-weight: 700;">Top Users</h3>
+                        <a href="users.html" style="font-size: 0.9rem; color: var(--admin-primary); text-decoration: none; font-weight: 600;">Manage</a>
                     </div>
                     <div id="topUsersList">
-                        <p style="text-align: center; color: #999; padding: 2rem;">Loading users...</p>
+                        <p style="text-align: center; color: var(--admin-text-muted);">Loading users...</p>
                     </div>
                 </div>
 
-                <!-- Active Clients -->
-                <div class="quick-card">
-                    <div class="quick-card-header">
-                        <h3 style="font-size: 1rem;">Active Clients</h3>
-                        <a href="clients.html" style="font-size: 0.8rem; color: var(--admin-primary); text-decoration: none;">Manage</a>
+                <div class="quick-card" style="padding: 2rem; border-radius: 16px; border: 1px solid var(--admin-border);">
+                    <div class="quick-card-header" style="margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center;">
+                        <h3 style="font-size: 1.15rem; font-weight: 700;">Active Clients</h3>
+                        <a href="clients.html" style="font-size: 0.9rem; color: var(--admin-primary); text-decoration: none; font-weight: 600;">Manage</a>
                     </div>
                     <div id="activeClientsList">
-                        <p style="text-align: center; color: #999; padding: 2rem;">Loading clients...</p>
+                        <p style="text-align: center; color: var(--admin-text-muted);">Loading clients...</p>
                     </div>
                 </div>
             </div>
 
-            <!-- Featured Events Slider -->
-            <div class="events-slider-section">
-                <div class="quick-card-header">
-                    <h3 style="font-size: 1.1rem;">Upcoming Events Showcase</h3>
-                    <a href="events.html" style="font-size: 0.8rem; color: var(--admin-primary); text-decoration: none;">View Schedule</a>
+            <!-- showcase slider -->
+            <div class="events-slider-section" style="margin-top: 2rem; padding: 2rem; background: #fff; border-radius: 16px; border: 1px solid var(--admin-border);">
+                <div class="quick-card-header" style="margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: center;">
+                    <h3 style="font-size: 1.25rem; font-weight: 700;">Events Showcase</h3>
+                    <a href="events.html" style="font-size: 0.9rem; color: var(--admin-primary); text-decoration: none; font-weight: 600;">View Schedule</a>
                 </div>
                 <div class="events-slider-track" id="upcomingEventsSlider">
-                    <p style="text-align: center; color: #999; padding: 2rem;">Loading upcoming events...</p>
+                    <p style="text-align: center; color: var(--admin-text-muted);">Loading Events...</p>
                 </div>
             </div>
         </main>
 
         <!-- Footer -->
-        <footer class="admin-footer" style="padding: 1.5rem 2rem; color: #7f8c8d; font-size: 0.85rem; border-top: 1px solid #edf2f7; background: white; margin-top: auto;">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <p>&copy; 2026 Eventra Admin Panel. All rights reserved.</p>
-                <div style="display: flex; gap: 20px;">
-                    <a href="#" style="text-decoration: none; color: inherit;">Privacy Policy</a>
-                    <a href="#" style="text-decoration: none; color: inherit;">Support</a>
+        <footer style="padding: 3rem; border-top: 1px solid var(--admin-border); background: #fff; margin-top: auto;">
+            <div style="max-width: 1400px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; font-size: 0.9rem; color: var(--admin-text-muted);">
+                <div>&copy; 2026 Eventra Admin. Elite Management Panel.</div>
+                <div style="display: flex; gap: 2.5rem;">
+                    <a href="#" style="text-decoration: none; color: inherit; transition: color 0.3s;">Privacy</a>
+                    <a href="#" style="text-decoration: none; color: inherit; transition: color 0.3s;">Support</a>
                 </div>
             </div>
         </footer>
     </div>
 
-    </div>
-
     <!-- Notifications Drawer -->
     <div class="drawer" id="notificationsDrawer">
         <div class="drawer-header">
-            <span class="back-arrow">←</span>
+            <i data-lucide="arrow-left" class="back-arrow"></i>
             <h2>Notifications</h2>
         </div>
-        <div class="drawer-content">
-            <!-- picks the information or action dynamically from the database -->
-        </div>
-    </div>
-
-    <!-- Settings Drawer -->
-    <div class="drawer" id="settingsDrawer">
-        <div class="drawer-header">
-            <span class="back-arrow">←</span>
-            <h2>Settings</h2>
-        </div>
-        <div class="drawer-content">
-            <div class="settings-group">
-                <div class="settings-item">
-                    <div class="settings-info">
-                        <h4>Dark Mode</h4>
-                        <p>Enable dark theme for the interface</p>
-                    </div>
-                    <label class="switch">
-                        <input type="checkbox" id="darkModeToggle">
-                        <span class="slider"></span>
-                    </label>
-                </div>
-                <div class="settings-item">
-                    <div class="settings-info">
-                        <h4>Notifications</h4>
-                        <p>Receive real-time alerts</p>
-                    </div>
-                    <label class="switch">
-                        <input type="checkbox" id="notifToggle" checked>
-                        <span class="slider"></span>
-                    </label>
-                </div>
-            </div>
-        </div>
+        <div class="drawer-content"></div>
     </div>
 
     <!-- Profile Drawer -->
     <div class="drawer" id="profileDrawer">
         <div class="drawer-header">
-            <span class="back-arrow">←</span>
-            <h2 style="text-align: left; flex: none;">Admin Profile</h2>
-            <div style="flex:1; text-align: right;">
-                <span style="font-size: 1.2rem; cursor: pointer; color: #e74c3c;">🚪</span>
-            </div>
+            <i data-lucide="arrow-left" class="back-arrow"></i>
+            <h2>Admin Profile</h2>
         </div>
         <div class="drawer-content">
-            <div class="profile-cover"></div>
+            <div class="profile-cover" style="background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);"></div>
             <div class="profile-avatar-wrapper">
-                <img src="/public/assets/imgs/admin.png" class="profile-avatar-large" alt="profile pic">
+                <div class="profile-avatar-large" style="background: var(--admin-primary); border: 4px solid white;"></div>
                 <div class="online-indicator"></div>
-                <div class="profile-edit-icon" title="Change profile picture"></div>
             </div>
-            <!-- <div class="profile-main-info">
-                <h3 class="profile-name">Odinson Liam</h3>
-                <p class="profile-email">odinsonliam43@example.com</p>
-            </div> -->
-            <!-- <div class="profile-details-list">
-                <div class="profile-detail-item">
-                    <span class="detail-label">Phone</span>
-                    <span class="detail-value">+2348190987654</span>
-                </div>
-                <div class="profile-detail-item">
-                    <span class="detail-label">Job Title</span>
-                    <span class="detail-value">Lawyer</span>
-                </div>
-                <div class="profile-detail-item">
-                    <span class="detail-label">Company</span>
-                    <span class="detail-value">Company</span>
-                </div>
-                <div class="profile-detail-item">
-                    <span class="detail-label">Address</span>
-                    <span class="detail-value">No.5 Kanta Road</span>
-                </div>
-                <div class="profile-detail-item">
-                    <span class="detail-label">City</span>
-                    <span class="detail-value">Kaduna South</span>
-                </div>
-                <div class="profile-detail-item">
-                    <span class="detail-label">State</span>
-                    <span class="detail-value">Kaduna</span>
-                </div>
-                <div class="profile-detail-item">
-                    <span class="detail-label">DOB</span>
-                    <span class="detail-value">1994-05-24</span>
-                </div>
-                <div class="profile-detail-item">
-                    <span class="detail-label">Gender</span>
-                    <span class="detail-value">Male</span>
-                </div>
-                <div class="profile-detail-item">
-                    <span class="detail-label">Created Date</span>
-                    <span class="detail-value">2026-01-21</span>
-                </div>
-            </div> -->
-            <!-- picks the information or action dynamically from the database -->
+            <div class="profile-main-info" id="profileDetailContent"></div>
         </div>
     </div>
 
-
     <!-- Export Modal -->
     <div class="modal-backdrop" id="exportModal">
-        <div class="modal">
-            <h2>Export Options</h2>
-            <p style="color: #7f8c8d; margin-bottom: 1rem;">Choose your preferred file format.</p>
-            <ul class="export-options">
-                <li class="export-option" data-format="General File">📄 Export as file</li>
-                <li class="export-option" data-format="CSV">📊 Export as CSV</li>
-                <li class="export-option" data-format="Excel">📗 Export as XLSX</li>
-                <li class="export-option" data-format="Word">📘 Export as DOC</li>
+        <div class="modal" style="padding: 2.5rem; border-radius: 20px;">
+            <h2 style="font-size: 1.5rem; font-weight: 800; margin-bottom: 0.5rem;">Export Data</h2>
+            <p style="color: var(--admin-text-muted); margin-bottom: 2rem;">Choose your preferred format.</p>
+            <ul class="export-options" style="margin: 0;">
+                <li class="export-option" data-format="CSV"><i data-lucide="file-text" style="color: #4CAF50;"></i> Export as CSV</li>
+                <li class="export-option" data-format="Excel"><i data-lucide="file-spreadsheet" style="color: #2196F3;"></i> Export as Excel</li>
+                <li class="export-option" data-format="PDF"><i data-lucide="file" style="color: #F44336;"></i> Export as PDF</li>
             </ul>
         </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="../../public/js/storage.js"></script>
     <script src="../js/toast-notification.js"></script>
     <script src="../js/admin-auth.js"></script>
     <script src="../js/notification-manager.js"></script>
@@ -284,5 +238,8 @@
     <script src="../js/search-manager.js"></script>
     <script src="../js/dashboard.js"></script>
     <script src="../js/admin-main.js"></script>
+    <script>
+        lucide.createIcons();
+    </script>
 </body>
 </html>

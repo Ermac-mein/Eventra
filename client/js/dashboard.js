@@ -4,7 +4,8 @@
  */
 
 document.addEventListener('DOMContentLoaded', async () => {
-    const user = storage.get('user');
+    // Try namespaced key first, fall back to generic if necessary
+    const user = storage.get('client_user') || storage.get('user');
     
     if (!user || user.role !== 'client') {
         window.location.href = '../../public/pages/login.html';
@@ -70,26 +71,18 @@ async function loadDashboardStats(clientId) {
 
         const stats = result.stats;
         
-        // Update stats cards
-        const upcomingEventsCard = document.querySelector('.client-stat-card.green .stat-main-value');
-        if (upcomingEventsCard) {
-            upcomingEventsCard.textContent = stats.upcoming_events || 0;
-        }
+        // Update stats cards using background colors as IDs for robustness
+        const cards = {
+            green: stats.upcoming_events || 0,
+            purple: stats.total_tickets || 0,
+            orange: stats.total_users || 0,
+            red: stats.media_uploads || 0
+        };
 
-        const ticketsCard = document.querySelector('.client-stat-card.purple .stat-main-value');
-        if (ticketsCard) {
-            ticketsCard.textContent = stats.total_tickets || 0;
-        }
-
-        const usersCard = document.querySelector('.client-stat-card.orange .stat-main-value');
-        if (usersCard) {
-            usersCard.textContent = stats.total_users || 0;
-        }
-
-        const mediaCard = document.querySelector('.client-stat-card.red .stat-main-value');
-        if (mediaCard) {
-            mediaCard.textContent = stats.media_uploads || 0;
-        }
+        Object.keys(cards).forEach(color => {
+            const cardValue = document.querySelector(`.client-stat-card.${color} .stat-main-value`);
+            if (cardValue) cardValue.textContent = cards[color];
+        });
 
         // Load upcoming events
         loadUpcomingEvents(result.upcoming_events_list);
@@ -101,6 +94,10 @@ async function loadDashboardStats(clientId) {
         console.error('Error loading stats:', error);
     }
 }
+
+// Make functions globally available for dynamic updates
+window.loadDashboardStats = loadDashboardStats;
+window.loadUpcomingEventsList = loadUpcomingEvents;
 
 async function loadUpcomingEvents(events) {
     const eventsList = document.getElementById('upcomingEventsList');

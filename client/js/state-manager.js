@@ -24,7 +24,7 @@ class StateManager {
         if (this.initialized) return;
 
         // Load from storage first (Profile pic from session, export from local)
-        const storedUser = storage.get('user');
+        const storedUser = storage.get('client_user') || storage.get('user');
         const sessionProfilePic = sessionStorage.getItem('profile_picture');
         const storedExportState = localStorage.getItem('export_visible');
 
@@ -56,7 +56,7 @@ class StateManager {
                 });
                 
                 // Update localStorage
-                storage.set('user', result.user);
+                storage.set('client_user', result.user);
             }
         } catch (error) {
             console.error('Error initializing state manager:', error);

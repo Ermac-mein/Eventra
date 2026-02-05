@@ -30,12 +30,13 @@ try {
     $count_stmt->execute($params);
     $total_records = $count_stmt->fetchColumn();
 
-    // Get clients with event count and referral stats
+    // Get clients with event count
     $sql = "SELECT a.id, p.business_name as name, a.email, p.profile_pic, p.company, p.state, p.phone, 
             IF(a.is_active = 1, 'active', 'inactive') as status, a.created_at,
-            (SELECT COUNT(*) FROM events WHERE client_id = p.id) as event_count,
-            (SELECT COUNT(*) FROM tickets WHERE referred_by_id = p.id) as referred_tickets_count,
-            (SELECT COUNT(DISTINCT user_id) FROM tickets WHERE referred_by_id = p.id) as referred_users_count
+            (SELECT COUNT(*) FROM events WHERE client_id = p.id) as event_count
+            -- referral tracking disabled until column is added
+            -- (SELECT COUNT(*) FROM tickets WHERE referred_by_id = p.id) as referred_tickets_count,
+            -- (SELECT COUNT(DISTINCT user_id) FROM tickets WHERE referred_by_id = p.id) as referred_users_count
             FROM auth_accounts a
             JOIN clients p ON a.id = p.auth_id
             $where_clause 

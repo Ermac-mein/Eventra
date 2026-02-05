@@ -19,10 +19,20 @@ document.addEventListener('DOMContentLoaded', () => {
  */
 async function loadGlobalProfile() {
     try {
+        // Detect role from path
+        const isClient = window.location.pathname.includes('/client/');
+        const isAdmin = window.location.pathname.includes('/admin/');
+        
+        const keys = {
+            user: isClient ? 'client_user' : (isAdmin ? 'admin_user' : 'user'),
+            token: isClient ? 'client_auth_token' : (isAdmin ? 'admin_auth_token' : 'auth_token')
+        };
+
         // Check if we have user data in storage first for immediate display
-        const storedUser = storage.get('user');
+        const storedUser = storage.get(keys.user);
         if (storedUser) {
             updateGlobalAvatar(storedUser);
+            updateClientNameDisplay(storedUser);
         }
 
         // Fetch fresh data
@@ -36,7 +46,8 @@ async function loadGlobalProfile() {
         const result = await response.json();
 
         if (result.success) {
-            storage.set('user', result.user);
+            const keys = typeof getRoleKeys === 'function' ? getRoleKeys() : { user: 'user', token: 'auth_token' };
+            storage.set(keys.user, result.user);
             updateGlobalAvatar(result.user);
         }
     } catch (error) {
@@ -88,17 +99,18 @@ async function logout() {
             window.notificationManager.stopPolling();
         }
 
-        // Clear all storage
-        localStorage.clear();
+        // Clear ONLY client storage
+        storage.remove('client_user');
+        storage.remove('client_auth_token');
         sessionStorage.clear();
 
         // Hard redirect to login
         window.location.href = '../../public/pages/login.html';
     } catch (error) {
         console.error('Logout error:', error);
-        // Force clear and redirect anyway
-        localStorage.clear();
-        sessionStorage.clear();
+        // Clean up and redirect anyway
+        storage.remove('client_user');
+        storage.remove('client_auth_token');
         window.location.href = '../../public/pages/login.html';
     }
 }
@@ -127,16 +139,17 @@ function initLogout() {
     document.addEventListener('click', (e) => {
         // Global Export Button
         if (e.target.closest('#globalExportBtn')) {
-            const page = window.location.pathname.split('/').pop();
-            if (page.includes('dashboard')) {
+            const path = window.location.pathname;
+            if (path.includes('clientDashboard.html')) {
+                // Default dashboard export to events
                 if (typeof exportEventsToPDF === 'function') exportEventsToPDF();
-            } else if (page.includes('events')) {
+            } else if (path.includes('events.html')) {
                 if (typeof exportEventsToPDF === 'function') exportEventsToPDF();
-            } else if (page.includes('tickets')) {
+            } else if (path.includes('tickets.html')) {
                 if (typeof exportTicketsToPDF === 'function') exportTicketsToPDF();
-            } else if (page.includes('users')) {
+            } else if (path.includes('users.html')) {
                 if (typeof exportUsersToPDF === 'function') exportUsersToPDF();
-            } else if (page.includes('media')) {
+            } else if (path.includes('media.html')) {
                 if (typeof exportMediaToPDF === 'function') exportMediaToPDF();
             }
         }
@@ -271,3 +284,23 @@ window.copyToClipboard = function(text, successMsg) {
         Swal.fire('Error', 'Failed to copy to clipboard', 'error');
     });
 };
+
+/**
+ * Updates any elements showing the client name to avoid "undefined"
+ */
+function updateClientNameDisplay(user) {
+    if (!user) return;
+    const name = user.name || user.business_name || 'Client';
+    
+    // Update elements with class 'client-name' or 'profile-name'
+    document.querySelectorAll('.client-name, #profileName').forEach(el => {
+        el.textContent = name;
+    });
+
+    // Update greeting if it exists
+    const greeting = document.querySelector('.greeting-text');
+    if (greeting) {
+        greeting.textContent = `Welcome, ${name}`;
+    }
+}
+window.updateClientNameDisplay = updateClientNameDisplay;

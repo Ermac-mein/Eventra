@@ -18,6 +18,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Role-Specific UI Adjustments
     if (intent === 'admin') {
+        document.title = "Admin Registration - Eventra";
         if (googleSignUp) {
             const googleContainer = document.getElementById('googleContainer');
             const authDivider = document.getElementById('authDivider');
@@ -30,6 +31,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         console.log("Admin registration context activated.");
     } else {
+        document.title = (intent === 'client' ? "Client" : "User") + " Registration - Eventra";
         if (signupTitle) signupTitle.textContent = (intent === 'client') ? 'Client Registration' : 'Create Account';
         if (signupButton) signupButton.textContent = (intent === 'client') ? 'Create Client Account' : 'Sign Up';
         if (loginLink) loginLink.href = `login.html?role=${intent}`;
@@ -200,6 +202,15 @@ document.addEventListener('DOMContentLoaded', () => {
             const result = await res.json();
 
             if (result.success) {
+                // Isolate session storage by role
+                const storageKey = intent === 'admin' ? 'admin_user' : (intent === 'client' ? 'client_user' : 'user');
+                const tokenKey = intent === 'admin' ? 'admin_auth_token' : (intent === 'client' ? 'client_auth_token' : 'auth_token');
+
+                if (typeof storage !== 'undefined') {
+                    storage.set(storageKey, result.user);
+                    storage.set(tokenKey, result.user.token);
+                }
+
                 Swal.fire({
                     icon: 'success',
                     title: 'Account Ready!',
@@ -209,8 +220,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     background: 'rgba(30, 41, 59, 0.95)',
                     color: '#fff'
                 });
+                
                 setTimeout(() => {
-                    window.location.href = result.redirect || `main.html`;
+                    const basePath = typeof window.getAppBasePath === 'function' ? window.getAppBasePath() : '../../';
+                    window.location.href = basePath + result.redirect;
                 }, 1600);
             } else {
                 Swal.fire('Registration Failed', result.message, 'error');

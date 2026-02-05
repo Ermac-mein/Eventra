@@ -131,10 +131,10 @@ class AdminAuth {
             const result = await response.json();
             
             if (result.success) {
-                // Clear local storage
+                // Clear local storage (namespaced for Admin)
                 if (typeof storage !== 'undefined') {
-                    storage.remove('user');
-                    storage.remove('auth_token');
+                    storage.remove('admin_user');
+                    storage.remove('admin_auth_token');
                 }
                 
                 // Show success message

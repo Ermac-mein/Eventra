@@ -4,7 +4,8 @@
  */
 
 document.addEventListener('DOMContentLoaded', async () => {
-    const user = storage.get('user');
+    // Check for namespaced admin user
+    const user = storage.get('admin_user') || storage.get('user');
     
     if (!user || user.role !== 'admin') {
         window.location.href = '../../public/pages/login.html';
@@ -20,7 +21,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 async function loadAdminProfile() {
     try {
-        const user = storage.get('user');
+        const user = storage.get('admin_user');
         const response = await fetch(`../../api/users/get-profile.php?user_id=${user.id}`);
         const result = await response.json();
 
@@ -39,7 +40,7 @@ async function loadAdminProfile() {
             }
 
             // Store updated user data
-            storage.set('user', adminUser);
+            storage.set('admin_user', adminUser);
         }
     } catch (error) {
         console.error('Error loading profile:', error);
@@ -56,12 +57,30 @@ async function loadDashboardStats() {
             return;
         }
 
-        // Update stat cards
         const stats = result.stats;
-        document.querySelector('.stat-card:nth-child(1) .stat-value').textContent = stats.total_events;
-        document.querySelector('.stat-card:nth-child(2) .stat-value').textContent = stats.active_users;
-        document.querySelector('.stat-card:nth-child(3) .stat-value').textContent = stats.total_clients;
-        document.querySelector('.stat-card:nth-child(4) .stat-value').textContent = '₦' + parseFloat(stats.total_revenue).toLocaleString();
+
+        // Update stat cards with specific labels to avoid nth-child issues
+        const findStatValue = (label) => {
+            const cards = document.querySelectorAll('.stat-card');
+            for (const card of cards) {
+                if (card.querySelector('.stat-label').textContent.includes(label)) {
+                    return card.querySelector('.stat-value');
+                }
+            }
+            return null;
+        };
+
+        const totalEventsVal = findStatValue('Total Events');
+        if (totalEventsVal) totalEventsVal.textContent = stats.total_events;
+
+        const activeUsersVal = findStatValue('Active Users');
+        if (activeUsersVal) activeUsersVal.textContent = stats.active_users;
+
+        const totalClientsVal = findStatValue('Total Clients');
+        if (totalClientsVal) totalClientsVal.textContent = stats.total_clients;
+
+        const revenueVal = findStatValue('Revenue');
+        if (revenueVal) revenueVal.textContent = '₦' + parseFloat(stats.total_revenue).toLocaleString();
 
         // Load recent activities
         loadRecentActivities(result.recent_activities);
@@ -171,6 +190,16 @@ function loadUpcomingEvents(events) {
             </div>
         </div>
     `).join('');
+
+    // Handle animation dynamically based on item count
+    if (events.length > 3) {
+        container.style.animation = `slideEvents ${events.length * 6}s linear infinite`;
+        // Clone items for seamless loop
+        container.innerHTML += container.innerHTML;
+    } else {
+        container.style.animation = 'none';
+        container.style.justifyContent = 'center';
+    }
 }
 
 function getActivityIcon(type) {

@@ -31,8 +31,21 @@ try {
         exit;
     }
 
+    // Resolve client_id if user is client
+    $resolved_user_id = $user_id;
+    if ($user_role === 'client') {
+        $stmt = $pdo->prepare("SELECT id FROM clients WHERE auth_id = ?");
+        $stmt->execute([$user_id]);
+        $client = $stmt->fetch();
+        if (!$client) {
+            echo json_encode(['success' => false, 'message' => 'Client profile not found']);
+            exit;
+        }
+        $resolved_user_id = $client['id'];
+    }
+
     // Check permissions (client can only delete their own events, admin can delete any)
-    if ($user_role === 'client' && $event['client_id'] != $user_id) {
+    if ($user_role === 'client' && $event['client_id'] != $resolved_user_id) {
         echo json_encode(['success' => false, 'message' => 'You do not have permission to delete this event']);
         exit;
     }
@@ -41,16 +54,22 @@ try {
     $stmt = $pdo->prepare("DELETE FROM events WHERE id = ?");
     $stmt->execute([$event_id]);
 
-    // Get user name for notification
-    $stmt = $pdo->prepare("SELECT name FROM users WHERE id = ?");
-    $stmt->execute([$user_id]);
-    $user = $stmt->fetch();
-    $user_name = $user['name'] ?? 'Unknown User';
+    // Notify admin about event deletion if deleted by client
+    if ($user_role === 'client') {
+        $stmt = $pdo->prepare("SELECT business_name FROM clients WHERE auth_id = ?");
+        $stmt->execute([$user_id]);
+        $client_info = $stmt->fetch();
+        $user_name = $client_info['business_name'] ?? 'A Client';
 
-    // Notify admin about event deletion
-    $admin_id = getAdminUserId();
-    if ($admin_id && $admin_id != $user_id) {
-        createEventDeletedNotification($admin_id, $event['event_name'], $user_name);
+        $stmt = $pdo->prepare("SELECT id FROM auth_accounts WHERE role = 'admin' LIMIT 1");
+        $stmt->execute();
+        $admin = $stmt->fetch();
+
+        if ($admin) {
+            $message = "Event '{$event['event_name']}' has been deleted by $user_name";
+            $stmt = $pdo->prepare("INSERT INTO notifications (recipient_auth_id, sender_auth_id, message, type) VALUES (?, ?, ?, ?)");
+            $stmt->execute([$admin['id'], $user_id, $message, 'event_deleted']);
+        }
     }
 
     echo json_encode([

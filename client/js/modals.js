@@ -5,7 +5,7 @@
 
 // Profile Edit Modal
 function showProfileEditModal() {
-    const user = storage.get('user');
+    const user = storage.get('client_user') || storage.get('user');
     if (!user) return;
 
     const modalHTML = `
@@ -145,7 +145,7 @@ async function handleProfileUpdate(e) {
             showNotification('Profile updated successfully!', 'success');
             
             // Update stored user data
-            storage.set('user', result.user);
+            storage.set('client_user', result.user);
             
             // Close modal
             closeProfileEditModal();
@@ -217,7 +217,7 @@ function displayEventPreview(event) {
                 <div class="modal-body" style="padding: 0;">
                     <!-- User Profile Image for Event Preview -->
                     <div style="width: 100%; height: 300px; overflow: hidden;">
-                        <img src="${(storage.get('user') || {}).profile_pic || 'https://ui-avatars.com/api/?name=' + encodeURIComponent((storage.get('user') || {}).name || 'User')}" 
+                        <img src="${(storage.get('client_user') || storage.get('user') || {}).profile_pic || 'https://ui-avatars.com/api/?name=' + encodeURIComponent((storage.get('client_user') || storage.get('user') || {}).name || 'User')}" 
                              style="width: 100%; height: 100%; object-fit: cover;">
                     </div>
 
@@ -444,6 +444,12 @@ async function publishEvent(eventId) {
         if (result.success) {
             showNotification('Event published successfully!', 'success');
             closeEventActionModal();
+            // Trigger dashboard stat update if on dashboard
+            if (window.loadDashboardStats) {
+                const user = storage.get('client_user') || storage.get('user');
+                window.loadDashboardStats(user ? user.id : null);
+            }
+            
             // Reload page to reflect changes
             setTimeout(() => window.location.reload(), 1000);
         } else {
@@ -669,7 +675,7 @@ function showTicketPreviewModal(ticket) {
                 <div class="modal-body" style="padding: 0;">
                     <!-- User Profile Image for Ticket Preview -->
                     <div style="width: 100%; height: 200px; overflow: hidden; border-radius: 12px 12px 0 0;">
-                        <img src="${(storage.get('user') || {}).profile_pic || 'https://ui-avatars.com/api/?name=' + encodeURIComponent((storage.get('user') || {}).name || 'User')}" 
+                        <img src="${(storage.get('client_user') || storage.get('user') || {}).profile_pic || 'https://ui-avatars.com/api/?name=' + encodeURIComponent((storage.get('client_user') || storage.get('user') || {}).name || 'User')}" 
                              style="width: 100%; height: 100%; object-fit: cover;">
                     </div>
                     <div style="display: grid; gap: 1.5rem; padding: 1.5rem;">
