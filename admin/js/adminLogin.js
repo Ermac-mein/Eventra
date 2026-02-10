@@ -12,22 +12,14 @@ document.addEventListener('DOMContentLoaded', () => {
     // Role Context (Detected from URL role/intent or body data-intent)
     const urlParams = new URLSearchParams(window.location.search);
     const roleParam = urlParams.get('role');
-    const intentParam = urlParams.get('intent');
-    const trigger = urlParams.get('trigger');
-    
     // Final intent resolution
     const intent = roleParam || intentParam || document.body.getAttribute('data-intent') || 'admin';
-
-    console.log("Admin Login initialized with intent:", intent);
-
-    // Role-Specific UI Adjustments
     // Role-Specific UI Adjustments
     if (intent === 'admin') {
         document.title = "Admin Login - Eventra";
         const sliderText = document.querySelector('.slider-text');
         if (sliderText) sliderText.style.display = 'none';
         
-        console.log("Admin context activated.");
     }
 
     // Toggle password visibility

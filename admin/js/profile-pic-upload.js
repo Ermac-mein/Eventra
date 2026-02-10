@@ -52,9 +52,9 @@ class ProfilePicUpload {
     }
 
     attachEventListeners() {
-        // Open modal when edit icon is clicked
+        // Open modal when edit button is clicked
         document.addEventListener('click', (e) => {
-            if (e.target.closest('.profile-edit-icon')) {
+            if (e.target.closest('#profilePicEditBtn') || e.target.closest('.profile-edit-btn')) {
                 this.openModal();
             }
         });
@@ -260,15 +260,19 @@ class ProfilePicUpload {
 
     updateProfilePictures(newPath) {
         // Update header avatar
-        const headerAvatar = document.querySelector('.user-avatar');
+        const headerAvatar = document.querySelector('.user-avatar-display');
         if (headerAvatar) {
             headerAvatar.style.backgroundImage = `url(${newPath})`;
+            headerAvatar.style.backgroundSize = 'cover';
+            headerAvatar.style.backgroundPosition = 'center';
         }
 
         // Update profile drawer avatar
         const drawerAvatar = document.querySelector('.profile-avatar-large');
         if (drawerAvatar) {
-            drawerAvatar.src = newPath;
+            drawerAvatar.style.backgroundImage = `url(${newPath})`;
+            drawerAvatar.style.backgroundSize = 'cover';
+            drawerAvatar.style.backgroundPosition = 'center';
         }
     }
 }

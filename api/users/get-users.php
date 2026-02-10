@@ -35,9 +35,16 @@ try {
     $where_sql = !empty($where_clauses) ? 'WHERE ' . implode(' AND ', $where_clauses) : '';
 
     if ($client_id) {
-        // If client_id is provided, only get users who bought tickets for this client's events
-        $where_sql = ($where_sql ? $where_sql . ' AND ' : 'WHERE ') . "u.id IN (SELECT DISTINCT user_id FROM tickets t INNER JOIN events e ON t.event_id = e.id WHERE e.client_id = ?)";
-        $params[] = $client_id;
+        // Resolve real_client_id (PK of clients table) from auth_id
+        $client_res_stmt = $pdo->prepare("SELECT id FROM clients WHERE auth_id = ?");
+        $client_res_stmt->execute([$client_id]);
+        $real_client_id = $client_res_stmt->fetchColumn();
+
+        if ($real_client_id) {
+            // If client_id is provided, only get users who bought tickets for this client's events
+            $where_sql = ($where_sql ? $where_sql . ' AND ' : 'WHERE ') . "a.id IN (SELECT DISTINCT user_id FROM tickets WHERE client_id = ?)";
+            $params[] = $real_client_id;
+        }
     }
 
     // Get total count

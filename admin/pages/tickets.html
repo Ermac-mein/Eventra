@@ -48,7 +48,7 @@
             </li>
         </ul>
         <div class="sidebar-footer">
-            <a href="../../public/pages/login.html" id="logoutBtn" style="color: white; text-decoration: none; font-size: 0.95rem; display: flex; align-items: center; gap: 12px; opacity: 0.7; transition: opacity 0.3s;">
+            <a href="adminLogin.html" id="logoutBtn" style="color: white; text-decoration: none; font-size: 0.95rem; display: flex; align-items: center; gap: 12px; opacity: 0.7; transition: opacity 0.3s;">
                 <i data-lucide="log-out"></i>
                 <span>Logout</span>
             </a>
@@ -63,11 +63,11 @@
                 <div id="searchResultsDropdown" class="search-results-dropdown"></div>
             </div>
             <div class="header-actions">
-                <div class="action-icon">
+                <div class="action-icon" title="Notifications">
                     <i data-lucide="bell"></i>
                 </div>
-                <div class="user-profile">
-                    <div class="user-avatar" style="background: var(--admin-primary);"></div>
+                <div class="user-profile" id="openProfileDrawer" style="cursor: pointer;">
+                    <div class="user-avatar"></div>
                 </div>
             </div>
         </header>
@@ -121,12 +121,12 @@
                 <table style="width: 100%; border-collapse: separate; border-spacing: 0 10px;">
                     <thead>
                         <tr>
-                            <th style="background: transparent; border-bottom: 2px solid #f1f5f9;">Serial.NO</th>
-                            <th style="background: transparent; border-bottom: 2px solid #f1f5f9;">Event Name</th>
-                            <th style="background: transparent; border-bottom: 2px solid #f1f5f9;">Price</th>
-                            <th style="background: transparent; border-bottom: 2px solid #f1f5f9;">Attendees</th>
-                            <th style="background: transparent; border-bottom: 2px solid #f1f5f9;">Category</th>
-                            <th style="background: transparent; border-bottom: 2px solid #f1f5f9;">Status</th>
+                            <th style="border-bottom: 2px solid #f1f5f9;">Serial.NO</th>
+                            <th style="border-bottom: 2px solid #f1f5f9;">Event Name</th>
+                            <th style="border-bottom: 2px solid #f1f5f9;">Price</th>
+                            <th style="border-bottom: 2px solid #f1f5f9;">Attendees</th>
+                            <th style="border-bottom: 2px solid #f1f5f9;">Category</th>
+                            <th style="border-bottom: 2px solid #f1f5f9;">Status</th>
                         </tr>
                     </thead>
                     <tbody id="ticketsTableBody">
@@ -149,7 +149,7 @@
 
         <footer style="padding: 3rem; border-top: 1px solid var(--admin-border); background: #fff; margin-top: auto;">
             <div style="max-width: 1400px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; font-size: 0.9rem; color: var(--admin-text-muted);">
-                <div>&copy; 2026 Eventra Admin. Elite Management Panel.</div>
+                <div>&copy; 2026 Eventra Admin. All Rights Reserved.</div>
                 <div style="display: flex; gap: 2.5rem;">
                     <a href="#" style="text-decoration: none; color: inherit; transition: color 0.3s;">Terms</a>
                     <a href="#" style="text-decoration: none; color: inherit; transition: color 0.3s;">Help</a>

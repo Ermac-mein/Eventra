@@ -48,7 +48,7 @@
             </li>
         </ul>
         <div class="sidebar-footer">
-            <a href="../../public/pages/login.html" id="logoutBtn" style="color: white; text-decoration: none; font-size: 0.95rem; display: flex; align-items: center; gap: 12px; opacity: 0.7; transition: opacity 0.3s;">
+            <a href="adminLogin.html" id="logoutBtn" style="color: white; text-decoration: none; font-size: 0.95rem; display: flex; align-items: center; gap: 12px; opacity: 0.7; transition: opacity 0.3s;">
                 <i data-lucide="log-out"></i>
                 <span>Logout</span>
             </a>
@@ -64,11 +64,11 @@
                 <div id="searchResultsDropdown" class="search-results-dropdown"></div>
             </div>
             <div class="header-actions">
-                <div class="action-icon">
+                <div class="action-icon" title="Notifications">
                     <i data-lucide="bell"></i>
                 </div>
-                <div class="user-profile">
-                    <div class="user-avatar" style="background: var(--admin-primary);"></div>
+                <div class="user-profile" id="openProfileDrawer" style="cursor: pointer;">
+                    <div class="user-avatar"></div>
                 </div>
             </div>
         </header>
@@ -118,7 +118,7 @@
             </div>
 
             <div style="display: grid; grid-template-columns: 2fr 1.2fr; gap: 2rem;">
-                <!-- Main Analytics -->
+                <!-- Main Analytics Section -->
                 <div class="table-container" style="padding: 2rem;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
                         <h3 style="font-size: 1.25rem; font-weight: 700;">Performance Analytics</h3>
@@ -147,7 +147,7 @@
             <div class="quick-list-grid" style="margin-top: 2rem;">
                 <div class="quick-card" style="padding: 2rem; border-radius: 16px; border: 1px solid var(--admin-border);">
                     <div class="quick-card-header" style="margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center;">
-                        <h3 style="font-size: 1.15rem; font-weight: 700;">Top Users</h3>
+                        <h3 style="font-size: 1.15rem; font-weight: 700;">Active Users</h3>
                         <a href="users.html" style="font-size: 0.9rem; color: var(--admin-primary); text-decoration: none; font-weight: 600;">Manage</a>
                     </div>
                     <div id="topUsersList">
@@ -181,7 +181,7 @@
         <!-- Footer -->
         <footer style="padding: 3rem; border-top: 1px solid var(--admin-border); background: #fff; margin-top: auto;">
             <div style="max-width: 1400px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; font-size: 0.9rem; color: var(--admin-text-muted);">
-                <div>&copy; 2026 Eventra Admin. Elite Management Panel.</div>
+                <div>&copy; 2026 Eventra Admin. All Rights Reserved.</div>
                 <div style="display: flex; gap: 2.5rem;">
                     <a href="#" style="text-decoration: none; color: inherit; transition: color 0.3s;">Privacy</a>
                     <a href="#" style="text-decoration: none; color: inherit; transition: color 0.3s;">Support</a>
@@ -210,8 +210,13 @@
             <div class="profile-avatar-wrapper">
                 <div class="profile-avatar-large" style="background: var(--admin-primary); border: 4px solid white;"></div>
                 <div class="online-indicator"></div>
+                <button class="profile-edit-btn" id="profilePicEditBtn" title="Change Profile Picture">
+                    <i data-lucide="camera" style="width: 16px; height: 16px;"></i>
+                </button>
             </div>
             <div class="profile-main-info" id="profileDetailContent"></div>
+            
+
         </div>
     </div>
 

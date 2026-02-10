@@ -17,7 +17,10 @@ ini_set('session.cookie_lifetime', '0'); // Session cookie (expires when browser
 ini_set('session.gc_maxlifetime', '86400'); // 24 hours server-side session lifetime
 
 // For localhost development, ensure cookies work properly
-if (isset($_SERVER['HTTP_HOST']) && strpos($_SERVER['HTTP_HOST'], 'localhost') !== false) {
+$currentHost = $_SERVER['HTTP_HOST'] ?? '';
+$isLocal = (strpos($currentHost, 'localhost') !== false || strpos($currentHost, '127.0.0.1') !== false);
+
+if ($isLocal) {
     ini_set('session.cookie_domain', '');
     ini_set('session.cookie_path', '/');
     ini_set('session.cookie_secure', '0'); // Not using HTTPS on localhost
@@ -26,8 +29,8 @@ if (isset($_SERVER['HTTP_HOST']) && strpos($_SERVER['HTTP_HOST'], 'localhost') !
     ini_set('session.cookie_secure', '1'); // Require HTTPS in production
 }
 
-// Set session save path to ensure it's writable
-$session_path = sys_get_temp_dir() . '/eventra_sessions';
+// Set session save path to a project-local directory for reliability
+$session_path = __DIR__ . '/../sessions';
 if (!is_dir($session_path)) {
     mkdir($session_path, 0777, true);
 }
@@ -40,7 +43,7 @@ function getEventraSessionName()
     $referer = $_SERVER['HTTP_REFERER'] ?? '';
 
     // Priority 1: Check if the URI itself identifies the role
-    if (strpos($uri, '/admin/') !== false || strpos($uri, '/api/admin/') !== false) {
+    if (strpos($uri, '/admin/') !== false || strpos($uri, '/api/admin/') !== false || strpos($uri, 'admin-') !== false) {
         return 'EVENTRA_ADMIN_SESS';
     }
 
@@ -63,8 +66,23 @@ function getEventraSessionName()
 }
 
 // Start the session with a role-specific name
-session_name(getEventraSessionName());
+$sessionName = getEventraSessionName();
+session_name($sessionName);
 session_start();
+
+// Debug logging
+$debug_log = __DIR__ . '/../error/session_debug.log';
+$log_dir = dirname($debug_log);
+if (!is_dir($log_dir))
+    mkdir($log_dir, 0777, true);
+
+$uri = $_SERVER['REQUEST_URI'] ?? '';
+$referer = $_SERVER['HTTP_REFERER'] ?? '';
+$user_id = $_SESSION['user_id'] ?? 'None';
+$role = $_SESSION['role'] ?? 'None';
+
+$debug_msg = "[" . date('Y-m-d H:i:s') . "] URI: $uri | Referer: $referer | Session Name: $sessionName | ID: " . session_id() . " | UserID: $user_id | Role: $role" . PHP_EOL;
+file_put_contents($debug_log, $debug_msg, FILE_APPEND);
 
 // Regenerate session ID periodically to prevent session fixation
 if (!isset($_SESSION['created'])) {
@@ -73,13 +91,5 @@ if (!isset($_SESSION['created'])) {
     // Regenerate session ID every 30 minutes
     session_regenerate_id(true);
     $_SESSION['created'] = time();
-}
-
-// Debug logging in development/local mode
-if (isset($_ENV['APP_ENV']) && in_array($_ENV['APP_ENV'], ['development', 'local'])) {
-    $uri = $_SERVER['REQUEST_URI'] ?? '';
-    $referer = $_SERVER['HTTP_REFERER'] ?? '';
-    $debug_msg = "[Session Debug] URI: " . $uri . " | Referer: " . basename($referer) . " | Session Name: " . session_name() . " | Session ID: " . session_id();
-    error_log($debug_msg);
 }
 ?>

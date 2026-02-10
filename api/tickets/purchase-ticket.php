@@ -51,10 +51,10 @@ try {
 
     // Insert ticket
     $stmt = $pdo->prepare("
-        INSERT INTO tickets (event_id, user_id, referred_by_id, quantity, total_price, ticket_code, status)
-        VALUES (?, ?, ?, ?, ?, ?, 'active')
+        INSERT INTO tickets (event_id, client_id, user_id, referred_by_id, quantity, total_price, ticket_code, status)
+        VALUES (?, ?, ?, ?, ?, ?, ?, 'active')
     ");
-    $stmt->execute([$event_id, $user_id, $referred_by_id, $quantity, $total_price, $ticket_code]);
+    $stmt->execute([$event_id, $event['client_id'], $user_id, $referred_by_id, $quantity, $total_price, $ticket_code]);
 
     $ticket_id = $pdo->lastInsertId();
 

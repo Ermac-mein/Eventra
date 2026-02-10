@@ -22,35 +22,29 @@ function initDrawers() {
     backdrop.className = 'drawer-backdrop';
     document.body.appendChild(backdrop);
 
-    const triggers = {
-        'notifications': document.querySelector('.action-icon:first-child'), // Assuming first icon is bell
-        'settings': document.querySelector('.action-icon:nth-child(2)'),     // Assuming second is settings
-        'profile': document.querySelector('.user-profile')
-    };
+    const profileBtn = document.getElementById('openProfileDrawer');
+    const notificationsBtn = document.querySelector('.action-icon i[data-lucide="bell"]')?.parentElement;
+    const profileDrawer = document.getElementById('profileDrawer');
+    const notificationsDrawer = document.getElementById('notificationsDrawer');
+    const backArrows = document.querySelectorAll('.back-arrow');
 
-    const drawers = {
-        'notifications': document.getElementById('notificationsDrawer'),
-        'settings': document.getElementById('settingsDrawer'),
-        'profile': document.getElementById('profileDrawer')
-    };
-
-    function openDrawer(id) {
-        const drawer = drawers[id];
-        if (!drawer) return;
-        
+    function openDrawer(drawerElement) {
+        if (!drawerElement) return;
         backdrop.style.display = 'block';
-        setTimeout(() => drawer.classList.add('open'), 10);
+        setTimeout(() => drawerElement.classList.add('open'), 10);
     }
 
     function closeAll() {
-        Object.values(drawers).forEach(d => d && d.classList.remove('open'));
+        if (profileDrawer) profileDrawer.classList.remove('open');
+        if (notificationsDrawer) notificationsDrawer.classList.remove('open');
         setTimeout(() => backdrop.style.display = 'none', 400);
     }
 
     // Attach listeners to triggers
-    if (triggers.notifications) {
-        triggers.notifications.onclick = () => {
-            openDrawer('notifications');
+    if (notificationsBtn) {
+        notificationsBtn.onclick = (e) => {
+            e.preventDefault();
+            openDrawer(notificationsDrawer);
             // Mark all notifications as read when drawer is opened
             if (window.notificationManager) {
                 setTimeout(() => {
@@ -59,11 +53,24 @@ function initDrawers() {
             }
         };
     }
-    if (triggers.settings) triggers.settings.onclick = () => openDrawer('settings');
-    if (triggers.profile) triggers.profile.onclick = () => openDrawer('profile');
+    
+    if (profileBtn) {
+        profileBtn.onclick = (e) => {
+            e.preventDefault();
+            openDrawer(profileDrawer);
+        };
+    }
+
+    // Attach listener for the logout button inside the profile drawer
+    document.addEventListener('click', (e) => {
+        if (e.target.closest('#profileDrawerLogout')) {
+            e.preventDefault();
+            logout(); // Call the existing global logout function
+        }
+    });
 
     // Attach listeners to back arrows and backdrop
-    document.querySelectorAll('.back-arrow').forEach(arrow => {
+    backArrows.forEach(arrow => {
         arrow.onclick = closeAll;
     });
 
@@ -99,7 +106,7 @@ async function logout() {
                 storage.remove('admin_auth_token');
                 
                 // Redirect to login
-                window.location.href = '../../public/pages/login.html';
+                window.location.href = '../../admin/pages/adminLogin.html';
             } else {
                 Swal.fire('Logout Failed', resultData.message, 'error');
             }
@@ -108,7 +115,7 @@ async function logout() {
             // Clear local storage anyway
             storage.remove('admin_user');
             storage.remove('admin_auth_token');
-            window.location.href = '../../public/pages/login.html';
+            window.location.href = '../../admin/pages/adminLogin.html';
         }
     }
 }
@@ -144,6 +151,19 @@ function initExportModal() {
     
     if (exportBtn && modalBackdrop) {
         exportBtn.addEventListener('click', () => {
+            // Check if there's a table on the current page
+            const hasTable = document.querySelector('table tbody tr');
+            
+            if (!hasTable || hasTable.innerText.includes('Loading') || hasTable.innerText.includes('No data')) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'No Data to Export',
+                    text: 'Please wait for data to load or navigate to a page with records before exporting.',
+                    confirmButtonColor: '#1976D2'
+                });
+                return;
+            }
+            
             modalBackdrop.style.display = 'flex';
         });
         
@@ -158,11 +178,51 @@ function initExportModal() {
         options.forEach(opt => {
             opt.addEventListener('click', () => {
                 const format = opt.dataset.format;
-                Swal.fire('Exporting', `Exporting as ${format}...`, 'info');
+                if (format === 'CSV') {
+                    exportCurrentTableToCSV();
+                } else {
+                    Swal.fire('Exporting', `Exporting as ${format} is coming soon! Try CSV for now.`, 'info');
+                }
                 modalBackdrop.style.display = 'none';
             });
         });
     }
+}
+
+function exportCurrentTableToCSV() {
+    const table = document.querySelector('table');
+    if (!table) return;
+
+    const rows = Array.from(table.querySelectorAll('tr'));
+    const csvContent = rows.map(row => {
+        const cells = Array.from(row.querySelectorAll('th, td'));
+        return cells.map(cell => {
+            // Clean up the text: remove extra whitespace, handle quotes
+            let text = cell.innerText.trim().replace(/\n/g, ' ');
+            if (text.includes(',') || text.includes('"')) {
+                text = `"${text.replace(/"/g, '""')}"`;
+            }
+            return text;
+        }).join(',');
+    }).join('\n');
+
+    const filename = `eventra-export-${new Date().toISOString().split('T')[0]}.csv`;
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    
+    if (navigator.msSaveBlob) { // IE 10+
+        navigator.msSaveBlob(blob, filename);
+    } else {
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', filename);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+
+    Swal.fire('Success', 'Data exported successfully as CSV', 'success');
 }
 
 function initSidebar() {
@@ -256,38 +316,96 @@ window.initPreviews = function() {
                     </div>
                 `;
             } else if (path.includes('clients.html')) {
-                const cells = row.querySelectorAll('td');
-                if (cells.length < 6) return;
-                const name = cells[1].innerText;
-                const email = cells[2].innerText;
-                const location = cells[3].innerText;
-                const contact = cells[4].innerText;
-                const status = cells[5].innerText;
-                
+                const clientId = row.dataset.id;
+                const name = row.cells[1].innerText;
                 const profilePic = row.dataset.profilePic || `https://ui-avatars.com/api/?name=${name}`;
                 
+                // Show loading state
                 html = `
                     <div class="profile-preview">
                         <div class="profile-preview-header">Client Profile</div>
-                        <div class="profile-preview-cover-box">
-                            <img src="${profilePic}" alt="Cover">
-                            <div class="profile-preview-avatar-wrapper">
-                                <img src="${profilePic}" class="profile-preview-avatar" alt="Avatar">
-                                <div class="profile-verified-badge">✓</div>
-                            </div>
-                        </div>
-                        <div class="profile-preview-info">
-                            <h2>${name}</h2>
-                            <p>${email}</p>
-                        </div>
-                        <div class="profile-preview-details">
-                            <div class="profile-preview-detail-item"><span class="profile-detail-label">Phone</span><span class="profile-detail-val">${contact}</span></div>
-                            <div class="profile-preview-detail-item"><span class="profile-detail-label">City</span><span class="profile-detail-val">${location}</span></div>
-                            <div class="profile-preview-detail-item"><span class="profile-detail-label">State</span><span class="profile-detail-val">${location}</span></div>
-                            <div class="profile-preview-detail-item"><span class="profile-detail-label">Status</span><span class="profile-detail-val">${status}</span></div>
+                        <div class="profile-preview-info" style="padding: 2rem; text-align: center;">
+                            <p>Loading client details...</p>
                         </div>
                     </div>
                 `;
+                content.innerHTML = html;
+                backdrop.style.display = 'flex';
+                setTimeout(() => backdrop.classList.add('active'), 10);
+
+                // Fetch details
+                fetch(`../../api/admin/get-client-details.php?id=${clientId}`)
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.success) {
+                            const client = data.client;
+                            const events = data.events;
+                            const buyers = data.buyers;
+
+                            content.innerHTML = `
+                                <div class="profile-preview">
+                                    <div class="profile-preview-header">Client Profile</div>
+                                    <div class="profile-preview-cover-box">
+                                        <img src="${profilePic}" alt="Cover">
+                                        <div class="profile-preview-avatar-wrapper">
+                                            <img src="${profilePic}" class="profile-preview-avatar" alt="Avatar">
+                                            <div class="profile-verified-badge">✓</div>
+                                        </div>
+                                    </div>
+                                    <div class="profile-preview-info">
+                                        <h2>${client.business_name}</h2>
+                                        <p>${row.cells[2].innerText}</p>
+                                    </div>
+                                    <div class="profile-preview-details">
+                                        <div class="profile-preview-detail-item"><span class="profile-detail-label">Phone</span><span class="profile-detail-val">${client.phone || 'N/A'}</span></div>
+                                        <div class="profile-preview-detail-item"><span class="profile-detail-label">State</span><span class="profile-detail-val">${client.state || 'N/A'}</span></div>
+                                        <div class="profile-preview-detail-item"><span class="profile-detail-label">Company</span><span class="profile-detail-val">${client.company || 'N/A'}</span></div>
+                                    </div>
+
+                                    <div style="padding: 1.5rem; border-top: 1px solid #f1f5f9;">
+                                        <h3 style="font-size: 1rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 8px;">
+                                            <i data-lucide="calendar" style="width: 18px;"></i> Published Events (${events.length})
+                                        </h3>
+                                        <div style="display: flex; flex-direction: column; gap: 0.75rem; max-height: 200px; overflow-y: auto;">
+                                            ${events.length > 0 ? events.map(ev => `
+                                                <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem; background: #f8fafc; border-radius: 8px;">
+                                                    <div>
+                                                        <div style="font-weight: 600; font-size: 0.85rem;">${ev.event_name}</div>
+                                                        <div style="font-size: 0.75rem; color: #64748b;">${ev.event_date}</div>
+                                                    </div>
+                                                    <div style="text-align: right;">
+                                                        <div style="font-size: 0.8rem; font-weight: 700; color: var(--admin-primary);">${ev.tickets_sold} sold</div>
+                                                    </div>
+                                                </div>
+                                            `).join('') : '<p style="font-size: 0.85rem; color: #94a3b8;">No events published yet.</p>'}
+                                        </div>
+                                    </div>
+
+                                    <div style="padding: 1.5rem; border-top: 1px solid #f1f5f9;">
+                                        <h3 style="font-size: 1rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 8px;">
+                                            <i data-lucide="users" style="width: 18px;"></i> Ticket Buyers (${buyers.length})
+                                        </h3>
+                                        <div style="display: flex; flex-direction: column; gap: 0.75rem; max-height: 200px; overflow-y: auto;">
+                                            ${buyers.length > 0 ? buyers.map(b => `
+                                                <div style="display: flex; align-items: center; gap: 10px; padding: 0.5rem; background: #f8fafc; border-radius: 8px;">
+                                                    <img src="${b.profile_pic || `https://ui-avatars.com/api/?name=${b.name}`}" style="width: 32px; height: 32px; border-radius: 50%;">
+                                                    <div style="flex: 1;">
+                                                        <div style="font-weight: 600; font-size: 0.85rem;">${b.name}</div>
+                                                        <div style="font-size: 0.75rem; color: #64748b;">${b.email}</div>
+                                                    </div>
+                                                    <div style="font-size: 0.8rem; font-weight: 700; color: #10b981;">${b.tickets_bought} tix</div>
+                                                </div>
+                                            `).join('') : '<p style="font-size: 0.85rem; color: #94a3b8;">No ticket buyers yet.</p>'}
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                            lucide.createIcons();
+                        } else {
+                            content.innerHTML = `<div style="padding: 2rem; text-align: center; color: #ef4444;">Failed to load details: ${data.message}</div>`;
+                        }
+                    });
+                return; // Prevent default row click behavior which shows old static modal
             } else if (path.includes('tickets.html')) {
                 const cells = row.querySelectorAll('td');
                 if (cells.length < 6) return;

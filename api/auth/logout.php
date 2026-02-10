@@ -29,12 +29,12 @@ try {
             createLogoutNotification($user_id, $user['name']);
         }
 
-        // Update user status to offline
-        $stmt = $pdo->prepare("UPDATE $table SET status = 'offline' WHERE id = ?");
+        // Update status to offline
+        $stmt = $pdo->prepare("UPDATE auth_accounts SET is_active = 0 WHERE id = ?");
         $stmt->execute([$user_id]);
 
         // Delete auth tokens
-        $stmt = $pdo->prepare("DELETE FROM auth_tokens WHERE user_id = ?");
+        $stmt = $pdo->prepare("DELETE FROM auth_tokens WHERE auth_id = ?");
         $stmt->execute([$user_id]);
     }
 

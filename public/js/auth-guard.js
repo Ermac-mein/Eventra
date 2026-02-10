@@ -31,9 +31,14 @@
     if (!user || user.role !== requiredRole) {
         console.warn(`Auth Guard: Unauthorized access to ${requiredRole} area. Redirecting...`);
         const basePath = currentPath.includes('/pages/') ? '../../' : '../';
-        window.location.href = basePath + 'public/pages/login.html';
+        
+        if (requiredRole === 'admin') {
+            window.location.href = basePath + 'admin/pages/adminLogin.html';
+        } else {
+            window.location.href = basePath + 'public/pages/login.html';
+        }
         return;
     }
 
-    console.log(`Auth Guard: Successfully authenticated as ${requiredRole}`);
+    //console.log(`Auth Guard: Successfully authenticated as ${requiredRole}`);
 })();

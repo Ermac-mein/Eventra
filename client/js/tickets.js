@@ -7,7 +7,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const user = storage.get('user');
     
     if (!user || user.role !== 'client') {
-        window.location.href = '../../public/pages/login.html';
+        window.location.href = '../../public/pages/clientLogin.html';
         return;
     }
 

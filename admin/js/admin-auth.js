@@ -38,13 +38,19 @@ class AdminAuth {
     updateProfileUI() {
         if (!this.adminData) return;
 
-        // Update header avatar with profile picture from database or default
-        const headerAvatar = document.querySelector('.user-avatar');
+        // Update header avatar with profile picture from database or default admin avatar
+        const headerAvatar = document.querySelector('.user-avatar-display, .user-avatar');
         if (headerAvatar) {
-            const profilePic = this.adminData.profile_pic || `https://ui-avatars.com/api/?name=${encodeURIComponent(this.adminData.name)}&background=random`;
+            const profilePic = '../../public/assets/imgs/admin.png';
             headerAvatar.style.backgroundImage = `url(${profilePic})`;
             headerAvatar.style.backgroundSize = 'cover';
             headerAvatar.style.backgroundPosition = 'center';
+        }
+
+        // Update header name display
+        const headerName = document.querySelector('.user-name-display');
+        if (headerName) {
+            headerName.textContent = this.adminData.name;
         }
 
         // Update profile drawer
@@ -63,12 +69,17 @@ class AdminAuth {
             drawerTitle.textContent = 'Admin Profile';
         }
 
-        // Update profile avatar in drawer with database profile_pic or default
+        // Update profile avatar in drawer with database profile_pic or default admin avatar
         const profileAvatar = profileDrawer.querySelector('.profile-avatar-large');
         if (profileAvatar) {
-            const profilePic = this.adminData.profile_pic || `https://ui-avatars.com/api/?name=${encodeURIComponent(this.adminData.name)}&background=random`;
-            profileAvatar.src = profilePic;
-            profileAvatar.alt = this.adminData.name;
+            const profilePic = '../../public/assets/imgs/admin.png';
+            profileAvatar.style.backgroundImage = `url(${profilePic})`;
+            profileAvatar.style.backgroundSize = 'cover';
+            profileAvatar.style.backgroundPosition = 'center';
+            // Also set as img src if it's an img element
+            if (profileAvatar.tagName === 'IMG') {
+                profileAvatar.src = profilePic;
+            }
         }
 
         // Update or create profile main info
@@ -115,7 +126,15 @@ class AdminAuth {
                 <span class="detail-label">Last Updated</span>
                 <span class="detail-value">${updatedDate}</span>
             </div>
+            <button class="btn btn-logout-drawer" id="profileDrawerLogout" style="margin-top: 2rem; width: 100%; justify-content: center; gap: 10px; color: white; background: #ef4444;">
+                <i data-lucide="log-out"></i>
+                <span>Logout</span>
+            </button>
         `;
+
+        if (window.lucide) {
+            window.lucide.createIcons();
+        }
     }
 
     async handleLogout() {
@@ -144,7 +163,7 @@ class AdminAuth {
                 
                 // Redirect to login
                 setTimeout(() => {
-                    window.location.href = '../../public/pages/login.html';
+                    window.location.href = '../../admin/pages/adminLogin.html';
                 }, 1000);
             } else {
                 if (window.toast) {

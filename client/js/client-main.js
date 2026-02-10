@@ -39,7 +39,7 @@ async function loadGlobalProfile() {
         const response = await fetch('../../api/users/get-profile.php');
         
         if (response.status === 401) {
-            window.location.href = '../../public/pages/login.html';
+            window.location.href = '../../public/pages/clientLogin.html';
             return;
         }
 
@@ -105,13 +105,13 @@ async function logout() {
         sessionStorage.clear();
 
         // Hard redirect to login
-        window.location.href = '../../public/pages/login.html';
+        window.location.href = '../../public/pages/clientLogin.html';
     } catch (error) {
         console.error('Logout error:', error);
         // Clean up and redirect anyway
         storage.remove('client_user');
         storage.remove('client_auth_token');
-        window.location.href = '../../public/pages/login.html';
+        window.location.href = '../../public/pages/clientLogin.html';
     }
 }
 
@@ -163,32 +163,6 @@ function initLogout() {
     });
 }
 
-// Notification initialization is handled by drawer-system.js
-// function initNotifications() { ... } removed to prevent conflict
-
-// loadNotifications logic is now handled by notification-system.js and drawer-system.js
-/*
-async function loadNotifications() {
-    try {
-        const response = await fetch('../../api/notifications/get-notifications.php');
-        const result = await response.json();
-
-        if (result.success) {
-            // Update notification badge if exists
-            const badge = document.querySelector('.notification-badge');
-            if (badge && result.unread_count > 0) {
-                badge.textContent = result.unread_count;
-                badge.style.display = 'block';
-            }
-
-            // Display notifications (implement drawer/modal as needed)
-            console.log('Notifications:', result.notifications);
-        }
-    } catch (error) {
-        console.error('Error loading notifications:', error);
-    }
-}
-*/
 
 function initSearch() {
     const searchInput = document.querySelector('.header-search input');

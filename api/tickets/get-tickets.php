@@ -24,8 +24,15 @@ try {
 
     // Filter by client's events
     if ($client_id) {
-        $where_clauses[] = "e.client_id = ?";
-        $params[] = $client_id;
+        // Resolve real_client_id from auth_id
+        $client_res_stmt = $pdo->prepare("SELECT id FROM clients WHERE auth_id = ?");
+        $client_res_stmt->execute([$client_id]);
+        $real_client_id = $client_res_stmt->fetchColumn();
+
+        if ($real_client_id) {
+            $where_clauses[] = "t.client_id = ?";
+            $params[] = $real_client_id;
+        }
     }
 
     // Filter by user
@@ -57,7 +64,7 @@ try {
     $sql = "
         SELECT 
             t.*,
-            u.display_name as user_name,
+            COALESCE(u.display_name, 'User') as user_name,
             a.email as user_email,
             u.profile_pic as user_profile_pic,
             e.event_name,
@@ -70,7 +77,7 @@ try {
         LEFT JOIN auth_accounts a ON t.user_id = a.id
         LEFT JOIN users u ON a.id = u.auth_id
         JOIN events e ON t.event_id = e.id
-        LEFT JOIN clients c ON e.client_id = c.auth_id
+        LEFT JOIN clients c ON t.client_id = c.id
         $where_sql
         ORDER BY t.purchase_date DESC
         LIMIT ? OFFSET ?
@@ -98,8 +105,7 @@ try {
                 SUM(quantity) as total_quantity,
                 SUM(total_price) as total_revenue
             FROM tickets t
-            JOIN events e ON t.event_id = e.id
-            WHERE e.client_id = ?
+            WHERE t.client_id = (SELECT id FROM clients WHERE auth_id = ?)
         ");
         $stats_stmt->execute([$client_id]);
         $stats = $stats_stmt->fetch();

@@ -114,17 +114,25 @@ try {
         ]);
 
     } elseif ($user_role === 'client') {
-        // Client chart data - ticket sales and revenue for their events
+        // Resolve real_client_id from auth_id
+        $client_stmt = $pdo->prepare("SELECT id FROM clients WHERE auth_id = ?");
+        $client_stmt->execute([$user_id]);
+        $real_client_id = $client_stmt->fetchColumn();
 
+        if (!$real_client_id) {
+            echo json_encode(['success' => false, 'message' => 'Client profile not found.']);
+            exit;
+        }
+
+        // Client chart data - ticket sales and revenue for their events
         $stmt = $pdo->prepare("
-            SELECT DATE(t.purchase_date) as date, COUNT(*) as count, SUM(t.total_price) as revenue
-            FROM tickets t
-            INNER JOIN events e ON t.event_id = e.id
-            WHERE e.client_id = ? AND t.purchase_date >= ?
-            GROUP BY DATE(t.purchase_date)
+            SELECT DATE(purchase_date) as date, COUNT(*) as count, SUM(total_price) as revenue
+            FROM tickets
+            WHERE client_id = ? AND purchase_date >= ?
+            GROUP BY DATE(purchase_date)
             ORDER BY date ASC
         ");
-        $stmt->execute([$user_id, $start_date]);
+        $stmt->execute([$real_client_id, $start_date]);
         $sales_data = $stmt->fetchAll();
 
         // Format data

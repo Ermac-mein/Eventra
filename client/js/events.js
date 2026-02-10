@@ -7,7 +7,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const user = storage.get('user');
     
     if (!user || user.role !== 'client') {
-        window.location.href = '../../public/pages/login.html';
+        window.location.href = '../../public/pages/clientLogin.html';
         return;
     }
 
@@ -105,14 +105,9 @@ function updateEventsTable(events) {
             <td><span style="color: ${getStatusColor(event.status)}; font-weight: 600;">${event.status.charAt(0).toUpperCase() + event.status.slice(1)}</span></td>
             <td class="text-center" onclick="event.stopPropagation()">
                 <div style="display: flex; gap: 0.5rem; justify-content: center;">
-                    ${event.status === 'published' 
-                        ? `<button class="action-icon-btn" title="Published events cannot be edited" style="background: none; border: none; cursor: not-allowed; font-size: 1.2rem; padding: 0.25rem 0.5rem; opacity: 0.4;">
-                               🔒
-                           </button>`
-                        : `<button onclick="editEvent(${event.id})" class="action-icon-btn" title="Edit Event" style="background: none; border: none; cursor: pointer; font-size: 1.2rem; padding: 0.25rem 0.5rem; transition: transform 0.2s;">
-                               ✏️
-                           </button>`
-                    }
+                    <button onclick="editEvent(${event.id})" class="action-icon-btn" title="Edit Event" style="background: none; border: none; cursor: pointer; font-size: 1.2rem; padding: 0.25rem 0.5rem; transition: transform 0.2s;">
+                        ✏️
+                    </button>
                     <button onclick="deleteEvent(${event.id})" class="action-icon-btn" title="Delete Event" style="background: none; border: none; cursor: pointer; font-size: 1.2rem; padding: 0.25rem 0.5rem; transition: transform 0.2s;">
                         🗑️
                     </button>

@@ -7,7 +7,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const user = storage.get('user');
     
     if (!user || user.role !== 'client') {
-        window.location.href = '../../public/pages/login.html';
+        window.location.href = '../../public/pages/clientLogin.html';
         return;
     }
 
@@ -43,7 +43,7 @@ function updateUsersTable(users) {
             <td>${user.phone || 'N/A'}</td>
             <td>${user.state || 'N/A'}</td>
             <td>${user.client_name || 'Direct'}</td>
-            <td><span style="color: ${user.status === 'active' ? '#10b981' : '#ef4444'};">${user.status ? user.status.toUpperCase() : 'N/A'}</span></td>
+            <td><span style="color: ${user.status === 'active' || user.status === 1 ? '#10b981' : '#ef4444'};">${user.status ? String(user.status).toUpperCase() : 'N/A'}</span></td>
             <td>${user.engagement || 'N/A'}</td>
             <td>${formatDate(user.created_at)}</td>
         </tr>

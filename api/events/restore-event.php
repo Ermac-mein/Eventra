@@ -1,7 +1,7 @@
 <?php
 /**
- * Delete Event API
- * Handles event deletion with admin notification
+ * Restore Event API
+ * Restores a soft-deleted event
  */
 header('Content-Type: application/json');
 require_once '../../config/database.php';
@@ -21,13 +21,18 @@ if (!$event_id) {
 }
 
 try {
-    // Get event details before deletion
-    $stmt = $pdo->prepare("SELECT event_name, client_id FROM events WHERE id = ?");
+    // Get event details before restoration
+    $stmt = $pdo->prepare("SELECT event_name, client_id, deleted_at FROM events WHERE id = ?");
     $stmt->execute([$event_id]);
     $event = $stmt->fetch();
 
     if (!$event) {
         echo json_encode(['success' => false, 'message' => 'Event not found']);
+        exit;
+    }
+
+    if (!$event['deleted_at']) {
+        echo json_encode(['success' => false, 'message' => 'Event is not in trash']);
         exit;
     }
 
@@ -44,17 +49,17 @@ try {
         $resolved_user_id = $client['id'];
     }
 
-    // Check permissions (client can only delete their own events, admin can delete any)
+    // Check permissions (client can only restore their own events, admin can restore any)
     if ($user_role === 'client' && $event['client_id'] != $resolved_user_id) {
-        echo json_encode(['success' => false, 'message' => 'You do not have permission to delete this event']);
+        echo json_encode(['success' => false, 'message' => 'You do not have permission to restore this event']);
         exit;
     }
 
-    // Soft delete the event (set deleted_at timestamp)
-    $stmt = $pdo->prepare("UPDATE events SET deleted_at = NOW() WHERE id = ?");
+    // Restore the event (set deleted_at to NULL)
+    $stmt = $pdo->prepare("UPDATE events SET deleted_at = NULL WHERE id = ?");
     $stmt->execute([$event_id]);
 
-    // Notify admin about event deletion if deleted by client
+    // Notify admin about event restoration if restored by client
     if ($user_role === 'client') {
         $stmt = $pdo->prepare("SELECT business_name FROM clients WHERE auth_id = ?");
         $stmt->execute([$user_id]);
@@ -66,15 +71,15 @@ try {
         $admin = $stmt->fetch();
 
         if ($admin) {
-            $message = "Event '{$event['event_name']}' has been deleted by $user_name";
+            $message = "Event '{$event['event_name']}' has been restored by $user_name";
             $stmt = $pdo->prepare("INSERT INTO notifications (recipient_auth_id, sender_auth_id, message, type) VALUES (?, ?, ?, ?)");
-            $stmt->execute([$admin['id'], $user_id, $message, 'event_deleted']);
+            $stmt->execute([$admin['id'], $user_id, $message, 'event_restored']);
         }
     }
 
     echo json_encode([
         'success' => true,
-        'message' => 'Event deleted successfully'
+        'message' => 'Event restored successfully'
     ]);
 
 } catch (PDOException $e) {

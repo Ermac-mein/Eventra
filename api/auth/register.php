@@ -30,7 +30,7 @@ try {
     $pdo->beginTransaction();
 
     // 3. Insert into auth_accounts
-    $stmt = $pdo->prepare("INSERT INTO auth_accounts (email, password_hash, role, auth_provider) VALUES (?, ?, ?, 'local')");
+    $stmt = $pdo->prepare("INSERT INTO auth_accounts (email, password_hash, role, auth_provider, is_active) VALUES (?, ?, ?, 'local', 0)");
     $stmt->execute([$email, $hashedPassword, $role]);
     $auth_id = $pdo->lastInsertId();
 

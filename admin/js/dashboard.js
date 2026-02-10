@@ -8,7 +8,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const user = storage.get('admin_user') || storage.get('user');
     
     if (!user || user.role !== 'admin') {
-        window.location.href = '../../public/pages/login.html';
+        window.location.href = '../../admin/pages/adminLogin.html';
         return;
     }
 
@@ -28,17 +28,6 @@ async function loadAdminProfile() {
         if (result.success) {
             const adminUser = result.user;
             
-            // Update profile display
-            const profileAvatar = document.querySelector('.user-avatar');
-
-            // Set profile picture
-            const avatarUrl = adminUser.profile_pic || `https://ui-avatars.com/api/?name=${encodeURIComponent(adminUser.name)}&background=random`;
-            if (profileAvatar) {
-                profileAvatar.style.backgroundImage = `url(${avatarUrl})`;
-                profileAvatar.style.backgroundSize = 'cover';
-                profileAvatar.style.backgroundPosition = 'center';
-            }
-
             // Store updated user data
             storage.set('admin_user', adminUser);
         }

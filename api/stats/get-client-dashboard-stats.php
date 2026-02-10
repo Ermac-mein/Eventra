@@ -13,36 +13,45 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'client') {
     exit;
 }
 
-$client_id = $_SESSION['user_id'];
+$auth_id = $_SESSION['user_id'];
 
 try {
+    // Resolve real_client_id from auth_id
+    $client_stmt = $pdo->prepare("SELECT id FROM clients WHERE auth_id = ?");
+    $client_stmt->execute([$auth_id]);
+    $client_row = $client_stmt->fetch();
+
+    if (!$client_row) {
+        echo json_encode(['success' => false, 'message' => 'Client profile not found.']);
+        exit;
+    }
+    $real_client_id = $client_row['id'];
+
     // Get upcoming events count (published only)
     $stmt = $pdo->prepare("
         SELECT COUNT(*) as total 
         FROM events 
         WHERE client_id = ? AND status = 'published' AND event_date >= CURDATE()
     ");
-    $stmt->execute([$client_id]);
+    $stmt->execute([$real_client_id]);
     $upcoming_events = $stmt->fetch()['total'];
 
     // Get total tickets sold for client's events
     $stmt = $pdo->prepare("
-        SELECT COALESCE(SUM(t.quantity), 0) as total 
-        FROM tickets t
-        INNER JOIN events e ON t.event_id = e.id
-        WHERE e.client_id = ?
+        SELECT COALESCE(SUM(quantity), 0) as total 
+        FROM tickets 
+        WHERE client_id = ?
     ");
-    $stmt->execute([$client_id]);
+    $stmt->execute([$real_client_id]);
     $total_tickets = $stmt->fetch()['total'];
 
     // Get unique users who bought tickets for client's events
     $stmt = $pdo->prepare("
-        SELECT COUNT(DISTINCT t.user_id) as total
-        FROM tickets t
-        INNER JOIN events e ON t.event_id = e.id
-        WHERE e.client_id = ?
+        SELECT COUNT(DISTINCT user_id) as total
+        FROM tickets 
+        WHERE client_id = ?
     ");
-    $stmt->execute([$client_id]);
+    $stmt->execute([$real_client_id]);
     $total_users = $stmt->fetch()['total'];
 
     // Get media uploads count for this client
@@ -51,14 +60,10 @@ try {
         FROM media 
         WHERE client_id = ?
     ");
-    $stmt->execute([$client_id]);
+    $stmt->execute([$real_client_id]);
     $media_uploads = $stmt->fetch()['total'];
 
     // Get referral stats for this client
-    // Note: referred_by_id column does not exist in tickets table yet.
-    $referred_tickets = 0;
-    $referred_users = 0;
-    /*
     $stmt = $pdo->prepare("
         SELECT 
             COUNT(*) as tickets,
@@ -66,20 +71,18 @@ try {
         FROM tickets 
         WHERE referred_by_id = ?
     ");
-    $stmt->execute([$client_id]);
+    $stmt->execute([$real_client_id]);
     $referral_data = $stmt->fetch();
-    $referred_tickets = $referral_data['tickets'];
-    $referred_users = $referral_data['users'];
-    */
+    $referred_tickets = $referral_data['tickets'] ?? 0;
+    $referred_users = $referral_data['users'] ?? 0;
 
     // Get total revenue for client's events
     $stmt = $pdo->prepare("
-        SELECT COALESCE(SUM(t.total_price), 0) as revenue
-        FROM tickets t
-        INNER JOIN events e ON t.event_id = e.id
-        WHERE e.client_id = ?
+        SELECT COALESCE(SUM(total_price), 0) as revenue
+        FROM tickets 
+        WHERE client_id = ?
     ");
-    $stmt->execute([$client_id]);
+    $stmt->execute([$real_client_id]);
     $total_revenue = $stmt->fetch()['revenue'];
 
     // Get upcoming published events with details
@@ -95,26 +98,26 @@ try {
         ORDER BY e.event_date ASC
         LIMIT 5
     ");
-    $stmt->execute([$client_id]);
+    $stmt->execute([$real_client_id]);
     $upcoming_events_list = $stmt->fetchAll();
 
     // Get recent ticket sales
     $stmt = $pdo->prepare("
         SELECT 
             t.*,
-            u.display_name as user_name,
+            COALESCE(u.display_name, 'User') as user_name,
             a.email as user_email,
             u.profile_pic as user_profile_pic,
             e.event_name
         FROM tickets t
         INNER JOIN events e ON t.event_id = e.id
-        INNER JOIN users u ON t.user_id = u.id
-        INNER JOIN auth_accounts a ON u.auth_id = a.id
-        WHERE e.client_id = ?
+        LEFT JOIN users u ON t.user_id = u.auth_id
+        LEFT JOIN auth_accounts a ON t.user_id = a.id
+        WHERE t.client_id = ?
         ORDER BY t.purchase_date DESC
         LIMIT 10
     ");
-    $stmt->execute([$client_id]);
+    $stmt->execute([$real_client_id]);
     $recent_sales = $stmt->fetchAll();
 
     echo json_encode([

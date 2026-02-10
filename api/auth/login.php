@@ -75,6 +75,10 @@ try {
         // Update user status (if we had a status column in auth_accounts, but it's in specific tables or we use is_active)
         // For now, assume is_active in auth_accounts is the main one.
 
+        // Update user status
+        $stmt = $pdo->prepare("UPDATE auth_accounts SET is_active = 1 WHERE id = ?");
+        $stmt->execute([$user['id']]);
+
         // Log success
         logSecurityEvent($user['id'], $email, 'login_success', 'password', "Logged in as " . $user['role']);
 

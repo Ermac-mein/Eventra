@@ -27,14 +27,14 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         if (signupTitle) signupTitle.textContent = 'Admin Registration';
         if (signupButton) signupButton.textContent = 'Create Admin Account';
-        if (loginLink) loginLink.href = `login.html?role=admin`;
+        if (loginLink) loginLink.href = `clientLogin.html?role=admin`;
         
         console.log("Admin registration context activated.");
     } else {
         document.title = (intent === 'client' ? "Client" : "User") + " Registration - Eventra";
         if (signupTitle) signupTitle.textContent = (intent === 'client') ? 'Client Registration' : 'Create Account';
         if (signupButton) signupButton.textContent = (intent === 'client') ? 'Create Client Account' : 'Sign Up';
-        if (loginLink) loginLink.href = `login.html?role=${intent}`;
+        if (loginLink) loginLink.href = `clientLogin.html?role=${intent}`;
     }
 
     // Toggle password visibility
@@ -145,7 +145,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 
                 setTimeout(() => {
-                    window.location.href = `login.html?role=${intent}`;
+                    window.location.href = `clientLogin.html?role=${intent}`;
                 }, 2100);
             } else {
                 showError('passwordError', result.message || 'Registration failed. Please try again.');

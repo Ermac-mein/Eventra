@@ -10,7 +10,7 @@ function showProfileEditModal() {
 
     const modalHTML = `
         <div id="profileEditModal" class="modal-backdrop active" role="dialog" aria-modal="true" aria-hidden="false">
-            <div class="modal-content" style="max-width: 600px; max-height: 90vh; overflow-y: auto;">
+            <div class="modal-content" style="max-width: 600px; max-height: 90vh; overflow-y: auto; margin: auto;">
                 <div class="modal-header">
                     <h2>Edit Profile</h2>
                     <button class="modal-close" onclick="closeProfileEditModal()">×</button>

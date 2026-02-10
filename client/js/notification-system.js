@@ -42,7 +42,7 @@ class NotificationManager {
             
             if (response.status === 401) {
                 this.stopPolling();
-                window.location.href = '../../public/pages/login.html';
+                window.location.href = '../../public/pages/clientLogin.html';
                 return;
             }
 
@@ -196,7 +196,7 @@ class NotificationManager {
             <div style="display: flex; gap: 1rem; align-items: start;">
                 <div style="font-size: 1.5rem;">${getNotificationIcon(notification.type)}</div>
                 <div style="flex: 1;">
-                    <div style="font-weight: 700; margin-bottom: 0.25rem;">${notification.title}</div>
+                    <div style="font-weight: 700; margin-bottom: 0.25rem;">${notification.title || 'Notification'}</div>
                     <div style="font-size: 0.9rem; color: #6b7280;">${notification.message}</div>
                 </div>
                 <button onclick="this.parentElement.parentElement.remove()" 

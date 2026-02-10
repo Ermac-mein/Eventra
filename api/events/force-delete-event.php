@@ -1,7 +1,7 @@
 <?php
 /**
- * Delete Event API
- * Handles event deletion with admin notification
+ * Force Delete Event API
+ * Permanently deletes an event and its associated data
  */
 header('Content-Type: application/json');
 require_once '../../config/database.php';
@@ -22,12 +22,17 @@ if (!$event_id) {
 
 try {
     // Get event details before deletion
-    $stmt = $pdo->prepare("SELECT event_name, client_id FROM events WHERE id = ?");
+    $stmt = $pdo->prepare("SELECT event_name, client_id, deleted_at FROM events WHERE id = ?");
     $stmt->execute([$event_id]);
     $event = $stmt->fetch();
 
     if (!$event) {
         echo json_encode(['success' => false, 'message' => 'Event not found']);
+        exit;
+    }
+
+    if (!$event['deleted_at']) {
+        echo json_encode(['success' => false, 'message' => 'Event must be in trash before permanent deletion']);
         exit;
     }
 
@@ -50,11 +55,11 @@ try {
         exit;
     }
 
-    // Soft delete the event (set deleted_at timestamp)
-    $stmt = $pdo->prepare("UPDATE events SET deleted_at = NOW() WHERE id = ?");
+    // Permanently delete the event (CASCADE will handle tickets)
+    $stmt = $pdo->prepare("DELETE FROM events WHERE id = ?");
     $stmt->execute([$event_id]);
 
-    // Notify admin about event deletion if deleted by client
+    // Notify admin about permanent deletion if deleted by client
     if ($user_role === 'client') {
         $stmt = $pdo->prepare("SELECT business_name FROM clients WHERE auth_id = ?");
         $stmt->execute([$user_id]);
@@ -66,15 +71,15 @@ try {
         $admin = $stmt->fetch();
 
         if ($admin) {
-            $message = "Event '{$event['event_name']}' has been deleted by $user_name";
+            $message = "Event '{$event['event_name']}' has been permanently deleted by $user_name";
             $stmt = $pdo->prepare("INSERT INTO notifications (recipient_auth_id, sender_auth_id, message, type) VALUES (?, ?, ?, ?)");
-            $stmt->execute([$admin['id'], $user_id, $message, 'event_deleted']);
+            $stmt->execute([$admin['id'], $user_id, $message, 'event_force_deleted']);
         }
     }
 
     echo json_encode([
         'success' => true,
-        'message' => 'Event deleted successfully'
+        'message' => 'Event permanently deleted'
     ]);
 
 } catch (PDOException $e) {

@@ -41,6 +41,9 @@ try {
         }
     }
 
+    // Exclude soft-deleted events
+    $where_clauses[] = "e.deleted_at IS NULL";
+
     $where_sql = !empty($where_clauses) ? 'WHERE ' . implode(' AND ', $where_clauses) : '';
 
     // Get total count
@@ -98,7 +101,7 @@ try {
                 SUM(CASE WHEN status = 'draft' THEN 1 ELSE 0 END) as draft_events,
                 IFNULL(SUM(attendee_count), 0) as total_attendees
             FROM events
-            WHERE client_id = ?
+            WHERE client_id = ? AND deleted_at IS NULL
         ");
         $stats_stmt->execute([$client_id]);
         $stats = $stats_stmt->fetch();
