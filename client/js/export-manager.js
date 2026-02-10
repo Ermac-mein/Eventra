@@ -39,19 +39,95 @@ function exportToCSV(data, filename) {
 }
 
 async function exportEventsToPDF() {
-    showExportModal('events');
+    await exportTableToPDF('Events');
 }
 
 async function exportTicketsToPDF() {
-    showExportModal('tickets');
+    await exportTableToPDF('Tickets');
 }
 
 async function exportUsersToPDF() {
-    showExportModal('users');
+    await exportTableToPDF('Users');
 }
 
 async function exportMediaToPDF() {
-    showExportModal('media');
+    await exportTableToPDF('Media');
+}
+
+async function exportTableToPDF(dataType) {
+    const table = document.querySelector('table');
+    if (!table) {
+        showNotification('No table found to export', 'error');
+        return;
+    }
+
+    try {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+
+        // Add title
+        doc.setFontSize(18);
+        doc.setFont(undefined, 'bold');
+        doc.text(`${dataType} Export`, 14, 15);
+        
+        // Add export date
+        doc.setFontSize(10);
+        doc.setFont(undefined, 'normal');
+        doc.text(`Exported on: ${new Date().toLocaleDateString()}`, 14, 22);
+
+        // Extract table data
+        const headers = [];
+        const rows = [];
+        
+        // Get headers
+        const headerCells = table.querySelectorAll('thead th');
+        headerCells.forEach(cell => {
+            headers.push(cell.innerText.trim());
+        });
+        
+        // Get rows
+        const bodyRows = table.querySelectorAll('tbody tr');
+        bodyRows.forEach(row => {
+            const rowData = [];
+            const cells = row.querySelectorAll('td');
+            cells.forEach(cell => {
+                let text = cell.innerText.trim().replace(/\n/g, ' ');
+                rowData.push(text);
+            });
+            if (rowData.length > 0 && !rowData[0].includes('Loading') && !rowData[0].includes('No')) {
+                rows.push(rowData);
+            }
+        });
+
+        // Generate table
+        doc.autoTable({
+            head: [headers],
+            body: rows,
+            startY: 28,
+            theme: 'grid',
+            headStyles: {
+                fillColor: [255, 90, 95],
+                textColor: 255,
+                fontStyle: 'bold',
+                fontSize: 10
+            },
+            bodyStyles: {
+                fontSize: 9
+            },
+            alternateRowStyles: {
+                fillColor: [248, 250, 252]
+            }
+        });
+
+        // Save the PDF
+        const filename = `${dataType.toLowerCase()}-export-${new Date().toISOString().split('T')[0]}.pdf`;
+        doc.save(filename);
+
+        showNotification(`${dataType} exported successfully as PDF`, 'success');
+    } catch (error) {
+        console.error('PDF export error:', error);
+        showNotification('Failed to export as PDF', 'error');
+    }
 }
 
 function showExportModal(dataType) {
@@ -63,7 +139,12 @@ function showExportModal(dataType) {
         const options = modal.querySelectorAll('.export-option');
         options.forEach(option => {
             option.onclick = () => {
-                handleExport(dataType, option.getAttribute('data-format'));
+                const format = option.getAttribute('data-format');
+                if (format === 'Excel') {
+                    exportTableToExcel(dataType);
+                } else {
+                    handleExport(dataType, format);
+                }
                 hideExportModal();
             };
         });
@@ -77,10 +158,57 @@ function showExportModal(dataType) {
     }
 }
 
-function hideExportModal() {
-    const modal = document.getElementById('exportModal');
-    if (modal) {
-        modal.classList.remove('active');
+async function exportTableToExcel(dataType) {
+    const table = document.querySelector('table');
+    if (!table) {
+        showNotification('No table found to export', 'error');
+        return;
+    }
+
+    try {
+        const workbook = XLSX.utils.book_new();
+        const worksheet_data = [];
+        
+        // Get headers
+        const headers = [];
+        const headerCells = table.querySelectorAll('thead th');
+        headerCells.forEach(cell => {
+            headers.push(cell.innerText.trim());
+        });
+        worksheet_data.push(headers);
+        
+        // Get rows
+        const bodyRows = table.querySelectorAll('tbody tr');
+        bodyRows.forEach(row => {
+            const rowData = [];
+            const cells = row.querySelectorAll('td');
+            cells.forEach(cell => {
+                let text = cell.innerText.trim().replace(/\n/g, ' ');
+                rowData.push(text);
+            });
+            if (rowData.length > 0 && !rowData[0].includes('Loading') && !rowData[0].includes('No')) {
+                worksheet_data.push(rowData);
+            }
+        });
+
+        // Create worksheet
+        const worksheet = XLSX.utils.aoa_to_sheet(worksheet_data);
+        
+        // Set column widths
+        const colWidths = headers.map(() => ({ wch: 20 }));
+        worksheet['!cols'] = colWidths;
+
+        // Add worksheet to workbook
+        XLSX.utils.book_append_sheet(workbook, worksheet, dataType);
+
+        // Generate Excel file
+        const filename = `${dataType.toLowerCase()}-export-${new Date().toISOString().split('T')[0]}.xlsx`;
+        XLSX.writeFile(workbook, filename);
+
+        showNotification(`${dataType} exported successfully as Excel`, 'success');
+    } catch (error) {
+        console.error('Excel export error:', error);
+        showNotification('Failed to export as Excel', 'error');
     }
 }
 

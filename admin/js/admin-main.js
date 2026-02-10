@@ -31,12 +31,16 @@ function initDrawers() {
     function openDrawer(drawerElement) {
         if (!drawerElement) return;
         backdrop.style.display = 'block';
-        setTimeout(() => drawerElement.classList.add('open'), 10);
+        setTimeout(() => {
+            drawerElement.classList.add('open');
+            backdrop.classList.add('active');
+        }, 10);
     }
 
     function closeAll() {
         if (profileDrawer) profileDrawer.classList.remove('open');
         if (notificationsDrawer) notificationsDrawer.classList.remove('open');
+        backdrop.classList.remove('active');
         setTimeout(() => backdrop.style.display = 'none', 400);
     }
 
@@ -44,6 +48,7 @@ function initDrawers() {
     if (notificationsBtn) {
         notificationsBtn.onclick = (e) => {
             e.preventDefault();
+            e.stopPropagation();
             openDrawer(notificationsDrawer);
             // Mark all notifications as read when drawer is opened
             if (window.notificationManager) {
@@ -57,6 +62,7 @@ function initDrawers() {
     if (profileBtn) {
         profileBtn.onclick = (e) => {
             e.preventDefault();
+            e.stopPropagation();
             openDrawer(profileDrawer);
         };
     }
@@ -69,12 +75,21 @@ function initDrawers() {
         }
     });
 
-    // Attach listeners to back arrows and backdrop
+    // Attach listeners to back arrows  
     backArrows.forEach(arrow => {
-        arrow.onclick = closeAll;
+        arrow.onclick = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            closeAll();
+        };
     });
 
-    backdrop.onclick = closeAll;
+    // Close drawers on backdrop click
+    backdrop.onclick = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        closeAll();
+    };
 }
 
 /**
@@ -180,12 +195,145 @@ function initExportModal() {
                 const format = opt.dataset.format;
                 if (format === 'CSV') {
                     exportCurrentTableToCSV();
-                } else {
-                    Swal.fire('Exporting', `Exporting as ${format} is coming soon! Try CSV for now.`, 'info');
+                } else if (format === 'PDF') {
+                    exportCurrentTableToPDF();
+                } else if (format === 'Excel') {
+                    exportCurrentTableToExcel();
                 }
                 modalBackdrop.style.display = 'none';
             });
         });
+    }
+}
+
+function exportCurrentTableToPDF() {
+    const table = document.querySelector('table');
+    if (!table) return;
+
+    try {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+
+        // Get page title
+        const pageTitle = document.querySelector('.page-title h1')?.innerText || 'Eventra Export';
+        
+        // Add title
+        doc.setFontSize(18);
+        doc.setFont(undefined, 'bold');
+        doc.text(pageTitle, 14, 15);
+        
+        // Add export date
+        doc.setFontSize(10);
+        doc.setFont(undefined, 'normal');
+        doc.text(`Exported on: ${new Date().toLocaleDateString()}`, 14, 22);
+
+        // Extract table data
+        const headers = [];
+        const rows = [];
+        
+        // Get headers
+        const headerCells = table.querySelectorAll('thead th');
+        headerCells.forEach(cell => {
+            headers.push(cell.innerText.trim());
+        });
+        
+        // Get rows
+        const bodyRows = table.querySelectorAll('tbody tr');
+        bodyRows.forEach(row => {
+            const rowData = [];
+            const cells = row.querySelectorAll('td');
+            cells.forEach(cell => {
+                // Clean up text content
+                let text = cell.innerText.trim().replace(/\n/g, ' ');
+                rowData.push(text);
+            });
+            if (rowData.length > 0 && !rowData[0].includes('Loading') && !rowData[0].includes('No data')) {
+                rows.push(rowData);
+            }
+        });
+
+        // Generate table
+        doc.autoTable({
+            head: [headers],
+            body: rows,
+            startY: 28,
+            theme: 'grid',
+            headStyles: {
+                fillColor: [59, 130, 246],
+                textColor: 255,
+                fontStyle: 'bold',
+                fontSize: 10
+            },
+            bodyStyles: {
+                fontSize: 9
+            },
+            alternateRowStyles: {
+                fillColor: [248, 250, 252]
+            },
+            margin: { top: 28 }
+        });
+
+        // Save the PDF
+        const filename = `eventra-export-${new Date().toISOString().split('T')[0]}.pdf`;
+        doc.save(filename);
+
+        Swal.fire('Success', 'Data exported successfully as PDF', 'success');
+    } catch (error) {
+        console.error('PDF export error:', error);
+        Swal.fire('Error', 'Failed to export as PDF. Please try again.', 'error');
+    }
+}
+
+function exportCurrentTableToExcel() {
+    const table = document.querySelector('table');
+    if (!table) return;
+
+    try {
+        // Extract table data
+        const workbook = XLSX.utils.book_new();
+        const worksheet_data = [];
+        
+        // Get headers
+        const headers = [];
+        const headerCells = table.querySelectorAll('thead th');
+        headerCells.forEach(cell => {
+            headers.push(cell.innerText.trim());
+        });
+        worksheet_data.push(headers);
+        
+        // Get rows
+        const bodyRows = table.querySelectorAll('tbody tr');
+        bodyRows.forEach(row => {
+            const rowData = [];
+            const cells = row.querySelectorAll('td');
+            cells.forEach(cell => {
+                let text = cell.innerText.trim().replace(/\n/g, ' ');
+                rowData.push(text);
+            });
+            if (rowData.length > 0 && !rowData[0].includes('Loading') && !rowData[0].includes('No data')) {
+                worksheet_data.push(rowData);
+            }
+        });
+
+        // Create worksheet
+        const worksheet = XLSX.utils.aoa_to_sheet(worksheet_data);
+        
+        // Set column widths
+        const colWidths = headers.map(() => ({ wch: 20 }));
+        worksheet['!cols'] = colWidths;
+
+        // Add worksheet to workbook
+        const sheetName = document.querySelector('.page-title h1')?.innerText || 'Export';
+        XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
+
+        // Generate Excel file
+        const filename = `eventra-export-${new Date().toISOString().split('T')[0]}.xlsx`;
+        XLSX.writeFile(workbook, filename);
+
+        Swal.fire('Success', 'Data exported successfully as Excel', 'success');
+    } catch (error) {
+        console.error('Excel export error:', error);
+        Swal.fire('Error', 'Failed to export as Excel. Please try again.', 'error');
     }
 }
 

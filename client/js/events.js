@@ -41,11 +41,12 @@ async function loadEvents(clientId) {
 
 function updateStatsCards(stats) {
     const cards = document.querySelectorAll('.summary-card .summary-value');
-    if (cards.length >= 4) {
+    if (cards.length >= 5) {
         cards[0].textContent = stats.total_events || 0;
         cards[1].textContent = stats.published_events || 0;
-        cards[2].textContent = 0; // Deleted events (not tracked in current schema)
+        cards[2].textContent = stats.deleted_events || 0;
         cards[3].textContent = stats.scheduled_events || 0;
+        cards[4].textContent = stats.restored_events || 0;
     }
 }
 

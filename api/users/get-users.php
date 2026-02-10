@@ -32,7 +32,10 @@ try {
     }
 
     $client_id = $_GET['client_id'] ?? null;
-    $where_sql = !empty($where_clauses) ? 'WHERE ' . implode(' AND ', $where_clauses) : '';
+
+    // ALWAYS filter for regular users only (exclude clients and admins)
+    $where_clauses[] = "a.role = 'user'";
+    $where_sql = 'WHERE ' . implode(' AND ', $where_clauses);
 
     if ($client_id) {
         // Resolve real_client_id (PK of clients table) from auth_id
@@ -42,7 +45,7 @@ try {
 
         if ($real_client_id) {
             // If client_id is provided, only get users who bought tickets for this client's events
-            $where_sql = ($where_sql ? $where_sql . ' AND ' : 'WHERE ') . "a.id IN (SELECT DISTINCT user_id FROM tickets WHERE client_id = ?)";
+            $where_sql .= " AND a.id IN (SELECT DISTINCT user_id FROM tickets WHERE client_id = ?)";
             $params[] = $real_client_id;
         }
     }

@@ -99,9 +99,11 @@ try {
                 SUM(CASE WHEN status = 'published' THEN 1 ELSE 0 END) as published_events,
                 SUM(CASE WHEN status = 'scheduled' THEN 1 ELSE 0 END) as scheduled_events,
                 SUM(CASE WHEN status = 'draft' THEN 1 ELSE 0 END) as draft_events,
+                SUM(CASE WHEN status = 'restored' THEN 1 ELSE 0 END) as restored_events,
+                SUM(CASE WHEN deleted_at IS NOT NULL THEN 1 ELSE 0 END) as deleted_events,
                 IFNULL(SUM(attendee_count), 0) as total_attendees
             FROM events
-            WHERE client_id = ? AND deleted_at IS NULL
+            WHERE client_id = ?
         ");
         $stats_stmt->execute([$client_id]);
         $stats = $stats_stmt->fetch();

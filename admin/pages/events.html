@@ -112,6 +112,13 @@
                     </div>
                     <span class="stat-value" id="eventsScheduled">0</span>
                 </div>
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <span class="stat-label">Events Restored</span>
+                        <i data-lucide="refresh-ccw" class="stat-icon"></i>
+                    </div>
+                    <span class="stat-value" id="eventsRestored">0</span>
+                </div>
             </div>
 
             <div class="table-container" style="padding: 2rem; border-radius: 16px;">
@@ -123,6 +130,7 @@
                         <tr>
                             <th style="border-bottom: 2px solid #f1f5f9;">Event Name</th>
                             <th style="border-bottom: 2px solid #f1f5f9;">Location</th>
+                            <th style="border-bottom: 2px solid #f1f5f9;">Organized By</th>
                             <th style="border-bottom: 2px solid #f1f5f9;">Price</th>
                             <th style="border-bottom: 2px solid #f1f5f9;">Attendees</th>
                             <th style="border-bottom: 2px solid #f1f5f9;">Category</th>
@@ -131,7 +139,7 @@
                     </thead>
                     <tbody id="eventsTableBody">
                         <tr>
-                            <td colspan="6" style="text-align: center; padding: 3rem; color: var(--admin-text-muted);">Loading events...</td>
+                            <td colspan="7" style="text-align: center; padding: 3rem; color: var(--admin-text-muted);">Loading events...</td>
                         </tr>
                     </tbody>
                 </table>
@@ -203,6 +211,7 @@
     <script src="../js/profile-pic-upload.js"></script>
     <script src="../js/search-manager.js"></script>
     <script src="../js/pages/events.js"></script>
+    <script src="../js/event-preview.js"></script>
     <script src="../js/admin-main.js"></script>
     <script>
         lucide.createIcons();

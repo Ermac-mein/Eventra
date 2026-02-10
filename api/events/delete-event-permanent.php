@@ -1,14 +1,13 @@
 <?php
 /**
- * Restore Event API
- * Restores a soft-deleted event
+ * Permanently Delete Event API
+ * Permanently removes an event from the database (hard delete)
  */
 header('Content-Type: application/json');
 require_once '../../config/database.php';
-require_once '../utils/notification-helper.php';
 require_once '../../includes/middleware/auth.php';
 
-// Check authentication and role (client or admin)
+// Check authentication (client or admin)
 $user_id = checkAuth();
 $user_role = $_SESSION['role'];
 
@@ -21,7 +20,7 @@ if (!$event_id) {
 }
 
 try {
-    // Get event details before restoration
+    // Get event details
     $stmt = $pdo->prepare("SELECT event_name, client_id, deleted_at FROM events WHERE id = ?");
     $stmt->execute([$event_id]);
     $event = $stmt->fetch();
@@ -32,7 +31,7 @@ try {
     }
 
     if (!$event['deleted_at']) {
-        echo json_encode(['success' => false, 'message' => 'Event is not in trash']);
+        echo json_encode(['success' => false, 'message' => 'Event must be in trash before permanent deletion']);
         exit;
     }
 
@@ -49,17 +48,17 @@ try {
         $resolved_user_id = $client['id'];
     }
 
-    // Check permissions (client can only restore their own events, admin can restore any)
+    // Check permissions
     if ($user_role === 'client' && $event['client_id'] != $resolved_user_id) {
-        echo json_encode(['success' => false, 'message' => 'You do not have permission to restore this event']);
+        echo json_encode(['success' => false, 'message' => 'You do not have permission to delete this event']);
         exit;
     }
 
-    // Restore the event (set deleted_at to NULL and status to 'restored')
-    $stmt = $pdo->prepare("UPDATE events SET deleted_at = NULL, status = 'restored' WHERE id = ?");
+    // Permanently delete the event (hard delete)
+    $stmt = $pdo->prepare("DELETE FROM events WHERE id = ?");
     $stmt->execute([$event_id]);
 
-    // Notify admin about event restoration if restored by client
+    // Notify admin about permanent deletion if deleted by client
     if ($user_role === 'client') {
         $stmt = $pdo->prepare("SELECT business_name FROM clients WHERE auth_id = ?");
         $stmt->execute([$user_id]);
@@ -71,15 +70,15 @@ try {
         $admin = $stmt->fetch();
 
         if ($admin) {
-            $message = "Event '{$event['event_name']}' has been restored by $user_name";
+            $message = "Event '{$event['event_name']}' has been permanently deleted by $user_name";
             $stmt = $pdo->prepare("INSERT INTO notifications (recipient_auth_id, sender_auth_id, message, type) VALUES (?, ?, ?, ?)");
-            $stmt->execute([$admin['id'], $user_id, $message, 'event_restored']);
+            $stmt->execute([$admin['id'], $user_id, $message, 'event_deleted_permanent']);
         }
     }
 
     echo json_encode([
         'success' => true,
-        'message' => 'Event restored successfully'
+        'message' => 'Event permanently deleted'
     ]);
 
 } catch (PDOException $e) {

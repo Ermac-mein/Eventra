@@ -106,6 +106,7 @@ try {
     $stmt->execute([$user_id]);
     $user = $stmt->fetch();
     unset($user['password']);
+    $user['role'] = $role;
 
     echo json_encode([
         'success' => true,

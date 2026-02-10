@@ -183,8 +183,6 @@ function loadUpcomingEvents(events) {
     // Handle animation dynamically based on item count
     if (events.length > 3) {
         container.style.animation = `slideEvents ${events.length * 6}s linear infinite`;
-        // Clone items for seamless loop
-        container.innerHTML += container.innerHTML;
     } else {
         container.style.animation = 'none';
         container.style.justifyContent = 'center';

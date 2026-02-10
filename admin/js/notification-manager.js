@@ -47,7 +47,7 @@ class NotificationManager {
     }
 
     updateNotificationBadge() {
-        const bellIcon = document.querySelector('.action-icon:first-child');
+        const bellIcon = document.getElementById('notificationBellIcon') || document.querySelector('.notification-bell-icon');
         if (!bellIcon) return;
 
         // Remove existing badge
@@ -61,6 +61,22 @@ class NotificationManager {
             const badge = document.createElement('span');
             badge.className = 'notification-badge';
             badge.textContent = this.unreadCount > 99 ? '99+' : this.unreadCount;
+            badge.style.cssText = `
+                position: absolute;
+                top: -5px;
+                right: -5px;
+                background: #ef4444;
+                color: white;
+                border-radius: 50%;
+                width: 18px;
+                height: 18px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 10px;
+                font-weight: 700;
+                border: 2px solid white;
+            `;
             bellIcon.style.position = 'relative';
             bellIcon.appendChild(badge);
         }
@@ -134,6 +150,16 @@ class NotificationManager {
                 </div>
             </div>
         `;
+
+        // Add click event to mark as read
+        if (!notif.is_read) {
+            notifItem.style.cursor = 'pointer';
+            notifItem.addEventListener('click', () => {
+                this.markAsRead(notif.id);
+                notifItem.classList.remove('unread');
+                notifItem.style.cursor = 'default';
+            });
+        }
 
         return notifItem;
     }
@@ -221,5 +247,16 @@ window.notificationManager = new NotificationManager();
 document.addEventListener('DOMContentLoaded', () => {
     if (window.notificationManager) {
         window.notificationManager.startPolling();
+    }
+    
+    // Add click handler for notification bell
+    const bellIcon = document.getElementById('notificationBellIcon') || document.querySelector('.notification-bell-icon');
+    if (bellIcon) {
+        bellIcon.addEventListener('click', () => {
+            const drawer = document.getElementById('notificationsDrawer');
+            if (drawer) {
+                drawer.classList.add('open');
+            }
+        });
     }
 });

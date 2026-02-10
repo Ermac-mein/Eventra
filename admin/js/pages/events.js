@@ -22,7 +22,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!eventsTableBody) return;
         
         if (events.length === 0) {
-            eventsTableBody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 2rem; color: #999;">No events found</td></tr>';
+            eventsTableBody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 2rem; color: #999;">No events found</td></tr>';
             return;
         }
 
@@ -33,6 +33,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 data-client-name="${(event.client_name || '').toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-') || ''}">
                 <td>${event.event_name}</td>
                 <td>${event.state || 'N/A'}</td>
+                <td>${event.client_name || 'Direct'}</td>
                 <td>${event.price > 0 ? '₦' + parseFloat(event.price).toLocaleString() : 'Free'}</td>
                 <td>${event.attendee_count || 0}</td>
                 <td>${event.event_type || 'General'}</td>

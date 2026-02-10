@@ -35,7 +35,7 @@
         if (requiredRole === 'admin') {
             window.location.href = basePath + 'admin/pages/adminLogin.html';
         } else {
-            window.location.href = basePath + 'public/pages/login.html';
+            window.location.href = basePath + 'client/pages/clientLogin.html';
         }
         return;
     }

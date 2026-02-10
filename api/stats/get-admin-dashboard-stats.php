@@ -14,13 +14,9 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
 }
 
 try {
-    // Get total events count
-    $stmt = $pdo->query("SELECT COUNT(*) as total FROM events");
-    $total_events = $stmt->fetch()['total'];
-
-    // Get published events count
+    // Get published events count (only count published events for dashboard)
     $stmt = $pdo->query("SELECT COUNT(*) as total FROM events WHERE status = 'published'");
-    $published_events = $stmt->fetch()['total'];
+    $total_events = $stmt->fetch()['total'];
 
     // Get active users count (regular users with an auth account)
     $stmt = $pdo->query("SELECT COUNT(*) as total FROM auth_accounts WHERE role = 'user' AND is_active = 1");
@@ -113,8 +109,7 @@ try {
     echo json_encode([
         'success' => true,
         'stats' => [
-            'total_events' => (int) $total_events,
-            'published_events' => (int) $published_events,
+            'total_events' => (int) $total_events, // Now only published events
             'active_users' => (int) $active_users,
             'total_clients' => (int) $total_clients,
             'total_revenue' => (float) $total_revenue

@@ -98,6 +98,13 @@ function initializeDrawers() {
             openDrawer(drawerName);
         });
     });
+
+    // Add ESC key listener to close drawers
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' || e.key === 'Esc') {
+            closeAllDrawers();
+        }
+    });
 }
 
 function addDrawerStyles() {
@@ -275,7 +282,10 @@ function closeAllDrawers() {
     document.querySelectorAll('.side-drawer').forEach(drawer => {
         drawer.classList.remove('open');
     });
-    document.getElementById('drawerOverlay')?.classList.remove('active');
+    const overlay = document.getElementById('drawerOverlay');
+    if (overlay) {
+        overlay.classList.remove('active');
+    }
 }
 
 async function loadProfile() {

@@ -39,7 +39,7 @@ async function loadGlobalProfile() {
         const response = await fetch('../../api/users/get-profile.php');
         
         if (response.status === 401) {
-            window.location.href = '../../public/pages/clientLogin.html';
+            window.location.href = '../../client/pages/clientLogin.html';
             return;
         }
 
@@ -105,13 +105,13 @@ async function logout() {
         sessionStorage.clear();
 
         // Hard redirect to login
-        window.location.href = '../../public/pages/clientLogin.html';
+        window.location.href = '../../client/pages/clientLogin.html';
     } catch (error) {
         console.error('Logout error:', error);
         // Clean up and redirect anyway
         storage.remove('client_user');
         storage.remove('client_auth_token');
-        window.location.href = '../../public/pages/clientLogin.html';
+        window.location.href = '../../client/pages/clientLogin.html';
     }
 }
 

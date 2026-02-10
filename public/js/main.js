@@ -7,25 +7,63 @@ let eventsData = {
   nearby: []
 };
 
+let allEvents = [];  // Store all events for filtering
+
 // Load events from API
 async function loadEvents() {
   try {
-    const response = await fetch('../../api/events/get-events.php?status=published&limit=100');
+    const response = await fetch('../../api/events/get-events.php');
     const result = await response.json();
-
+    
     if (result.success && result.events) {
-      // Filter events by priority
-      eventsData.hot = result.events.filter(e => e.priority === 'hot');
-      eventsData.trending = result.events.filter(e => e.priority === 'trending');
-      eventsData.featured = result.events.filter(e => e.priority === 'featured');
-      eventsData.upcoming = result.events.filter(e => e.priority === 'upcoming');
-      eventsData.nearby = result.events.filter(e => e.priority === 'nearby');
-
+      const publishedEvents = result.events.filter(event => event.status === 'published');
+      
+      // Store all events for search functionality
+      allEvents = publishedEvents;
+      if (typeof window.allEventsData !== 'undefined') {
+        window.allEventsData = publishedEvents;
+      }
+      
+      // Sort helper by creation date (newest first)
+      const sortByCreation = (events) => {
+        return events.sort((a, b) => {
+          const dateA = new Date(a.created_at || a.event_date);
+          const dateB = new Date(b.created_at || b.event_date);
+          return dateB - dateA;
+        });
+      };
+      
+      // Categorize events by priority field - sorted by creation date within each priority
+      const now = new Date();
+      const upcomingEvents = publishedEvents.filter(event => new Date(event.event_date) >= now);
+      
+      // Priority-based filtering: featured > hot > trending > normal (sorted by creation date)
+      eventsData.featured = sortByCreation([...publishedEvents.filter(e => e.priority === 'featured')]).slice(0, 6);
+      eventsData.hot = sortByCreation([...publishedEvents.filter(e => e.priority === 'hot')]).slice(0, 6);
+      
+      // Trending: events with priority='trending' OR high attendee count
+      eventsData.trending = sortByCreation([...publishedEvents
+        .filter(e => e.priority === 'trending' || (e.attendee_count && e.attendee_count > 50))])
+        .slice(0, 6);
+      
+      // Upcoming: future events sorted by date (earliest first)
+      eventsData.upcoming = upcomingEvents
+        .sort((a, b) => new Date(a.event_date) - new Date(b.event_date))
+        .slice(0, 6);
+      
+      // Nearby: events in user's location (fallback to sorted by creation)
+      eventsData.nearby = sortByCreation([...publishedEvents]).slice(0, 6);
+      
+      // Render events
+      renderEvents();
+    } else {
+      console.error('Failed to load events:', result.message);
+      // Render empty state
       renderEvents();
     }
   } catch (error) {
     console.error('Error loading events:', error);
-    // Fallback to empty arrays
+    // Render empty state
     renderEvents();
   }
 }
@@ -369,40 +407,29 @@ function filterEvents(query) {
 // Create event card
 function createEventCard(event) {
   const price = event.price ? `₦${parseFloat(event.price).toLocaleString()}` : 'Free';
-  const actionText = 'Buy Ticket';
-  const isFavorite = event.is_favorite ? 'active' : '';
+  const eventImage = event.image_path || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=400&h=250&fit=crop';
+  const eventDate = new Date(event.event_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   
   return `
-    <div class="event-card" data-id="${event.id}">
-      <div class="priority-label" style="position: absolute; top: 10px; left: 10px; z-index: 2; padding: 4px 10px; border-radius: 12px; font-size: 0.7rem; font-weight: 700; color: white; background: ${event.priority === 'hot' ? '#ff4757' : event.priority === 'trending' ? '#3742fa' : '#2ed573'}; text-transform: uppercase;">
-        ${event.priority || 'Event'}
+    <div class="event-card" data-id="${event.id}" data-tag="${event.tag || event.id}">
+      <div class="event-image-container">
+        <img src="${eventImage}" alt="${event.event_name}" class="event-image">
+        <button class="favorite-icon" onclick="toggleFavorite(event, ${event.id})">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+          </svg>
+        </button>
       </div>
-      <img src="${event.image_path || ''}" alt="${event.event_name}" class="event-image" loading="lazy">
-      <div class="event-info">
-        <div class="event-header">
-          <div>
-            <h3 class="event-title">${event.event_name}</h3>
-          </div>
-          <div class="event-actions">
-            <span class="action-icon favorite-icon ${isFavorite}" onclick="toggleFavorite(event, ${event.id})" title="Favorite">❤</span>
-            <span class="action-icon share-icon" onclick="shareEvent(event, ${event.id})" title="Share">↗</span>
-          </div>
+      <div class="event-content">
+        <h3 class="event-title">${event.event_name}</h3>
+        <div class="event-meta">
+          <span class="event-date">📅 ${eventDate}</span>
+          <span class="event-location">📍 ${event.state || 'Nigeria'}</span>
         </div>
-        <div class="event-details">
-          <p class="event-location">📍 ${event.state}</p>
-          <div style="display: flex; align-items: center; margin-top: 5px;">
-              <div style="display: flex; margin-right: 8px;">
-                  ${[...Array(Math.min(parseInt(event.attendee_count || 0), 4))].map((_, i) => `
-                      <img src="https://ui-avatars.com/api/?name=User+${i}&background=random" 
-                           style="width: 20px; height: 20px; border-radius: 50%; border: 1px solid white; margin-left: ${i === 0 ? '0' : '-8px'};">
-                  `).join('')}
-              </div>
-              <span style="font-size: 0.75rem; color: #666;">${event.attendee_count || 0} attending</span>
-          </div>
-          <p class="event-price">${price}</p>
-        </div>
+        <p class="event-description">${(event.description || '').substring(0, 100)}${event.description && event.description.length > 100 ? '...' : ''}</p>
         <div class="event-footer">
-          <button class="event-status-btn" onclick="viewEventDetails('${event.tag}')">View Details</button>
+          <span class="event-price">${price}</span>
+          <button class="event-status-btn" onclick="viewEventDetails('${event.tag || event.id}')">View Details</button>
         </div>
       </div>
     </div>
@@ -565,10 +592,162 @@ function init() {
   loadEvents();
   initMobileMenu();
   initUserIcon();
-  initSearch();
+  initEnhancedSearch();  // New enhanced search
+  initEventModal();  // New event modal handler
   initSmoothScroll();
   initHeaderScroll();
   initGoogleAuth();
+}
+
+// Enhanced search with filters
+function initEnhancedSearch() {
+  const searchInput = document.getElementById('searchInput');
+  const searchButton = document.querySelector('.search-button-modern');
+  const categoryFilter = document.getElementById('categoryFilter');
+  const locationFilter = document.getElementById('locationFilter');
+
+  if (searchButton) {
+    searchButton.addEventListener('click', performSearch);
+  }
+
+  if (searchInput) {
+    searchInput.addEventListener('keyup', performSearch);
+    searchInput.addEventListener('input', performSearch);
+  }
+
+  if (categoryFilter) {
+    categoryFilter.addEventListener('change', performSearch);
+  }
+
+  if (locationFilter) {
+    locationFilter.addEventListener('change', performSearch);
+  }
+}
+
+function performSearch() {
+  const searchInput = document.getElementById('searchInput');
+  const categoryFilter = document.getElementById('categoryFilter');
+  const locationFilter = document.getElementById('locationFilter');
+
+  const query = searchInput ? searchInput.value.trim().toLowerCase() : '';
+  const category = categoryFilter ? categoryFilter.value : '';
+  const location = locationFilter ? locationFilter.value : '';
+
+  const allCards = document.querySelectorAll('.event-card');
+
+  allCards.forEach(card => {
+    const title = card.querySelector('.event-title')?.textContent.toLowerCase() || '';
+    const cardLocation = card.querySelector('.event-location')?.textContent.toLowerCase() || '';
+    const description = card.querySelector('.event-description')?.textContent.toLowerCase() || '';
+
+    // Get event from allEvents array based on card data-id
+    const eventId = card.dataset.id;
+    const event = allEvents.find(e => e.id == eventId);
+
+    const matchesQuery = !query || title.includes(query) || description.includes(query) || cardLocation.includes(query);
+    const matchesCategory = !category || (event && event.category && event.category.toLowerCase() === category.toLowerCase());
+    const matchesLocation = !location || cardLocation.includes(location.toLowerCase());
+
+    if (matchesQuery && matchesCategory && matchesLocation) {
+      card.style.display = 'block';
+      card.style.animation = 'fadeIn 0.5s ease-in-out';
+    } else {
+      card.style.display = 'none';
+    }
+  });
+}
+
+// Event modal functionality
+function initEventModal() {
+  const modal = document.getElementById('eventDetailsModal');
+  const closeBtn = document.getElementById('closeEventModal');
+
+  if (closeBtn) {
+    closeBtn.addEventListener('click', closeEventModal);
+  }
+
+  if (modal) {
+    // Close on backdrop click
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        closeEventModal();
+      }
+    });
+  }
+
+  // Add click event to all event cards (delegated)
+  document.addEventListener('click', (e) => {
+    const eventCard = e.target.closest('.event-card');
+    if (eventCard && !e.target.closest('.favorite-icon')) {
+      const eventId = eventCard.dataset.id;
+      showEventModal(eventId);
+    }
+  });
+}
+
+function showEventModal(eventId) {
+  const event = allEvents.find(e => e.id == eventId);
+  if (!event) {
+    console.error('Event not found:', eventId);
+    return;
+  }
+
+  // Populate modal
+  const modal = document.getElementById('eventDetailsModal');
+  document.getElementById('modalEventImage').src = event.image_path || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800&h=500&fit=crop';
+  document.getElementById('modalEventTitle').textContent = event.event_name;
+  document.getElementById('modalEventOrganizer').textContent = `Organized by ${event.organizer_name || event.client_name || 'Eventra'}`;
+  document.getElementById('modalEventDate').textContent = new Date(event.event_date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+  document.getElementById('modalEventTime').textContent = event.event_time || 'TBA';
+  document.getElementById('modalEventLocation').textContent = `${event.city || ''} ${event.state || 'Nigeria'}`.trim();
+  document.getElementById('modalEventDescription').textContent = event.description || 'No description available';
+  document.getElementById('modalEventCategory').textContent = event.category || 'General';
+  document.getElementById('modalEventPrice').textContent = event.price ? `₦${parseFloat(event.price).toLocaleString()}` : 'Free';
+
+  // Priority badge
+  const priorityBadge = document.getElementById('modalPriorityBadge');
+  if (event.priority) {
+    priorityBadge.textContent = event.priority.toUpperCase();
+    priorityBadge.style.display = 'block';
+    if (event.priority === 'hot') {
+      priorityBadge.style.background = 'linear-gradient(135deg, #ff4757, #ff6348)';
+      priorityBadge.style.color = 'white';
+    } else if (event.priority === 'trending') {
+      priorityBadge.style.background = 'linear-gradient(135deg, #3742fa, #5f27cd)';
+      priorityBadge.style.color = 'white';
+    } else if (event.priority === 'featured') {
+      priorityBadge.style.background = 'linear-gradient(135deg, #2ed573, #1abc9c)';
+      priorityBadge.style.color = 'white';
+    }
+  } else {
+    priorityBadge.style.display = 'none';
+  }
+
+  // Buy ticket button
+  const buyTicketBtn = document.getElementById('modalBuyTicketBtn');
+  buyTicketBtn.onclick = () => {
+    viewEventDetails(event.tag || event.id);
+  };
+
+  // Show modal
+  modal.classList.add('active');
+  document.body.style.overflow = 'hidden';  // Prevent background scrolling
+}
+
+function closeEventModal() {
+  const modal = document.getElementById('eventDetailsModal');
+  modal.classList.remove('active');
+  document.body.style.overflow = '';  // Re-enable scrolling
+}
+
+// Update the viewEventDetails function to work with modal
+function viewEventDetails(tag) {
+  if (!tag) {
+      showNotification('Event tag missing', 'error');
+      return;
+  }
+  closeEventModal();  // Close modal first
+  window.location.href = `pages/event-details.html?event=${tag}`;
 }
 
 
@@ -581,3 +760,4 @@ if (document.readyState === 'loading') {
 
 // Make shareEvent available globally
 window.shareEvent = shareEvent;
+window.viewEventDetails = viewEventDetails;
