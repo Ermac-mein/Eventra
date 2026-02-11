@@ -29,7 +29,7 @@
     }
 
     if (!user || user.role !== requiredRole) {
-        console.warn(`Auth Guard: Unauthorized access to ${requiredRole} area. Redirecting...`);
+        console.warn(`Auth Guard: Unauthorized access to ${requiredRole} area. Redirecting...`, { user, requiredRole });
         const basePath = currentPath.includes('/pages/') ? '../../' : '../';
         
         if (requiredRole === 'admin') {
@@ -40,5 +40,5 @@
         return;
     }
 
-    //console.log(`Auth Guard: Successfully authenticated as ${requiredRole}`);
+    console.log(`Auth Guard: Successfully authenticated as ${requiredRole}`);
 })();

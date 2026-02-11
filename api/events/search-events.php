@@ -16,7 +16,7 @@ try {
     $limit = $_GET['limit'] ?? 20;
 
     // Build search query
-    $where_clauses = ["e.status = 'published'"];
+    $where_clauses = ["e.status = 'published'", "e.deleted_at IS NULL"];
     $params = [];
 
     error_log("[Search Debug] Query: $query | Limit: $limit");

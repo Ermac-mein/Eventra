@@ -54,8 +54,9 @@ try {
     $stmt = $pdo->prepare("UPDATE events SET deleted_at = NOW() WHERE id = ?");
     $stmt->execute([$event_id]);
 
-    // Notify admin about event deletion if deleted by client
+    // Send notifications for deletion activity
     if ($user_role === 'client') {
+        // Client deleted their event - notify admin
         $stmt = $pdo->prepare("SELECT business_name FROM clients WHERE auth_id = ?");
         $stmt->execute([$user_id]);
         $client_info = $stmt->fetch();
@@ -67,8 +68,21 @@ try {
 
         if ($admin) {
             $message = "Event '{$event['event_name']}' has been deleted by $user_name";
-            $stmt = $pdo->prepare("INSERT INTO notifications (recipient_auth_id, sender_auth_id, message, type) VALUES (?, ?, ?, ?)");
-            $stmt->execute([$admin['id'], $user_id, $message, 'event_deleted']);
+            $metadata = json_encode(['event_id' => $event_id, 'event_name' => $event['event_name']]);
+            $stmt = $pdo->prepare("INSERT INTO notifications (recipient_auth_id, sender_auth_id, message, type, metadata) VALUES (?, ?, ?, ?, ?)");
+            $stmt->execute([$admin['id'], $user_id, $message, 'event_deleted', $metadata]);
+        }
+    } else {
+        // Admin deleted the event - notify the client owner
+        $stmt = $pdo->prepare("SELECT auth_id FROM clients WHERE id = ?");
+        $stmt->execute([$event['client_id']]);
+        $client_auth = $stmt->fetch();
+
+        if ($client_auth) {
+            $message = "Your event '{$event['event_name']}' has been deleted by an administrator";
+            $metadata = json_encode(['event_id' => $event_id, 'event_name' => $event['event_name']]);
+            $stmt = $pdo->prepare("INSERT INTO notifications (recipient_auth_id, sender_auth_id, message, type, metadata) VALUES (?, ?, ?, ?, ?)");
+            $stmt->execute([$client_auth['auth_id'], $user_id, $message, 'event_deleted', $metadata]);
         }
     }
 

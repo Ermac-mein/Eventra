@@ -15,7 +15,7 @@ $password = $data['password'];
 $intent = $data['intent'] ?? 'client'; // Default to client if not specified
 $remember_me = isset($data['remember_me']) && $data['remember_me'] === true;
 
-if (!in_array($intent, ['admin', 'client'])) {
+if (!in_array($intent, ['admin', 'client', 'user'])) {
     echo json_encode(['success' => false, 'message' => 'Invalid authentication path.']);
     exit;
 }
@@ -48,7 +48,15 @@ try {
         exit;
     }
 
-    if (password_verify($password, $user['password_hash'])) {
+    if (password_verify($password, $user['password'])) {
+        // Enforce is_active check if desired, or auto-activate
+        if (isset($user['is_active']) && $user['is_active'] == 0) {
+            // Auto-activate on successful password match if it was inactive
+            $stmt = $pdo->prepare("UPDATE auth_accounts SET is_active = 1 WHERE id = ?");
+            $stmt->execute([$user['id']]);
+            $user['is_active'] = 1;
+        }
+
         // 3. Enforce Auth Policy
         $policy = getAuthPolicy($user['role'], 'password', $user);
         if (!$policy['allowed']) {
@@ -71,9 +79,6 @@ try {
         // Store new token in database
         $stmt = $pdo->prepare("INSERT INTO auth_tokens (auth_id, token, expires_at) VALUES (?, ?, ?)");
         $stmt->execute([$user['id'], $token, $expires_at]);
-
-        // Update user status (if we had a status column in auth_accounts, but it's in specific tables or we use is_active)
-        // For now, assume is_active in auth_accounts is the main one.
 
         // Update user status
         $stmt = $pdo->prepare("UPDATE auth_accounts SET is_active = 1 WHERE id = ?");
@@ -128,6 +133,10 @@ try {
                 'email' => $user['email'],
                 'role' => $userRole,
                 'profile_pic' => $user['profile_pic'] ?? null,
+                'phone' => $user['phone'] ?? null,
+                'state' => $user['state'] ?? null,
+                'city' => $user['city'] ?? null,
+                'address' => $user['address'] ?? null,
                 'token' => $token
             ]
         ]);

@@ -40,6 +40,7 @@ try {
         FROM events
         WHERE client_id = ? 
             AND status = 'published' 
+            AND deleted_at IS NULL
             AND event_date >= CURDATE()
         ORDER BY event_date ASC, event_time ASC
         LIMIT 20

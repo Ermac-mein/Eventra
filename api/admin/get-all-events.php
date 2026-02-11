@@ -30,7 +30,18 @@ try {
     $count_stmt->execute($params);
     $total_records = $count_stmt->fetchColumn();
 
-    // Get events
+    // Get global stats
+    $stats_sql = "SELECT 
+                    COUNT(*) as total,
+                    SUM(CASE WHEN status = 'published' AND deleted_at IS NULL THEN 1 ELSE 0 END) as published,
+                    SUM(CASE WHEN deleted_at IS NOT NULL THEN 1 ELSE 0 END) as deleted,
+                    SUM(CASE WHEN status = 'scheduled' AND deleted_at IS NULL THEN 1 ELSE 0 END) as scheduled,
+                    SUM(CASE WHEN status = 'restored' AND deleted_at IS NULL THEN 1 ELSE 0 END) as restored
+                  FROM events";
+    $stats_stmt = $pdo->query($stats_sql);
+    $stats = $stats_stmt->fetch();
+
+    // Get events (including soft-deleted for admin to monitor)
     $sql = "SELECT e.*, u.business_name as client_name 
             FROM events e 
             LEFT JOIN clients u ON e.client_id = u.id 
@@ -54,7 +65,8 @@ try {
     echo json_encode([
         'success' => true,
         'events' => $events,
-        'total' => $total_records
+        'total' => $total_records,
+        'stats' => $stats
     ]);
 
 } catch (PDOException $e) {

@@ -17,6 +17,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Load dashboard stats
     await loadDashboardStats();
+
+    // Task 3: Real-time synchronization (10s polling)
+    setInterval(loadDashboardStats, 10000);
 });
 
 async function loadAdminProfile() {

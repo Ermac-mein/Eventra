@@ -154,9 +154,15 @@ class NotificationManager {
 
         html += notifications.map(notif => {
             const title = notif.title || notif.type.replace('_', ' ').toUpperCase();
+            const metadata = notif.metadata ? JSON.parse(notif.metadata) : null;
+            const isEventNotification = ['event_deleted', 'event_restored'].includes(notif.type);
+            const clickHandler = isEventNotification && metadata?.event_id 
+                ? `window.notificationManager.handleEventNotificationClick(${metadata.event_id}, '${notif.type}')` 
+                : `window.notificationManager.markSingleAsRead(${notif.id})`;
+            
             return `
                 <div class="notification-item ${String(notif.is_read) === '0' ? 'unread' : ''}" 
-                     onclick="window.notificationManager.markSingleAsRead(${notif.id})"
+                     onclick="${clickHandler}"
                      style="padding: 1rem; border-bottom: 1px solid #e5e7eb; cursor: pointer;">
                     <div style="display: flex; gap: 1rem;">
                         <div style="font-size: 1.5rem;">${getNotificationIcon(notif.type)}</div>
@@ -293,6 +299,18 @@ class NotificationManager {
             console.error('Error clearing notifications:', error);
         }
     }
+
+    /**
+     * Handle event-specific notification clicks
+     * @param {number} eventId - ID of the event
+     * @param {string} notificationType - Type of notification (event_deleted, event_restored)
+     */
+    handleEventNotificationClick(eventId, notificationType) {
+        if (window.deletedEventModal && ['event_deleted', 'event_restored'].includes(notificationType)) {
+            // Open the deleted event modal
+            window.deletedEventModal.open(eventId);
+        }
+    }
 }
 
 // Helper functions
@@ -302,6 +320,10 @@ function getNotificationIcon(type) {
         'event_created': '🎉',
         'event_scheduled': '📅',
         'event_published': '🚀',
+        'event_deleted': '🗑️',
+        'event_restored': '♻️',
+        'event_scheduled_reminder': '⏰',
+        'admin_event_scheduled_reminder': '⏰',
         'ticket_purchased': '🎫',
         'user_registered': '👤',
         'default': '🔔'

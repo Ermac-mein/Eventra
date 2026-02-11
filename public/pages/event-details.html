@@ -126,60 +126,72 @@
         <nav class="nav-container">
             <div class="logo" onclick="window.location.href='index.html'" style="cursor: pointer;">EVENTRA</div>
             <div class="nav-actions">
-                <button class="btn-secondary" onclick="window.location.href='index.html'">Back to Home</button>
+                <button class="more-info-btn" style="padding: 0.5rem 1.5rem; margin-top: 0;" onclick="window.location.href='index.html'">Back to Home</button>
             </div>
         </nav>
     </header>
 
     <div id="eventHero" class="event-details-hero">
-        <div class="hero-info-overlay"></div>
+        <div class="hero-info-overlay" style="background: linear-gradient(to top, rgba(0,0,0,0.9), transparent);"></div>
         <div class="hero-content">
-            <div id="priorityBadge" class="priority-badge">Upcoming</div>
-            <h1 id="eventTitle" style="font-size: 3.5rem; font-weight: 800; margin-bottom: 0.5rem;">Event Loading...</h1>
-            <p id="eventSummary" style="font-size: 1.2rem; opacity: 0.9;">Please wait while we fetch the details.</p>
+            <div id="priorityBadge" class="event-category-badge" style="display: inline-block; margin-bottom: 1rem;">Upcoming</div>
+            <h1 id="eventTitle" style="font-size: clamp(2.5rem, 6vw, 4rem); font-weight: 800; margin-bottom: 1rem; line-height: 1.1;">Event Loading...</h1>
+            <p id="eventSummary" style="font-size: 1.25rem; opacity: 0.9; font-weight: 500;">Please wait while we fetch the details.</p>
         </div>
     </div>
 
-    <main class="event-main-content">
-        <div class="event-info-card">
-            <h2 style="margin-bottom: 1.5rem;">About this Event</h2>
-            <p id="eventDescription" style="line-height: 1.8; color: #4b5563; margin-bottom: 2rem;"></p>
+    <main class="event-main-content" style="margin-top: -6rem;">
+        <div class="event-info-card" style="box-shadow: 0 20px 50px rgba(0,0,0,0.15); border: 1px solid rgba(0,0,0,0.05);">
+            <h2 style="font-size: 1.75rem; margin-bottom: 2rem; color: var(--text-dark);">About this Event</h2>
+            <p id="eventDescription" style="font-size: 1.1rem; line-height: 1.8; color: var(--text-gray); margin-bottom: 2.5rem;"></p>
             
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 3rem;">
                 <div>
-                    <h3>Details</h3>
-                    <div class="meta-item"><span class="meta-icon">📍</span> <span id="eventAddress"></span></div>
-                    <div class="meta-item"><span class="meta-icon">📅</span> <span id="eventDate"></span></div>
-                    <div class="meta-item"><span class="meta-icon">🕒</span> <span id="eventTime"></span></div>
+                    <h3 style="font-size: 1.25rem; margin-bottom: 1.5rem; color: var(--text-dark);">Details</h3>
+                    <div class="meta-item" style="margin-bottom: 1.25rem;">
+                        <span class="meta-icon" style="color: var(--primary-color);">📍</span> 
+                        <span id="eventAddress" style="font-weight: 500;"></span>
+                    </div>
+                    <div class="meta-item" style="margin-bottom: 1.25rem;">
+                        <span class="meta-icon" style="color: var(--primary-color);">📅</span> 
+                        <span id="eventDate" style="font-weight: 500;"></span>
+                    </div>
+                    <div class="meta-item">
+                        <span class="meta-icon" style="color: var(--primary-color);">🕒</span> 
+                        <span id="eventTime" style="font-weight: 500;"></span>
+                    </div>
                 </div>
                 <div>
-                    <h3>Attendees</h3>
-                    <div class="attendee-stack">
+                    <h3 style="font-size: 1.25rem; margin-bottom: 1.5rem; color: var(--text-dark);">Attendees</h3>
+                    <div class="attendee-stack" style="background: #f8f9fa; padding: 1.25rem; border-radius:16px;">
                         <div class="attendee-icons" id="attendeeStack">
                             <!-- Icons injected here -->
                         </div>
-                        <span id="attendeeCountDisplay" style="font-weight: 600; color: #6b7280;"></span>
+                        <span id="attendeeCountDisplay" style="font-weight: 600; color: var(--text-gray); font-size: 0.95rem;"></span>
                     </div>
                 </div>
             </div>
         </div>
 
-        <div class="event-booking-card">
-            <h3 style="margin-bottom: 0.5rem;">Get Your Tickets</h3>
-            <p style="color: #6b7280; font-size: 0.9rem; margin-bottom: 1.5rem;">Hosted by <span id="clientName" style="color: var(--primary-color); font-weight: 600;"></span></p>
+        <div class="event-booking-card" style="box-shadow: 0 20px 50px rgba(0,0,0,0.15); border: 1px solid rgba(0,0,0,0.05); height: fit-content; position: sticky; top: 100px;">
+            <h3 style="font-size: 1.5rem; margin-bottom: 0.75rem; color: var(--text-dark);">Get Your Tickets</h3>
+            <p style="color: var(--text-light); font-size: 0.95rem; margin-bottom: 2rem;">Hosted by <span id="clientName" style="color: var(--primary-color); font-weight: 700;"></span></p>
             
-            <div class="booking-price" id="eventPrice">₦0</div>
+            <div class="booking-price" id="eventPrice" style="font-size: 2.5rem; margin-bottom: 2rem;"></div>
             
-            <div style="margin-bottom: 1.5rem;">
-                <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Quantity</label>
-                <input type="number" id="ticketQuantity" value="1" min="1" class="form-input" style="width: 100%;">
+            <div style="margin-bottom: 2rem;">
+                <label style="display: block; margin-bottom: 0.75rem; font-weight: 600; color: var(--text-dark);">Ticket Quantity</label>
+                <input type="number" id="ticketQuantity" value="1" min="1" class="form-input" style="width: 100%; padding: 1rem; border-radius: 12px; border: 2px solid #eee; font-size: 1.1rem; outline: none; transition: border-color 0.3s;" onfocus="this.style.borderColor='var(--primary-color)'" onblur="this.style.borderColor='#eee'">
             </div>
 
-            <button id="bookNowBtn" class="booking-btn">Book Now</button>
+            <button id="bookNowBtn" class="more-info-btn" style="background: var(--primary-color); color: white; border: none; font-size: 1.1rem; padding: 1.25rem; border-radius: 16px; box-shadow: 0 10px 20px rgba(255, 90, 95, 0.2);">
+                <span id="buyTicketText">Buy Ticket Now</span>
+            </button>
             
-            <p style="text-align: center; margin-top: 1.5rem; font-size: 0.8rem; color: #9ca3af;">
-                Secure checkout powered by Eventra Pay
-            </p>
+            <div style="display: flex; align-items: center; justify-content: center; gap: 0.75rem; margin-top: 2rem; padding: 1rem; background: #fdf2f2; border-radius: 12px;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ff5a5f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                <p style="font-size: 0.85rem; color: #ff5a5f; font-weight: 600;">Secure checkout by Eventra</p>
+            </div>
         </div>
     </main>
 

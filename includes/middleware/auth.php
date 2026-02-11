@@ -5,7 +5,18 @@ require_once __DIR__ . '/../helpers/entity-resolver.php';
 function checkAuth($requiredRole = null)
 {
     global $pdo;
+
+    // Determine session name based on context or existing session
     if (session_status() === PHP_SESSION_NONE) {
+        $path = $_SERVER['REQUEST_URI'] ?? '';
+
+        if (strpos($path, '/api/admin/') !== false || strpos($path, '/admin/') !== false) {
+            session_name('EVENTRA_ADMIN_SESS');
+        } elseif (strpos($path, '/api/client/') !== false || strpos($path, '/client/') !== false) {
+            session_name('EVENTRA_CLIENT_SESS');
+        } else {
+            session_name('EVENTRA_USER_SESS');
+        }
         session_start();
     }
 

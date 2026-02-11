@@ -72,8 +72,9 @@ try {
 
         if ($admin) {
             $message = "Event '{$event['event_name']}' has been restored by $user_name";
-            $stmt = $pdo->prepare("INSERT INTO notifications (recipient_auth_id, sender_auth_id, message, type) VALUES (?, ?, ?, ?)");
-            $stmt->execute([$admin['id'], $user_id, $message, 'event_restored']);
+            $metadata = json_encode(['event_id' => $event_id, 'event_name' => $event['event_name']]);
+            $stmt = $pdo->prepare("INSERT INTO notifications (recipient_auth_id, sender_auth_id, message, type, metadata) VALUES (?, ?, ?, ?, ?)");
+            $stmt->execute([$admin['id'], $user_id, $message, 'event_restored', $metadata]);
         }
     }
 

@@ -18,12 +18,16 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function initDrawers() {
-    const backdrop = document.createElement('div');
-    backdrop.className = 'drawer-backdrop';
-    document.body.appendChild(backdrop);
+    // Create overlay backdrop for drawers
+    let backdrop = document.querySelector('.drawer-backdrop');
+    if (!backdrop) {
+        backdrop = document.createElement('div');
+        backdrop.className = 'drawer-backdrop';
+        document.body.appendChild(backdrop);
+    }
 
     const profileBtn = document.getElementById('openProfileDrawer');
-    const notificationsBtn = document.querySelector('.action-icon i[data-lucide="bell"]')?.parentElement;
+    const notificationBellIcon = document.getElementById('notificationBellIcon') || document.querySelector('.notification-bell-icon');
     const profileDrawer = document.getElementById('profileDrawer');
     const notificationsDrawer = document.getElementById('notificationsDrawer');
     const backArrows = document.querySelectorAll('.back-arrow');
@@ -44,9 +48,9 @@ function initDrawers() {
         setTimeout(() => backdrop.style.display = 'none', 400);
     }
 
-    // Attach listeners to triggers
-    if (notificationsBtn) {
-        notificationsBtn.onclick = (e) => {
+    // Attach listeners to notification bell
+    if (notificationBellIcon) {
+        notificationBellIcon.onclick = (e) => {
             e.preventDefault();
             e.stopPropagation();
             openDrawer(notificationsDrawer);
@@ -75,7 +79,7 @@ function initDrawers() {
         }
     });
 
-    // Attach listeners to back arrows  
+    // Attach listeners to back arrows (slide-out on arrow click)
     backArrows.forEach(arrow => {
         arrow.onclick = (e) => {
             e.preventDefault();
@@ -84,7 +88,7 @@ function initDrawers() {
         };
     });
 
-    // Close drawers on backdrop click
+    // Close drawers on backdrop/overlay click (click-away listener)
     backdrop.onclick = (e) => {
         e.preventDefault();
         e.stopPropagation();

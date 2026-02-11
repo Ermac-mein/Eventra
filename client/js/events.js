@@ -1,7 +1,9 @@
 /**
  * Client Events Page JavaScript
- * Handles event creation, management, and display
+ * Handles event creation, management, display, soft-delete, restore, and trash
  */
+
+let currentTab = 'active';
 
 document.addEventListener('DOMContentLoaded', async () => {
     const user = storage.get('user');
@@ -20,6 +22,35 @@ document.addEventListener('DOMContentLoaded', async () => {
     initCreateEventButton();
 });
 
+// ─── TAB SWITCHING ──────────────────────────────────────────────────────────
+
+function switchEventTab(tab) {
+    currentTab = tab;
+    const user = storage.get('user');
+
+    // Update tab button styles
+    document.querySelectorAll('.event-tab').forEach(btn => {
+        const isActive = btn.dataset.tab === tab;
+        btn.classList.toggle('active', isActive);
+        if (isActive) {
+            btn.style.background = tab === 'trash' ? '#ef4444' : 'var(--card-blue)';
+            btn.style.color = 'white';
+        } else {
+            btn.style.background = '#f3f4f6';
+            btn.style.color = '#6b7280';
+        }
+    });
+
+    if (tab === 'active') {
+        loadEvents(user.id);
+    } else {
+        loadTrashEvents(user.id);
+    }
+}
+window.switchEventTab = switchEventTab;
+
+// ─── LOAD ACTIVE EVENTS ────────────────────────────────────────────────────
+
 async function loadEvents(clientId) {
     try {
         const response = await fetch(`../../api/events/get-events.php?client_id=${clientId}&limit=100`);
@@ -29,6 +60,7 @@ async function loadEvents(clientId) {
             // Update stats cards
             if (result.stats) {
                 updateStatsCards(result.stats);
+                updateTrashBadge(result.stats.deleted_events || 0);
             }
 
             // Update events table
@@ -36,6 +68,14 @@ async function loadEvents(clientId) {
         }
     } catch (error) {
         console.error('Error loading events:', error);
+    }
+}
+
+function updateTrashBadge(count) {
+    const badge = document.getElementById('trashCount');
+    if (badge) {
+        badge.textContent = count;
+        badge.style.display = count > 0 ? 'inline' : 'none';
     }
 }
 
@@ -53,6 +93,25 @@ function updateStatsCards(stats) {
 function updateEventsTable(events) {
     const tbody = document.querySelector('.table-card table tbody');
     if (!tbody) return;
+
+    // Restore default table headers for active view
+    const thead = document.querySelector('.table-card table thead tr');
+    if (thead) {
+        thead.innerHTML = `
+            <th>Event Name</th>
+            <th>Priority</th>
+            <th>Date</th>
+            <th>Time</th>
+            <th>Category</th>
+            <th>Phone</th>
+            <th>Price</th>
+            <th class="text-center">Attendees</th>
+            <th>Tag</th>
+            <th>Link</th>
+            <th>Status</th>
+            <th class="text-center">Actions</th>
+        `;
+    }
 
     if (events.length === 0) {
         tbody.innerHTML = '<tr><td colspan="12" style="text-align: center; padding: 2rem; color: var(--client-text-muted);">No events yet. Create your first event!</td></tr>';
@@ -109,7 +168,7 @@ function updateEventsTable(events) {
                     <button onclick="editEvent(${event.id})" class="action-icon-btn" title="Edit Event" style="background: none; border: none; cursor: pointer; font-size: 1.2rem; padding: 0.25rem 0.5rem; transition: transform 0.2s;">
                         ✏️
                     </button>
-                    <button onclick="deleteEvent(${event.id})" class="action-icon-btn" title="Delete Event" style="background: none; border: none; cursor: pointer; font-size: 1.2rem; padding: 0.25rem 0.5rem; transition: transform 0.2s;">
+                    <button id="deleteBtn-${event.id}" onclick="deleteEvent(${event.id})" class="action-icon-btn" title="Delete Event" style="background: none; border: none; cursor: pointer; font-size: 1.2rem; padding: 0.25rem 0.5rem; transition: transform 0.2s;">
                         🗑️
                     </button>
                 </div>
@@ -124,6 +183,7 @@ function getStatusColor(status) {
         'published': 'var(--card-green)',
         'scheduled': 'var(--card-blue)',
         'draft': 'var(--card-red)',
+        'restored': 'var(--card-blue)',
         'cancelled': '#999'
     };
     return colors[status] || '#000';
@@ -163,20 +223,38 @@ async function editEvent(eventId) {
     }
 }
 
+// ─── SOFT DELETE WITH LOADING + OPTIMISTIC UI + UNDO TOAST ──────────────────
 
 async function deleteEvent(eventId) {
     const result = await Swal.fire({
-        title: 'Delete Event?',
-        text: 'Are you sure you want to delete this event? This action cannot be reverted.',
+        title: 'Move to Trash?',
+        text: 'This event will be moved to Trash. You can restore it anytime.',
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: '#ef4444',
         cancelButtonColor: '#9ca3af',
-        confirmButtonText: 'Yes, Delete',
+        confirmButtonText: 'Yes, Move to Trash',
         cancelButtonText: 'Cancel'
     });
 
     if (!result.isConfirmed) return;
+
+    // ── Loading state on the button ──
+    const btn = document.getElementById(`deleteBtn-${eventId}`);
+    let originalBtnContent = '';
+    if (btn) {
+        originalBtnContent = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<span class="btn-spinner"></span>';
+    }
+
+    // ── Optimistic UI: hide the row immediately ──
+    const row = document.querySelector(`tr[data-id="${eventId}"]`);
+    if (row) {
+        row.style.transition = 'opacity 0.3s, transform 0.3s';
+        row.style.opacity = '0';
+        row.style.transform = 'translateX(20px)';
+    }
 
     try {
         const response = await fetch('../../api/events/delete-event.php', {
@@ -185,21 +263,291 @@ async function deleteEvent(eventId) {
             body: JSON.stringify({ event_id: eventId })
         });
 
-        const result = await response.json();
+        const data = await response.json();
 
-        if (result.success) {
-            showNotification('Event deleted successfully', 'success');
-            // Reload events
+        if (data.success) {
+            // Remove the row from DOM after animation
+            setTimeout(() => { if (row) row.remove(); }, 350);
+
+            // Refresh stats in background
             const user = storage.get('user');
-            await loadEvents(user.id);
+            refreshStats(user.id);
+
+            // Show toast with Undo action
+            showUndoToast(eventId);
         } else {
-            showNotification('Failed to delete event: ' + result.message, 'error');
+            // Revert optimistic UI
+            if (row) {
+                row.style.opacity = '1';
+                row.style.transform = 'translateX(0)';
+            }
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = originalBtnContent;
+            }
+            showNotification('Failed to delete: ' + data.message, 'error');
         }
     } catch (error) {
         console.error('Error deleting event:', error);
+        // Revert optimistic UI
+        if (row) {
+            row.style.opacity = '1';
+            row.style.transform = 'translateX(0)';
+        }
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = originalBtnContent;
+        }
         showNotification('An error occurred', 'error');
     }
 }
+
+function showUndoToast(eventId) {
+    // Remove any existing undo toast
+    const existing = document.getElementById('undoToast');
+    if (existing) existing.remove();
+
+    const toast = document.createElement('div');
+    toast.id = 'undoToast';
+    toast.className = 'undo-toast';
+    toast.innerHTML = `
+        <span>🗑️ Event moved to Trash</span>
+        <button onclick="undoDelete(${eventId})" class="toast-undo-btn">Undo</button>
+    `;
+    document.body.appendChild(toast);
+
+    // Animate in
+    requestAnimationFrame(() => {
+        toast.classList.add('undo-toast-visible');
+    });
+
+    // Auto-dismiss after 6 seconds
+    toast._timeout = setTimeout(() => {
+        dismissUndoToast();
+    }, 6000);
+}
+
+function dismissUndoToast() {
+    const toast = document.getElementById('undoToast');
+    if (!toast) return;
+    clearTimeout(toast._timeout);
+    toast.classList.remove('undo-toast-visible');
+    setTimeout(() => toast.remove(), 400);
+}
+
+async function undoDelete(eventId) {
+    dismissUndoToast();
+
+    try {
+        const response = await fetch('../../api/events/restore-event.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ event_id: eventId })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            showNotification('Event restored successfully!', 'success');
+            const user = storage.get('user');
+            await loadEvents(user.id);
+            refreshStats(user.id);
+        } else {
+            showNotification('Failed to undo: ' + data.message, 'error');
+        }
+    } catch (error) {
+        console.error('Undo error:', error);
+        showNotification('Failed to undo deletion', 'error');
+    }
+}
+window.undoDelete = undoDelete;
+
+async function refreshStats(clientId) {
+    try {
+        const response = await fetch(`../../api/events/get-events.php?client_id=${clientId}&limit=1`);
+        const result = await response.json();
+        if (result.success && result.stats) {
+            updateStatsCards(result.stats);
+            updateTrashBadge(result.stats.deleted_events || 0);
+        }
+    } catch (e) {
+        // silent
+    }
+}
+
+// ─── TRASH VIEW ─────────────────────────────────────────────────────────────
+
+async function loadTrashEvents() {
+    const tbody = document.querySelector('.table-card table tbody');
+    if (!tbody) return;
+
+    // Update thead for trash view
+    const thead = document.querySelector('.table-card table thead tr');
+    if (thead) {
+        thead.innerHTML = `
+            <th>Event Name</th>
+            <th>Category</th>
+            <th>Date</th>
+            <th>Price</th>
+            <th>Deleted On</th>
+            <th class="text-center">Actions</th>
+        `;
+    }
+
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 2rem; color: var(--client-text-muted);"><span class="btn-spinner" style="margin-right: 8px;"></span>Loading trash...</td></tr>';
+
+    try {
+        const response = await fetch('../../api/events/get-trash.php?limit=100');
+        const result = await response.json();
+
+        if (result.success) {
+            if (result.events.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 2rem; color: var(--client-text-muted);">🎉 Trash is empty!</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = result.events.map(event => `
+                <tr data-id="${event.id}" style="transition: opacity 0.3s, transform 0.3s;">
+                    <td style="font-weight: 600;">${event.event_name}</td>
+                    <td>${event.event_type || '—'}</td>
+                    <td>${new Date(event.event_date).toLocaleDateString()}</td>
+                    <td>${parseFloat(event.price) === 0 
+                        ? '<span style="background: #ecfdf5; color: #10b981; padding: 2px 8px; border-radius: 4px; font-weight: 600; font-size: 0.8rem;">Free</span>'
+                        : '₦' + parseFloat(event.price).toLocaleString()}</td>
+                    <td style="color: #ef4444; font-size: 0.85rem;">${new Date(event.deleted_at).toLocaleString()}</td>
+                    <td class="text-center">
+                        <div style="display: flex; gap: 0.5rem; justify-content: center;">
+                            <button onclick="restoreEvent(${event.id})" title="Restore Event" style="background: #10b981; color: white; border: none; padding: 6px 14px; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 0.8rem; transition: all 0.2s;">
+                                ↩️ Restore
+                            </button>
+                            <button onclick="permanentDeleteEvent(${event.id})" title="Delete Forever" style="background: #ef4444; color: white; border: none; padding: 6px 14px; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 0.8rem; transition: all 0.2s;">
+                                ❌ Delete Forever
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+        } else {
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 2rem; color: #ef4444;">Failed to load trash</td></tr>';
+        }
+    } catch (error) {
+        console.error('Error loading trash:', error);
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 2rem; color: #ef4444;">An error occurred</td></tr>';
+    }
+}
+
+// ─── RESTORE EVENT (from Trash tab) ─────────────────────────────────────────
+
+async function restoreEvent(eventId) {
+    const result = await Swal.fire({
+        title: 'Restore Event?',
+        text: 'This event will be restored with "Draft" status. You can then edit and re-publish it.',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#10b981',
+        cancelButtonColor: '#9ca3af',
+        confirmButtonText: 'Yes, Restore',
+        cancelButtonText: 'Cancel'
+    });
+
+    if (!result.isConfirmed) return;
+
+    // Optimistic: hide the row
+    const row = document.querySelector(`tr[data-id="${eventId}"]`);
+    if (row) {
+        row.style.opacity = '0';
+        row.style.transform = 'translateX(-20px)';
+    }
+
+    try {
+        const response = await fetch('../../api/events/restore-event.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ event_id: eventId })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            setTimeout(() => { if (row) row.remove(); }, 350);
+            showNotification('Event restored! Status set to Draft.', 'success');
+            const user = storage.get('user');
+            refreshStats(user.id);
+
+            // Auto-switch to Active Events tab and reload the full list
+            setTimeout(() => {
+                switchEventTab('active');
+            }, 500);
+        } else {
+            // Revert
+            if (row) { row.style.opacity = '1'; row.style.transform = 'translateX(0)'; }
+            showNotification('Restore failed: ' + data.message, 'error');
+        }
+    } catch (error) {
+        console.error('Error restoring event:', error);
+        if (row) { row.style.opacity = '1'; row.style.transform = 'translateX(0)'; }
+        showNotification('An error occurred', 'error');
+    }
+}
+window.restoreEvent = restoreEvent;
+
+// ─── PERMANENT DELETE (from Trash tab) ──────────────────────────────────────
+
+async function permanentDeleteEvent(eventId) {
+    const result = await Swal.fire({
+        title: 'Delete Forever?',
+        html: '<p style="color:#ef4444;font-weight:600;">⚠️ This action is permanent and cannot be undone.</p><p>The event and all related data will be erased from the database.</p>',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#ef4444',
+        cancelButtonColor: '#9ca3af',
+        confirmButtonText: 'Yes, Delete Forever',
+        cancelButtonText: 'Cancel'
+    });
+
+    if (!result.isConfirmed) return;
+
+    const row = document.querySelector(`tr[data-id="${eventId}"]`);
+    if (row) {
+        row.style.opacity = '0';
+        row.style.transform = 'translateX(20px)';
+    }
+
+    try {
+        const response = await fetch('../../api/events/delete-event-permanent.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ event_id: eventId })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            setTimeout(() => { if (row) row.remove(); }, 350);
+            showNotification('Event permanently deleted', 'success');
+            const user = storage.get('user');
+            refreshStats(user.id);
+
+            setTimeout(() => {
+                const remaining = document.querySelectorAll('.table-card table tbody tr[data-id]');
+                if (remaining.length === 0) {
+                    const tbody = document.querySelector('.table-card table tbody');
+                    if (tbody) tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 2rem; color: var(--client-text-muted);">🎉 Trash is empty!</td></tr>';
+                }
+            }, 400);
+        } else {
+            if (row) { row.style.opacity = '1'; row.style.transform = 'translateX(0)'; }
+            showNotification('Delete failed: ' + data.message, 'error');
+        }
+    } catch (error) {
+        console.error('Error permanently deleting:', error);
+        if (row) { row.style.opacity = '1'; row.style.transform = 'translateX(0)'; }
+        showNotification('An error occurred', 'error');
+    }
+}
+window.permanentDeleteEvent = permanentDeleteEvent;
+
+// ─── PREVIEW EVENT ──────────────────────────────────────────────────────────
 
 async function previewEvent(eventId) {
     const row = document.querySelector(`tr[data-id="${eventId}"]`);

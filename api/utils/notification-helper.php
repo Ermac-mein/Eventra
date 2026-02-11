@@ -15,22 +15,79 @@ require_once __DIR__ . '/../../config/database.php';
  * @param int|null $sender_id Optional sender user ID
  * @return bool Success status
  */
-function createNotification($recipient_id, $message, $type = 'info', $sender_id = null)
+/**
+ * Create a notification
+ * 
+ * @param int $recipient_id User ID who will receive the notification
+ * @param string $message Notification message
+ * @param string $type Notification type
+ * @param int|null $sender_id Optional sender user ID
+ * @param array|null $metadata Optional metadata to store in JSON format
+ * @return bool Success status
+ */
+function createNotification($recipient_id, $message, $type = 'info', $sender_id = null, $metadata = null)
 {
     global $pdo;
 
     try {
         $stmt = $pdo->prepare("
-            INSERT INTO notifications (recipient_auth_id, sender_auth_id, message, type, is_read, created_at)
-            VALUES (?, ?, ?, ?, 0, NOW())
+            INSERT INTO notifications (recipient_auth_id, sender_auth_id, message, type, metadata, is_read, created_at)
+            VALUES (?, ?, ?, ?, ?, 0, NOW())
         ");
 
-        $stmt->execute([$recipient_id, $sender_id, $message, $type]);
+        $metadataJson = $metadata ? json_encode($metadata) : null;
+        $stmt->execute([$recipient_id, $sender_id, $message, $type, $metadataJson]);
         return true;
     } catch (PDOException $e) {
         error_log("Notification creation failed: " . $e->getMessage());
         return false;
     }
+}
+
+/**
+ * Sends a notification with a retry mechanism (up to 3 attempts)
+ * 
+ * @param int $recipient_id
+ * @param string $message
+ * @param string $type
+ * @param int|null $sender_id
+ * @param array|null $metadata
+ * @return bool Success status
+ */
+function sendNotificationWithRetry($recipient_id, $message, $type = 'info', $sender_id = null, $metadata = [])
+{
+    $maxAttempts = 3;
+    $attempts = 0;
+    $success = false;
+    $lastError = null;
+
+    while ($attempts < $maxAttempts && !$success) {
+        $attempts++;
+        try {
+            // Here we assume createNotification represents the "send" attempt
+            // In a real scenario, this might call an external API (SMTP/Firebase)
+            $res = createNotification($recipient_id, $message, $type, $sender_id, array_merge($metadata, [
+                'attempt' => $attempts,
+                'timestamp' => date('Y-m-d H:i:s')
+            ]));
+
+            if ($res) {
+                $success = true;
+            }
+        } catch (Exception $e) {
+            $lastError = $e->getMessage();
+            error_log("Attempt $attempts failed for user $recipient_id: $lastError");
+            if ($attempts < $maxAttempts) {
+                sleep(1); // Wait a bit before retry
+            }
+        }
+    }
+
+    if (!$success) {
+        error_log("Final failure sending notification to user $recipient_id after $maxAttempts attempts.");
+    }
+
+    return $success;
 }
 
 /**

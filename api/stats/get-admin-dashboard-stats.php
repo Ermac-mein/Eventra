@@ -14,8 +14,8 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
 }
 
 try {
-    // Get published events count (only count published events for dashboard)
-    $stmt = $pdo->query("SELECT COUNT(*) as total FROM events WHERE status = 'published'");
+    // Get ALL events count (Published, Draft, Deleted, and Restored)
+    $stmt = $pdo->query("SELECT COUNT(*) as total FROM events");
     $total_events = $stmt->fetch()['total'];
 
     // Get active users count (regular users with an auth account)

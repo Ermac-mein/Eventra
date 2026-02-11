@@ -19,7 +19,8 @@ function resolveEntity($email)
     global $pdo;
 
     // First check the auth_accounts table
-    $stmt = $pdo->prepare("SELECT * FROM auth_accounts WHERE email = ? AND is_active = 1");
+    // We remove the is_active = 1 requirement here because login.php will handle validation.
+    $stmt = $pdo->prepare("SELECT * FROM auth_accounts WHERE email = ?");
     $stmt->execute([$email]);
     $auth = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -31,7 +32,7 @@ function resolveEntity($email)
 
         if ($client_auth_id) {
             // Found in clients table, now fetch the auth account using the retrieved auth_id
-            $stmt = $pdo->prepare("SELECT * FROM auth_accounts WHERE id = ? AND is_active = 1");
+            $stmt = $pdo->prepare("SELECT * FROM auth_accounts WHERE id = ?");
             $stmt->execute([$client_auth_id]);
             $auth = $stmt->fetch(PDO::FETCH_ASSOC);
         }
@@ -55,13 +56,20 @@ function resolveEntity($email)
         // Correct name column mapping
         $name_col = ($role === 'client') ? 'business_name' : (($role === 'user') ? 'display_name' : 'name');
 
-        $stmt = $pdo->prepare("SELECT a.*, p.$name_col as display_name, p.profile_pic FROM auth_accounts a LEFT JOIN $table p ON a.id = p.auth_id WHERE a.id = ?");
+        // Admins and clients have a 'password' column, users do not.
+        $role_password_col = in_array($role, ['admin', 'client']) ? 'p.password as profile_password_hash' : 'NULL as profile_password_hash';
+
+        // We also fetch password from the specific table to ensure redundancy works correctly
+        $stmt = $pdo->prepare("SELECT a.*, p.*, p.$name_col as display_name, p.profile_pic, $role_password_col FROM auth_accounts a LEFT JOIN $table p ON a.id = p.auth_id WHERE a.id = ?");
         $stmt->execute([$auth['id']]);
         $fullUser = $stmt->fetch(PDO::FETCH_ASSOC);
 
         // For convenience in registration/login logic that expects certain keys
         if ($fullUser) {
+            // Prefer the profile_password_hash if it exists, otherwise use auth_accounts'
+            $fullUser['password_hash'] = $fullUser['profile_password_hash'] ?? $fullUser['password_hash'];
             $fullUser['password'] = $fullUser['password_hash']; // Alias for compatibility
+
             // Map table-specific name fields to a generic 'name'
             $fullUser['name'] = $fullUser['display_name'] ?? ucfirst($role);
             return $fullUser;

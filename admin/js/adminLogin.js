@@ -12,6 +12,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Role Context (Detected from URL role/intent or body data-intent)
     const urlParams = new URLSearchParams(window.location.search);
     const roleParam = urlParams.get('role');
+    const intentParam = urlParams.get('intent');
     // Final intent resolution
     const intent = roleParam || intentParam || document.body.getAttribute('data-intent') || 'admin';
     // Role-Specific UI Adjustments
@@ -25,9 +26,19 @@ document.addEventListener('DOMContentLoaded', () => {
     // Toggle password visibility
     if (togglePassword && passwordInput) {
         togglePassword.addEventListener('click', () => {
-            const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+            const isPassword = passwordInput.getAttribute('type') === 'password';
+            const type = isPassword ? 'text' : 'password';
             passwordInput.setAttribute('type', type);
-            togglePassword.textContent = type === 'password' ? '👁️' : '👁️‍🗨️';
+            
+            // Update Icon
+            togglePassword.innerHTML = isPassword ? 
+                '<i data-lucide="eye-off" style="width: 18px; height: 18px;"></i>' : 
+                '<i data-lucide="eye" style="width: 18px; height: 18px;"></i>';
+            
+            // Re-create icons for the new element
+            if (window.lucide) {
+                window.lucide.createIcons();
+            }
         });
     }
 

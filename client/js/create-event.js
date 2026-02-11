@@ -1,52 +1,65 @@
-/**
- * Event Creation Form with Auto-Generated Tags and Links
- */
-
 function showCreateEventModal() {
     const user = storage.get('user');
     if (!user) return;
 
     const modalHTML = `
-        <div id="createEventModal" class="modal-backdrop active" role="dialog" aria-modal="true" aria-hidden="false">
-            <div class="modal-content" style="max-width: 800px; max-height: 90vh; overflow-y: auto;">
-                <div class="modal-header">
-                    <h2>Create New Event</h2>
-                    <button class="modal-close" onclick="closeCreateEventModal()">×</button>
+        <div id="createEventModal" class="modal-backdrop active" role="dialog" aria-modal="true" aria-hidden="false" 
+             style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.6); display: flex; justify-content: center; align-items: center; z-index: 10000; backdrop-filter: blur(8px);">
+            <div class="modal-content" style="
+                width: 95%;
+                max-width: 900px;
+                max-height: 92vh;
+                overflow-y: auto;
+                background: linear-gradient(135deg, #f5f3ff 0%, #fdf4ff 50%, #fef3c7 100%);
+                border-radius: 24px;
+                box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
+                position: relative;
+                animation: slideIn 0.3s ease-out;">
+                
+                <!-- Decorative Background Pattern -->
+                <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; overflow: hidden; border-radius: 24px; opacity: 0.4; pointer-events: none;">
+                    <div style="position: absolute; top: -50px; right: -50px; width: 200px; height: 200px; background: radial-gradient(circle, rgba(139, 92, 246, 0.3), transparent); border-radius: 50%;"></div>
+                    <div style="position: absolute; bottom: -30px; left: -30px; width: 150px; height: 150px; background: radial-gradient(circle, rgba(236, 72, 153, 0.3), transparent); border-radius: 50%;"></div>
+                    <div style="position: absolute; top: 50%; left: 50%; width: 300px; height: 300px; background: radial-gradient(circle, rgba(251, 191, 36, 0.2), transparent); border-radius: 50%; transform: translate(-50%, -50%);"></div>
                 </div>
-                <div class="modal-body">
-                    <form id="createEventForm" enctype="multipart/form-data">
-                        <!-- Event Image Upload -->
-                        <div style="margin-bottom: 2.5rem;">
-                            <label style="display: block; font-weight: 700; margin-bottom: 0.75rem; color: #374151;">Event Banner</label>
-                            <div style="position: relative; transition: all 0.3s ease;">
-                                <img id="eventImagePreview" 
-                                     src="" 
-                                     style="width: 100%; height: 300px; object-fit: cover; border-radius: 16px; border: 2px dashed #e5e7eb; background: #f9fafb;">
-                                <label for="eventImageInput" style="position: absolute; bottom: 1.5rem; right: 1.5rem; background: rgba(255, 255, 255, 0.9); color: #1f2937; padding: 0.75rem 1.5rem; border-radius: 12px; cursor: pointer; font-weight: 600; box-shadow: 0 4px 12px rgba(0,0,0,0.1); backdrop-filter: blur(4px); transition: transform 0.2s;">
-                                    📷 Upload Image
-                                </label>
-                                <input type="file" id="eventImageInput" name="event_image" accept="image/*" style="display: none;" onchange="previewEventImage(event)">
-                            </div>
+                
+                <div style="position: relative; z-index: 1;">
+                    <div class="modal-header" style="padding: 2.5rem 3rem 1.5rem; border-bottom: 1px solid rgba(147, 51, 234, 0.1);">
+                        <div style="text-align: center;">
+                            <div style="display: inline-block; background: linear-gradient(135deg, #8b5cf6, #ec4899); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-size: 1rem; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 0.5rem;">EVENTRA</div>
+                            <h2 style="font-size: 2rem; font-weight: 800; color: #1f2937; margin: 0;">Create Event</h2>
                         </div>
+                        <button class="modal-close" onclick="closeCreateEventModal()" 
+                                style="position: absolute; top: 1.5rem; right: 1.5rem; background: white; border: none; width: 40px; height: 40px; border-radius: 50%; font-size: 1.5rem; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.1); transition: all 0.2s;">×</button>
+                    </div>
+                    
+                    <div class="modal-body" style="padding: 2.5rem 3rem 3rem;">
+                        <form id="createEventForm" enctype="multipart/form-data">
+                            <!-- Event Image Upload -->
+                            <div style="margin-bottom: 3rem;">
+                                <div style="position: relative; transition: all 0.3s ease;">
+                                    <img id="eventImagePreview" 
+                                         src="" 
+                                         style="width: 100%; height: 280px; object-fit: cover; border-radius: 20px; border: 3px solid rgba(255, 255, 255, 0.8); box-shadow: 0 10px 30px rgba(0,0,0,0.1);">
+                                    <label for="eventImageInput" style="position: absolute; bottom: 1.5rem; right: 1.5rem; background: rgba(255, 255, 255, 0.95); color: #8b5cf6; padding: 0.875rem 1.75rem; border-radius: 50px; cursor: pointer; font-weight: 700; box-shadow: 0 8px 20px rgba(139, 92, 246, 0.3); backdrop-filter: blur(10px); transition: all 0.3s; border: 2px solid rgba(139, 92, 246, 0.2);">
+                                        📷 Upload Banner
+                                    </label>
+                                    <input type="file" id="eventImageInput" name="event_image" accept="image/*" style="display: none;" onchange="previewEventImage(event)">
+                                </div>
+                            </div>
 
-                        <div style="display: flex; flex-direction: column; gap: 2.5rem;">
-                            
-                            <!-- Section: Basic Details -->
-                            <section>
-                                <h3 style="font-size: 1.1rem; font-weight: 700; color: #111827; margin-bottom: 1.5rem; padding-bottom: 0.5rem; border-bottom: 1px solid #e5e7eb;">
-                                    📝 Basic Details
-                                </h3>
+                            <div style="display: grid; gap: 2.5rem;">
+                                <!-- Row 1: First & Last Name -->
                                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
-                                    <div class="form-group" style="grid-column: 1 / -1;">
-                                        <label style="font-weight: 600; color: #374151; margin-bottom: 0.5rem; display: block;">Event Name <span style="color: #ef4444">*</span></label>
-                                        <input type="text" name="event_name" id="eventNameInput" required placeholder="e.g. Annual Tech Summit 2026" oninput="generateEventTagAndLink()" 
-                                               style="width: 100%; padding: 0.75rem 1rem; border: 1px solid #d1d5db; border-radius: 8px; font-size: 1rem;">
-                                        <div class="field-hint" style="font-size: 0.85rem; color: #6b7280; margin-top: 0.25rem;">This will be used to generate the event tag and link</div>
+                                    <div class="form-group">
+                                        <label style="display: block; font-size: 0.875rem; font-weight: 600; color: #6b7280; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.5px;">Event Name <span style="color: #ef4444">*</span></label>
+                                        <input type="text" name="event_name" id="eventNameInput" required placeholder="Enter event name" oninput="generateEventTagAndLink()" 
+                                               style="width: 100%; padding: 1rem 1.25rem; border: 2px solid #e5e7eb; border-radius: 12px; font-size: 1rem; background: white; transition: all 0.3s; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
                                     </div>
 
                                     <div class="form-group">
-                                        <label style="font-weight: 600; color: #374151; margin-bottom: 0.5rem; display: block;">Category <span style="color: #ef4444">*</span></label>
-                                        <select name="event_type" required style="width: 100%; padding: 0.75rem 1rem; border: 1px solid #d1d5db; border-radius: 8px;">
+                                        <label style="display: block; font-size: 0.875rem; font-weight: 600; color: #6b7280; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.5px;">Category <span style="color: #ef4444">*</span></label>
+                                        <select name="event_type" required style="width: 100%; padding: 1rem 1.25rem; border: 2px solid #e5e7eb; border-radius: 12px; font-size: 1rem; background: white; transition: all 0.3s; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
                                             <option value="">Select Category</option>
                                             <option value="Conference">Conference</option>
                                             <option value="Workshop">Workshop</option>
@@ -57,13 +70,83 @@ function showCreateEventModal() {
                                             <option value="Networking">Networking</option>
                                             <option value="Festival">Festival</option>
                                             <option value="Concert">Concert</option>
+                                            <option value="Educational & Institutional">Educational & Institutional</option>
+                                            <option value="Social">Social</option>
+                                            <option value="Personal">Personal</option>
+                                            <option value="Community">Community</option>
+                                            <option value="Religious">Religious</option>
+                                            <option value="Cultural">Cultural</option>
                                             <option value="Other">Other</option>
                                         </select>
                                     </div>
+                                </div>
+
+                                <!-- Email Address (Full Width) -->
+                                <div class="form-group">
+                                    <label style="display: block; font-size: 0.875rem; font-weight: 600; color: #6b7280; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.5px;">Description <span style="color: #ef4444">*</span></label>
+                                    <textarea name="description" rows="4" required placeholder="Describe what attendees can expect..." 
+                                              style="width: 100%; padding: 1rem 1.25rem; border: 2px solid #e5e7eb; border-radius: 12px; resize: vertical; font-size: 1rem; background: white; transition: all 0.3s; box-shadow: 0 2px 8px rgba(0,0,0,0.04); font-family: inherit;"></textarea>
+                                </div>
+
+                                <!-- Address Line 1 -->
+                                <div class="form-group">
+                                    <label style="display: block; font-size: 0.875rem; font-weight: 600; color: #6b7280; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.5px;">Full Venue Address <span style="color: #ef4444">*</span></label>
+                                    <textarea name="address" rows="2" required placeholder="Street address, landmarks..." 
+                                              style="width: 100%; padding: 1rem 1.25rem; border: 2px solid #e5e7eb; border-radius: 12px; font-size: 1rem; background: white; transition: all 0.3s; box-shadow: 0 2px 8px rgba(0,0,0,0.04); font-family: inherit;"></textarea>
+                                </div>
+
+                                <!-- Row: City, State, Zip -->
+                                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.5rem;">
+                                    <div class="form-group">
+                                        <label style="display: block; font-size: 0.875rem; font-weight: 600; color: #6b7280; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.5px;">Date <span style="color: #ef4444">*</span></label>
+                                        <input type="date" name="event_date" required style="width: 100%; padding: 1rem 1.25rem; border: 2px solid #e5e7eb; border-radius: 12px; font-size: 1rem; background: white; transition: all 0.3s; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
+                                    </div>
 
                                     <div class="form-group">
-                                        <label style="font-weight: 600; color: #374151; margin-bottom: 0.5rem; display: block;">Priority Level</label>
-                                        <select name="priority" id="prioritySelect" style="width: 100%; padding: 0.75rem 1rem; border: 1px solid #d1d5db; border-radius: 8px;">
+                                        <label style="display: block; font-size: 0.875rem; font-weight: 600; color: #6b7280; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.5px;">Time <span style="color: #ef4444">*</span></label>
+                                        <input type="time" name="event_time" required style="width: 100%; padding: 1rem 1.25rem; border: 2px solid #e5e7eb; border-radius: 12px; font-size: 1rem; background: white; transition: all 0.3s; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label style="display: block; font-size: 0.875rem; font-weight: 600; color: #6b7280; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.5px;">State <span style="color: #ef4444">*</span></label>
+                                        <select name="state" required style="width: 100%; padding: 1rem 1.25rem; border: 2px solid #e5e7eb; border-radius: 12px; font-size: 1rem; background: white; transition: all 0.3s; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
+                                            <option value="">Select State</option>
+                                            ${getNigerianStates(true).map(state => `<option value="${state}">${state}</option>`).join('')}
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <!-- Contact & Price -->
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                                    <div class="form-group">
+                                        <label style="display: block; font-size: 0.875rem; font-weight: 600; color: #6b7280; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.5px;">Primary Contact <span style="color: #ef4444">*</span></label>
+                                        <input type="tel" name="phone_contact_1" required placeholder="+234..." 
+                                               style="width: 100%; padding: 1rem 1.25rem; border: 2px solid #e5e7eb; border-radius: 12px; font-size: 1rem; background: white; transition: all 0.3s; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label style="display: block; font-size: 0.875rem; font-weight: 600; color: #6b7280; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.5px;">Ticket Price (₦) <span style="color: #ef4444">*</span></label>
+                                        <div style="display: flex; gap: 1rem; align-items: center;">
+                                            <input type="number" name="price" id="priceInput" required placeholder="5000" min="0" step="0.01" 
+                                                   style="flex: 1; padding: 1rem 1.25rem; border: 2px solid #e5e7eb; border-radius: 12px; font-size: 1rem; background: white; transition: all 0.3s; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
+                                            <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; user-select: none; font-weight: 600; color: #6b7280; background: white; padding: 0.75rem 1.25rem; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); border: 2px solid #e5e7eb;">
+                                                <input type="checkbox" id="freeEventCheckbox" style="width: 1.2rem; height: 1.2rem; accent-color: #8b5cf6;"> Free
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Additional Fields -->
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                                    <div class="form-group">
+                                        <label style="display: block; font-size: 0.875rem; font-weight: 600; color: #6b7280; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.5px;">Secondary Contact</label>
+                                        <input type="tel" name="phone_contact_2" placeholder="+234... (optional)" 
+                                               style="width: 100%; padding: 1rem 1.25rem; border: 2px solid #e5e7eb; border-radius: 12px; font-size: 1rem; background: white; transition: all 0.3s; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label style="display: block; font-size: 0.875rem; font-weight: 600; color: #6b7280; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.5px;">Priority Level</label>
+                                        <select name="priority" id="prioritySelect" style="width: 100%; padding: 1rem 1.25rem; border: 2px solid #e5e7eb; border-radius: 12px; font-size: 1rem; background: white; transition: all 0.3s; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
                                             <option value="nearby">📍 Nearby</option>
                                             <option value="hot">🔥 Hot</option>
                                             <option value="trending">📈 Trending</option>
@@ -71,136 +154,104 @@ function showCreateEventModal() {
                                             <option value="upcoming">🕒 Upcoming</option>
                                         </select>
                                     </div>
-
-                                     <div class="form-group" style="grid-column: 1 / -1;">
-                                        <label style="font-weight: 600; color: #374151; margin-bottom: 0.5rem; display: block;">Description <span style="color: #ef4444">*</span></label>
-                                        <textarea name="description" rows="4" required placeholder="Describe what attendees can expect..." 
-                                                  style="width: 100%; padding: 0.75rem 1rem; border: 1px solid #d1d5db; border-radius: 8px; resize: vertical;"></textarea>
-                                    </div>
                                 </div>
-                            </section>
 
-                            <!-- Section: Schedule & Ticket -->
-                            <section>
-                                <h3 style="font-size: 1.1rem; font-weight: 700; color: #111827; margin-bottom: 1.5rem; padding-bottom: 0.5rem; border-bottom: 1px solid #e5e7eb;">
-                                    📅 Schedule & Tickets
-                                </h3>
-                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
-                                    <div class="form-group">
-                                        <label style="font-weight: 600; color: #374151; margin-bottom: 0.5rem; display: block;">Date <span style="color: #ef4444">*</span></label>
-                                        <input type="date" name="event_date" required style="width: 100%; padding: 0.75rem 1rem; border: 1px solid #d1d5db; border-radius: 8px;">
-                                    </div>
+                                <div class="form-group">
+                                    <label style="display: block; font-size: 0.875rem; font-weight: 600; color: #6b7280; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.5px;">Status</label>
+                                    <select name="status" style="width: 100%; padding: 1rem 1.25rem; border: 2px solid #e5e7eb; border-radius: 12px; font-size: 1rem; background: white; transition: all 0.3s; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
+                                        <option value="draft" selected>Draft</option>
+                                        <option value="scheduled">Scheduled</option>
+                                    </select>
+                                </div>
 
-                                    <div class="form-group">
-                                        <label style="font-weight: 600; color: #374151; margin-bottom: 0.5rem; display: block;">Time <span style="color: #ef4444">*</span></label>
-                                        <input type="time" name="event_time" required style="width: 100%; padding: 0.75rem 1rem; border: 1px solid #d1d5db; border-radius: 8px;">
-                                    </div>
+                                <!-- Scheduled Time (Conditional) -->
+                                <div class="form-group" id="scheduledTimeGroup" style="display: none; background: linear-gradient(135deg, #fef3c7, #fde68a); padding: 1.5rem; border-radius: 16px; border: 2px solid #fbbf24;">
+                                    <label style="font-weight: 700; color: #92400e; margin-bottom: 0.75rem; display: block; font-size: 0.875rem; text-transform: uppercase; letter-spacing: 0.5px;">Scheduled Publish Time</label>
+                                    <input type="datetime-local" name="scheduled_publish_time" style="width: 100%; padding: 1rem 1.25rem; border: 2px solid #fbbf24; border-radius: 12px; background: white; font-size: 1rem;">
+                                    <div style="color: #b45309; margin-top: 0.75rem; font-size: 0.875rem; font-weight: 500;">Event will be automatically published at this time</div>
+                                </div>
 
-                                    <div class="form-group">
-                                        <label style="font-weight: 600; color: #374151; margin-bottom: 0.5rem; display: block;">Ticket Price (₦) <span style="color: #ef4444">*</span></label>
-                                        <div style="display: flex; gap: 1rem;">
-                                            <input type="number" name="price" id="priceInput" required placeholder="0.00" min="0" step="0.01" 
-                                                   style="flex: 1; padding: 0.75rem 1rem; border: 1px solid #d1d5db; border-radius: 8px;">
-                                            <div style="display: flex; align-items: center; background: #f3f4f6; padding: 0 1rem; border-radius: 8px; border: 1px solid #e5e7eb;">
-                                                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; user-select: none; font-weight: 500; color: #374151;">
-                                                    <input type="checkbox" id="freeEventCheckbox" style="width: 1.2rem; height: 1.2rem; accent-color: #10b981;"> 
-                                                    Free
-                                                </label>
-                                            </div>
+                                <!-- Auto-Generated Info -->
+                                <div style="background: linear-gradient(135deg, rgba(139, 92, 246, 0.08), rgba(236, 72, 153, 0.08)); padding: 2rem; border-radius: 16px; border: 2px solid rgba(139, 92, 246, 0.2);">
+                                    <h4 style="margin: 0 0 1.25rem 0; font-weight: 800; color: #7c3aed; font-size: 1rem; text-transform: uppercase; letter-spacing: 1px;">🔗 Auto-Generated Links</h4>
+                                    <div style="display: grid; gap: 1.25rem;">
+                                        <div>
+                                            <label style="font-size: 0.8rem; font-weight: 700; color: #8b5cf6; margin-bottom: 0.5rem; display: block; text-transform: uppercase; letter-spacing: 0.5px;">Event Tag</label>
+                                            <input type="text" id="eventTagField" name="tag" readonly placeholder="Enter event name first..." 
+                                                   style="width: 100%; padding: 0.875rem 1.25rem; background: white; border: 2px solid rgba(139, 92, 246, 0.2); border-radius: 10px; font-family: 'Courier New', monospace; color: #581c87; font-weight: 600; font-size: 0.95rem;">
+                                        </div>
+
+                                        <div>
+                                            <label style="font-size: 0.8rem; font-weight: 700; color: #8b5cf6; margin-bottom: 0.5rem; display: block; text-transform: uppercase; letter-spacing: 0.5px;">Shareable Link</label>
+                                            <input type="text" id="eventLinkField" name="external_link" readonly placeholder="Enter event name first..." 
+                                                   style="width: 100%; padding: 0.875rem 1.25rem; background: white; border: 2px solid rgba(139, 92, 246, 0.2); border-radius: 10px; font-family: 'Courier New', monospace; color: #581c87; font-weight: 600; font-size: 0.85rem;">
                                         </div>
                                     </div>
-
-                                    <div class="form-group">
-                                        <label style="font-weight: 600; color: #374151; margin-bottom: 0.5rem; display: block;">Status</label>
-                                        <select name="status" style="width: 100%; padding: 0.75rem 1rem; border: 1px solid #d1d5db; border-radius: 8px;">
-                                            <option value="draft" selected>Draft</option>
-                                            <option value="scheduled">Scheduled</option>
-                                        </select>
-                                    </div>
                                 </div>
-                            </section>
 
-                            <!-- Section: Location -->
-                            <section>
-                                <h3 style="font-size: 1.1rem; font-weight: 700; color: #111827; margin-bottom: 1.5rem; padding-bottom: 0.5rem; border-bottom: 1px solid #e5e7eb;">
-                                    📍 Location Details
-                                </h3>
-                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
-                                    <div class="form-group">
-                                        <label style="font-weight: 600; color: #374151; margin-bottom: 0.5rem; display: block;">State <span style="color: #ef4444">*</span></label>
-                                        <select name="state" required style="width: 100%; padding: 0.75rem 1rem; border: 1px solid #d1d5db; border-radius: 8px;">
-                                            <option value="">Select State</option>
-                                            ${getNigerianStates(true).map(state => `<option value="${state}">${state}</option>`).join('')}
-                                        </select>
-                                    </div>
-
-                                    <div class="form-group" style="grid-column: 1 / -1;">
-                                        <label style="font-weight: 600; color: #374151; margin-bottom: 0.5rem; display: block;">Full Venue Address <span style="color: #ef4444">*</span></label>
-                                        <textarea name="address" rows="2" required placeholder="Street address, landmarks..." 
-                                                  style="width: 100%; padding: 0.75rem 1rem; border: 1px solid #d1d5db; border-radius: 8px;"></textarea>
-                                    </div>
-                                </div>
-                            </section>
-
-                             <!-- Auto-Generated Fields (Read-Only) -->
-                            <div style="background: #f8fafc; padding: 1.5rem; border-radius: 12px; border: 1px solid #e2e8f0;">
-                                <h4 style="margin-bottom: 1rem; font-weight: 700; color: #475569; font-size: 0.95rem; text-transform: uppercase; letter-spacing: 0.05em;">🔗 Auto-Generated Links</h4>
-                                <div style="display: grid; gap: 1rem;">
-                                    <div class="form-group">
-                                        <label style="font-size: 0.85rem; font-weight: 600; color: #64748b; margin-bottom: 0.25rem; display: block;">Event Tag</label>
-                                        <input type="text" id="eventTagField" name="tag" readonly placeholder="Enter event name first..." 
-                                               style="width: 100%; padding: 0.5rem 0.75rem; background: #fff; border: 1px solid #cbd5e1; border-radius: 6px; font-family: monospace; color: #334155;">
-                                    </div>
-
-                                    <div class="form-group">
-                                        <label style="font-size: 0.85rem; font-weight: 600; color: #64748b; margin-bottom: 0.25rem; display: block;">Shareable Link</label>
-                                        <input type="text" id="eventLinkField" name="external_link" readonly placeholder="Enter event name first..." 
-                                               style="width: 100%; padding: 0.5rem 0.75rem; background: #fff; border: 1px solid #cbd5e1; border-radius: 6px; font-family: monospace; color: #334155;">
-                                    </div>
+                                <!-- Submit Buttons -->
+                                <div style="display: flex; gap: 1.25rem; margin-top: 1rem;">
+                                    <button type="submit" class="btn btn-primary" style="flex: 2; padding: 1.25rem; font-size: 1.125rem; font-weight: 700; justify-content: center; background: linear-gradient(135deg, #8b5cf6, #ec4899); border: none; border-radius: 14px; color: white; cursor: pointer; box-shadow: 0 10px 25px rgba(139, 92, 246, 0.3); transition: all 0.3s;">
+                                        Create Event ✨
+                                    </button>
+                                    <button type="button" class="btn btn-secondary" onclick="closeCreateEventModal()" style="flex: 1; padding: 1.25rem; font-size: 1.125rem; justify-content: center; background: white; border: 2px solid #e5e7eb; border-radius: 14px; color: #6b7280; cursor: pointer; font-weight: 600; transition: all 0.3s;">
+                                        Cancel
+                                    </button>
                                 </div>
                             </div>
-
-                            <!-- Section: Contact -->
-                            <section>
-                                <h3 style="font-size: 1.1rem; font-weight: 700; color: #111827; margin-bottom: 1.5rem; padding-bottom: 0.5rem; border-bottom: 1px solid #e5e7eb;">
-                                    📞 Contact Information
-                                </h3>
-                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
-                                    <div class="form-group">
-                                        <label style="font-weight: 600; color: #374151; margin-bottom: 0.5rem; display: block;">Primary Contact <span style="color: #ef4444">*</span></label>
-                                        <input type="tel" name="phone_contact_1" required placeholder="+234..." 
-                                               style="width: 100%; padding: 0.75rem 1rem; border: 1px solid #d1d5db; border-radius: 8px;">
-                                    </div>
-
-                                    <div class="form-group">
-                                        <label style="font-weight: 600; color: #374151; margin-bottom: 0.5rem; display: block;">Secondary Contact</label>
-                                        <input type="tel" name="phone_contact_2" placeholder="+234... (optional)" 
-                                               style="width: 100%; padding: 0.75rem 1rem; border: 1px solid #d1d5db; border-radius: 8px;">
-                                    </div>
-                                </div>
-                            </section>
-
-                            <!-- Scheduled Publishing (if status is scheduled) -->
-                            <div class="form-group" id="scheduledTimeGroup" style="display: none; background: #fff7ed; padding: 1.5rem; border-radius: 12px; border: 1px solid #fed7aa;">
-                                <label style="font-weight: 600; color: #9a3412; margin-bottom: 0.5rem; display: block;">Scheduled Publish Time</label>
-                                <input type="datetime-local" name="scheduled_publish_time" style="width: 100%; padding: 0.75rem 1rem; border: 1px solid #fed7aa; border-radius: 8px;">
-                                <div class="field-hint" style="color: #c2410c; margin-top: 0.5rem; font-size: 0.9rem;">Event will be automatically published at this time</div>
-                            </div>
-
-                            <!-- Submit Buttons -->
-                            <div style="display: flex; gap: 1rem; margin-top: 1rem; padding-top: 1.5rem; border-top: 1px solid #e5e7eb;">
-                                <button type="submit" class="btn btn-primary" style="flex: 2; padding: 1rem; font-size: 1rem; font-weight: 600; justify-content: center;">
-                                    Create Event
-                                </button>
-                                <button type="button" class="btn btn-secondary" onclick="closeCreateEventModal()" style="flex: 1; padding: 1rem; font-size: 1rem; justify-content: center;">
-                                    Cancel
-                                </button>
-                            </div>
-                        </div>
-                    </form>
+                        </form>
+                    </div>
                 </div>
             </div>
         </div>
+
+        <style>
+            @keyframes slideIn {
+                from {
+                    opacity: 0;
+                    transform: translateY(30px) scale(0.95);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateY(0) scale(1);
+                }
+            }
+
+            #createEventModal input:focus,
+            #createEventModal select:focus,
+            #createEventModal textarea:focus {
+                outline: none;
+                border-color: #8b5cf6 !important;
+                box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.1) !important;
+            }
+
+            #createEventModal input::placeholder,
+            #createEventModal textarea::placeholder {
+                color: #9ca3af;
+            }
+
+            #createEventModal .btn-primary:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 15px 35px rgba(139, 92, 246, 0.4);
+            }
+
+            #createEventModal .btn-secondary:hover {
+                background: #f9fafb;
+                border-color: #d1d5db;
+            }
+
+            #createEventModal .modal-close:hover {
+                transform: rotate(90deg);
+                background: #fee2e2;
+                color: #dc2626;
+            }
+
+            #createEventModal label[for="eventImageInput"]:hover {
+                transform: translateY(-4px);
+                box-shadow: 0 12px 30px rgba(139, 92, 246, 0.4);
+                background: rgba(255, 255, 255, 1);
+            }
+        </style>
     `;
 
     // Remove existing modal if any
@@ -238,9 +289,6 @@ function showCreateEventModal() {
         const scheduledGroup = document.getElementById('scheduledTimeGroup');
         scheduledGroup.style.display = e.target.value === 'scheduled' ? 'block' : 'none';
     });
-
-    // Priority default logic handled by backend default sanitization
-    // Visibility dropdown removed as requested
 }
 
 function closeCreateEventModal() {
@@ -301,7 +349,7 @@ async function handleEventCreation(e) {
     // Show loading state
     const submitBtn = e.target.querySelector('button[type="submit"]');
     const originalText = submitBtn.textContent;
-    submitBtn.textContent = 'Creating...';
+    submitBtn.textContent = 'Creating... ⏳';
     submitBtn.disabled = true;
     
     try {

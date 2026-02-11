@@ -1,6 +1,7 @@
 document.addEventListener('DOMContentLoaded', async () => {
     const urlParams = new URLSearchParams(window.location.search);
-    const eventTag = urlParams.get('event');
+    const eventId = urlParams.get('id');
+    const eventTag = urlParams.get('event'); // Fallback for old links
     const clientName = urlParams.get('client');
 
     // Capture referral if client is in URL
@@ -9,23 +10,43 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.log('Referral captured:', clientName);
     }
 
-    if (!eventTag) {
+    if (!eventId && !eventTag) {
         showNotification('Event not specified', 'error');
         setTimeout(() => window.location.href = 'index.html', 2000);
         return;
     }
 
-    await loadEventDetails(eventTag);
+    if (eventId) {
+        await loadEventDetailsById(eventId);
+    } else {
+        await loadEventDetailsByTag(eventTag);
+    }
 });
 
-async function loadEventDetails(tag) {
+async function loadEventDetailsById(id) {
+    try {
+        const response = await fetch(`../../api/events/get-event-details.php?event_id=${id}`);
+        const result = await response.json();
+
+        if (result.success) {
+            renderEvent(result.event);
+        } else {
+            showNotification(result.message || 'Event not found', 'error');
+            setTimeout(() => window.location.href = 'index.html', 2000);
+        }
+    } catch (error) {
+        console.error('Error loading event:', error);
+        showNotification('System error occurred', 'error');
+    }
+}
+
+async function loadEventDetailsByTag(tag) {
     try {
         const response = await fetch(`../../api/events/get-event-by-tag.php?tag=${tag}`);
         const result = await response.json();
 
         if (result.success) {
-            const event = result.event;
-            renderEvent(event);
+            renderEvent(result.event);
         } else {
             showNotification(result.message || 'Event not found', 'error');
             setTimeout(() => window.location.href = 'index.html', 2000);
@@ -38,18 +59,27 @@ async function loadEventDetails(tag) {
 
 function renderEvent(event) {
     document.title = `${event.event_name} - Eventra`;
+    
+    // Update OpenGraph tags dynamically
+    updateMetaTags(event);
+
     document.getElementById('eventTitle').textContent = event.event_name;
     document.getElementById('eventSummary').textContent = event.event_type;
     document.getElementById('eventDescription').textContent = event.description;
     document.getElementById('eventAddress').textContent = `${event.address || 'N/A'}, ${event.state}`;
     document.getElementById('eventDate').textContent = formatDate(event.event_date);
     document.getElementById('eventTime').textContent = event.event_time;
-    document.getElementById('clientName').textContent = event.client_name || 'Anonymous Organiser';
-    document.getElementById('eventPrice').textContent = `₦${parseFloat(event.price).toLocaleString()}`;
+    document.getElementById('clientName').textContent = event.client_name || 'Eventra Organizer';
+    
+    const priceValue = parseFloat(event.price);
+    const isFree = !event.price || priceValue === 0;
+    const priceText = isFree ? 'Free' : `₦${priceValue.toLocaleString()}`;
+    
+    document.getElementById('eventPrice').textContent = priceText;
     
     const hero = document.getElementById('eventHero');
     if (event.image_path) {
-        hero.style.backgroundImage = `url(${event.image_path})`;
+        hero.style.backgroundImage = `url(../../${event.image_path.replace(/^\/+/ , '')})`;
     }
 
     // Priority badge style
@@ -57,7 +87,7 @@ function renderEvent(event) {
     badge.textContent = event.priority || 'Event';
     if (event.priority === 'hot') badge.style.background = '#ff4757';
     if (event.priority === 'trending') badge.style.background = '#3742fa';
-    if (event.priority === 'recommended') badge.style.background = '#2ed573';
+    if (event.priority === 'featured') badge.style.background = '#2ed573';
 
     // Attendee stacking logic
     const stack = document.getElementById('attendeeStack');
@@ -74,10 +104,59 @@ function renderEvent(event) {
     
     document.getElementById('attendeeCountDisplay').textContent = `${count} people attending`;
 
-    // Booking logic
-    document.getElementById('bookNowBtn').onclick = () => {
-        handleBooking(event.id);
+    // Booking logic and Validation for past events
+    const bookBtn = document.getElementById('bookNowBtn');
+    const buyTicketText = document.getElementById('buyTicketText');
+    const eventDate = new Date(event.event_date);
+    const now = new Date();
+    now.setHours(0, 0, 0, 0); // Only compare dates, not time precisely if not needed
+
+    if (eventDate < now) {
+        bookBtn.disabled = true;
+        bookBtn.style.background = '#9ca3af';
+        bookBtn.style.cursor = 'not-allowed';
+        bookBtn.style.boxShadow = 'none';
+        buyTicketText.textContent = 'Event Concluded';
+    } else {
+        buyTicketText.textContent = isFree ? 'Book Your Spot' : 'Buy Ticket Now';
+        bookBtn.onclick = () => {
+            handleBooking(event.id);
+        };
+    }
+}
+
+function updateMetaTags(event) {
+    const description = (event.description || '').substring(0, 160);
+    const image = event.image_path ? window.location.origin + '/' + event.image_path.replace(/^\/+/ , '') : '';
+    const url = window.location.href;
+
+    // Standard Meta Tags
+    let metaDesc = document.querySelector('meta[name="description"]');
+    if (!metaDesc) {
+        metaDesc = document.createElement('meta');
+        metaDesc.name = 'description';
+        document.head.appendChild(metaDesc);
+    }
+    metaDesc.content = description;
+
+    // OpenGraph Tags
+    const ogTags = {
+        'og:title': event.event_name,
+        'og:description': description,
+        'og:image': image,
+        'og:url': url,
+        'og:type': 'website'
     };
+
+    for (const [property, content] of Object.entries(ogTags)) {
+        let tag = document.querySelector(`meta[property="${property}"]`);
+        if (!tag) {
+            tag = document.createElement('meta');
+            tag.setAttribute('property', property);
+            document.head.appendChild(tag);
+        }
+        tag.content = content;
+    }
 }
 
 async function handleBooking(eventId) {

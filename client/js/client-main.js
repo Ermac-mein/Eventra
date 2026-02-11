@@ -140,17 +140,13 @@ function initLogout() {
         // Global Export Button
         if (e.target.closest('#globalExportBtn')) {
             const path = window.location.pathname;
-            if (path.includes('clientDashboard.html')) {
-                // Default dashboard export to events
-                if (typeof exportEventsToPDF === 'function') exportEventsToPDF();
-            } else if (path.includes('events.html')) {
-                if (typeof exportEventsToPDF === 'function') exportEventsToPDF();
-            } else if (path.includes('tickets.html')) {
-                if (typeof exportTicketsToPDF === 'function') exportTicketsToPDF();
-            } else if (path.includes('users.html')) {
-                if (typeof exportUsersToPDF === 'function') exportUsersToPDF();
-            } else if (path.includes('media.html')) {
-                if (typeof exportMediaToPDF === 'function') exportMediaToPDF();
+            let dataType = 'events'; // default
+            if (path.includes('tickets.html')) dataType = 'tickets';
+            else if (path.includes('users.html')) dataType = 'users';
+            else if (path.includes('media.html')) dataType = 'media';
+
+            if (typeof showExportModal === 'function') {
+                showExportModal(dataType);
             }
         }
 

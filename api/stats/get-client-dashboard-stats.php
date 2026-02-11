@@ -27,11 +27,11 @@ try {
     }
     $real_client_id = $client_row['id'];
 
-    // Get upcoming events count (published only)
+    // Get published events count (excluding soft-deleted)
     $stmt = $pdo->prepare("
         SELECT COUNT(*) as total 
         FROM events 
-        WHERE client_id = ? AND status = 'published' AND event_date >= CURDATE()
+        WHERE client_id = ? AND status = 'published' AND deleted_at IS NULL
     ");
     $stmt->execute([$real_client_id]);
     $upcoming_events = $stmt->fetch()['total'];
@@ -93,7 +93,7 @@ try {
             COALESCE(SUM(t.total_price), 0) as event_revenue
         FROM events e
         LEFT JOIN tickets t ON e.id = t.event_id
-        WHERE e.client_id = ? AND e.status = 'published' AND e.event_date >= CURDATE()
+        WHERE e.client_id = ? AND e.status = 'published' AND e.event_date >= CURDATE() AND e.deleted_at IS NULL
         GROUP BY e.id
         ORDER BY e.event_date ASC
         LIMIT 5

@@ -30,13 +30,18 @@ try {
     $pdo->beginTransaction();
 
     // 3. Insert into auth_accounts
-    $stmt = $pdo->prepare("INSERT INTO auth_accounts (email, password_hash, role, auth_provider, is_active) VALUES (?, ?, ?, 'local', 0)");
+    $stmt = $pdo->prepare("INSERT INTO auth_accounts (email, password_hash, role, auth_provider, is_active) VALUES (?, ?, ?, 'local', 1)");
     $stmt->execute([$email, $hashedPassword, $role]);
     $auth_id = $pdo->lastInsertId();
 
-    // 4. Insert into clients
-    $stmt = $pdo->prepare("INSERT INTO clients (auth_id, business_name, name, email) VALUES (?, ?, ?, ?)");
-    $stmt->execute([$auth_id, $name, $name, $email]);
+    // 4. Insert into role-specific table (e.g., clients or admins)
+    if ($role === 'client') {
+        $stmt = $pdo->prepare("INSERT INTO clients (auth_id, business_name, name, email, password) VALUES (?, ?, ?, ?, ?)");
+        $stmt->execute([$auth_id, $name, $name, $email, $hashedPassword]);
+    } elseif ($role === 'admin') {
+        $stmt = $pdo->prepare("INSERT INTO admins (auth_id, name, password) VALUES (?, ?, ?)");
+        $stmt->execute([$auth_id, $name, $hashedPassword]);
+    }
 
     $pdo->commit();
 

@@ -71,13 +71,12 @@ async function loadDashboardStats(clientId) {
 
         const stats = result.stats;
         
-        // Update stats cards using background colors as IDs for robustness
-        // Purple card should show published events
+        // Update stats cards using background colors matching HTML
         const cards = {
-            green: stats.upcoming_events || 0,
-            purple: stats.published_events || stats.total_events || 0,  // Use published_events for purple card
-            orange: stats.total_users || 0,
-            red: stats.media_uploads || 0
+            purple: stats.upcoming_events || 0,  // Events card (purple)
+            blue: stats.total_tickets || 0,      // Active Tickets card (blue)
+            orange: stats.total_users || 0,      // Registered Users card (orange)
+            red: stats.media_uploads || 0        // Media Items card (red)
         };
 
         Object.keys(cards).forEach(color => {

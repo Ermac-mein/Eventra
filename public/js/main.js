@@ -4,7 +4,8 @@ let eventsData = {
   trending: [],
   featured: [],
   upcoming: [],
-  nearby: []
+  nearby: [],
+  all: []
 };
 
 let allEvents = [];  // Store all events for filtering
@@ -33,15 +34,20 @@ async function loadEvents() {
         });
       };
       
-      // Categorize events by priority field - sorted by creation date within each priority
+      // Get user location for Nearby events
+      const keys = typeof getRoleKeys === 'function' ? getRoleKeys() : { user: 'user' };
+      const user = storage.get(keys.user) || storage.get('user');
+      const userState = user?.state?.toLowerCase();
+      const userCity = user?.city?.toLowerCase();
+
       const now = new Date();
       const upcomingEvents = publishedEvents.filter(event => new Date(event.event_date) >= now);
       
-      // Priority-based filtering: featured > hot > trending > normal (sorted by creation date)
+      // Priority-based filtering
       eventsData.featured = sortByCreation([...publishedEvents.filter(e => e.priority === 'featured')]).slice(0, 6);
       eventsData.hot = sortByCreation([...publishedEvents.filter(e => e.priority === 'hot')]).slice(0, 6);
       
-      // Trending: events with priority='trending' OR high attendee count
+      // Trending: priority='trending' OR high attendee count
       eventsData.trending = sortByCreation([...publishedEvents
         .filter(e => e.priority === 'trending' || (e.attendee_count && e.attendee_count > 50))])
         .slice(0, 6);
@@ -51,19 +57,40 @@ async function loadEvents() {
         .sort((a, b) => new Date(a.event_date) - new Date(b.event_date))
         .slice(0, 6);
       
-      // Nearby: events in user's location (fallback to sorted by creation)
-      eventsData.nearby = sortByCreation([...publishedEvents]).slice(0, 6);
+      // All Events: sorted by creation date
+      eventsData.all = sortByCreation([...publishedEvents]);
+
+      // Nearby: events in user's state/city if logged in
+      console.log('User Location:', { state: userState, city: userCity });
+      
+      if (userState || userCity) {
+        eventsData.nearby = publishedEvents.filter(e => {
+          const eventState = e.state?.toLowerCase();
+          const eventCity = e.city?.toLowerCase();
+          
+          const stateMatch = userState && eventState && (eventState.includes(userState) || userState.includes(eventState));
+          const cityMatch = userCity && eventCity && (eventCity.includes(userCity) || userCity.includes(eventCity));
+          
+          return stateMatch || cityMatch;
+        }).slice(0, 6);
+        
+        console.log('Nearby Matches by Location:', eventsData.nearby.length);
+      } 
+      
+      // Fallback: If no location matches or not logged in, use events with priority 'nearby'
+      if (eventsData.nearby.length === 0) {
+        eventsData.nearby = sortByCreation([...publishedEvents.filter(e => e.priority === 'nearby')]).slice(0, 6);
+        console.log('Nearby Matches by Priority:', eventsData.nearby.length);
+      }
       
       // Render events
       renderEvents();
     } else {
       console.error('Failed to load events:', result.message);
-      // Render empty state
       renderEvents();
     }
   } catch (error) {
     console.error('Error loading events:', error);
-    // Render empty state
     renderEvents();
   }
 }
@@ -405,44 +432,62 @@ function filterEvents(query) {
 }
 
 // Create event card
-function createEventCard(event) {
-  const price = event.price ? `₦${parseFloat(event.price).toLocaleString()}` : 'Free';
+function createEventCard(event, index) {
+  const price = !event.price || parseFloat(event.price) === 0 ? 'Free' : `₦${parseFloat(event.price).toLocaleString()}`;
   const eventImage = event.image_path || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=400&h=250&fit=crop';
   const eventDate = new Date(event.event_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  const eventTime = event.event_time || 'TBA';
+  const isFavorite = event.is_favorite ? 'active' : '';
   
+  // Modern HTML structure with staggered animation delay
   return `
-    <div class="event-card" data-id="${event.id}" data-tag="${event.tag || event.id}">
+    <div class="event-card" data-id="${event.id}" data-tag="${event.tag || event.id}" style="animation-delay: ${index * 0.1}s">
       <div class="event-image-container">
         <img src="${eventImage}" alt="${event.event_name}" class="event-image">
-        <button class="favorite-icon" onclick="toggleFavorite(event, ${event.id})">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
-          </svg>
-        </button>
+        <div class="event-badges">
+          <div class="event-category-badge">${event.category || 'Event'}</div>
+          ${event.priority ? `
+            <div class="event-status-badge">
+              <span class="status-dot"></span>
+              ${event.priority.toUpperCase()}
+            </div>
+          ` : ''}
+        </div>
       </div>
       <div class="event-content">
+        <div class="event-date-time">${eventDate} • ${eventTime}</div>
         <h3 class="event-title">${event.event_name}</h3>
-        <div class="event-meta">
-          <span class="event-date">📅 ${eventDate}</span>
-          <span class="event-location">📍 ${event.state || 'Nigeria'}</span>
+        <div class="event-location">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+          ${event.city || ''} ${event.state || 'Nigeria'}
         </div>
         <p class="event-description">${(event.description || '').substring(0, 100)}${event.description && event.description.length > 100 ? '...' : ''}</p>
+        <div class="event-organizer">Organized by ${event.organizer_name || event.client_name || 'Eventra'}</div>
+        
         <div class="event-footer">
           <span class="event-price">${price}</span>
-          <button class="event-status-btn" onclick="viewEventDetails('${event.tag || event.id}')">View Details</button>
+          <div class="event-card-actions">
+            <button class="card-action-btn favorite-btn ${isFavorite}" onclick="toggleFavorite(event, ${event.id})" title="Favorite">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+            </button>
+            <button class="card-action-btn share-btn" onclick="shareEvent(event, ${event.id})" title="Share">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><polyline points="16 6 12 2 8 6"></polyline><line x1="12" y1="2" x2="12" y2="15"></line></svg>
+            </button>
+          </div>
         </div>
       </div>
     </div>
   `;
 }
 
-// Redirect to new event details page
-function viewEventDetails(tag) {
-  if (!tag) {
-      showNotification('Event tag missing', 'error');
+// Redirect to new event details page using ID
+function viewEventDetails(id) {
+  if (!id) {
+      showNotification('Event ID missing', 'error');
       return;
   }
-  window.location.href = `pages/event-details.html?event=${tag}`;
+  // We are in /public/pages/index.html, so event-details.html is in the same directory
+  window.location.href = `event-details.html?id=${id}`;
 }
 
 // Buy ticket handler (legacy, but updated)
@@ -463,35 +508,47 @@ function renderEvents() {
   const featuredGrid = document.getElementById('featured-events-grid');
   const upcomingGrid = document.getElementById('upcoming-events-grid');
 
+  const allGrid = document.getElementById('all-events-grid');
+
+  if (allGrid) {
+    allGrid.innerHTML = eventsData.all.length > 0 
+      ? eventsData.all.map((e, i) => createEventCard(e, i)).join('') 
+      : '<p style="text-align: center; color: #666; padding: 2rem;">No events available at the moment</p>';
+  }
+
   if (hotGrid) {
     hotGrid.innerHTML = eventsData.hot.length > 0 
-      ? eventsData.hot.map(createEventCard).join('') 
+      ? eventsData.hot.map((e, i) => createEventCard(e, i)).join('') 
       : '<p style="text-align: center; color: #666; padding: 2rem;">No hot events at the moment</p>';
   }
 
   if (trendingGrid) {
     trendingGrid.innerHTML = eventsData.trending.length > 0 
-      ? eventsData.trending.map(createEventCard).join('') 
+      ? eventsData.trending.map((e, i) => createEventCard(e, i)).join('') 
       : '<p style="text-align: center; color: #666; padding: 2rem;">No trending events at the moment</p>';
   }
 
   if (featuredGrid) {
     featuredGrid.innerHTML = eventsData.featured.length > 0 
-      ? eventsData.featured.map(createEventCard).join('') 
+      ? eventsData.featured.map((e, i) => createEventCard(e, i)).join('') 
       : '<p style="text-align: center; color: #666; padding: 2rem;">No featured events at the moment</p>';
   }
 
   if (upcomingGrid) {
     upcomingGrid.innerHTML = eventsData.upcoming.length > 0 
-      ? eventsData.upcoming.map(createEventCard).join('') 
+      ? eventsData.upcoming.map((e, i) => createEventCard(e, i)).join('') 
       : '<p style="text-align: center; color: #666; padding: 2rem;">No upcoming events at the moment</p>';
   }
 
   const nearbyGrid = document.getElementById('nearby-events-grid');
   if (nearbyGrid) {
     nearbyGrid.innerHTML = eventsData.nearby.length > 0 
-      ? eventsData.nearby.map(createEventCard).join('') 
-      : '<p style="text-align: center; color: #666; padding: 2rem;">No nearby events at the moment</p>';
+      ? eventsData.nearby.map((e, i) => createEventCard(e, i)).join('') 
+      : '<div class="empty-state" style="grid-column: 1/-1; text-align: center; padding: 3rem; background: rgba(0,0,0,0.02); border-radius: 20px; border: 2px dashed rgba(0,0,0,0.05);">' +
+        '<div style="font-size: 3rem; margin-bottom: 1rem;">📍</div>' +
+        '<h3 style="margin-bottom: 0.5rem; color: #4b5563;">Check back soon!</h3>' +
+        '<p style="color: #6b7280;">No events found in your area at the moment.</p>' +
+        '</div>';
   }
 }
 
@@ -702,7 +759,8 @@ function showEventModal(eventId) {
   document.getElementById('modalEventLocation').textContent = `${event.city || ''} ${event.state || 'Nigeria'}`.trim();
   document.getElementById('modalEventDescription').textContent = event.description || 'No description available';
   document.getElementById('modalEventCategory').textContent = event.category || 'General';
-  document.getElementById('modalEventPrice').textContent = event.price ? `₦${parseFloat(event.price).toLocaleString()}` : 'Free';
+  const modalPrice = !event.price || parseFloat(event.price) === 0 ? 'Free' : `₦${parseFloat(event.price).toLocaleString()}`;
+  document.getElementById('modalEventPrice').textContent = modalPrice;
 
   // Priority badge
   const priorityBadge = document.getElementById('modalPriorityBadge');
@@ -726,7 +784,7 @@ function showEventModal(eventId) {
   // Buy ticket button
   const buyTicketBtn = document.getElementById('modalBuyTicketBtn');
   buyTicketBtn.onclick = () => {
-    viewEventDetails(event.tag || event.id);
+    viewEventDetails(event.id);
   };
 
   // Show modal

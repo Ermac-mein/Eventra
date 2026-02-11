@@ -56,77 +56,70 @@ async function exportMediaToPDF() {
 
 async function exportTableToPDF(dataType) {
     const table = document.querySelector('table');
+    
+    // Fallback to data-fetch export if no table is present (e.g. Media Grid)
     if (!table) {
-        showNotification('No table found to export', 'error');
-        return;
+        return handleExport(dataType, 'PDF');
     }
 
     try {
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
-
-        // Add title
+        
+        // ... rest of the function remains same but with better styling ...
         doc.setFontSize(18);
         doc.setFont(undefined, 'bold');
-        doc.text(`${dataType} Export`, 14, 15);
+        doc.text(`${dataType.charAt(0).toUpperCase() + dataType.slice(1)} Report`, 14, 15);
         
-        // Add export date
         doc.setFontSize(10);
         doc.setFont(undefined, 'normal');
-        doc.text(`Exported on: ${new Date().toLocaleDateString()}`, 14, 22);
+        doc.text(`Exported on: ${new Date().toLocaleString()}`, 14, 22);
 
-        // Extract table data
         const headers = [];
         const rows = [];
-        
-        // Get headers
         const headerCells = table.querySelectorAll('thead th');
         headerCells.forEach(cell => {
-            headers.push(cell.innerText.trim());
+            const text = cell.innerText.trim();
+            if (text && text !== 'Actions') headers.push(text);
         });
         
-        // Get rows
         const bodyRows = table.querySelectorAll('tbody tr');
         bodyRows.forEach(row => {
             const rowData = [];
             const cells = row.querySelectorAll('td');
-            cells.forEach(cell => {
-                let text = cell.innerText.trim().replace(/\n/g, ' ');
-                rowData.push(text);
-            });
+            // Skip the action column (usually last)
+            for (let i = 0; i < cells.length; i++) {
+                if (i < headers.length) {
+                    rowData.push(cells[i].innerText.trim().replace(/\n/g, ' '));
+                }
+            }
             if (rowData.length > 0 && !rowData[0].includes('Loading') && !rowData[0].includes('No')) {
                 rows.push(rowData);
             }
         });
 
-        // Generate table
         doc.autoTable({
             head: [headers],
             body: rows,
             startY: 28,
-            theme: 'grid',
-            headStyles: {
-                fillColor: [255, 90, 95],
-                textColor: 255,
-                fontStyle: 'bold',
-                fontSize: 10
-            },
-            bodyStyles: {
-                fontSize: 9
-            },
-            alternateRowStyles: {
-                fillColor: [248, 250, 252]
-            }
+            theme: 'striped',
+            headStyles: { fillColor: [99, 102, 241], textColor: 255 },
+            margin: { top: 30 }
         });
 
-        // Save the PDF
-        const filename = `${dataType.toLowerCase()}-export-${new Date().toISOString().split('T')[0]}.pdf`;
+        const filename = `${dataType}_export_${new Date().toISOString().split('T')[0]}.pdf`;
         doc.save(filename);
-
-        showNotification(`${dataType} exported successfully as PDF`, 'success');
+        showNotification('PDF Export Complete', 'success');
     } catch (error) {
         console.error('PDF export error:', error);
-        showNotification('Failed to export as PDF', 'error');
+        showNotification('PDF export failed', 'error');
+    }
+}
+
+function hideExportModal() {
+    const modal = document.getElementById('exportModal');
+    if (modal) {
+        modal.classList.remove('active');
     }
 }
 
@@ -138,15 +131,21 @@ function showExportModal(dataType) {
         // Add click handlers to export options
         const options = modal.querySelectorAll('.export-option');
         options.forEach(option => {
-            option.onclick = () => {
-                const format = option.getAttribute('data-format');
+            // Clone to remove old listeners
+            const fresh = option.cloneNode(true);
+            option.parentNode.replaceChild(fresh, option);
+
+            fresh.addEventListener('click', () => {
+                const format = fresh.getAttribute('data-format');
                 if (format === 'Excel') {
                     exportTableToExcel(dataType);
+                } else if (format === 'PDF') {
+                    exportTableToPDF(dataType);
                 } else {
                     handleExport(dataType, format);
                 }
                 hideExportModal();
-            };
+            });
         });
         
         // Close on backdrop click
@@ -161,8 +160,7 @@ function showExportModal(dataType) {
 async function exportTableToExcel(dataType) {
     const table = document.querySelector('table');
     if (!table) {
-        showNotification('No table found to export', 'error');
-        return;
+        return handleExport(dataType, 'Excel');
     }
 
     try {
@@ -283,8 +281,18 @@ async function handleExport(dataType, format) {
             }));
         }
 
-        exportToCSV(exportData, `${dataType}_export_${new Date().toISOString().split('T')[0]}`);
-        showNotification(`${dataType.charAt(0).toUpperCase() + dataType.slice(1)} exported successfully`, 'success');
+        if (format === 'CSV') {
+            exportToCSV(exportData, `${dataType}_export_${new Date().toISOString().split('T')[0]}`);
+        } else if (format === 'PDF') {
+            // If we have clean data, we could generate a better PDF, 
+            // but for now let's use the table scraper if available, 
+            // otherwise we'd need a data-to-pdf converter.
+            exportTableToPDF(dataType);
+        } else if (format === 'Excel') {
+            exportTableToExcel(dataType);
+        }
+        
+        showNotification(`${dataType.charAt(0).toUpperCase() + dataType.slice(1)} exported successfully as ${format}`, 'success');
     } catch (error) {
         console.error('Export error:', error);
         showNotification('Export failed', 'error');

@@ -9,7 +9,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             if (result.success) {
                 renderEvents(result.events);
-                updateStats(result.events);
+                updateStats(result.stats);
             } else {
                 console.error('Failed to load events:', result.message);
             }
@@ -26,20 +26,32 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
 
-        eventsTableBody.innerHTML = events.map(event => `
-            <tr data-id="${event.id}" 
-                data-image="${event.image_path || ''}" 
-                data-tag="${event.tag || ''}" 
-                data-client-name="${(event.client_name || '').toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-') || ''}">
-                <td>${event.event_name}</td>
-                <td>${event.state || 'N/A'}</td>
-                <td>${event.client_name || 'Direct'}</td>
-                <td>${event.price > 0 ? '₦' + parseFloat(event.price).toLocaleString() : 'Free'}</td>
-                <td>${event.attendee_count || 0}</td>
-                <td>${event.event_type || 'General'}</td>
-                <td><span class="status-badge status-${event.status}">${event.status.charAt(0).toUpperCase() + event.status.slice(1)}</span></td>
-            </tr>
-        `).join('');
+        eventsTableBody.innerHTML = events.map(event => {
+            // Determine display status (handle soft-deleted)
+            let displayStatus = event.status;
+            let statusClass = event.status;
+            
+            if (event.deleted_at) {
+                displayStatus = 'deleted';
+                statusClass = 'cancelled'; // Mapping to existing CSS class
+            }
+
+            return `
+                <tr data-id="${event.id}" 
+                    data-image="${event.image_path || ''}" 
+                    data-tag="${event.tag || ''}" 
+                    data-client-name="${(event.client_name || '').toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-') || ''}"
+                    class="${event.deleted_at ? 'row-deleted' : ''}">
+                    <td>${event.event_name}</td>
+                    <td>${event.state || 'N/A'}</td>
+                    <td>${event.client_name || 'Direct'}</td>
+                    <td>${event.price > 0 ? '₦' + parseFloat(event.price).toLocaleString() : 'Free'}</td>
+                    <td>${event.attendee_count || 0}</td>
+                    <td>${event.event_type || 'General'}</td>
+                    <td><span class="status-badge status-${statusClass}">${displayStatus.charAt(0).toUpperCase() + displayStatus.slice(1)}</span></td>
+                </tr>
+            `;
+        }).join('');
 
         // Re-initialize previews for new rows
         if (window.initPreviews) {
@@ -47,21 +59,20 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
-    function updateStats(events) {
-        if (statsValues.length < 4) return;
+    function updateStats(stats) {
+        if (!stats || statsValues.length < 5) return;
 
-        const stats = {
-            created: events.length,
-            published: events.filter(e => e.status === 'published').length,
-            deleted: events.filter(e => e.status === 'cancelled').length, // Assuming cancelled is 'deleted' in this context
-            scheduled: events.filter(e => e.status === 'scheduled').length
-        };
-
-        statsValues[0].textContent = stats.created;
-        statsValues[1].textContent = stats.published;
-        statsValues[2].textContent = stats.deleted;
-        statsValues[3].textContent = stats.scheduled;
+        // stats from API: total, published, deleted, scheduled, restored
+        statsValues[0].textContent = stats.total || 0;
+        statsValues[1].textContent = stats.published || 0;
+        statsValues[2].textContent = stats.deleted || 0;
+        statsValues[3].textContent = stats.scheduled || 0;
+        statsValues[4].textContent = stats.restored || 0;
     }
 
+    // Initial load
     await loadEvents();
+
+    // Task 3: Real-time synchronization (10s polling)
+    setInterval(loadEvents, 10000);
 });

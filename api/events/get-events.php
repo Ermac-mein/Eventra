@@ -95,13 +95,13 @@ try {
     if ($client_id) {
         $stats_stmt = $pdo->prepare("
             SELECT 
-                COUNT(*) as total_events,
-                SUM(CASE WHEN status = 'published' THEN 1 ELSE 0 END) as published_events,
-                SUM(CASE WHEN status = 'scheduled' THEN 1 ELSE 0 END) as scheduled_events,
-                SUM(CASE WHEN status = 'draft' THEN 1 ELSE 0 END) as draft_events,
-                SUM(CASE WHEN status = 'restored' THEN 1 ELSE 0 END) as restored_events,
+                COUNT(CASE WHEN deleted_at IS NULL THEN 1 END) as total_events,
+                SUM(CASE WHEN status = 'published' AND deleted_at IS NULL THEN 1 ELSE 0 END) as published_events,
+                SUM(CASE WHEN status = 'scheduled' AND deleted_at IS NULL THEN 1 ELSE 0 END) as scheduled_events,
+                SUM(CASE WHEN status = 'draft' AND deleted_at IS NULL THEN 1 ELSE 0 END) as draft_events,
+                SUM(CASE WHEN status = 'restored' AND deleted_at IS NULL THEN 1 ELSE 0 END) as restored_events,
                 SUM(CASE WHEN deleted_at IS NOT NULL THEN 1 ELSE 0 END) as deleted_events,
-                IFNULL(SUM(attendee_count), 0) as total_attendees
+                IFNULL(SUM(CASE WHEN deleted_at IS NULL THEN attendee_count ELSE 0 END), 0) as total_attendees
             FROM events
             WHERE client_id = ?
         ");
