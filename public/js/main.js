@@ -654,6 +654,9 @@ function init() {
   initSmoothScroll();
   initHeaderScroll();
   initGoogleAuth();
+  
+  // Real-time synchronization (10s polling)
+  setInterval(loadEvents, 10000);
 }
 
 // Enhanced search with filters

@@ -18,6 +18,10 @@ try {
     $stmt = $pdo->query("SELECT COUNT(*) as total FROM events");
     $total_events = $stmt->fetch()['total'];
 
+    // Get strictly PUBLISHED and NOT DELETED events count
+    $stmt = $pdo->query("SELECT COUNT(*) as total FROM events WHERE status = 'published' AND deleted_at IS NULL");
+    $published_events_count = $stmt->fetch()['total'];
+
     // Get active users count (regular users with an auth account)
     $stmt = $pdo->query("SELECT COUNT(*) as total FROM auth_accounts WHERE role = 'user' AND is_active = 1");
     $active_users = $stmt->fetch()['total'];
@@ -97,11 +101,11 @@ try {
             p.business_name as client_name,
             COUNT(t.id) as ticket_count
         FROM events e
-        LEFT JOIN clients p ON e.client_id = p.auth_id
+        LEFT JOIN clients p ON e.client_id = p.id
         LEFT JOIN tickets t ON e.id = t.event_id
-        WHERE e.status = 'published' AND e.event_date >= CURDATE()
+        WHERE e.status = 'published' AND e.deleted_at IS NULL
         GROUP BY e.id
-        ORDER BY e.event_date ASC
+        ORDER BY e.created_at DESC
         LIMIT 10
     ");
     $upcoming_events = $stmt->fetchAll();
@@ -109,7 +113,8 @@ try {
     echo json_encode([
         'success' => true,
         'stats' => [
-            'total_events' => (int) $total_events, // Now only published events
+            'total_events' => (int) $total_events,
+            'published_events' => (int) $published_events_count,
             'active_users' => (int) $active_users,
             'total_clients' => (int) $total_clients,
             'total_revenue' => (float) $total_revenue

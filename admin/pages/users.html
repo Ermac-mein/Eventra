@@ -92,10 +92,10 @@
                 </div>
                 <div class="stat-card">
                     <div class="stat-header">
-                        <span class="stat-label">User Engaged</span>
+                        <span class="stat-label">User Active</span>
                         <i data-lucide="activity" class="stat-icon"></i>
                     </div>
-                    <span class="stat-value" id="usersEngaged">0</span>
+                    <span class="stat-value" id="usersActive">0</span>
                 </div>
                 <div class="stat-card">
                     <div class="stat-header">
@@ -106,8 +106,8 @@
                 </div>
                 <div class="stat-card">
                     <div class="stat-header">
-                        <span class="stat-label">User Follow-Up</span>
-                        <i data-lucide="message-square" class="stat-icon"></i>
+                        <span class="stat-label">Conversion Rate</span>
+                        <i data-lucide="trending-up" class="stat-icon"></i>
                     </div>
                     <span class="stat-value" id="usersFollowUp">0</span>
                 </div>
@@ -120,13 +120,13 @@
                 <table style="width: 100%; border-collapse: separate; border-spacing: 0 10px;">
                     <thead>
                         <tr>
-                            <th style="border-bottom: 2px solid #f1f5f9;">ID</th>
-                            <th style="border-bottom: 2px solid #f1f5f9;">User Name</th>
-                            <th style="border-bottom: 2px solid #f1f5f9;">Location</th>
-                            <th style="border-bottom: 2px solid #f1f5f9;">Email</th>
-                            <th style="border-bottom: 2px solid #f1f5f9;">Organiser</th>
-                            <th style="border-bottom: 2px solid #f1f5f9;">Status</th>
-                            <th style="border-bottom: 2px solid #f1f5f9;">Contact</th>
+                            <th class="sortable" data-sort="id" style="border-bottom: 2px solid #f1f5f9;">ID</th>
+                            <th class="sortable" data-sort="name" style="border-bottom: 2px solid #f1f5f9;">User Name</th>
+                            <th class="sortable" data-sort="state" style="border-bottom: 2px solid #f1f5f9;">Location</th>
+                            <th class="sortable" data-sort="email" style="border-bottom: 2px solid #f1f5f9;">Email</th>
+                            <th class="sortable" data-sort="client_name" style="border-bottom: 2px solid #f1f5f9;">Organiser</th>
+                            <th class="sortable" data-sort="status" style="border-bottom: 2px solid #f1f5f9;">Status</th>
+                            <th class="sortable" data-sort="phone" style="border-bottom: 2px solid #f1f5f9;">Contact</th>
                         </tr>
                     </thead>
                     <tbody id="usersTableBody">
@@ -161,7 +161,6 @@
     <!-- Notifications Drawer -->
     <div class="drawer" id="notificationsDrawer">
         <div class="drawer-header">
-            <i data-lucide="arrow-left" class="back-arrow"></i>
             <h2>Notifications</h2>
         </div>
         <div class="drawer-content"></div>

@@ -74,6 +74,12 @@ async function loadDashboardStats() {
         const revenueVal = findStatValue('Revenue');
         if (revenueVal) revenueVal.textContent = '₦' + parseFloat(stats.total_revenue).toLocaleString();
 
+        // Update Events Showcase badge
+        const publishedBadge = document.getElementById('publishedEventsBadge');
+        if (publishedBadge) {
+            publishedBadge.textContent = stats.published_events || 0;
+        }
+
         // Load recent activities
         loadRecentActivities(result.recent_activities);
 
@@ -171,12 +177,13 @@ function loadUpcomingEvents(events) {
 
     container.innerHTML = events.map(event => `
         <div class="event-mini-card">
-            <img src="${event.image_path || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=400&h=200&fit=crop'}" 
+            <img src="${event.image_path || '../../assets/images/event-placeholder.png'}" 
+                 onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(event.event_name)}&background=1d4ed8&color=fff&size=400'"
                  class="event-mini-img" alt="${event.event_name}">
             <div class="event-mini-info">
                 <div class="event-mini-title">${event.event_name}</div>
                 <div class="event-mini-meta">
-                    <span>${event.state}</span>
+                    <span>${event.client_name || 'Eventra'}</span>
                     <span>${formatDate(event.event_date)}</span>
                 </div>
             </div>

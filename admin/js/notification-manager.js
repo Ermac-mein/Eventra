@@ -46,6 +46,27 @@ class NotificationManager {
         this.renderNotifications();
     }
 
+    async clearAllNotifications() {
+        try {
+            const response = await fetch('../../api/notifications/clear-all.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+            const result = await response.json();
+
+            if (result.success) {
+                this.notifications = [];
+                this.renderNotifications();
+                this.updateNotificationBadge(); // Assuming updateBellBadge refers to updateNotificationBadge
+                if (window.showNotification) {
+                    showNotification('All notifications cleared', 'success');
+                }
+            }
+        } catch (error) {
+            console.error('Error clearing notifications:', error);
+        }
+    }
+
     updateNotificationBadge() {
         const bellIcon = document.getElementById('notificationBellIcon') || document.querySelector('.notification-bell-icon');
         if (!bellIcon) return;
@@ -83,30 +104,38 @@ class NotificationManager {
     }
 
     renderNotifications() {
-        const notifDrawer = document.getElementById('notificationsDrawer');
-        if (!notifDrawer) return;
+        const drawerContent = document.querySelector('#notificationsDrawer .drawer-content');
+        const drawerHeader = document.querySelector('#notificationsDrawer .drawer-header');
+        if (!drawerContent || !drawerHeader) return;
 
-        const drawerContent = notifDrawer.querySelector('.drawer-content');
-        if (!drawerContent) return;
+        // Add Clear All button to header if it doesn't exist and there are notifications
+        let clearBtn = drawerHeader.querySelector('.clear-all-btn');
+        if (this.notifications.length > 0) {
+            if (!clearBtn) {
+                clearBtn = document.createElement('button');
+                clearBtn.className = 'clear-all-btn';
+                clearBtn.innerHTML = 'Clear All';
+                clearBtn.style.cssText = 'background: #f1f5f9; border: none; padding: 6px 12px; border-radius: 8px; font-size: 0.8rem; font-weight: 600; color: #64748b; cursor: pointer; transition: all 0.2s;';
+                clearBtn.onclick = () => this.clearAll();
+                drawerHeader.appendChild(clearBtn);
+            }
+        } else if (clearBtn) {
+            clearBtn.remove();
+        }
 
         // Clear existing content
         drawerContent.innerHTML = '';
 
         if (this.notifications.length === 0) {
             drawerContent.innerHTML = `
-                <div style="text-align: center; padding: 2rem; color: #7f8c8d;">
-                    <span style="font-size: 3rem;">🔔</span>
-                    <p style="margin-top: 1rem;">No notifications yet</p>
+                <div class="empty-notif-state" style="text-align: center; padding: 4rem 2rem; color: #94a3b8; animation: fadeIn 0.5s ease-out;">
+                    <div style="font-size: 4rem; margin-bottom: 1.5rem; filter: grayscale(0.5);">🎉</div>
+                    <h3 style="font-size: 1.25rem; font-weight: 700; color: #1e293b; margin-bottom: 0.5rem;">All caught up!</h3>
+                    <p style="font-size: 0.9rem;">You have no new notifications at the moment.</p>
                 </div>
             `;
             return;
         }
-
-        // Add Clear All Button
-        const headerActions = document.createElement('div');
-        headerActions.style.cssText = 'padding: 1rem; border-bottom: 1px solid #edf2f7; display: flex; justify-content: flex-end;';
-        headerActions.innerHTML = `<button onclick="window.notificationManager.clearAll()" style="color: #e74c3c; background: none; border: 1px solid #e74c3c; padding: 0.4rem 0.8rem; border-radius: 4px; cursor: pointer; font-size: 0.8rem; font-weight: 600;">Clear All</button>`;
-        drawerContent.appendChild(headerActions);
 
         // Container for notifications
         const listContainer = document.createElement('div');

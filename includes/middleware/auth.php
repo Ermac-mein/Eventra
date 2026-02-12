@@ -6,25 +6,52 @@ function checkAuth($requiredRole = null)
 {
     global $pdo;
 
-    // Determine session name based on context or existing session
+    // 1. Ensure a session is started
     if (session_status() === PHP_SESSION_NONE) {
-        $path = $_SERVER['REQUEST_URI'] ?? '';
+        require_once __DIR__ . '/../../config/session-config.php';
+        // session-config.php starts the session based on path/referer
+    }
 
-        if (strpos($path, '/api/admin/') !== false || strpos($path, '/admin/') !== false) {
-            session_name('EVENTRA_ADMIN_SESS');
-        } elseif (strpos($path, '/api/client/') !== false || strpos($path, '/client/') !== false) {
-            session_name('EVENTRA_CLIENT_SESS');
-        } else {
-            session_name('EVENTRA_USER_SESS');
+    // 2. Session Recovery: If current session is empty, try other known session names
+    if (empty($_SESSION['user_id']) || empty($_SESSION['auth_token'])) {
+        $currentName = session_name();
+        $possibleNames = ['EVENTRA_CLIENT_SESS', 'EVENTRA_ADMIN_SESS', 'EVENTRA_USER_SESS'];
+        $sessionMatched = false;
+
+        foreach ($possibleNames as $name) {
+            if ($name === $currentName)
+                continue;
+            if (isset($_COOKIE[$name])) {
+                // Save and close current empty session
+                session_write_close();
+
+                // Try to open the other session
+                session_name($name);
+                session_start();
+
+                if (!empty($_SESSION['user_id']) && !empty($_SESSION['auth_token'])) {
+                    $sessionMatched = true;
+                    break; // Successfully switched to a populated session
+                }
+
+                // Still empty, close and continue trying
+                session_write_close();
+            }
         }
-        session_start();
+
+        // If no alternative session found, restart the original (or default) session
+        if (session_status() === PHP_SESSION_NONE) {
+            session_name($currentName);
+            session_start();
+        }
     }
 
     $token = $_SESSION['auth_token'] ?? null;
     $user_id = $_SESSION['user_id'] ?? null;
 
     if (!$token || !$user_id) {
-        error_log("[Auth Debug] Missing session data. Redirecting to login. User ID: " . ($user_id ?? 'None'));
+        $referer = $_SERVER['HTTP_REFERER'] ?? 'None';
+        error_log("[Auth Debug] Missing session data. Redirecting to login. User ID: " . ($user_id ?? 'None') . " | Token: " . ($token ? 'Present' : 'None') . " | Session Name: " . session_name() . " | Session ID: " . session_id() . " | Referer: $referer");
         http_response_code(401);
         echo json_encode(['success' => false, 'message' => 'Unauthorized. Please login.']);
         exit;
@@ -36,9 +63,14 @@ function checkAuth($requiredRole = null)
         $stmt->execute([$token, $user_id]);
         $authToken = $stmt->fetch();
 
-        if (!$authToken || strtotime($authToken['expires_at']) < time()) {
-            // Token expired or invalid
-            error_log("[Auth Debug] Token expired or invalid. User ID: $user_id");
+        if (!$authToken) {
+            error_log("[Auth Debug] Token not found in database. User ID: $user_id | Token: $token");
+            invalidateSession($user_id, $token);
+            exit;
+        }
+
+        if (strtotime($authToken['expires_at']) < time()) {
+            error_log("[Auth Debug] Token expired. User ID: $user_id | Expires: " . $authToken['expires_at']);
             invalidateSession($user_id, $token);
             exit;
         }
@@ -48,23 +80,30 @@ function checkAuth($requiredRole = null)
         $stmt->execute([$user_id]);
         $user = $stmt->fetch();
 
-        if (!$user || $user['is_active'] != 1) {
-            logSecurityEvent($user_id, null, 'unauthorized_access', 'session', "User inactive or not found during auth check.");
-            error_log("[Auth Debug] User inactive or not found. User ID: $user_id");
+        if (!$user) {
+            error_log("[Auth Debug] User account not found in database. User ID: $user_id");
+            invalidateSession($user_id, $token);
+            exit;
+        }
+
+        if ($user['is_active'] != 1) {
+            error_log("[Auth Debug] User account is inactive. User ID: $user_id");
+            logSecurityEvent($user_id, null, 'unauthorized_access', 'session', "User inactive during auth check.");
             invalidateSession($user_id, $token);
             exit;
         }
 
         // 2. Session Integrity: Ensure session role matches database role (Case-Insensitive)
         if (strtolower($_SESSION['role']) !== strtolower($user['role'])) {
-            logSecurityEvent($user_id, null, 'role_mismatch', 'session', "Detected role mismatch: Session({$_SESSION['role']}) != DB({$user['role']})");
             error_log("[Auth Debug] Role mismatch detected! Session: {$_SESSION['role']}, DB: {$user['role']}. User ID: $user_id");
+            logSecurityEvent($user_id, null, 'role_mismatch', 'session', "Detected role mismatch: Session({$_SESSION['role']}) != DB({$user['role']})");
             invalidateSession($user_id, $token);
             exit;
         }
 
         // Check if role matches if required
         if ($requiredRole && $user['role'] !== $requiredRole) {
+            error_log("[Auth Debug] Insufficient permissions. User Role: {$user['role']}, Required: $requiredRole. User ID: $user_id");
             logSecurityEvent($user_id, null, 'unauthorized_access', 'session', "Insufficient permissions for role: {$user['role']}. Required: $requiredRole");
             http_response_code(403);
             echo json_encode(['success' => false, 'message' => 'Forbidden. Insufficient permissions.']);

@@ -60,15 +60,18 @@ function resolveEntity($email)
         $role_password_col = in_array($role, ['admin', 'client']) ? 'p.password as profile_password_hash' : 'NULL as profile_password_hash';
 
         // We also fetch password from the specific table to ensure redundancy works correctly
-        $stmt = $pdo->prepare("SELECT a.*, p.*, p.$name_col as display_name, p.profile_pic, $role_password_col FROM auth_accounts a LEFT JOIN $table p ON a.id = p.auth_id WHERE a.id = ?");
+        $stmt = $pdo->prepare("SELECT a.id as auth_id, a.email, a.role, a.is_active, a.password_hash as auth_password_hash, p.*, p.id as profile_id, p.$name_col as display_name, p.profile_pic, $role_password_col FROM auth_accounts a LEFT JOIN $table p ON a.id = p.auth_id WHERE a.id = ?");
         $stmt->execute([$auth['id']]);
         $fullUser = $stmt->fetch(PDO::FETCH_ASSOC);
 
         // For convenience in registration/login logic that expects certain keys
         if ($fullUser) {
-            // Prefer the profile_password_hash if it exists, otherwise use auth_accounts'
-            $fullUser['password_hash'] = $fullUser['profile_password_hash'] ?? $fullUser['password_hash'];
+            // Priority: client/admin table password -> auth_accounts password
+            $fullUser['password_hash'] = $fullUser['profile_password_hash'] ?? $fullUser['auth_password_hash'];
             $fullUser['password'] = $fullUser['password_hash']; // Alias for compatibility
+
+            // Ensure ID refers to auth_id
+            $fullUser['id'] = $fullUser['auth_id'];
 
             // Map table-specific name fields to a generic 'name'
             $fullUser['name'] = $fullUser['display_name'] ?? ucfirst($role);

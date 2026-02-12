@@ -214,6 +214,8 @@ function exportCurrentTableToPDF() {
     const table = document.querySelector('table');
     if (!table) return;
 
+    if (window.showToast) window.showToast('Generating PDF...', 'info');
+
     try {
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
@@ -292,6 +294,8 @@ function exportCurrentTableToExcel() {
     const table = document.querySelector('table');
     if (!table) return;
 
+    if (window.showToast) window.showToast('Generating Excel...', 'info');
+
     try {
         // Extract table data
         const workbook = XLSX.utils.book_new();
@@ -344,6 +348,8 @@ function exportCurrentTableToExcel() {
 function exportCurrentTableToCSV() {
     const table = document.querySelector('table');
     if (!table) return;
+
+    if (window.showToast) window.showToast('Generating CSV...', 'info');
 
     const rows = Array.from(table.querySelectorAll('tr'));
     const csvContent = rows.map(row => {
@@ -407,6 +413,7 @@ window.initPreviews = function() {
             backdrop.classList.remove('active');
             setTimeout(() => {
                 backdrop.style.display = 'none';
+                backdrop.classList.remove('flex-mode');
             }, 300);
         };
         backdrop.onclick = (e) => {
@@ -414,6 +421,7 @@ window.initPreviews = function() {
                 backdrop.classList.remove('active');
                 setTimeout(() => {
                     backdrop.style.display = 'none';
+                    backdrop.classList.remove('flex-mode');
                 }, 300);
             }
         };

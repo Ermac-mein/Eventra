@@ -29,7 +29,7 @@ try {
 
     // Join with auth_accounts to get the role
     $stmt = $pdo->prepare("
-        SELECT a.role, a.email, p.* 
+        SELECT p.*, a.id, a.role, a.email 
         FROM auth_accounts a 
         LEFT JOIN $table p ON a.id = p.auth_id 
         WHERE a.id = ?

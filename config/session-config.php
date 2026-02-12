@@ -59,6 +59,14 @@ function getEventraSessionName()
         if (strpos($referer, '/client/') !== false) {
             return 'EVENTRA_CLIENT_SESS';
         }
+
+        // Priority 3: Fallback to cookies if Referer is missing or inconclusive
+        if (isset($_COOKIE['EVENTRA_CLIENT_SESS'])) {
+            return 'EVENTRA_CLIENT_SESS';
+        }
+        if (isset($_COOKIE['EVENTRA_ADMIN_SESS'])) {
+            return 'EVENTRA_ADMIN_SESS';
+        }
     }
 
     // Default for users/public

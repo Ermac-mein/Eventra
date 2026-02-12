@@ -383,6 +383,40 @@ th {
     font-weight: 600;
     font-size: 0.85rem;
     text-transform: uppercase;
+    position: relative;
+    white-space: nowrap;
+}
+
+th.sortable {
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 0.2s;
+}
+
+th.sortable:hover {
+    background-color: #e2e8f0;
+    color: var(--admin-primary);
+}
+
+th.sortable::after {
+    content: '↕';
+    margin-left: 8px;
+    opacity: 0.3;
+    font-size: 0.8rem;
+    display: inline-block;
+    transition: opacity 0.2s, transform 0.2s;
+}
+
+th.sortable.asc::after {
+    content: '↑';
+    opacity: 1;
+    color: var(--admin-primary);
+}
+
+th.sortable.desc::after {
+    content: '↓';
+    opacity: 1;
+    color: var(--admin-primary);
 }
 
 td {
@@ -1375,6 +1409,71 @@ input:checked+.slider:before {
     font-size: 0.9rem;
     font-weight: 500;
     line-height: 1.4;
+}
+
+/* Events Slider & Mini Cards */
+.events-slider-section {
+    overflow: hidden;
+    position: relative;
+}
+
+.events-slider-track {
+    display: flex;
+    gap: 20px;
+    padding: 10px 0;
+    transition: transform 0.5s ease;
+}
+
+.event-mini-card {
+    flex: 0 0 300px;
+    background: #fff;
+    border-radius: 16px;
+    overflow: hidden;
+    border: 1px solid var(--admin-border);
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+}
+
+.event-mini-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 12px 24px rgba(0,0,0,0.08);
+    border-color: var(--admin-primary-light);
+}
+
+.event-mini-img {
+    width: 100%;
+    height: 160px;
+    object-fit: cover;
+    display: block;
+    background: #f1f5f9;
+}
+
+.event-mini-info {
+    padding: 1.25rem;
+}
+
+.event-mini-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--admin-text-main);
+    margin-bottom: 8px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.event-mini-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.8rem;
+    color: var(--admin-text-muted);
+    font-weight: 500;
+}
+
+@keyframes slideEvents {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(calc(-320px * 3)); } /* Adjust based on card width + gap */
 }
 
 .toast-close {

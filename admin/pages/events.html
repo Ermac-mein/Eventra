@@ -120,6 +120,48 @@
                     <span class="stat-value" id="eventsRestored">0</span>
                 </div>
             </div>
+            
+            <div class="filter-bar" style="background: white; padding: 1.5rem; border-radius: 16px; margin-bottom: 1.5rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; border: 1px solid var(--admin-border);">
+                <div class="filter-group">
+                    <label style="display: block; font-size: 0.8rem; font-weight: 700; margin-bottom: 8px; color: var(--admin-text-muted);">Status</label>
+                    <select id="statusFilter" style="width: 100%; padding: 0.75rem; border-radius: 10px; border: 1px solid var(--admin-border); outline: none;">
+                        <option value="all">All Status</option>
+                        <option value="published">Published</option>
+                        <option value="scheduled">Scheduled</option>
+                        <option value="draft">Draft</option>
+                        <option value="cancelled">Cancelled</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label style="display: block; font-size: 0.8rem; font-weight: 700; margin-bottom: 8px; color: var(--admin-text-muted);">Category</label>
+                    <select id="categoryFilter" style="width: 100%; padding: 0.75rem; border-radius: 10px; border: 1px solid var(--admin-border); outline: none;">
+                        <option value="all">All Categories</option>
+                        <option value="Concert">Concert</option>
+                        <option value="Conference">Conference</option>
+                        <option value="Workshop">Workshop</option>
+                        <option value="Party">Party</option>
+                        <option value="Others">Others</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label style="display: block; font-size: 0.8rem; font-weight: 700; margin-bottom: 8px; color: var(--admin-text-muted);">Price Range</label>
+                    <select id="priceFilter" style="width: 100%; padding: 0.75rem; border-radius: 10px; border: 1px solid var(--admin-border); outline: none;">
+                        <option value="all">Any Price</option>
+                        <option value="free">Free</option>
+                        <option value="paid">Paid</option>
+                        <option value="premium">Premium (>₦50k)</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label style="display: block; font-size: 0.8rem; font-weight: 700; margin-bottom: 8px; color: var(--admin-text-muted);">Attendees</label>
+                    <select id="attendeeFilter" style="width: 100%; padding: 0.75rem; border-radius: 10px; border: 1px solid var(--admin-border); outline: none;">
+                        <option value="all">Any Count</option>
+                        <option value="0-50">0 - 50</option>
+                        <option value="51-200">51 - 200</option>
+                        <option value="201+">201+</option>
+                    </select>
+                </div>
+            </div>
 
             <div class="table-container" style="padding: 2rem; border-radius: 16px;">
                 <div class="table-header" style="margin-bottom: 1.5rem; padding: 0; border: none;">
@@ -128,13 +170,17 @@
                 <table style="width: 100%; border-collapse: separate; border-spacing: 0 10px;">
                     <thead>
                         <tr>
-                            <th style="border-bottom: 2px solid #f1f5f9;">Event Name</th>
-                            <th style="border-bottom: 2px solid #f1f5f9;">Location</th>
-                            <th style="border-bottom: 2px solid #f1f5f9;">Organized By</th>
-                            <th style="border-bottom: 2px solid #f1f5f9;">Price</th>
-                            <th style="border-bottom: 2px solid #f1f5f9;">Attendees</th>
-                            <th style="border-bottom: 2px solid #f1f5f9;">Category</th>
-                            <th style="border-bottom: 2px solid #f1f5f9;">Status</th>
+                            <th class="sortable" data-sort="event_name">Event Name</th>
+                            <th class="sortable" data-sort="priority">Priority</th>
+                            <th class="sortable" data-sort="event_date">Date</th>
+                            <th class="sortable" data-sort="event_time">Time</th>
+                            <th class="sortable" data-sort="event_type">Category</th>
+                            <th>Phone</th>
+                            <th class="sortable" data-sort="price">Price</th>
+                            <th class="text-center">Attendees</th>
+                            <th>Tag</th>
+                            <th>Link</th>
+                            <th class="sortable" data-sort="status">Status</th>
                         </tr>
                     </thead>
                     <tbody id="eventsTableBody">
@@ -169,8 +215,7 @@
     <!-- Notifications Drawer -->
     <div class="drawer" id="notificationsDrawer">
         <div class="drawer-header">
-            <i data-lucide="arrow-left" class="back-arrow"></i>
-            <h2>Notifications</h2>
+            <h3>Notifications</h3>
         </div>
         <div class="drawer-content"></div>
     </div>

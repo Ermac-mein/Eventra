@@ -23,7 +23,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 async function loadClientProfile(clientId) {
     try {
-        const response = await fetch(`../../api/users/get-profile.php`);
+        const response = await fetch(`../../api/users/get-profile.php`, {
+            credentials: 'include'
+        });
         const result = await response.json();
 
         if (result.success) {
@@ -61,7 +63,9 @@ async function loadClientProfile(clientId) {
 
 async function loadDashboardStats(clientId) {
     try {
-        const response = await fetch('../../api/stats/get-client-dashboard-stats.php');
+        const response = await fetch('../../api/stats/get-client-dashboard-stats.php', {
+            credentials: 'include'
+        });
         const result = await response.json();
 
         if (!result.success) {

@@ -47,6 +47,18 @@ try {
 
     logSecurityEvent($auth_id, $email, 'registration_success', 'password', "New client registered: $name");
 
+    // 5. Notify Admin about new registration
+    if ($role === 'client') {
+        $stmt = $pdo->prepare("SELECT id FROM auth_accounts WHERE role = 'admin' LIMIT 1");
+        $stmt->execute();
+        $admin = $stmt->fetch();
+        if ($admin) {
+            $notifMsg = "New client registered: $name ($email)";
+            $stmt = $pdo->prepare("INSERT INTO notifications (recipient_auth_id, message, type) VALUES (?, ?, 'new_client_registration')");
+            $stmt->execute([$admin['id'], $notifMsg]);
+        }
+    }
+
     echo json_encode([
         'success' => true,
         'message' => 'Registration successful! You can now log in.'

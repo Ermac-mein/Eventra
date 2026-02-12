@@ -6,9 +6,7 @@
 // Initialize logout functionality
 document.addEventListener('DOMContentLoaded', () => {
     initLogout();
-    initLogout();
     // initNotifications(); // Handled by drawer-system.js
-    initSearch();
     initSearch();
     initProfileClick();
     loadGlobalProfile();
@@ -36,7 +34,9 @@ async function loadGlobalProfile() {
         }
 
         // Fetch fresh data
-        const response = await fetch('../../api/users/get-profile.php');
+        const response = await fetch('../../api/users/get-profile.php', {
+            credentials: 'include'
+        });
         
         if (response.status === 401) {
             window.location.href = '../../client/pages/clientLogin.html';

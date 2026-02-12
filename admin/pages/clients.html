@@ -107,8 +107,8 @@
                 </div>
                 <div class="stat-card">
                     <div class="stat-header">
-                        <span class="stat-label">Client Follow-Up</span>
-                        <i data-lucide="message-square" class="stat-icon"></i>
+                        <span class="stat-label">Active Engagements</span>
+                        <i data-lucide="trending-up" class="stat-icon"></i>
                     </div>
                     <span class="stat-value" id="clientsFollowUp">0</span>
                 </div>
@@ -121,12 +121,12 @@
                 <table style="width: 100%; border-collapse: separate; border-spacing: 0 10px;">
                     <thead>
                         <tr>
-                            <th style="border-bottom: 2px solid #f1f5f9;">ID</th>
-                            <th style="border-bottom: 2px solid #f1f5f9;">Client Name</th>
-                            <th style="border-bottom: 2px solid #f1f5f9;">Email</th>
-                            <th style="border-bottom: 2px solid #f1f5f9;">Location</th>
-                            <th style="border-bottom: 2px solid #f1f5f9;">Phone Contact</th>
-                            <th style="border-bottom: 2px solid #f1f5f9;">Status</th>
+                            <th class="sortable" data-sort="id" style="border-bottom: 2px solid #f1f5f9;">ID</th>
+                            <th class="sortable" data-sort="name" style="border-bottom: 2px solid #f1f5f9;">Client Name</th>
+                            <th class="sortable" data-sort="email" style="border-bottom: 2px solid #f1f5f9;">Email</th>
+                            <th class="sortable" data-sort="state" style="border-bottom: 2px solid #f1f5f9;">Location</th>
+                            <th class="sortable" data-sort="phone" style="border-bottom: 2px solid #f1f5f9;">Phone Contact</th>
+                            <th class="sortable" data-sort="status" style="border-bottom: 2px solid #f1f5f9;">Status</th>
                         </tr>
                     </thead>
                     <tbody id="clientsTableBody">
@@ -161,7 +161,6 @@
     <!-- Notifications Drawer -->
     <div class="drawer" id="notificationsDrawer">
         <div class="drawer-header">
-            <i data-lucide="arrow-left" class="back-arrow"></i>
             <h2>Notifications</h2>
         </div>
         <div class="drawer-content"></div>

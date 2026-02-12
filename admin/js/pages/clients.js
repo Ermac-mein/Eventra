@@ -1,6 +1,8 @@
 document.addEventListener('DOMContentLoaded', async () => {
     const clientsTableBody = document.querySelector('table tbody');
     const statsValues = document.querySelectorAll('.stat-value');
+    let allClients = [];
+    let sortConfig = { key: null, direction: 'asc' };
     
     async function loadClients() {
         try {
@@ -8,8 +10,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             const result = await response.json();
 
             if (result.success) {
-                renderClients(result.clients);
-                updateStats(result.clients);
+                allClients = result.clients;
+                renderClients(allClients);
+                updateStats(allClients);
             } else {
                 console.error('Failed to load clients:', result.message);
             }
@@ -42,6 +45,50 @@ document.addEventListener('DOMContentLoaded', async () => {
             window.initPreviews();
         }
     }
+
+    function sortClients(key) {
+        if (sortConfig.key === key) {
+            sortConfig.direction = sortConfig.direction === 'asc' ? 'desc' : 'asc';
+        } else {
+            sortConfig.key = key;
+            sortConfig.direction = 'asc';
+        }
+
+        // Update UI headers
+        document.querySelectorAll('th.sortable').forEach(th => {
+            th.classList.remove('asc', 'desc');
+            if (th.dataset.sort === key) {
+                th.classList.add(sortConfig.direction);
+            }
+        });
+
+        const sortedClients = [...allClients].sort((a, b) => {
+            let valA = a[key];
+            let valB = b[key];
+
+            // Handle ID as number
+            if (key === 'id') {
+                valA = parseInt(valA) || 0;
+                valB = parseInt(valB) || 0;
+            } else {
+                valA = (valA || '').toString().toLowerCase();
+                valB = (valB || '').toString().toLowerCase();
+            }
+
+            if (valA < valB) return sortConfig.direction === 'asc' ? -1 : 1;
+            if (valA > valB) return sortConfig.direction === 'asc' ? 1 : -1;
+            return 0;
+        });
+
+        renderClients(sortedClients);
+    }
+
+    // Initialize sort listeners
+    document.querySelectorAll('th.sortable').forEach(th => {
+        th.addEventListener('click', () => {
+            sortClients(th.dataset.sort);
+        });
+    });
 
     function updateStats(clients) {
         if (statsValues.length < 4) return;

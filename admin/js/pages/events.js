@@ -1,14 +1,24 @@
 document.addEventListener('DOMContentLoaded', async () => {
     const eventsTableBody = document.querySelector('table tbody');
     const statsValues = document.querySelectorAll('.stat-value');
+    let allEvents = [];
+    let filteredEvents = [];
+    let sortConfig = { key: null, direction: 'asc' };
     
+    // Filter elements
+    const statusFilter = document.getElementById('statusFilter');
+    const categoryFilter = document.getElementById('categoryFilter');
+    const priceFilter = document.getElementById('priceFilter');
+    const attendeeFilter = document.getElementById('attendeeFilter');
+
     async function loadEvents() {
         try {
             const response = await fetch('../../api/admin/get-all-events.php');
             const result = await response.json();
 
             if (result.success) {
-                renderEvents(result.events);
+                allEvents = result.events;
+                applyFilters(); // Apply current filters
                 updateStats(result.stats);
             } else {
                 console.error('Failed to load events:', result.message);
@@ -22,7 +32,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!eventsTableBody) return;
         
         if (events.length === 0) {
-            eventsTableBody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 2rem; color: #999;">No events found</td></tr>';
+            eventsTableBody.innerHTML = '<tr><td colspan="11" style="text-align: center; padding: 2rem; color: #999;">No events found</td></tr>';
             return;
         }
 
@@ -36,18 +46,19 @@ document.addEventListener('DOMContentLoaded', async () => {
                 statusClass = 'cancelled'; // Mapping to existing CSS class
             }
 
+            const dateStr = window.formatDateLong ? formatDateLong(event.event_date) : new Date(event.event_date).toLocaleDateString();
             return `
-                <tr data-id="${event.id}" 
-                    data-image="${event.image_path || ''}" 
-                    data-tag="${event.tag || ''}" 
-                    data-client-name="${(event.client_name || '').toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-') || ''}"
-                    class="${event.deleted_at ? 'row-deleted' : ''}">
+                <tr data-id="${event.id}">
                     <td>${event.event_name}</td>
-                    <td>${event.state || 'N/A'}</td>
-                    <td>${event.client_name || 'Direct'}</td>
+                    <td><span class="priority-badge ${event.priority || 'low'}">${(event.priority || 'Low').toUpperCase()}</span></td>
+                    <td>${dateStr}</td>
+                    <td>${event.event_time.substring(0, 5)}</td>
+                    <td>${event.event_type}</td>
+                    <td>${event.phone || 'N/A'}</td>
                     <td>${event.price > 0 ? '₦' + parseFloat(event.price).toLocaleString() : 'Free'}</td>
-                    <td>${event.attendee_count || 0}</td>
-                    <td>${event.event_type || 'General'}</td>
+                    <td class="text-center">${event.attendee_count || 0}</td>
+                    <td><span class="tag-badge">${event.tag || 'None'}</span></td>
+                    <td><a href="${event.link || '#'}" target="_blank" class="link-btn"><i data-lucide="external-link"></i></a></td>
                     <td><span class="status-badge status-${statusClass}">${displayStatus.charAt(0).toUpperCase() + displayStatus.slice(1)}</span></td>
                 </tr>
             `;
@@ -58,6 +69,102 @@ document.addEventListener('DOMContentLoaded', async () => {
             window.initPreviews();
         }
     }
+
+    function applyFilters() {
+        filteredEvents = allEvents.filter(event => {
+            // Status Filter
+            const statusMatch = statusFilter.value === 'all' || 
+                              (statusFilter.value === 'cancelled' ? event.deleted_at : event.status === statusFilter.value);
+            
+            // Category Filter
+            const categoryMatch = categoryFilter.value === 'all' || event.event_type === categoryFilter.value;
+            
+            // Price Filter
+            let priceMatch = true;
+            const price = parseFloat(event.price) || 0;
+            if (priceFilter.value === 'free') priceMatch = price === 0;
+            if (priceFilter.value === 'paid') priceMatch = price > 0;
+            if (priceFilter.value === 'premium') priceMatch = price > 50000;
+            
+            // Attendee Filter
+            let attendeeMatch = true;
+            const count = parseInt(event.attendee_count) || 0;
+            if (attendeeFilter.value === '0-50') attendeeMatch = count <= 50;
+            if (attendeeFilter.value === '51-200') attendeeMatch = count > 50 && count <= 200;
+            if (attendeeFilter.value === '201+') attendeeMatch = count > 200;
+            
+            return statusMatch && categoryMatch && priceMatch && attendeeMatch;
+        });
+
+        // Maintain sorting if active
+        if (sortConfig.key) {
+            const currentConfig = { ...sortConfig };
+            sortConfig.key = null; // Reset to force sort
+            sortEvents(currentConfig.key, currentConfig.direction);
+        } else {
+            renderEvents(filteredEvents);
+        }
+    }
+
+    function sortEvents(key, forcedDirection = null) {
+        if (forcedDirection) {
+            sortConfig.key = key;
+            sortConfig.direction = forcedDirection;
+        } else if (sortConfig.key === key) {
+            sortConfig.direction = sortConfig.direction === 'asc' ? 'desc' : 'asc';
+        } else {
+            sortConfig.key = key;
+            sortConfig.direction = 'asc';
+        }
+
+        // Update UI headers
+        document.querySelectorAll('th.sortable').forEach(th => {
+            th.classList.remove('asc', 'desc');
+            if (th.dataset.sort === key) {
+                th.classList.add(sortConfig.direction);
+            }
+        });
+
+        const targetList = filteredEvents.length > 0 || anyFilterActive() ? filteredEvents : allEvents;
+        const sortedEvents = [...targetList].sort((a, b) => {
+            let valA = a[key];
+            let valB = b[key];
+
+            // Handle price and attendee_count as numbers
+            if (key === 'price' || key === 'attendee_count') {
+                valA = parseFloat(valA) || 0;
+                valB = parseFloat(valB) || 0;
+            } else {
+                valA = (valA || '').toString().toLowerCase();
+                valB = (valB || '').toString().toLowerCase();
+            }
+
+            if (valA < valB) return sortConfig.direction === 'asc' ? -1 : 1;
+            if (valA > valB) return sortConfig.direction === 'asc' ? 1 : -1;
+            return 0;
+        });
+
+        renderEvents(sortedEvents);
+    }
+
+    function anyFilterActive() {
+        return statusFilter.value !== 'all' || 
+               categoryFilter.value !== 'all' || 
+               priceFilter.value !== 'all' || 
+               attendeeFilter.value !== 'all';
+    }
+
+    // Initialize sort listeners
+    document.querySelectorAll('th.sortable').forEach(th => {
+        th.addEventListener('click', () => {
+            sortEvents(th.dataset.sort);
+        });
+    });
+
+    // Initialize filter listeners
+    [statusFilter, categoryFilter, priceFilter, attendeeFilter].forEach(el => {
+        el.addEventListener('change', applyFilters);
+    });
 
     function updateStats(stats) {
         if (!stats || statsValues.length < 5) return;
