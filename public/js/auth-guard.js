@@ -4,10 +4,15 @@
  */
 
 (function() {
-    // 1. Identify required role from context (URL or body attribute)
     const currentPath = window.location.pathname;
-    let requiredRole = null;
+    
+    // 1. Skip protection for login and signup pages to prevent redirect loops
+    const loginPages = ['adminLogin.html', 'clientLogin.html', 'signup.html'];
+    if (loginPages.some(page => currentPath.endsWith(page))) {
+        return;
+    }
 
+    let requiredRole = null;
     if (currentPath.includes('/admin/')) {
         requiredRole = 'admin';
     } else if (currentPath.includes('/client/')) {
@@ -16,20 +21,15 @@
 
     if (!requiredRole) return; // Not a protected area
 
-    // 2. Check Storage
-    const storageKey = requiredRole === 'admin' ? 'admin_user' : 'client_user';
-    const userStr = localStorage.getItem(storageKey); 
-    
-    let user = null;
-    try {
-        const stored = localStorage.getItem(storageKey);
-        user = stored ? JSON.parse(stored) : null;
-    } catch (e) {
-        console.error('Auth Guard: Failed to parse user storage', e);
+    // Use centralized storage utility for role-aware user retrieval
+    // Safety check: if storage utility isn't loaded yet, we can't verify auth
+    if (!window.storage) {
+        console.warn('[Auth Guard] Storage utility not found. Postponing check.');
+        return;
     }
-
+    const user = window.storage.getUser();
+    
     if (!user || user.role !== requiredRole) {
-        console.warn(`Auth Guard: Unauthorized access to ${requiredRole} area. Redirecting...`, { user, requiredRole });
         const basePath = currentPath.includes('/pages/') ? '../../' : '../';
         
         if (requiredRole === 'admin') {
@@ -40,5 +40,5 @@
         return;
     }
 
-    console.log(`Auth Guard: Successfully authenticated as ${requiredRole}`);
+  //  console.log(`Auth Guard: Successfully authenticated as ${requiredRole}`);
 })();

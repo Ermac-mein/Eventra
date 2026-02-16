@@ -26,8 +26,19 @@ try {
 
     // Filter by client_id if provided
     if ($client_id) {
-        $where_clauses[] = "e.client_id = ?";
-        $params[] = $client_id;
+        // If the requester is a client, the frontend might be passing their auth_id.
+        // We should ensure we are filtering by the actual client.id (PK)
+        $stmt = $pdo->prepare("SELECT id FROM clients WHERE auth_id = ? OR id = ?");
+        $stmt->execute([$client_id, $client_id]);
+        $resolved_client = $stmt->fetch();
+
+        if ($resolved_client) {
+            $where_clauses[] = "e.client_id = ?";
+            $params[] = $resolved_client['id'];
+        } else {
+            // If no client found, return empty set
+            $where_clauses[] = "1 = 0";
+        }
     }
 
     // Filter by status
@@ -92,7 +103,9 @@ try {
 
     // Get statistics if client_id is provided
     $stats = null;
-    if ($client_id) {
+    $resolved_client_id = isset($resolved_client['id']) ? $resolved_client['id'] : null;
+
+    if ($resolved_client_id) {
         $stats_stmt = $pdo->prepare("
             SELECT 
                 COUNT(CASE WHEN deleted_at IS NULL THEN 1 END) as total_events,
@@ -105,7 +118,7 @@ try {
             FROM events
             WHERE client_id = ?
         ");
-        $stats_stmt->execute([$client_id]);
+        $stats_stmt->execute([$resolved_client_id]);
         $stats = $stats_stmt->fetch();
     }
 

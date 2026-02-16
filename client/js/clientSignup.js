@@ -116,7 +116,7 @@ document.addEventListener('DOMContentLoaded', () => {
         signupButton.innerHTML = '<span class="spinner"></span> Creating account...';
 
         try {
-            const response = await fetch('../../api/auth/register.php', {
+            const response = await apiFetch('../../api/auth/register.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -164,7 +164,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // This leverages the same handler as login, which creates account if it doesn't exist
         // We'll mimic the login logic to check for config and initialize Google
         try {
-            const configResponse = await fetch('../../api/config/get-google-config.php');
+            const configResponse = await apiFetch('../../api/config/get-google-config.php');
             const configData = await configResponse.json();
             
             if (!configData.success || !configData.client_id) {
@@ -191,7 +191,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function handleGoogleResponse(response) {
         try {
-            const res = await fetch('../../api/auth/google-handler.php', {
+            const res = await apiFetch('../../api/auth/google-handler.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -240,7 +240,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!sliderContainer) return;
 
         try {
-            const response = await fetch('../../api/events/get-events.php?status=published&limit=10');
+            const response = await apiFetch('../../api/events/get-events.php?status=published&limit=10');
             const data = await response.json();
 
             if (data.success && data.events.length > 0) {

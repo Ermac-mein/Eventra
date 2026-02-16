@@ -13,6 +13,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="../../public/js/storage.js"></script>
     <script src="../../public/js/auth-guard.js"></script>
 </head>
 <body>
@@ -52,7 +53,7 @@
             </li>
         </ul>
         <div class="sidebar-footer">
-            <a href="../../public/pages/clientLogin.html" id="logoutBtn" style="color: white; text-decoration: none; font-size: 0.95rem; display: flex; align-items: center; gap: 12px; opacity: 0.7; transition: opacity 0.3s;">
+            <a href="clientLogin.html" id="logoutBtn" style="color: white; text-decoration: none; font-size: 0.95rem; display: flex; align-items: center; gap: 12px; opacity: 0.7; transition: opacity 0.3s;">
                 <i data-lucide="log-out"></i>
                 <span>Logout</span>
             </a>
@@ -113,16 +114,12 @@
                 <table>
                     <thead>
                         <tr>
-                            <th>Event Name</th>
-                            <th>Priority</th>
-                            <th>Date</th>
-                            <th>Time</th>
+                            <th style="cursor: pointer;" onclick="sortEvents('event_name')">Event Name <i data-lucide="arrow-up-down" style="width: 14px; height: 14px; display: inline-block; vertical-align: middle;"></i></th>
+                            <th style="cursor: pointer;" onclick="sortEvents('event_date')">Date <i data-lucide="arrow-up-down" style="width: 14px; height: 14px; display: inline-block; vertical-align: middle;"></i></th>
                             <th>Category</th>
-                            <th>Phone</th>
-                            <th>Price</th>
+                            <th style="cursor: pointer;" onclick="sortEvents('price')">Price <i data-lucide="arrow-up-down" style="width: 14px; height: 14px; display: inline-block; vertical-align: middle;"></i></th>
+                            <th style="cursor: pointer;" onclick="sortEvents('priority')">Priority <i data-lucide="arrow-up-down" style="width: 14px; height: 14px; display: inline-block; vertical-align: middle;"></i></th>
                             <th class="text-center">Attendees</th>
-                            <th>Tag</th>
-                            <th>Link</th>
                             <th>Status</th>
                             <th class="text-center">Actions</th>
                         </tr>
@@ -160,7 +157,6 @@
         </div>
     </div>
 
-    <script src="../../public/js/storage.js"></script>
     <script src="../js/state-manager.js"></script>
     <script src="../../public/js/utils.js"></script>
     <script src="../js/drawer-system.js"></script>

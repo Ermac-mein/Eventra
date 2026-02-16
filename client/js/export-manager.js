@@ -234,7 +234,7 @@ async function handleExport(dataType, format) {
                 break;
         }
         
-        const response = await fetch(endpoint);
+        const response = await apiFetch(endpoint);
         const result = await response.json();
 
         if (!result.success || !result[dataKey] || result[dataKey].length === 0) {

@@ -7,11 +7,8 @@ header('Content-Type: application/json');
 require_once '../../config/database.php';
 
 // Check authentication
-if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
-    http_response_code(401);
-    echo json_encode(['success' => false, 'message' => 'Unauthorized - Admin access required']);
-    exit;
-}
+require_once '../../includes/middleware/auth.php';
+$admin_id = checkAuth('admin');
 
 try {
     // Get ALL events count (Published, Draft, Deleted, and Restored)
@@ -26,9 +23,13 @@ try {
     $stmt = $pdo->query("SELECT COUNT(*) as total FROM auth_accounts WHERE role = 'user' AND is_active = 1");
     $active_users = $stmt->fetch()['total'];
 
-    // Get total clients count
-    $stmt = $pdo->query("SELECT COUNT(*) as total FROM auth_accounts WHERE role = 'client' AND is_active = 1");
+    // Get total clients count (All clients in auth_accounts)
+    $stmt = $pdo->query("SELECT COUNT(*) as total FROM auth_accounts WHERE role = 'client'");
     $total_clients = $stmt->fetch()['total'];
+
+    // Get strictly RESTORED events count
+    $stmt = $pdo->query("SELECT COUNT(*) as total FROM events WHERE status = 'restored' AND deleted_at IS NULL");
+    $restored_events_count = $stmt->fetch()['total'];
 
     // Get total revenue from tickets
     $stmt = $pdo->query("SELECT COALESCE(SUM(total_price), 0) as revenue FROM tickets");
@@ -115,6 +116,7 @@ try {
         'stats' => [
             'total_events' => (int) $total_events,
             'published_events' => (int) $published_events_count,
+            'restored_events' => (int) $restored_events_count,
             'active_users' => (int) $active_users,
             'total_clients' => (int) $total_clients,
             'total_revenue' => (float) $total_revenue

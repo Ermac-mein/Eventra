@@ -13,6 +13,8 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <link rel="stylesheet" href="../../public/css/media-enhancement.css">
+    <script src="../../public/js/storage.js"></script>
     <script src="../../public/js/auth-guard.js"></script>
 </head>
 <body>
@@ -52,7 +54,7 @@
             </li>
         </ul>
         <div class="sidebar-footer">
-            <a href="../../public/pages/clientLogin.html" id="logoutBtn" style="color: white; text-decoration: none; font-size: 0.95rem; display: flex; align-items: center; gap: 12px; opacity: 0.7; transition: opacity 0.3s;">
+            <a href="clientLogin.html" id="logoutBtn" style="color: white; text-decoration: none; font-size: 0.95rem; display: flex; align-items: center; gap: 12px; opacity: 0.7; transition: opacity 0.3s;">
                 <i data-lucide="log-out"></i>
                 <span>Logout</span>
             </a>
@@ -127,7 +129,6 @@
         </div>
     </div>
    
-    <script src="../../public/js/storage.js"></script>
     <script src="../js/state-manager.js"></script>
     <script src="../../public/js/utils.js"></script>
     <script src="../js/drawer-system.js"></script>
@@ -136,7 +137,16 @@
     <script src="../js/media-manager.js"></script>
     <script src="../js/modals.js"></script>
     <script src="../js/client-main.js"></script>
+    <!-- HD Enhancement Filter -->
+    <div id="hdFilterContainer"></div>
     <script>
+        // Load the SVG filter dynamically to avoid duplication
+        fetch('../../public/assets/hd-enhancement.svg')
+            .then(response => response.text())
+            .then(data => {
+                document.getElementById('hdFilterContainer').innerHTML = data;
+            });
+            
         // Initialize Lucide icons
         lucide.createIcons();
     </script>

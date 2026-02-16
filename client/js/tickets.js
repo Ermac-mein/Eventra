@@ -4,10 +4,10 @@
  */
 
 document.addEventListener('DOMContentLoaded', async () => {
-    const user = storage.get('user');
+    const user = storage.getUser();
     
     if (!user || user.role !== 'client') {
-        window.location.href = '../../public/pages/clientLogin.html';
+        window.location.href = 'clientLogin.html';
         return;
     }
 
@@ -16,7 +16,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 async function loadTickets(clientId) {
     try {
-        const response = await fetch(`../../api/tickets/get-tickets.php?client_id=${clientId}`);
+        const response = await apiFetch(`../../api/tickets/get-tickets.php?client_id=${clientId}`);
         const result = await response.json();
 
         if (result.success) {

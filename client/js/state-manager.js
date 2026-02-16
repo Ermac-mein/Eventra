@@ -39,7 +39,7 @@ class StateManager {
 
         // Fetch fresh data from API
         try {
-            const response = await fetch('../../api/users/get-profile.php');
+            const response = await apiFetch('../../api/users/get-profile.php');
             const result = await response.json();
 
             if (result.success && result.user) {

@@ -113,7 +113,7 @@ async function logout() {
 
     if (result.isConfirmed) {
         try {
-            const response = await fetch('../../api/auth/logout.php', {
+            const response = await apiFetch('../../api/auth/logout.php', {
                 method: 'POST'
             });
             
@@ -494,7 +494,7 @@ window.initPreviews = function() {
                 setTimeout(() => backdrop.classList.add('active'), 10);
 
                 // Fetch details
-                fetch(`../../api/admin/get-client-details.php?id=${clientId}`)
+                apiFetch(`../../api/admin/get-client-details.php?id=${clientId}`)
                     .then(res => res.json())
                     .then(data => {
                         if (data.success) {

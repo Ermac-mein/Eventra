@@ -1,5 +1,5 @@
 function showCreateEventModal() {
-    const user = storage.get('user');
+    const user = storage.getUser();
     if (!user) return;
 
     const modalHTML = `
@@ -10,7 +10,7 @@ function showCreateEventModal() {
                 max-width: 900px;
                 max-height: 92vh;
                 overflow-y: auto;
-                background: linear-gradient(135deg, #f5f3ff 0%, #fdf4ff 50%, #fef3c7 100%);
+                background: linear-gradient(135deg, #f5f3ff 0%, #fdf4ff 50%, ##1f2937 50%);
                 border-radius: 24px;
                 box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
                 position: relative;
@@ -18,15 +18,15 @@ function showCreateEventModal() {
                 
                 <!-- Decorative Background Pattern -->
                 <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; overflow: hidden; border-radius: 24px; opacity: 0.4; pointer-events: none;">
-                    <div style="position: absolute; top: -50px; right: -50px; width: 200px; height: 200px; background: radial-gradient(circle, rgba(139, 92, 246, 0.3), transparent); border-radius: 50%;"></div>
-                    <div style="position: absolute; bottom: -30px; left: -30px; width: 150px; height: 150px; background: radial-gradient(circle, rgba(236, 72, 153, 0.3), transparent); border-radius: 50%;"></div>
-                    <div style="position: absolute; top: 50%; left: 50%; width: 300px; height: 300px; background: radial-gradient(circle, rgba(251, 191, 36, 0.2), transparent); border-radius: 50%; transform: translate(-50%, -50%);"></div>
+                    <div style="position: absolute; top: -50px; right: -50px; width: 200px; height: 200px; background: radial-gradient(circle, rgba(2, 36, 41, 0.88), transparent); border-radius: 50%;"></div>
+                    <div style="position: absolute; bottom: -30px; left: -30px; width: 150px; height: 150px; background: radial-gradient(circle, rgba(8, 88, 102, 0.3), transparent); border-radius: 50%;"></div>
+                    <div style="position: absolute; top: 50%; left: 50%; width: 300px; height: 300px; background: radial-gradient(circle, rgba(8, 27, 68, 0.2), transparent); border-radius: 50%; transform: translate(-50%, -50%);"></div>
                 </div>
                 
                 <div style="position: relative; z-index: 1;">
-                    <div class="modal-header" style="padding: 2.5rem 3rem 1.5rem; border-bottom: 1px solid rgba(147, 51, 234, 0.1);">
+                    <div class="modal-header" style="padding: 2.5rem 3rem 1.5rem; border-bottom: 1px solid rgba(9, 29, 143, 0.1);">
                         <div style="text-align: center;">
-                            <div style="display: inline-block; background: linear-gradient(135deg, #8b5cf6, #ec4899); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-size: 1rem; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 0.5rem;">EVENTRA</div>
+                            <div style="display: inline-block; background: linear-gradient(135deg, #09287eff, #48aaecff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-size: 1rem; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 0.5rem;">EVENTRA</div>
                             <h2 style="font-size: 2rem; font-weight: 800; color: #1f2937; margin: 0;">Create Event</h2>
                         </div>
                         <button class="modal-close" onclick="closeCreateEventModal()" 
@@ -41,7 +41,7 @@ function showCreateEventModal() {
                                     <img id="eventImagePreview" 
                                          src="" 
                                          style="width: 100%; height: 280px; object-fit: cover; border-radius: 20px; border: 3px solid rgba(255, 255, 255, 0.8); box-shadow: 0 10px 30px rgba(0,0,0,0.1);">
-                                    <label for="eventImageInput" style="position: absolute; bottom: 1.5rem; right: 1.5rem; background: rgba(255, 255, 255, 0.95); color: #8b5cf6; padding: 0.875rem 1.75rem; border-radius: 50px; cursor: pointer; font-weight: 700; box-shadow: 0 8px 20px rgba(139, 92, 246, 0.3); backdrop-filter: blur(10px); transition: all 0.3s; border: 2px solid rgba(139, 92, 246, 0.2);">
+                                    <label for="eventImageInput" style="position: absolute; bottom: 1.5rem; right: 1.5rem; background: rgba(255, 255, 255, 0.95); color: #5c8df6ff; padding: 0.875rem 1.75rem; border-radius: 50px; cursor: pointer; font-weight: 700; box-shadow: 0 8px 20px rgba(9, 82, 190, 0.3); backdrop-filter: blur(10px); transition: all 0.3s; border: 2px solid rgba(5, 16, 112, 0.2);">
                                         📷 Upload Banner
                                     </label>
                                     <input type="file" id="eventImageInput" name="event_image" accept="image/*" style="display: none;" onchange="previewEventImage(event)">
@@ -130,7 +130,7 @@ function showCreateEventModal() {
                                             <input type="number" name="price" id="priceInput" required placeholder="5000" min="0" step="0.01" 
                                                    style="flex: 1; padding: 1rem 1.25rem; border: 2px solid #e5e7eb; border-radius: 12px; font-size: 1rem; background: white; transition: all 0.3s; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
                                             <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; user-select: none; font-weight: 600; color: #6b7280; background: white; padding: 0.75rem 1.25rem; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); border: 2px solid #e5e7eb;">
-                                                <input type="checkbox" id="freeEventCheckbox" style="width: 1.2rem; height: 1.2rem; accent-color: #8b5cf6;"> Free
+                                                <input type="checkbox" id="freeEventCheckbox" style="width: 1.2rem; height: 1.2rem; accent-color: #5c8df6ff;"> Free
                                             </label>
                                         </div>
                                     </div>
@@ -159,8 +159,9 @@ function showCreateEventModal() {
                                 <div class="form-group">
                                     <label style="display: block; font-size: 0.875rem; font-weight: 600; color: #6b7280; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.5px;">Status</label>
                                     <select name="status" style="width: 100%; padding: 1rem 1.25rem; border: 2px solid #e5e7eb; border-radius: 12px; font-size: 1rem; background: white; transition: all 0.3s; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
-                                        <option value="draft" selected>Draft</option>
+                                        <option value="published" selected>Published</option>
                                         <option value="scheduled">Scheduled</option>
+                                        <option value="draft">Draft</option>
                                     </select>
                                 </div>
 
@@ -172,26 +173,26 @@ function showCreateEventModal() {
                                 </div>
 
                                 <!-- Auto-Generated Info -->
-                                <div style="background: linear-gradient(135deg, rgba(139, 92, 246, 0.08), rgba(236, 72, 153, 0.08)); padding: 2rem; border-radius: 16px; border: 2px solid rgba(139, 92, 246, 0.2);">
-                                    <h4 style="margin: 0 0 1.25rem 0; font-weight: 800; color: #7c3aed; font-size: 1rem; text-transform: uppercase; letter-spacing: 1px;">🔗 Auto-Generated Links</h4>
+                                <div style="background: linear-gradient(135deg, color: #5c8df6ff, color: #5c8df6ff); padding: 2rem; border-radius: 16px; border: 2px solid rgba(16, 40, 148, 0.2);">
+                                    <h4 style="margin: 0 0 1.25rem 0; font-weight: 800; color: #5c8df6ff; font-size: 1rem; text-transform: uppercase; letter-spacing: 1px;">🔗 Auto-Generated Links</h4>
                                     <div style="display: grid; gap: 1.25rem;">
                                         <div>
-                                            <label style="font-size: 0.8rem; font-weight: 700; color: #8b5cf6; margin-bottom: 0.5rem; display: block; text-transform: uppercase; letter-spacing: 0.5px;">Event Tag</label>
+                                            <label style="font-size: 0.8rem; font-weight: 700; color: #5c8df6ff; margin-bottom: 0.5rem; display: block; text-transform: uppercase; letter-spacing: 0.5px;">Event Tag</label>
                                             <input type="text" id="eventTagField" name="tag" readonly placeholder="Enter event name first..." 
-                                                   style="width: 100%; padding: 0.875rem 1.25rem; background: white; border: 2px solid rgba(139, 92, 246, 0.2); border-radius: 10px; font-family: 'Courier New', monospace; color: #581c87; font-weight: 600; font-size: 0.95rem;">
+                                                   style="width: 100%; padding: 0.875rem 1.25rem; background: white; border: 2px solid rgba(8, 88, 134, 0.2); border-radius: 10px; font-family: 'Courier New', monospace; color: #5c8df6ff; font-weight: 600; font-size: 0.95rem;">
                                         </div>
 
                                         <div>
-                                            <label style="font-size: 0.8rem; font-weight: 700; color: #8b5cf6; margin-bottom: 0.5rem; display: block; text-transform: uppercase; letter-spacing: 0.5px;">Shareable Link</label>
+                                            <label style="font-size: 0.8rem; font-weight: 700; color: #5c8df6ff; margin-bottom: 0.5rem; display: block; text-transform: uppercase; letter-spacing: 0.5px;">Shareable Link</label>
                                             <input type="text" id="eventLinkField" name="external_link" readonly placeholder="Enter event name first..." 
-                                                   style="width: 100%; padding: 0.875rem 1.25rem; background: white; border: 2px solid rgba(139, 92, 246, 0.2); border-radius: 10px; font-family: 'Courier New', monospace; color: #581c87; font-weight: 600; font-size: 0.85rem;">
+                                                   style="width: 100%; padding: 0.875rem 1.25rem; background: white; border: 2px solid rgba(5, 62, 95, 0.2); border-radius: 10px; font-family: 'Courier New', monospace; color: #5c8df6ff; font-weight: 600; font-size: 0.85rem;">
                                         </div>
                                     </div>
                                 </div>
 
                                 <!-- Submit Buttons -->
                                 <div style="display: flex; gap: 1.25rem; margin-top: 1rem;">
-                                    <button type="submit" class="btn btn-primary" style="flex: 2; padding: 1.25rem; font-size: 1.125rem; font-weight: 700; justify-content: center; background: linear-gradient(135deg, #8b5cf6, #ec4899); border: none; border-radius: 14px; color: white; cursor: pointer; box-shadow: 0 10px 25px rgba(139, 92, 246, 0.3); transition: all 0.3s;">
+                                    <button type="submit" class="btn btn-primary" style="flex: 2; padding: 1.25rem; font-size: 1.125rem; font-weight: 700; justify-content: center; background: linear-gradient(135deg, #5c8df6ff, #030c42ff); border: none; border-radius: 14px; color: white; cursor: pointer; box-shadow: 0 10px 25px rgba(139, 92, 246, 0.3); transition: all 0.3s;">
                                         Create Event ✨
                                     </button>
                                     <button type="button" class="btn btn-secondary" onclick="closeCreateEventModal()" style="flex: 1; padding: 1.25rem; font-size: 1.125rem; justify-content: center; background: white; border: 2px solid #e5e7eb; border-radius: 14px; color: #6b7280; cursor: pointer; font-weight: 600; transition: all 0.3s;">
@@ -221,8 +222,8 @@ function showCreateEventModal() {
             #createEventModal select:focus,
             #createEventModal textarea:focus {
                 outline: none;
-                border-color: #8b5cf6 !important;
-                box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.1) !important;
+                border-color: #5c8df6ff !important;
+                box-shadow: 0 0 0 4px rgba(9, 45, 145, 0.49) !important;
             }
 
             #createEventModal input::placeholder,
@@ -232,7 +233,7 @@ function showCreateEventModal() {
 
             #createEventModal .btn-primary:hover {
                 transform: translateY(-2px);
-                box-shadow: 0 15px 35px rgba(139, 92, 246, 0.4);
+                box-shadow: 0 15px 35px rgba(26, 50, 158, 0.4);
             }
 
             #createEventModal .btn-secondary:hover {
@@ -248,7 +249,7 @@ function showCreateEventModal() {
 
             #createEventModal label[for="eventImageInput"]:hover {
                 transform: translateY(-4px);
-                box-shadow: 0 12px 30px rgba(139, 92, 246, 0.4);
+                box-shadow: 0 12px 30px rgba(24, 55, 122, 0.4);
                 background: rgba(255, 255, 255, 1);
             }
         </style>
@@ -288,6 +289,8 @@ function showCreateEventModal() {
     document.querySelector('select[name="status"]').addEventListener('change', function(e) {
         const scheduledGroup = document.getElementById('scheduledTimeGroup');
         scheduledGroup.style.display = e.target.value === 'scheduled' ? 'block' : 'none';
+        
+        // Ensure priority fields are visible regardless of status
     });
 }
 
@@ -325,7 +328,7 @@ function generateEventTagAndLink() {
         .replace(/-+/g, '-');
 
     // Get client name from stored user data
-    const user = storage.get('user');
+    const user = storage.getUser();
     const clientName = user.name
         .toLowerCase()
         .replace(/[^a-z0-9\s-]/g, '')
@@ -353,7 +356,7 @@ async function handleEventCreation(e) {
     submitBtn.disabled = true;
     
     try {
-        const response = await fetch('../../api/events/create-event.php', {
+        const response = await apiFetch('../../api/events/create-event.php', {
             method: 'POST',
             body: formData
         });

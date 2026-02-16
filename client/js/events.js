@@ -4,12 +4,14 @@
  */
 
 let currentTab = 'active';
+let eventsData = [];
+let sortConfig = { key: 'event_date', direction: 'desc' };
 
 document.addEventListener('DOMContentLoaded', async () => {
-    const user = storage.get('user');
+    const user = storage.getUser();
     
     if (!user || user.role !== 'client') {
-        window.location.href = '../../public/pages/clientLogin.html';
+        window.location.href = 'clientLogin.html';
         return;
     }
 
@@ -26,7 +28,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 function switchEventTab(tab) {
     currentTab = tab;
-    const user = storage.get('user');
+    const user = storage.getUser();
 
     // Update tab button styles
     document.querySelectorAll('.event-tab').forEach(btn => {
@@ -53,7 +55,7 @@ window.switchEventTab = switchEventTab;
 
 async function loadEvents(clientId) {
     try {
-        const response = await fetch(`../../api/events/get-events.php?client_id=${clientId}&limit=100`);
+        const response = await apiFetch(`../../api/events/get-events.php?client_id=${clientId}&limit=100`);
         const result = await response.json();
 
         if (result.success) {
@@ -64,7 +66,8 @@ async function loadEvents(clientId) {
             }
 
             // Update events table
-            updateEventsTable(result.events);
+            eventsData = result.events;
+            sortEvents(sortConfig.key, false);
         }
     } catch (error) {
         console.error('Error loading events:', error);
@@ -98,19 +101,16 @@ function updateEventsTable(events) {
     const thead = document.querySelector('.table-card table thead tr');
     if (thead) {
         thead.innerHTML = `
-            <th>Event Name</th>
-            <th>Priority</th>
-            <th>Date</th>
-            <th>Time</th>
+            <th style="cursor: pointer;" onclick="sortEvents('event_name')">Event Name ${getSortIcon('event_name')}</th>
+            <th style="cursor: pointer;" onclick="sortEvents('event_date')">Date ${getSortIcon('event_date')}</th>
             <th>Category</th>
-            <th>Phone</th>
-            <th>Price</th>
+            <th style="cursor: pointer;" onclick="sortEvents('price')">Price ${getSortIcon('price')}</th>
+            <th style="cursor: pointer;" onclick="sortEvents('priority')">Priority ${getSortIcon('priority')}</th>
             <th class="text-center">Attendees</th>
-            <th>Tag</th>
-            <th>Link</th>
             <th>Status</th>
             <th class="text-center">Actions</th>
         `;
+        lucide.createIcons();
     }
 
     if (events.length === 0) {
@@ -119,7 +119,8 @@ function updateEventsTable(events) {
     }
 
     tbody.innerHTML = events.map(event => {
-        const clientNameSlug = (storage.get('user').name || '').toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-');
+        const user = storage.getUser();
+        const clientNameSlug = (user.name || '').toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-');
         const shareLink = `${window.location.origin}/public/pages/event-details.html?event=${event.tag}&client=${clientNameSlug}`;
         
         return `
@@ -135,8 +136,19 @@ function updateEventsTable(events) {
             data-date="${event.event_date}"
             data-time="${event.event_time}"
             data-priority="${event.priority}"
-            data-image="${event.image_path || ''}">
+            data-image="${event.image_path || ''}"
+            data-event-name="${event.event_name}"
+            data-category="${event.event_type}"
+            data-price="${parseFloat(event.price) === 0 ? 'Free' : `₦${parseFloat(event.price).toLocaleString()}`}"
+            data-attendees="${event.attendee_count || 0}">
             <td style="font-weight: 600;">${event.event_name}</td>
+            <td>${new Date(event.event_date).toLocaleDateString()}</td>
+            <td>${event.event_type}</td>
+            <td>
+                ${parseFloat(event.price) === 0 
+                    ? '<span style="background: #ecfdf5; color: #10b981; padding: 2px 8px; border-radius: 4px; font-weight: 600; font-size: 0.8rem;">Free</span>' 
+                    : `₦${parseFloat(event.price).toLocaleString()}`}
+            </td>
             <td>
                 <span style="padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600; text-transform: capitalize; 
                       background: ${event.priority === 'featured' ? '#fef3c7' : event.priority === 'hot' ? '#fee2e2' : '#f3f4f6'}; 
@@ -144,23 +156,10 @@ function updateEventsTable(events) {
                     ${event.priority}
                 </span>
             </td>
-            <td>${new Date(event.event_date).toLocaleDateString()}</td>
-            <td>${event.event_time.substring(0, 5)}</td>
-            <td>${event.event_type}</td>
-            <td>${event.phone_contact_1}</td>
-            <td>
-                ${parseFloat(event.price) === 0 
-                    ? '<span style="background: #ecfdf5; color: #10b981; padding: 2px 8px; border-radius: 4px; font-weight: 600; font-size: 0.8rem;">Free</span>' 
-                    : `₦${parseFloat(event.price).toLocaleString()}`}
-            </td>
             <td class="text-center">
                 <div style="display: flex; align-items: center; justify-content: center; gap: 5px;">
                     ${event.attendee_count || 0}
                 </div>
-            </td>
-            <td><code style="font-size: 0.75rem;">${event.tag}</code></td>
-            <td>
-                <button onclick="event.stopPropagation(); copyToClipboard('${shareLink}', 'Link copied!')" class="btn-primary" style="padding: 4px 8px; font-size: 0.7rem; border-radius: 4px;">Copy</button>
             </td>
             <td><span style="color: ${getStatusColor(event.status)}; font-weight: 600;">${event.status.charAt(0).toUpperCase() + event.status.slice(1)}</span></td>
             <td class="text-center" onclick="event.stopPropagation()">
@@ -178,6 +177,49 @@ function updateEventsTable(events) {
     }).join('');
 }
 
+function getSortIcon(key) {
+    if (sortConfig.key !== key) return '<i data-lucide="arrow-up-down" style="width: 14px; height: 14px; display: inline-block; vertical-align: middle;"></i>';
+    return sortConfig.direction === 'asc' 
+        ? '<i data-lucide="arrow-up" style="width: 14px; height: 14px; display: inline-block; vertical-align: middle; color: var(--card-blue);"></i>'
+        : '<i data-lucide="arrow-down" style="width: 14px; height: 14px; display: inline-block; vertical-align: middle; color: var(--card-blue);"></i>';
+}
+
+function sortEvents(key, toggle = true) {
+    if (toggle) {
+        if (sortConfig.key === key) {
+            sortConfig.direction = sortConfig.direction === 'asc' ? 'desc' : 'asc';
+        } else {
+            sortConfig.key = key;
+            sortConfig.direction = 'asc';
+        }
+    }
+
+    eventsData.sort((a, b) => {
+        let valA = a[key];
+        let valB = b[key];
+
+        // Handle numeric values
+        if (key === 'price') {
+            valA = parseFloat(valA);
+            valB = parseFloat(valB);
+        }
+        
+        // Handle priority order
+        if (key === 'priority') {
+            const weights = { 'featured': 3, 'hot': 2, 'standard': 1, 'low': 0 };
+            valA = weights[valA] ?? 0;
+            valB = weights[valB] ?? 0;
+        }
+
+        if (valA < valB) return sortConfig.direction === 'asc' ? -1 : 1;
+        if (valA > valB) return sortConfig.direction === 'asc' ? 1 : -1;
+        return 0;
+    });
+
+    updateEventsTable(eventsData);
+}
+window.sortEvents = sortEvents;
+
 function getStatusColor(status) {
     const colors = {
         'published': 'var(--card-green)',
@@ -190,12 +232,8 @@ function getStatusColor(status) {
 }
 
 function initCreateEventButton() {
-    const createBtn = document.querySelector('.btn-primary');
-    if (createBtn && createBtn.textContent.includes('Create Event')) {
-        createBtn.addEventListener('click', () => {
-            showCreateEventModal();
-        });
-    }
+    // The button already has onclick="showCreateEventModal()" in events.html
+    // This function is kept for compatibility but no longer adds redundant listeners.
 }
 
 // showCreateEventModal is defined in create-event.js
@@ -204,8 +242,8 @@ function initCreateEventButton() {
 
 async function editEvent(eventId) {
     try {
-        const user = storage.get('user');
-        const response = await fetch(`../../api/events/get-events.php?client_id=${user.id}&limit=100`);
+        const user = storage.getUser();
+        const response = await apiFetch(`../../api/events/get-events.php?client_id=${user.id}&limit=100`);
         const result = await response.json();
 
         if (result.success) {
@@ -257,7 +295,7 @@ async function deleteEvent(eventId) {
     }
 
     try {
-        const response = await fetch('../../api/events/delete-event.php', {
+        const response = await apiFetch('../../api/events/delete-event.php', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ event_id: eventId })
@@ -270,7 +308,7 @@ async function deleteEvent(eventId) {
             setTimeout(() => { if (row) row.remove(); }, 350);
 
             // Refresh stats in background
-            const user = storage.get('user');
+            const user = storage.getUser();
             refreshStats(user.id);
 
             // Show toast with Undo action
@@ -339,7 +377,7 @@ async function undoDelete(eventId) {
     dismissUndoToast();
 
     try {
-        const response = await fetch('../../api/events/restore-event.php', {
+        const response = await apiFetch('../../api/events/restore-event.php', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ event_id: eventId })
@@ -349,7 +387,7 @@ async function undoDelete(eventId) {
 
         if (data.success) {
             showNotification('Event restored successfully!', 'success');
-            const user = storage.get('user');
+            const user = storage.getUser();
             await loadEvents(user.id);
             refreshStats(user.id);
         } else {
@@ -364,7 +402,8 @@ window.undoDelete = undoDelete;
 
 async function refreshStats(clientId) {
     try {
-        const response = await fetch(`../../api/events/get-events.php?client_id=${clientId}&limit=1`);
+        const user = storage.getUser();
+        const response = await apiFetch(`../../api/events/get-events.php?client_id=${user.id}&limit=1`);
         const result = await response.json();
         if (result.success && result.stats) {
             updateStatsCards(result.stats);
@@ -397,7 +436,7 @@ async function loadTrashEvents() {
     tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 2rem; color: var(--client-text-muted);"><span class="btn-spinner" style="margin-right: 8px;"></span>Loading trash...</td></tr>';
 
     try {
-        const response = await fetch('../../api/events/get-trash.php?limit=100');
+        const response = await apiFetch('../../api/events/get-trash.php?limit=100');
         const result = await response.json();
 
         if (result.success) {
@@ -460,7 +499,7 @@ async function restoreEvent(eventId) {
     }
 
     try {
-        const response = await fetch('../../api/events/restore-event.php', {
+        const response = await apiFetch('../../api/events/restore-event.php', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ event_id: eventId })
@@ -471,7 +510,7 @@ async function restoreEvent(eventId) {
         if (data.success) {
             setTimeout(() => { if (row) row.remove(); }, 350);
             showNotification('Event restored! Status set to Draft.', 'success');
-            const user = storage.get('user');
+            const user = storage.getUser();
             refreshStats(user.id);
 
             // Auto-switch to Active Events tab and reload the full list
@@ -514,7 +553,7 @@ async function permanentDeleteEvent(eventId) {
     }
 
     try {
-        const response = await fetch('../../api/events/delete-event-permanent.php', {
+        const response = await apiFetch('../../api/events/delete-event-permanent.php', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ event_id: eventId })
@@ -525,7 +564,7 @@ async function permanentDeleteEvent(eventId) {
         if (data.success) {
             setTimeout(() => { if (row) row.remove(); }, 350);
             showNotification('Event permanently deleted', 'success');
-            const user = storage.get('user');
+            const user = storage.getUser();
             refreshStats(user.id);
 
             setTimeout(() => {
@@ -553,11 +592,10 @@ async function previewEvent(eventId) {
     const row = document.querySelector(`tr[data-id="${eventId}"]`);
     if (!row) return;
 
-    const eventName = row.cells[0].innerText;
-    const attendees = row.dataset.attendees || row.cells[7].innerText;
-    const category = row.cells[4].innerText;
-    const status = row.cells[10].innerText.trim();
-    const eventStatus = row.dataset.status || status;
+    const eventName = row.dataset.eventName;
+    const attendees = row.dataset.attendees;
+    const category = row.dataset.category;
+    const eventStatus = row.dataset.status;
     const eventImage = row.dataset.image || 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=1200&fit=crop';
     const tag = row.dataset.tag;
     const description = row.dataset.description;
@@ -565,7 +603,7 @@ async function previewEvent(eventId) {
     const date = row.dataset.date;
     const time = row.dataset.time;
     const priority = row.dataset.priority;
-    const price = row.cells[6].innerText;
+    const price = row.dataset.price;
 
     const clientName = row.dataset.clientName;
     const shareLink = `${window.location.origin}/public/pages/event-details.html?event=${tag}&client=${clientName}`;
@@ -722,7 +760,7 @@ async function publishEvent(eventId) {
     if (!result.isConfirmed) return;
 
     try {
-        const response = await fetch('../../api/events/publish-event.php', {
+        const response = await apiFetch('../../api/events/publish-event.php', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ event_id: eventId })

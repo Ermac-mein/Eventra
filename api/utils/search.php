@@ -35,7 +35,7 @@ $results = [
 try {
     // 1. Search Events
     if ($type === 'all' || $type === 'events') {
-        $sql = "SELECT id, event_name as title, event_type as subtitle, state, status, event_date, event_time, image_path, priority 
+        $sql = "SELECT id, event_name as title, event_type as subtitle, event_type as category, price, state, status, event_date, event_time, image_path, priority 
                 FROM events 
                 WHERE deleted_at IS NULL AND (event_name LIKE ? OR description LIKE ? OR state LIKE ? OR event_type LIKE ?)";
 

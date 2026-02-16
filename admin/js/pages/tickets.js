@@ -6,7 +6,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     async function loadTickets() {
         try {
-            const response = await fetch('../../api/admin/get-tickets.php');
+            const response = await apiFetch('../../api/admin/get-tickets.php');
             const result = await response.json();
 
             if (result.success) {

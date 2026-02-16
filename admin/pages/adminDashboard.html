@@ -8,6 +8,7 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="../../public/js/utils.js"></script>
+    <script src="../../public/js/storage.js"></script>
     <script src="../../public/js/auth-guard.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <!-- Export Libraries -->
@@ -111,6 +112,13 @@
                         <i data-lucide="briefcase" class="stat-icon"></i>
                     </div>
                     <span class="stat-value" id="totalClientsCount">0</span>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <span class="stat-label">Restored Events</span>
+                        <i data-lucide="rotate-ccw" class="stat-icon"></i>
+                    </div>
+                    <span class="stat-value" id="restoredEventsCount">0</span>
                 </div>
                 <div class="stat-card">
                     <div class="stat-header">
@@ -237,7 +245,6 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-    <script src="../../public/js/storage.js"></script>
     <script src="../js/toast-notification.js"></script>
     <script src="../js/admin-auth.js"></script>
     <script src="../js/notification-manager.js"></script>

@@ -134,7 +134,7 @@ async function handleProfileUpdate(e) {
     const formData = new FormData(e.target);
     
     try {
-        const response = await fetch('../../api/users/update-profile.php', {
+        const response = await apiFetch('../../api/users/update-profile.php', {
             method: 'POST',
             body: formData
         });
@@ -187,17 +187,14 @@ function showEventPreviewModal(eventId) {
 
 async function fetchEventDetails(eventId) {
     try {
-        const response = await fetch(`../../api/events/get-events.php?limit=100`);
+        const response = await apiFetch(`../../api/events/get-event-details.php?event_id=${eventId}`);
         const result = await response.json();
 
-        if (result.success) {
-            const event = result.events.find(e => e.id == eventId);
-            if (event) {
-                displayEventPreview(event);
-            } else {
-                showNotification('Event not found', 'error');
-                closeEventPreviewModal();
-            }
+        if (result.success && result.event) {
+            displayEventPreview(result.event);
+        } else {
+            showNotification(result.message || 'Event not found', 'error');
+            closeEventPreviewModal();
         }
     } catch (error) {
         console.error('Error fetching event:', error);
@@ -207,120 +204,128 @@ async function fetchEventDetails(eventId) {
 }
 
 function displayEventPreview(event) {
+    const eventImage = event.image_path || 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=1200&fit=crop';
+    const status = event.status || 'draft';
+    const price = parseFloat(event.price) === 0 ? 'Free' : `₦${parseFloat(event.price).toLocaleString()}`;
+    const date = new Date(event.event_date).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' });
+    const time = event.event_time ? event.event_time.substring(0, 5) : '--:--';
+    
+    // Get client name for sharing
+    const user = storage.get('client_user') || storage.get('user') || {};
+    const clientNameSlug = (user.name || '').toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-');
+    const shareLink = `${window.location.origin}/public/pages/event-details.html?event=${event.tag}&client=${clientNameSlug}`;
+
     const modalContent = `
-        <div id="eventPreviewModal" class="modal-backdrop active" role="dialog" aria-modal="true" aria-hidden="false">
-            <div class="modal-content" style="max-width: 900px; max-height: 90vh; overflow-y: auto;">
-                <div class="modal-header">
-                    <h2>Event Preview</h2>
-                    <button class="modal-close" onclick="closeEventPreviewModal()">×</button>
-                </div>
-                <div class="modal-body" style="padding: 0;">
-                    <!-- User Profile Image for Event Preview -->
-                    <div style="width: 100%; height: 300px; overflow: hidden;">
-                        <img src="${(storage.get('client_user') || storage.get('user') || {}).profile_pic || 'https://ui-avatars.com/api/?name=' + encodeURIComponent((storage.get('client_user') || storage.get('user') || {}).name || 'User')}" 
-                             style="width: 100%; height: 100%; object-fit: cover;">
+        <div id="eventPreviewModal" class="modal-backdrop active" role="dialog" aria-modal="true" aria-hidden="false" style="background: rgba(0,0,0,0.6); backdrop-filter: blur(6px);">
+            <div class="modal-content" style="max-width: 800px; padding: 0; border-radius: 20px; overflow: hidden; transform: translateY(20px); transition: all 0.3s ease;">
+                <div class="event-preview">
+                    <!-- Close Button -->
+                    <button onclick="closeEventPreviewModal()" style="position: absolute; top: 1.5rem; right: 1.5rem; background: rgba(255,255,255,0.2); border: none; width: 40px; height: 40px; border-radius: 50%; color: white; font-size: 1.5rem; cursor: pointer; z-index: 10; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px);">&times;</button>
+                    
+                    <div style="height: 300px; overflow: hidden; position: relative;">
+                        <img src="${eventImage}" style="width: 100%; height: 100%; object-fit: cover;" alt="Event">
+                        <div style="position: absolute; top: 1.5rem; left: 1.5rem; background: ${getStatusBadgeColor(status.toLowerCase())}; color: white; padding: 0.6rem 1.25rem; border-radius: 30px; font-weight: 700; font-size: 0.8rem; text-transform: uppercase; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+                            ${status}
+                        </div>
                     </div>
-
-                    <!-- Event Content -->
-                    <div style="padding: 2rem;">
-                        <!-- Title and Status -->
-                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1.5rem;">
-                            <div>
-                                <h1 style="font-size: 2rem; margin-bottom: 0.5rem;">${event.event_name}</h1>
-                                <div style="display: flex; gap: 1rem; align-items: center;">
-                                    <span style="padding: 0.25rem 0.75rem; background: ${getStatusBadgeColor(event.status)}; color: white; border-radius: 20px; font-size: 0.85rem;">
-                                        ${event.status.toUpperCase()}
-                                    </span>
-                                    <span style="padding: 0.25rem 0.75rem; background: ${getPriorityBadgeColor(event.priority)}; color: white; border-radius: 20px; font-size: 0.85rem;">
-                                        ${getPriorityIcon(event.priority)} ${event.priority === 'standard' ? 'NEARBY' : event.priority.toUpperCase()}
-                                    </span>
-                                </div>
-                            </div>
-                            <div style="text-align: right;">
-                                <div style="font-size: 1.5rem; font-weight: 700; color: var(--client-primary);">
-                                    ${parseFloat(event.price) === 0 ? 'Free' : '₦' + parseFloat(event.price).toLocaleString()}
-                                </div>
-                                <div style="font-size: 0.85rem; color: #666;">Ticket Price</div>
-                            </div>
+                    
+                    <div style="padding: 2.5rem; background: white;">
+                        <div style="margin-bottom: 2.5rem;">
+                            <h1 style="font-size: 2.25rem; font-weight: 800; color: #111827; line-height: 1.2; margin-bottom: 0.5rem;">${event.event_name}</h1>
+                            <p style="color: #6b7280; font-size: 1.1rem;">Organized by ${user.name || 'Eventra'}</p>
                         </div>
 
-                        <!-- Quick Info -->
-                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; margin-bottom: 2rem; padding: 1.5rem; background: #f8f9fa; border-radius: 10px;">
-                            <div>
-                                <div style="font-size: 0.85rem; color: #666; margin-bottom: 0.25rem;">📅 Date & Time</div>
-                                <div style="font-weight: 600;">${formatDate(event.event_date)} at ${event.event_time}</div>
-                            </div>
-                            <div>
-                                <div style="font-size: 0.85rem; color: #666; margin-bottom: 0.25rem;">📍 Location</div>
-                                <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.address + ', ' + event.state)}" target="_blank" 
-                                   style="font-weight: 600; color: var(--client-primary); text-decoration: none; display: flex; align-items: center; gap: 4px; hover:underline;">
-                                    ${event.state} ↗
-                                </a>
-                            </div>
-                            <div>
-                                <div style="font-size: 0.85rem; color: #666; margin-bottom: 0.25rem;">🎭 Category</div>
-                                <div style="font-weight: 600;">${event.event_type}</div>
-                            </div>
-                            <div>
-                                <div style="font-size: 0.85rem; color: #666; margin-bottom: 0.25rem;">👥 Attendees</div>
-                                <div style="font-weight: 600;">${event.attendee_count || 0} registered</div>
-                            </div>
-                        </div>
-
-                        <!-- Description -->
-                        <div style="margin-bottom: 2rem;">
-                            <h3 style="margin-bottom: 1rem;">About This Event</h3>
-                            <p style="line-height: 1.8; color: #555;">${event.description}</p>
-                        </div>
-
-                        <!-- Contact & Address -->
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 2rem;">
-                            <div>
-                                <h4 style="margin-bottom: 0.75rem;">📞 Contact Information</h4>
-                                <div style="color: #555;">
-                                    <div>${event.phone_contact_1}</div>
-                                    ${event.phone_contact_2 ? `<div>${event.phone_contact_2}</div>` : ''}
-                                </div>
-                            </div>
-                            <div>
-                                <h4 style="margin-bottom: 0.75rem;">🏠 Venue Address</h4>
-                                <div style="color: #555;">${event.address}</div>
-                            </div>
-                        </div>
-
-                        <!-- Event Links -->
-                        <div style="padding: 1.5rem; background: #f8f9fa; border-radius: 10px; margin-bottom: 2rem;">
-                            <h4 style="margin-bottom: 1rem;">🔗 Event Links</h4>
-                            <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 1.5rem; margin-bottom: 2.5rem;">
+                            <div style="display: flex; align-items: center; gap: 0.85rem;">
+                                <div style="width: 48px; height: 48px; background: #eef2ff; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 1.35rem;">📅</div>
                                 <div>
-                                    <div style="font-size: 0.85rem; color: #666; margin-bottom: 0.25rem;">Event Tag:</div>
-                                    <code style="background: white; padding: 0.5rem; border-radius: 5px; display: inline-block;">${event.tag}</code>
+                                    <div style="font-size: 0.75rem; color: #6b7280; font-weight: 700; text-transform: uppercase; letter-spacing: 0.025em; margin-bottom: 2px;">Date</div>
+                                    <div style="font-weight: 700; color: #1f2937;">${date}</div>
                                 </div>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 0.85rem;">
+                                <div style="width: 48px; height: 48px; background: #fff7ed; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 1.35rem;">🕒</div>
                                 <div>
-                                    <div style="font-size: 0.85rem; color: #666; margin-bottom: 0.25rem;">Shareable Link:</div>
-                                    <a href="${event.external_link}" target="_blank" style="color: var(--client-primary); word-break: break-all;">
-                                        ${event.external_link}
-                                    </a>
+                                    <div style="font-size: 0.75rem; color: #6b7280; font-weight: 700; text-transform: uppercase; letter-spacing: 0.025em; margin-bottom: 2px;">Time</div>
+                                    <div style="font-weight: 700; color: #1f2937;">${time}</div>
+                                </div>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 0.85rem;">
+                                <div style="width: 48px; height: 48px; background: #f0fdf4; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 1.35rem;">💰</div>
+                                <div>
+                                    <div style="font-size: 0.75rem; color: #6b7280; font-weight: 700; text-transform: uppercase; letter-spacing: 0.025em; margin-bottom: 2px;">Price</div>
+                                    <div style="font-weight: 700; color: #1f2937;">${price}</div>
+                                </div>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 0.85rem;">
+                                <div style="width: 48px; height: 48px; background: #fdf2f8; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 1.35rem;">📂</div>
+                                <div>
+                                    <div style="font-size: 0.75rem; color: #6b7280; font-weight: 700; text-transform: uppercase; letter-spacing: 0.025em; margin-bottom: 2px;">Category</div>
+                                    <div style="font-weight: 700; color: #1f2937;">${event.event_type}</div>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Action Buttons -->
-                        <div style="display: flex; gap: 1rem;">
-                            <button onclick="editEvent(${event.id})" class="btn btn-primary" style="flex: 1;">
-                                ✏️ Edit Event
-                            </button>
-                            ${event.status !== 'published' ? `
-                                <button onclick="publishEvent(${event.id})" class="btn btn-primary" style="flex: 1; background: var(--card-blue);">
-                                    ✓ Publish
+                        <div style="margin-bottom: 2.5rem;">
+                            <label style="display: block; font-size: 0.9rem; color: #111827; margin-bottom: 1rem; text-transform: uppercase; font-weight: 800; letter-spacing: 0.05em;">📍 Venue & Location</label>
+                            <div style="background: #f9fafb; padding: 1.25rem; border-radius: 16px; border: 1px solid #e5e7eb; color: #4b5563; font-weight: 500; line-height: 1.5;">
+                                ${event.address || 'No address provided'}
+                                ${event.state ? `<br><span style="color: #111827; font-weight: 700;">${event.state}</span>` : ''}
+                            </div>
+                        </div>
+
+                        <div style="margin-bottom: 2.5rem;">
+                            <label style="display: block; font-size: 0.9rem; color: #111827; margin-bottom: 1rem; text-transform: uppercase; font-weight: 800; letter-spacing: 0.05em;">📝 Event Description</label>
+                            <div style="color: #4b5563; line-height: 1.7; white-space: pre-wrap; background: #f9fafb; padding: 1.25rem; border-radius: 16px; border: 1px solid #e5e7eb; font-size: 1.05rem;">
+                                ${event.description || 'No description available'}
+                            </div>
+                        </div>
+
+                        <div style="margin-bottom: 2.5rem;">
+                            <label style="display: block; font-size: 0.9rem; color: #111827; margin-bottom: 1rem; text-transform: uppercase; font-weight: 800; letter-spacing: 0.05em;">👥 Audience</label>
+                            <div style="display: flex; align-items: center; gap: 15px; background: #f9fafb; padding: 1.25rem; border-radius: 16px; border: 1px solid #e5e7eb;">
+                                <div style="display: flex;">
+                                    ${[...Array(Math.min(parseInt(event.attendee_count) || 0, 5))].map((_, i) => `
+                                        <img src="https://ui-avatars.com/api/?name=User+${i}&background=random" 
+                                             style="width: 40px; height: 40px; border-radius: 50%; border: 3px solid white; margin-left: ${i === 0 ? '0' : '-12px'}; transition: transform 0.2s;">
+                                    `).join('')}
+                                    ${(parseInt(event.attendee_count) || 0) > 5 ? `<div style="width: 40px; height: 40px; border-radius: 50%; border: 3px solid white; margin-left: -12px; background: #4f46e5; color: white; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700;">+${parseInt(event.attendee_count) - 5}</div>` : ''}
+                                </div>
+                                <span style="font-size: 1.1rem; color: #111827; font-weight: 700;">${event.attendee_count || 0} people attending</span>
+                            </div>
+                        </div>
+                        
+                        <div style="margin-top: 3rem; padding-top: 2.5rem; border-top: 2px solid #f3f4f6;">
+                            <div style="margin-bottom: 1.5rem;">
+                                <label style="display: block; font-size: 0.9rem; color: #111827; margin-bottom: 1rem; text-transform: uppercase; font-weight: 800; letter-spacing: 0.05em;">🔗 Events Tag</label>
+                                <div style="display: flex; gap: 0.75rem; align-items: center;">
+                                    <code style="background: #f3f4f6; padding: 0.85rem 1.25rem; border-radius: 12px; border: 1px solid #e5e7eb; font-family: 'JetBrains Mono', monospace; font-size: 1rem; flex: 1; color: #111827; font-weight: 700;">${event.tag}</code>
+                                    <button onclick="navigator.clipboard.writeText('${event.tag}').then(() => showNotification('Tag copied!', 'success'))" style="background: white; border: 1px solid #d1d5db; width: 48px; height: 48px; border-radius: 12px; cursor: pointer; transition: all 0.2s; font-size: 1.25rem; display: flex; align-items: center; justify-content: center;" title="Copy Tag">📋</button>
+                                </div>
+                            </div>
+                            <div style="margin-bottom: 2.5rem;">
+                                <label style="display: block; font-size: 0.9rem; color: #111827; margin-bottom: 1rem; text-transform: uppercase; font-weight: 800; letter-spacing: 0.05em;">🚀 Shareable Link</label>
+                                <div style="display: flex; gap: 0.75rem; align-items: center;">
+                                    <input type="text" readonly value="${shareLink}" 
+                                           style="background: #f3f4f6; padding: 0.85rem 1.25rem; border-radius: 12px; border: 1px solid #e5e7eb; font-family: inherit; font-size: 1rem; flex: 1; color: #111827; font-weight: 600;">
+                                    <button onclick="navigator.clipboard.writeText('${shareLink}').then(() => showNotification('Link copied!', 'success'))" style="background: #4F46E5; color: white; border: none; padding: 0.85rem 1.75rem; border-radius: 12px; cursor: pointer; transition: all 0.2s; font-size: 1rem; font-weight: 700; box-shadow: 0 4px 12px rgba(79, 70, 229, 0.25);">Copy Link</button>
+                                </div>
+                            </div>
+
+                            <div style="display: flex; gap: 1rem;">
+                                <button onclick="editEvent(${event.id})" class="btn" style="flex: 1; background: white; border: 2px solid #e5e7eb; color: #374151; padding: 1.1rem; border-radius: 14px; font-weight: 700; cursor: pointer; transition: all 0.2s; font-size: 1rem;">
+                                    ✏️ Edit Event
                                 </button>
-                            ` : ''}
-                            <button onclick="shareEvent('${event.external_link}')" class="btn btn-secondary" style="flex: 1;">
-                                🔗 Share
-                            </button>
-                            <button onclick="closeEventPreviewModal()" class="btn btn-secondary">
-                                Close
-                            </button>
+                                ${status.toLowerCase() !== 'published' ? `
+                                    <button onclick="publishEvent(${event.id})" class="btn" style="flex: 2; background: #10b981; color: white; border: none; padding: 1.1rem; border-radius: 14px; font-weight: 700; cursor: pointer; transition: all 0.2s; font-size: 1rem; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);">
+                                        ✓ Publish Now
+                                    </button>
+                                ` : `
+                                    <button onclick="window.open('${shareLink}', '_blank')" class="btn" style="flex: 2; background: #4f46e5; color: white; border: none; padding: 1.1rem; border-radius: 14px; font-weight: 700; cursor: pointer; transition: all 0.2s; font-size: 1rem; box-shadow: 0 4px 12px rgba(79, 70, 229, 0.2);">
+                                        👁️ View Public Page
+                                    </button>
+                                `}
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -334,6 +339,14 @@ function displayEventPreview(event) {
 
     // Add new modal
     document.body.insertAdjacentHTML('beforeend', modalContent);
+
+    // Animate in
+    setTimeout(() => {
+        const modal = document.getElementById('eventPreviewModal');
+        if (modal) {
+            modal.querySelector('.modal-content').style.transform = 'translateY(0)';
+        }
+    }, 10);
 }
 
 function closeEventPreviewModal() {
@@ -433,7 +446,7 @@ async function publishEvent(eventId) {
     if (!result.isConfirmed) return;
 
     try {
-        const response = await fetch('../../api/events/publish-event.php', {
+        const response = await apiFetch('../../api/events/publish-event.php', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ event_id: eventId })
@@ -639,7 +652,7 @@ async function handleEventUpdate(e) {
     submitBtn.disabled = true;
     
     try {
-        const response = await fetch('../../api/events/update-event.php', {
+        const response = await apiFetch('../../api/events/update-event.php', {
             method: 'POST',
             body: formData
         });

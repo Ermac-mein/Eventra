@@ -12,6 +12,7 @@
     <!-- Stylesheets -->
     <link rel="stylesheet" href="../css/variables.css">
     <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="../css/media-enhancement.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
 
     <!-- Scripts -->
@@ -213,9 +214,9 @@
             <div class="footer-links">
                 <h4>Partner with us</h4>
                 <ul>
-                    <li><a href="auth-gate.html">Partner Portal</a></li>
-                    <li><a href="signup.html">Become a Client</a></li>
-                    <li><a href="auth-gate.html?role=admin">Admin Login</a></li>
+                    <li><a href="../../client/pages/clientLogin.html">Partner Portal</a></li>
+                    <li><a href="../../client/pages/signup.html">Become a Client</a></li>
+                    <li><a href="../../admin/pages/adminLogin.html?role=admin">Admin Login</a></li>
                 </ul>
             </div>
 
@@ -319,6 +320,17 @@
             </div>
         </div>
     </div>
+
+    <!-- HD Enhancement Filter -->
+    <div id="hdFilterContainer"></div>
+    <script>
+        // Load the SVG filter dynamically
+        fetch('../assets/hd-enhancement.svg')
+            .then(response => response.text())
+            .then(data => {
+                document.getElementById('hdFilterContainer').innerHTML = data;
+            });
+    </script>
 
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>

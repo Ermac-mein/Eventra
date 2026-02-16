@@ -6,7 +6,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     async function loadUsers() {
         try {
-            const response = await fetch('../../api/admin/get-users.php');
+            const response = await apiFetch('../../api/admin/get-users.php');
             const result = await response.json();
 
             if (result.success) {

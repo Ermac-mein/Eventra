@@ -13,8 +13,8 @@ ini_set('session.use_cookies', '1');
 ini_set('session.use_only_cookies', '1');
 ini_set('session.cookie_httponly', '1');
 ini_set('session.cookie_samesite', 'Lax'); // Important for Brave browser
-ini_set('session.cookie_lifetime', '0'); // Session cookie (expires when browser closes)
-ini_set('session.gc_maxlifetime', '86400'); // 24 hours server-side session lifetime
+ini_set('session.cookie_lifetime', '1800'); // 30 minutes
+ini_set('session.gc_maxlifetime', '1800'); // 30 minutes
 
 // For localhost development, ensure cookies work properly
 $currentHost = $_SERVER['HTTP_HOST'] ?? '';
@@ -36,37 +36,46 @@ if (!is_dir($session_path)) {
 }
 ini_set('session.save_path', $session_path);
 
-// Function to determine session name based on URL path or Referer
 function getEventraSessionName()
 {
     $uri = $_SERVER['REQUEST_URI'] ?? '';
     $referer = $_SERVER['HTTP_REFERER'] ?? '';
+    $portalHeader = $_SERVER['HTTP_X_EVENTRA_PORTAL'] ?? '';
 
-    // Priority 1: Check if the URI itself identifies the role
-    if (strpos($uri, '/admin/') !== false || strpos($uri, '/api/admin/') !== false || strpos($uri, 'admin-') !== false) {
+    // Priority 1: Explicit Portal Header (Most Reliable for API calls)
+    if ($portalHeader === 'admin')
+        return 'EVENTRA_ADMIN_SESS';
+    if ($portalHeader === 'client')
+        return 'EVENTRA_CLIENT_SESS';
+
+    // Priority 2: Direct Path Detection
+    if (strpos($uri, '/admin/') !== false || strpos($uri, '/api/stats/get-admin') !== false) {
         return 'EVENTRA_ADMIN_SESS';
     }
 
-    if (strpos($uri, '/client/') !== false || strpos($uri, '/api/clients/') !== false) {
+    if (strpos($uri, '/client/') !== false || strpos($uri, '/api/stats/get-client') !== false) {
         return 'EVENTRA_CLIENT_SESS';
     }
 
-    // Priority 2: For other API calls, check the Referer to use the caller's session
+    // Priority 2: API Context Handling
     if (strpos($uri, '/api/') !== false) {
-        if (strpos($referer, '/admin/') !== false) {
+        // Check Referer for portal context
+        if (strpos($referer, '/admin/') !== false)
             return 'EVENTRA_ADMIN_SESS';
-        }
-        if (strpos($referer, '/client/') !== false) {
+        if (strpos($referer, '/client/') !== false)
             return 'EVENTRA_CLIENT_SESS';
-        }
 
-        // Priority 3: Fallback to cookies if Referer is missing or inconclusive
-        if (isset($_COOKIE['EVENTRA_CLIENT_SESS'])) {
-            return 'EVENTRA_CLIENT_SESS';
-        }
-        if (isset($_COOKIE['EVENTRA_ADMIN_SESS'])) {
+        // Check for specific API file patterns
+        if (strpos($uri, 'get-admin') !== false)
             return 'EVENTRA_ADMIN_SESS';
-        }
+        if (strpos($uri, 'get-client') !== false)
+            return 'EVENTRA_CLIENT_SESS';
+
+        // If it's a generic API (like /api/events/)
+        if (isset($_COOKIE['EVENTRA_CLIENT_SESS']))
+            return 'EVENTRA_CLIENT_SESS';
+        if (isset($_COOKIE['EVENTRA_ADMIN_SESS']))
+            return 'EVENTRA_ADMIN_SESS';
     }
 
     // Default for users/public
@@ -95,8 +104,8 @@ file_put_contents($debug_log, $debug_msg, FILE_APPEND);
 // Regenerate session ID periodically to prevent session fixation
 if (!isset($_SESSION['created'])) {
     $_SESSION['created'] = time();
-} elseif (time() - $_SESSION['created'] > 1800) {
-    // Regenerate session ID every 30 minutes
+} elseif (time() - $_SESSION['created'] > 900) {
+    // Regenerate session ID every 15 minutes (half of session lifetime)
     session_regenerate_id(true);
     $_SESSION['created'] = time();
 }

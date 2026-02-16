@@ -21,14 +21,7 @@ class ScheduleNotificationChecker {
 
     async checkUpcomingEvents() {
         try {
-            const response = await fetch('../../api/events/get-upcoming-events.php', {
-                method: 'GET',
-                credentials: 'include'
-            });
-
-            if (!response.ok) {
-                throw new Error('Failed to fetch upcoming events');
-            }
+            const response = await apiFetch('../../api/events/get-upcoming-events.php');
 
             const result = await response.json();
             
@@ -137,14 +130,14 @@ class ScheduleNotificationChecker {
             this.checkUpcomingEvents();
         }, this.checkDelay);
 
-        console.log('Schedule notification checker started');
+        //console.log('Schedule notification checker started');
     }
 
     stopChecking() {
         if (this.checkInterval) {
             clearInterval(this.checkInterval);
             this.checkInterval = null;
-            console.log('Schedule notification checker stopped');
+          //  console.log('Schedule notification checker stopped');
         }
     }
 }

@@ -13,7 +13,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     async function loadEvents() {
         try {
-            const response = await fetch('../../api/admin/get-all-events.php');
+            const response = await apiFetch('../../api/admin/get-all-events.php');
             const result = await response.json();
 
             if (result.success) {

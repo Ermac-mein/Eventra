@@ -9,7 +9,7 @@ if (isset($_SESSION['role']) && strtolower($_SESSION['role']) === 'admin') {
     header('Location: pages/adminDashboard.html');
 } else {
     // Redirect to the centralized role selection gate
-    header('Location: ../public/pages/auth-gate.html');
+    header('Location: pages/adminLogin.html');
 }
 exit();
 ?>

@@ -32,7 +32,7 @@ async function loadChartData() {
         if (!user) return;
 
         // Fetch chart data from new API
-        const response = await fetch('../../api/stats/get-chart-data.php?period=30days');
+        const response = await apiFetch('../../api/stats/get-chart-data.php?period=30days');
         const result = await response.json();
 
         if (result.success && result.datasets) {

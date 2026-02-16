@@ -53,7 +53,7 @@ class SearchManager {
 
     async performSearch(query) {
         try {
-            const response = await fetch(`../../api/admin/global-search.php?q=${encodeURIComponent(query)}`);
+            const response = await apiFetch(`../../api/admin/global-search.php?q=${encodeURIComponent(query)}`);
             const data = await response.json();
 
             if (data.success) {

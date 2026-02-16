@@ -13,7 +13,7 @@ let allEvents = [];  // Store all events for filtering
 // Load events from API
 async function loadEvents() {
   try {
-    const response = await fetch('../../api/events/get-events.php');
+    const response = await apiFetch('../../api/events/get-events.php');
     const result = await response.json();
     
     if (result.success && result.events) {
@@ -44,43 +44,43 @@ async function loadEvents() {
       const upcomingEvents = publishedEvents.filter(event => new Date(event.event_date) >= now);
       
       // Priority-based filtering
-      eventsData.featured = sortByCreation([...publishedEvents.filter(e => e.priority === 'featured')]).slice(0, 6);
-      eventsData.hot = sortByCreation([...publishedEvents.filter(e => e.priority === 'hot')]).slice(0, 6);
+      eventsData.featured = sortByCreation([...publishedEvents.filter(e => e.priority === 'featured')]).slice(0, 12);
+      eventsData.hot = sortByCreation([...publishedEvents.filter(e => e.priority === 'hot')]).slice(0, 12);
+      eventsData.trending = sortByCreation([...publishedEvents.filter(e => e.priority === 'trending')]).slice(0, 12);
       
-      // Trending: priority='trending' OR high attendee count
-      eventsData.trending = sortByCreation([...publishedEvents
-        .filter(e => e.priority === 'trending' || (e.attendee_count && e.attendee_count > 50))])
-        .slice(0, 6);
-      
-      // Upcoming: future events sorted by date (earliest first)
-      eventsData.upcoming = upcomingEvents
-        .sort((a, b) => new Date(a.event_date) - new Date(b.event_date))
-        .slice(0, 6);
+      // Upcoming: strictly use priority 'upcoming' if available, otherwise fallback to future events
+      const priorityUpcoming = publishedEvents.filter(e => e.priority === 'upcoming');
+      if (priorityUpcoming.length > 0) {
+        eventsData.upcoming = sortByCreation([...priorityUpcoming]).slice(0, 12);
+      } else {
+        eventsData.upcoming = upcomingEvents
+          .sort((a, b) => new Date(a.event_date) - new Date(b.event_date))
+          .slice(0, 12);
+      }
       
       // All Events: sorted by creation date
       eventsData.all = sortByCreation([...publishedEvents]);
 
-      // Nearby: events in user's state/city if logged in
-      console.log('User Location:', { state: userState, city: userCity });
+      // Nearby: strictly use priority 'nearby' if available, otherwise fallback to location matches
+      const priorityNearby = publishedEvents.filter(e => e.priority === 'nearby');
       
       if (userState || userCity) {
-        eventsData.nearby = publishedEvents.filter(e => {
+        const locationNearby = publishedEvents.filter(e => {
           const eventState = e.state?.toLowerCase();
           const eventCity = e.city?.toLowerCase();
-          
           const stateMatch = userState && eventState && (eventState.includes(userState) || userState.includes(eventState));
           const cityMatch = userCity && eventCity && (eventCity.includes(userCity) || userCity.includes(eventCity));
-          
           return stateMatch || cityMatch;
-        }).slice(0, 6);
-        
-        console.log('Nearby Matches by Location:', eventsData.nearby.length);
-      } 
-      
-      // Fallback: If no location matches or not logged in, use events with priority 'nearby'
-      if (eventsData.nearby.length === 0) {
-        eventsData.nearby = sortByCreation([...publishedEvents.filter(e => e.priority === 'nearby')]).slice(0, 6);
-        console.log('Nearby Matches by Priority:', eventsData.nearby.length);
+        });
+
+        // Combine priority-nearby and location-nearby, unique by id
+        const combined = [...priorityNearby];
+        locationNearby.forEach(le => {
+          if (!combined.find(pe => pe.id === le.id)) combined.push(le);
+        });
+        eventsData.nearby = sortByCreation(combined).slice(0, 12);
+      } else {
+        eventsData.nearby = sortByCreation([...priorityNearby]).slice(0, 12);
       }
       
       // Render events
@@ -192,7 +192,7 @@ function initUserIcon() {
         if (!result.isConfirmed) return;
 
         try {
-          const response = await fetch('../../api/auth/logout.php');
+          const response = await apiFetch('../../api/auth/logout.php');
           const result = await response.json();
           if (result.success) {
             // Clear all possible user keys
@@ -245,7 +245,7 @@ function initUserIcon() {
         const formData = new FormData(profileEditForm);
         
         try {
-          const response = await fetch('../../api/users/update-profile.php', {
+          const response = await apiFetch('../../api/users/update-profile.php', {
             method: 'POST',
             body: formData
           });
@@ -301,7 +301,7 @@ async function initGoogleAuth() {
     if (isAuthenticated()) return;
 
     try {
-        const response = await fetch('../../api/config/get-google-config.php');
+        const response = await apiFetch('../../api/config/get-google-config.php');
         const data = await response.json();
 
         if (data.success && data.client_id) {
@@ -343,10 +343,9 @@ async function handleGoogleCredentialResponse(response) {
         const container = document.getElementById('googleSignInContainer');
         if (container) container.innerHTML = '<div class="spinner"></div> Signing in...';
 
-        const res = await fetch('../../api/auth/google-handler.php', {
+        const res = await apiFetch('../../api/auth/google-handler.php', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',
             body: JSON.stringify({
                 credential: response.credential,
                 intent: 'user'
@@ -442,7 +441,7 @@ function createEventCard(event, index) {
   // Modern HTML structure with staggered animation delay
   return `
     <div class="event-card" data-id="${event.id}" data-tag="${event.tag || event.id}" style="animation-delay: ${index * 0.1}s">
-      <div class="event-image-container">
+      <div class="event-image-container enhanced-hd">
         <img src="${eventImage}" alt="${event.event_name}" class="event-image">
         <div class="event-badges">
           <div class="event-category-badge">${event.category || 'Event'}</div>
@@ -583,7 +582,7 @@ async function toggleFavorite(e, eventId) {
     }
 
     try {
-        const response = await fetch('../../api/events/favorite.php', {
+        const response = await apiFetch('../../api/events/favorite.php', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ event_id: eventId })

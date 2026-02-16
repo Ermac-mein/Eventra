@@ -46,7 +46,37 @@ if (typeof storage === 'undefined') {
                 console.error('Error clearing storage:', error);
                 return false;
             }
+        },
+
+        getRoleKeys: function() {
+            const currentPath = window.location.pathname;
+            if (currentPath.includes('/admin/')) {
+                return { user: 'admin_user', token: 'admin_auth_token' };
+            } else if (currentPath.includes('/client/')) {
+                return { user: 'client_user', token: 'client_auth_token' };
+            }
+            return { user: 'user', token: 'auth_token' };
+        },
+
+        getUser: function() {
+            const keys = this.getRoleKeys();
+            return this.get(keys.user);
+        },
+
+        setUser: function(userData) {
+            const keys = this.getRoleKeys();
+            if (userData.token) {
+                this.set(keys.token, userData.token);
+            }
+            return this.set(keys.user, userData);
         }
+    };
+}
+
+// Global helper for role-specific keys
+if (typeof getRoleKeys === 'undefined') {
+    window.getRoleKeys = function() {
+        return window.storage.getRoleKeys();
     };
 }
 

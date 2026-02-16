@@ -5,7 +5,7 @@
 
 document.addEventListener('DOMContentLoaded', async () => {
     // Check for namespaced admin user
-    const user = storage.get('admin_user') || storage.get('user');
+    const user = storage.getUser();
     
     if (!user || user.role !== 'admin') {
         window.location.href = '../../admin/pages/adminLogin.html';
@@ -24,15 +24,15 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 async function loadAdminProfile() {
     try {
-        const user = storage.get('admin_user');
-        const response = await fetch(`../../api/users/get-profile.php?user_id=${user.id}`);
+        const user = storage.getUser();
+        const response = await apiFetch(`../../api/users/get-profile.php?user_id=${user.id}`);
         const result = await response.json();
 
         if (result.success) {
             const adminUser = result.user;
             
             // Store updated user data
-            storage.set('admin_user', adminUser);
+            storage.setUser(adminUser);
         }
     } catch (error) {
         console.error('Error loading profile:', error);
@@ -41,7 +41,7 @@ async function loadAdminProfile() {
 
 async function loadDashboardStats() {
     try {
-        const response = await fetch('../../api/stats/get-admin-dashboard-stats.php');
+        const response = await apiFetch('../../api/stats/get-admin-dashboard-stats.php');
         const result = await response.json();
 
         if (!result.success) {
@@ -70,6 +70,9 @@ async function loadDashboardStats() {
 
         const totalClientsVal = findStatValue('Total Clients');
         if (totalClientsVal) totalClientsVal.textContent = stats.total_clients;
+
+        const restoredEventsVal = findStatValue('Restored Events');
+        if (restoredEventsVal) restoredEventsVal.textContent = stats.restored_events || 0;
 
         const revenueVal = findStatValue('Revenue');
         if (revenueVal) revenueVal.textContent = '₦' + parseFloat(stats.total_revenue).toLocaleString();

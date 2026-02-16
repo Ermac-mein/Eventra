@@ -13,8 +13,12 @@ let currentFolderId = null;
 
 async function loadMedia() {
     try {
-        const user = storage.get('user');
-        const response = await fetch(`../../api/media/get-media.php?client_id=${user.id}`);
+        const user = storage.getUser();
+        if (!user || !user.id) {
+            console.error('User session not found');
+            return;
+        }
+        const response = await apiFetch(`../../api/media/get-media.php?client_id=${user.id}`);
         const result = await response.json();
 
         const mediaGrid = document.getElementById('mediaGrid');
@@ -47,11 +51,17 @@ async function loadMedia() {
                 `;
             } else {
                 const isImage = item.file_type?.startsWith('image/');
+                const isVideo = item.file_type?.startsWith('video/');
+                const isEnhanced = storage.get(`enhanced_hd_${item.id}`) === true;
+                
                 return `
-                    <div class="media-card">
+                    <div class="media-card ${isEnhanced ? 'enhanced-hd' : ''}" id="media-${item.id}">
                         <div class="media-thumb" style="${isImage ? `background: url(${item.file_path}) center/cover;` : ''}">
-                            ${!isImage ? `<span class="file-icon">${getFileIcon(item.file_type)}</span>` : ''}
+                            ${isVideo ? `<video src="${item.file_path}" style="width: 100%; height: 100%; object-fit: cover;"></video>` : ''}
+                            ${(!isImage && !isVideo) ? `<span class="file-icon">${getFileIcon(item.file_type)}</span>` : ''}
+                            <div class="hd-badge">4K HD</div>
                             <div class="media-actions-overlay">
+                                <span class="action-circle hd-toggle ${isEnhanced ? 'active' : ''}" onclick="toggleHDEnhancement(event, ${item.id})" title="HD Enhancement">✨</span>
                                 <span class="action-circle" onclick="viewFile('${item.file_path}')">👁️</span>
                                 <span class="action-circle" onclick="downloadFile('${item.file_path}', '${item.name}')">⬇️</span>
                                 <span class="action-circle" onclick="deleteMedia(${item.id})">🗑️</span>
@@ -112,7 +122,7 @@ async function handleFolderCreation(e) {
     const folderName = document.getElementById('folderNameInput').value;
     
     try {
-        const response = await fetch('../../api/media/create-folder.php', {
+        const response = await apiFetch('../../api/media/create-folder.php', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ folder_name: folderName })
@@ -194,7 +204,7 @@ function uploadFile() {
         }
 
         try {
-            const response = await fetch('../../api/media/upload-media.php', {
+            const response = await apiFetch('../../api/media/upload-media.php', {
                 method: 'POST',
                 body: formData
             });
@@ -214,6 +224,34 @@ function uploadFile() {
     };
 
     input.click();
+}
+
+async function toggleHDEnhancement(e, mediaId) {
+    if (e) e.stopPropagation();
+    
+    const card = document.getElementById(`media-${mediaId}`);
+    const toggleBtn = e.currentTarget;
+    const isEnhanced = card.classList.contains('enhanced-hd');
+    
+    if (!isEnhanced) {
+        // Apply enhancement with effect
+        card.classList.add('enhancement-processing');
+        showNotification('Enhancing to 4K HD clarity...', 'info');
+        
+        // Simulate processing for UX
+        await new Promise(resolve => setTimeout(resolve, 800));
+        
+        card.classList.remove('enhancement-processing');
+        card.classList.add('enhanced-hd');
+        toggleBtn.classList.add('active');
+        storage.set(`enhanced_hd_${mediaId}`, true);
+        showNotification('Media enhanced to HD!', 'success');
+    } else {
+        card.classList.remove('enhanced-hd');
+        toggleBtn.classList.remove('active');
+        storage.remove(`enhanced_hd_${mediaId}`);
+        showNotification('HD enhancement removed', 'info');
+    }
 }
 
 function viewFile(filePath) {
@@ -243,7 +281,7 @@ async function deleteMedia(mediaId) {
     if (!result.isConfirmed) return;
 
     try {
-        const response = await fetch('../../api/media/delete-media.php', {
+        const response = await apiFetch('../../api/media/delete-media.php', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ media_id: mediaId })

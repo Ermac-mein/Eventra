@@ -7,7 +7,7 @@ let adminChart = null;
 
 async function initAdminChart(period = '7days') {
     try {
-        const response = await fetch(`../../api/stats/get-chart-data.php?period=${period}`);
+        const response = await apiFetch(`../../api/stats/get-chart-data.php?period=${period}`);
         const result = await response.json();
 
         if (!result.success) {

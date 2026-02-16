@@ -23,6 +23,30 @@ document.addEventListener('DOMContentLoaded', () => {
         
     }
 
+    // Check for session timeout error
+    if (urlParams.get('error') === 'session_timeout') {
+        setTimeout(() => {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Session Expired',
+                    text: 'Your session has timed out. Please log in again to continue.',
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 5000,
+                    timerProgressBar: true,
+                    background: '#1e293b',
+                    color: '#fff'
+                });
+            } else {
+                if (typeof showNotification === 'function') {
+                    showNotification('Your session has expired. Please log in again.', 'error');
+                }
+            }
+        }, 500);
+    }
+
     // Toggle password visibility
     if (togglePassword && passwordInput) {
         togglePassword.addEventListener('click', () => {
@@ -82,10 +106,9 @@ document.addEventListener('DOMContentLoaded', () => {
         loginButton.innerHTML = '<span class="spinner"></span> Logging in...';
 
         try {
-            const response = await fetch(basePath + 'api/auth/login.php', {
+            const response = await apiFetch(basePath + 'api/auth/login.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
                 body: JSON.stringify({
                     email: emailInput.value,
                     password: passwordInput.value,
@@ -105,12 +128,7 @@ document.addEventListener('DOMContentLoaded', () => {
             console.log("Login Result:", result);
 
             if (result.success) {
-                // Isolate session storage by role
-                const storageKey = intent === 'admin' ? 'admin_user' : (intent === 'client' ? 'client_user' : 'user');
-                const tokenKey = intent === 'admin' ? 'admin_auth_token' : (intent === 'client' ? 'client_auth_token' : 'auth_token');
-                
-                storage.set(storageKey, result.user);
-                storage.set(tokenKey, result.user.token);
+                storage.setUser(result.user);
 
                 // Premium Feedback
                 if (typeof Swal !== 'undefined') {
@@ -154,7 +172,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Fetch Google Client ID from server
         let clientId;
         try {
-            const configResponse = await fetch(basePath + 'api/config/get-google-config.php');
+            const configResponse = await apiFetch(basePath + 'api/config/get-google-config.php');
             const configData = await configResponse.json();
             
             if (!configData.success || !configData.client_id) {
@@ -201,7 +219,7 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         try {
-            const res = await fetch(basePath + 'api/auth/google-handler.php', {
+            const res = await apiFetch(basePath + 'api/auth/google-handler.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -221,8 +239,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const result = await res.json();
 
             if (result.success) {
-                storage.set('user', result.user);
-                storage.set('auth_token', result.user.token);
+                storage.setUser(result.user);
                 
                 if (typeof Swal !== 'undefined') {
                     Swal.fire({
@@ -269,7 +286,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!sliderContainer) return;
 
         try {
-            const response = await fetch(basePath + 'api/events/get-events.php?status=published&limit=10');
+            const response = await apiFetch(basePath + 'api/events/get-events.php?status=published&limit=10');
             const data = await response.json();
 
             if (data.success && data.events.length > 0) {

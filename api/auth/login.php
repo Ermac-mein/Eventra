@@ -68,8 +68,8 @@ try {
         // Generate alphanumeric access token
         $token = bin2hex(random_bytes(32));
 
-        // Expiration logic
-        $expires_in = $remember_me ? '+30 days' : '+2 hours';
+        // Expiration logic: Strict 30-minute inactivity timeout
+        $expires_in = $remember_me ? '+30 days' : '+30 minutes';
         $expires_at = date('Y-m-d H:i:s', strtotime($expires_in));
 
         // Delete old tokens for this auth identity

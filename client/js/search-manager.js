@@ -34,7 +34,7 @@ async function performSearch(query) {
     }
 
     try {
-        const response = await fetch(`../../api/utils/search.php?q=${encodeURIComponent(query)}`);
+        const response = await apiFetch(`../../api/utils/search.php?q=${encodeURIComponent(query)}`);
         const result = await response.json();
 
         if (result.success) {
@@ -94,7 +94,10 @@ function displaySearchResults(results, query) {
                 <div style="width: 32px; height: 32px; border-radius: 6px; background: #f3f4f6; display: flex; align-items: center; justify-content: center; font-size: 1rem;">📅</div>
                 <div style="flex: 1;">
                     <div style="font-weight: 600; font-size: 0.9rem; color: #111827;">${highlightText(event.title, query)}</div>
-                    <div style="font-size: 0.75rem; color: #6b7280;">${event.subtitle} • ${event.state}</div>
+                    <div style="font-size: 0.75rem; color: #6b7280;">
+                        ${event.subtitle || ''} ${event.category ? '• ' + event.category : ''} 
+                        ${event.price ? '• ' + (parseFloat(event.price) === 0 ? 'Free' : '₦' + parseFloat(event.price).toLocaleString()) : ''}
+                    </div>
                 </div>
             </div>
         `).join('');

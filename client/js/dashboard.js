@@ -5,7 +5,7 @@
 
 document.addEventListener('DOMContentLoaded', async () => {
     // Try namespaced key first, fall back to generic if necessary
-    const user = storage.get('client_user') || storage.get('user');
+    const user = storage.getUser();
     
     if (!user || user.role !== 'client') {
         window.location.href = '../../client/pages/clientLogin.html';
@@ -23,9 +23,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 async function loadClientProfile(clientId) {
     try {
-        const response = await fetch(`../../api/users/get-profile.php`, {
-            credentials: 'include'
-        });
+    const response = await apiFetch(`../../api/users/get-profile.php`);
         const result = await response.json();
 
         if (result.success) {
@@ -54,7 +52,7 @@ async function loadClientProfile(clientId) {
             }
 
             // Store user data
-            storage.set('user', user);
+            storage.setUser(user);
         }
     } catch (error) {
         console.error('Error loading profile:', error);
@@ -63,9 +61,7 @@ async function loadClientProfile(clientId) {
 
 async function loadDashboardStats(clientId) {
     try {
-        const response = await fetch('../../api/stats/get-client-dashboard-stats.php', {
-            credentials: 'include'
-        });
+    const response = await apiFetch('../../api/stats/get-client-dashboard-stats.php');
         const result = await response.json();
 
         if (!result.success) {

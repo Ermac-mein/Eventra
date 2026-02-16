@@ -72,10 +72,10 @@ class DeletedEventModal {
         
         // Fetch event details
         try {
-            const response = await fetch(`../../api/events/get-event-details.php?event_id=${eventId}`);
+            const response = await apiFetch(`../../api/events/get-event-details.php?event_id=${eventId}`);
             const result = await response.json();
             
-            if (result.success && result.event) {
+            if (result && result.success && result.event) {
                 this.renderEventDetails(result.event);
                 this.modal.style.display = 'flex';
                 setTimeout(() => {
@@ -149,7 +149,7 @@ class DeletedEventModal {
 
             if (!result.isConfirmed) return;
 
-            const response = await fetch('../../api/events/restore-event.php', {
+            const response = await apiFetch('../../api/events/restore-event.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ event_id: this.currentEventId })
@@ -195,7 +195,7 @@ class DeletedEventModal {
 
             if (!result.isConfirmed) return;
 
-            const response = await fetch('../../api/events/delete-event-permanent.php', {
+            const response = await apiFetch('../../api/events/delete-event-permanent.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ event_id: this.currentEventId })

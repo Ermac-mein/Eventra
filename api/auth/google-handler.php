@@ -105,6 +105,24 @@ try {
 
     if (session_name() !== $expectedSessionName) {
         session_write_close();
+
+        // Clear other potential session cookies before switching
+        $params = session_get_cookie_params();
+        $possibleNames = ['EVENTRA_CLIENT_SESS', 'EVENTRA_ADMIN_SESS', 'EVENTRA_USER_SESS'];
+        foreach ($possibleNames as $name) {
+            if ($name !== $expectedSessionName) {
+                setcookie(
+                    $name,
+                    '',
+                    time() - 42000,
+                    $params["path"],
+                    $params["domain"],
+                    $params["secure"],
+                    $params["httponly"]
+                );
+            }
+        }
+
         session_name($expectedSessionName);
         session_start();
         $_SESSION = [];

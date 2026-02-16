@@ -57,7 +57,21 @@ try {
     session_unset();
     session_destroy();
 
-    // Clear cookies
+    // Clear all possible session cookies
+    $params = session_get_cookie_params();
+    $possibleNames = ['EVENTRA_CLIENT_SESS', 'EVENTRA_ADMIN_SESS', 'EVENTRA_USER_SESS'];
+    foreach ($possibleNames as $name) {
+        setcookie(
+            $name,
+            '',
+            time() - 42000,
+            $params["path"],
+            $params["domain"],
+            $params["secure"],
+            $params["httponly"]
+        );
+    }
+
     if (isset($_COOKIE['remember_token'])) {
         setcookie('remember_token', '', time() - 3600, '/');
     }

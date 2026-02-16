@@ -38,11 +38,10 @@ class NotificationManager {
     // Fetch notifications from API
     async fetchNotifications() {
         try {
-            const response = await fetch('../../api/notifications/get-notifications.php');
+            const response = await apiFetch('../../api/notifications/get-notifications.php');
             
-            if (response.status === 401) {
+            if (!response) {
                 this.stopPolling();
-                window.location.href = '../../public/pages/clientLogin.html';
                 return;
             }
 
@@ -222,7 +221,7 @@ class NotificationManager {
     // Mark all notifications as read
     async markAsRead() {
         try {
-            const response = await fetch('../../api/notifications/mark-notification-read.php', {
+            const response = await apiFetch('../../api/notifications/mark-notification-read.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ mark_all: true })
@@ -253,7 +252,7 @@ class NotificationManager {
     // Mark single notification as read
     async markSingleAsRead(notificationId) {
         try {
-            const response = await fetch('../../api/notifications/mark-notification-read.php', {
+            const response = await apiFetch('../../api/notifications/mark-notification-read.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ notification_id: notificationId })
@@ -282,7 +281,7 @@ class NotificationManager {
         if (!result.isConfirmed) return;
 
         try {
-            const response = await fetch('../../api/notifications/clear-all.php', {
+            const response = await apiFetch('../../api/notifications/clear-all.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' }
             });

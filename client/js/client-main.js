@@ -21,33 +21,19 @@ async function loadGlobalProfile() {
         const isClient = window.location.pathname.includes('/client/');
         const isAdmin = window.location.pathname.includes('/admin/');
         
-        const keys = {
-            user: isClient ? 'client_user' : (isAdmin ? 'admin_user' : 'user'),
-            token: isClient ? 'client_auth_token' : (isAdmin ? 'admin_auth_token' : 'auth_token')
-        };
-
-        // Check if we have user data in storage first for immediate display
-        const storedUser = storage.get(keys.user);
-        if (storedUser) {
-            updateGlobalAvatar(storedUser);
-            updateClientNameDisplay(storedUser);
+        const user = storage.getUser();
+        if (user) {
+            updateGlobalAvatar(user);
+            updateClientNameDisplay(user);
         }
 
         // Fetch fresh data
-        const response = await fetch('../../api/users/get-profile.php', {
-            credentials: 'include'
-        });
+        const response = await apiFetch('../../api/users/get-profile.php');
         
-        if (response.status === 401) {
-            window.location.href = '../../client/pages/clientLogin.html';
-            return;
-        }
-
         const result = await response.json();
 
         if (result.success) {
-            const keys = typeof getRoleKeys === 'function' ? getRoleKeys() : { user: 'user', token: 'auth_token' };
-            storage.set(keys.user, result.user);
+            storage.setUser(result.user);
             updateGlobalAvatar(result.user);
         }
     } catch (error) {
@@ -92,26 +78,30 @@ async function logout() {
 
     try {
         // Call server-side logout
-        await fetch('../../api/auth/logout.php');
+        await apiFetch('../../api/auth/logout.php');
 
         // Stop notification polling
         if (window.notificationManager) {
             window.notificationManager.stopPolling();
         }
 
-        // Clear ONLY client storage
-        storage.remove('client_user');
-        storage.remove('client_auth_token');
+        // Clear ONLY role-specific storage
+        const keys = storage.getRoleKeys();
+        storage.remove(keys.user);
+        storage.remove(keys.token);
         sessionStorage.clear();
 
         // Hard redirect to login
-        window.location.href = '../../client/pages/clientLogin.html';
+        const loginPage = keys.user === 'admin_user' ? '../../admin/pages/adminLogin.html' : '../../client/pages/clientLogin.html';
+        window.location.href = loginPage;
     } catch (error) {
         console.error('Logout error:', error);
         // Clean up and redirect anyway
-        storage.remove('client_user');
-        storage.remove('client_auth_token');
-        window.location.href = '../../client/pages/clientLogin.html';
+        const keys = storage.getRoleKeys();
+        storage.remove(keys.user);
+        storage.remove(keys.token);
+        const loginPage = keys.user === 'admin_user' ? '../../admin/pages/adminLogin.html' : '../../client/pages/clientLogin.html';
+        window.location.href = loginPage;
     }
 }
 
@@ -185,7 +175,7 @@ async function handleSearch(e) {
 
 async function searchEvents(query) {
     try {
-        const response = await fetch(`../../api/events/search-events.php?query=${encodeURIComponent(query)}`);
+        const response = await apiFetch(`../../api/events/search-events.php?query=${encodeURIComponent(query)}`);
         const result = await response.json();
 
         if (result.success) {

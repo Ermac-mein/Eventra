@@ -7,9 +7,9 @@ function checkAuth($requiredRole = null)
     global $pdo;
 
     // 1. Ensure a session is started
+    // 1. Ensure a session is started using centralized configuration
     if (session_status() === PHP_SESSION_NONE) {
         require_once __DIR__ . '/../../config/session-config.php';
-        // session-config.php starts the session based on path/referer
     }
 
     // 2. Session Recovery: If current session is empty, try other known session names
@@ -102,24 +102,18 @@ function checkAuth($requiredRole = null)
         }
 
         // Check if role matches if required
-        if ($requiredRole && $user['role'] !== $requiredRole) {
-            error_log("[Auth Debug] Insufficient permissions. User Role: {$user['role']}, Required: $requiredRole. User ID: $user_id");
-            logSecurityEvent($user_id, null, 'unauthorized_access', 'session', "Insufficient permissions for role: {$user['role']}. Required: $requiredRole");
+        if ($requiredRole && strtolower($user['role']) !== strtolower($requiredRole)) {
+            error_log("[Auth Debug] Forbidden: Role mismatch. User ID: $user_id | SQL Role: {$user['role']} | Required: $requiredRole | Session Name: " . session_name());
+            logSecurityEvent($user_id, null, 'unauthorized_access', 'session', "Insufficient permissions. User Role: {$user['role']}. Required: $requiredRole");
             http_response_code(403);
             echo json_encode(['success' => false, 'message' => 'Forbidden. Insufficient permissions.']);
             exit;
         }
 
-        // Update last activity
-        $stmt = $pdo->prepare("UPDATE auth_tokens SET last_activity = CURRENT_TIMESTAMP WHERE token = ?");
-        $stmt->execute([$token]);
-
-        // Session sliding
-        if (strtotime($authToken['expires_at']) - time() < 1800) {
-            $new_expiry = date('Y-m-d H:i:s', strtotime('+2 hours'));
-            $stmt = $pdo->prepare("UPDATE auth_tokens SET expires_at = ? WHERE token = ?");
-            $stmt->execute([$new_expiry, $token]);
-        }
+        // Update last activity and extend session (sliding window)
+        $new_expiry = date('Y-m-d H:i:s', strtotime('+30 minutes'));
+        $stmt = $pdo->prepare("UPDATE auth_tokens SET last_activity = CURRENT_TIMESTAMP, expires_at = ? WHERE token = ?");
+        $stmt->execute([$new_expiry, $token]);
 
         return $user_id;
     } catch (PDOException $e) {

@@ -73,6 +73,8 @@ function showNotification(message, type = 'info') {
   }, 3000);
 }
 
+
+
 // Local storage helpers
 const storage = {
   set: (key, value) => {
@@ -101,6 +103,28 @@ const storage = {
       console.error('Error removing from localStorage:', e);
       return false;
     }
+  },
+  // Role-aware helpers
+  getUser: () => {
+    const keys = getRoleKeys();
+    return storage.get(keys.user);
+  },
+  setUser: (userData) => {
+    const keys = getRoleKeys();
+    return storage.set(keys.user, userData);
+  },
+  getToken: () => {
+    const keys = getRoleKeys();
+    return storage.get(keys.token);
+  },
+  setToken: (token) => {
+    const keys = getRoleKeys();
+    return storage.set(keys.token, token);
+  },
+  clearRoleSessions: () => {
+    const keys = getRoleKeys();
+    storage.remove(keys.user);
+    storage.remove(keys.token);
   }
 };
 
@@ -130,13 +154,59 @@ function handleAuthRedirect(targetURL) {
     
     // Redirect to gate for Admin/Client paths
     if (effectiveTarget.includes('/admin/') || effectiveTarget.includes('/client/')) {
-      window.location.href = basePath + 'public/pages/auth-gate.html';
+      const loginPage = effectiveTarget.includes('/admin/') ? 'admin/pages/adminLogin.html' : 'client/pages/clientLogin.html';
+      window.location.href = basePath + loginPage;
     } else {
-      window.location.href = basePath + 'public/pages/login.html';
+      // General user login
+      window.location.href = basePath + 'public/pages/index.html?trigger=login';
     }
     return false;
   }
   return true;
+}
+
+// Centralized API Wrapper
+async function apiFetch(url, options = {}) {
+  // Ensure credentials are included by default for session support
+  if (!options.credentials) options.credentials = 'include';
+  
+  // Add Portal Identity Header for unambiguous session resolution
+  const path = window.location.pathname;
+  let portal = 'user';
+  if (path.includes('/admin/')) portal = 'admin';
+  else if (path.includes('/client/')) portal = 'client';
+  
+  options.headers = {
+    ...options.headers,
+    'X-Eventra-Portal': portal
+  };
+  
+  try {
+    const response = await fetch(url, options);
+    
+    // Handle 401 (Unauthorized) or 403 (Forbidden) indicating session expiration
+    if (response.status === 401 || response.status === 403) {
+      // Skip redirect for login endpoints themselves to avoid infinite loops
+      if (!url.includes('login.php') && !url.includes('google-handler.php')) {
+        const path = window.location.pathname;
+        const basePath = path.includes('/pages/') ? '../../' : (path.includes('/admin/') || path.includes('/client/')) ? '../' : './';
+        
+        let loginPage = 'client/pages/clientLogin.html';
+        if (path.includes('/admin/')) {
+          loginPage = 'admin/pages/adminLogin.html';
+        }
+        
+        // Redirect with error code
+        window.location.href = basePath + loginPage + '?error=session_timeout';
+        return null;
+      }
+    }
+    
+    return response;
+  } catch (error) {
+    console.error('API Fetch Error:', error);
+    throw error;
+  }
 }
 
 // Export utilities
@@ -148,7 +218,9 @@ if (typeof module !== 'undefined' && module.exports) {
     isValidEmail,
     showNotification,
     storage,
+    getRoleKeys,
     isAuthenticated,
-    handleAuthRedirect
+    handleAuthRedirect,
+    apiFetch
   };
 }

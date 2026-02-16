@@ -9,7 +9,10 @@
 body {
   font-family: var(--font-primary);
   color: var(--text-dark);
-  background-color: var(--bg-light);
+  background: url('../assets/imgs/severex.cross.word.puzzle.logic.jpg');
+  background-size: 100% 100%;
+  background-attachment: fixed;
+  background-repeat: no-repeat;
   line-height: 1.6;
   overflow-x: hidden;
 }

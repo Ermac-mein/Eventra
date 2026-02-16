@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <defs>
+    <filter id="hdSharpenFilter">
+      <feConvolveMatrix 
+        order="3 3" 
+        preserveAlpha="true" 
+        kernelMatrix="0 -1 0 -1 5 -1 0 -1 0" />
+    </filter>
+  </defs>
+</svg>
