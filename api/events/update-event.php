@@ -22,9 +22,9 @@ if (!$event_id) {
 }
 
 try {
-    // RESOLVE: Get the actual client_id from the auth_id in session
+    // RESOLVE: Get the actual client_id from the client_auth_id in session
     // The events table uses clients.id as client_id, while session stores auth_accounts.id
-    $client_stmt = $pdo->prepare("SELECT id FROM clients WHERE auth_id = ?");
+    $client_stmt = $pdo->prepare("SELECT id FROM clients WHERE client_auth_id = ?");
     $client_stmt->execute([$user_id]);
     $client_row = $client_stmt->fetch();
 
@@ -53,16 +53,6 @@ try {
         echo json_encode(['success' => false, 'message' => 'You do not have permission to update this event']);
         exit;
     }
-
-    // CRITICAL: Prevent editing published events - Removed as per user request
-    // if ($event['status'] === 'published') {
-    //     http_response_code(403);
-    //     echo json_encode([
-    //         'success' => false,
-    //         'message' => 'Published events cannot be edited. Only draft and scheduled events can be modified.'
-    //     ]);
-    //     exit;
-    // }
 
     // Handle image upload if provided
     $image_path = $event['image_path']; // Keep existing image by default
@@ -116,7 +106,7 @@ try {
         $_POST['status'],
         $_POST['description'],
         $_POST['state'],
-        $_POST['visibility'] ?? 'all_states',
+        $_POST['visibility'] ?? 'all states',
         $_POST['address'],
         $_POST['phone_contact_1'],
         $_POST['phone_contact_2'] ?? null,
@@ -125,14 +115,22 @@ try {
     ]);
 
     // Create notification
+    require_once '../utils/notification-helper.php';
+
     // Resolve client's auth_id for notification recipient
-    $auth_stmt = $pdo->prepare("SELECT auth_id FROM clients WHERE id = ?");
+    $auth_stmt = $pdo->prepare("SELECT client_auth_id FROM clients WHERE id = ?");
     $auth_stmt->execute([$event['client_id']]);
     $recipient_auth_id = $auth_stmt->fetchColumn();
 
     $message = "Event '{$_POST['event_name']}' has been updated";
-    $stmt = $pdo->prepare("INSERT INTO notifications (recipient_auth_id, sender_auth_id, message, type) VALUES (?, ?, ?, ?)");
-    $stmt->execute([$recipient_auth_id, $user_id, $message, 'event_updated']);
+    createNotification($recipient_auth_id, $message, 'event_updated', $user_id);
+
+    // Notify Admin
+    $admin_id = getAdminUserId();
+    if ($admin_id) {
+        $admin_message = "Client updated event '{$_POST['event_name']}'";
+        createNotification($admin_id, $admin_message, 'event_updated', $user_id);
+    }
 
     echo json_encode([
         'success' => true,
@@ -144,4 +142,3 @@ try {
     http_response_code(500);
     echo json_encode(['success' => false, 'message' => 'Internal server error: ' . $e->getMessage()]);
 }
-?>

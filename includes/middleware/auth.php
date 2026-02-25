@@ -6,138 +6,135 @@ function checkAuth($requiredRole = null)
 {
     global $pdo;
 
-    // 1. Ensure a session is started
     // 1. Ensure a session is started using centralized configuration
     if (session_status() === PHP_SESSION_NONE) {
         require_once __DIR__ . '/../../config/session-config.php';
     }
 
-    // 2. Session Recovery: If current session is empty, try other known session names
-    if (empty($_SESSION['user_id']) || empty($_SESSION['auth_token'])) {
-        $currentName = session_name();
-        $possibleNames = ['EVENTRA_CLIENT_SESS', 'EVENTRA_ADMIN_SESS', 'EVENTRA_USER_SESS'];
-        $sessionMatched = false;
-
-        foreach ($possibleNames as $name) {
-            if ($name === $currentName)
-                continue;
-            if (isset($_COOKIE[$name])) {
-                // Save and close current empty session
-                session_write_close();
-
-                // Try to open the other session
-                session_name($name);
-                session_start();
-
-                if (!empty($_SESSION['user_id']) && !empty($_SESSION['auth_token'])) {
-                    $sessionMatched = true;
-                    break; // Successfully switched to a populated session
-                }
-
-                // Still empty, close and continue trying
-                session_write_close();
-            }
-        }
-
-        // If no alternative session found, restart the original (or default) session
-        if (session_status() === PHP_SESSION_NONE) {
-            session_name($currentName);
-            session_start();
-        }
+    // 2. Strict Session Validation: No session recovery across roles allowed.
+    // Also enforcing the 30-minute inactivity rule here.
+    if (isset($_SESSION['last_activity']) && (time() - $_SESSION['last_activity']) > 1800) {
+        logSecurityEvent($_SESSION['user_id'] ?? null, null, 'session_expired', 'session', 'Inactivity timeout exceeded (30 mins).');
+        invalidateSession($_SESSION['user_id'] ?? null, $_SESSION['auth_token'] ?? null);
+        exit;
     }
+    $_SESSION['last_activity'] = time();
 
     $token = $_SESSION['auth_token'] ?? null;
     $user_id = $_SESSION['user_id'] ?? null;
+    $sessionRole = $_SESSION['role'] ?? null;
 
-    if (!$token || !$user_id) {
-        $referer = $_SERVER['HTTP_REFERER'] ?? 'None';
-        error_log("[Auth Debug] Missing session data. Redirecting to login. User ID: " . ($user_id ?? 'None') . " | Token: " . ($token ? 'Present' : 'None') . " | Session Name: " . session_name() . " | Session ID: " . session_id() . " | Referer: $referer");
+    if (!$token || !$user_id || !$sessionRole) {
         http_response_code(401);
         echo json_encode(['success' => false, 'message' => 'Unauthorized. Please login.']);
         exit;
     }
 
+    // 3. Role-specific Namespace Validation
+    $expectedSessionName = getEventraSessionName();
+    if (session_name() !== $expectedSessionName) {
+        error_log("[Auth Security] Session name mismatch. Expected: $expectedSessionName, Actual: " . session_name());
+        invalidateSession($user_id, $token);
+        exit;
+    }
+
     try {
-        // Check token validity
-        $stmt = $pdo->prepare("SELECT * FROM auth_tokens WHERE token = ? AND auth_id = ?");
+        // 4. Token & Identity Validation
+        $stmt = $pdo->prepare("SELECT a.*, t.expires_at as token_expires_at 
+                               FROM auth_accounts a 
+                               JOIN auth_tokens t ON a.id = t.auth_id 
+                               WHERE t.token = ? AND a.id = ? AND a.deleted_at IS NULL");
         $stmt->execute([$token, $user_id]);
-        $authToken = $stmt->fetch();
+        $identity = $stmt->fetch();
 
-        if (!$authToken) {
-            error_log("[Auth Debug] Token not found in database. User ID: $user_id | Token: $token");
+        if (!$identity) {
+            error_log("[Auth Security] Identity or token invalid. User ID: $user_id");
             invalidateSession($user_id, $token);
             exit;
         }
 
-        if (strtotime($authToken['expires_at']) < time()) {
-            error_log("[Auth Debug] Token expired. User ID: $user_id | Expires: " . $authToken['expires_at']);
+        // 5. Account Status & Lock Checks
+        if ($identity['is_active'] != 1) {
+            logSecurityEvent($user_id, null, 'unauthorized_access', 'session', "Account inactive.");
             invalidateSession($user_id, $token);
             exit;
         }
 
-        // 1. Real-time Role Validation - Query auth_accounts instead of users
-        $stmt = $pdo->prepare("SELECT role, is_active FROM auth_accounts WHERE id = ?");
-        $stmt->execute([$user_id]);
-        $user = $stmt->fetch();
-
-        if (!$user) {
-            error_log("[Auth Debug] User account not found in database. User ID: $user_id");
+        if ($identity['locked_until'] && strtotime($identity['locked_until']) > time()) {
+            logSecurityEvent($user_id, null, 'unauthorized_access', 'session', "Account locked until " . $identity['locked_until']);
             invalidateSession($user_id, $token);
             exit;
         }
 
-        if ($user['is_active'] != 1) {
-            error_log("[Auth Debug] User account is inactive. User ID: $user_id");
-            logSecurityEvent($user_id, null, 'unauthorized_access', 'session', "User inactive during auth check.");
+        if (strtotime($identity['token_expires_at']) < time()) {
             invalidateSession($user_id, $token);
             exit;
         }
 
-        // 2. Session Integrity: Ensure session role matches database role (Case-Insensitive)
-        if (strtolower($_SESSION['role']) !== strtolower($user['role'])) {
-            error_log("[Auth Debug] Role mismatch detected! Session: {$_SESSION['role']}, DB: {$user['role']}. User ID: $user_id");
-            logSecurityEvent($user_id, null, 'role_mismatch', 'session', "Detected role mismatch: Session({$_SESSION['role']}) != DB({$user['role']})");
+        // 6. Strict Role Match (Database vs Session)
+        if (strtolower($sessionRole) !== strtolower($identity['role'])) {
+            logSecurityEvent($user_id, null, 'role_mismatch', 'session', "Session Role($sessionRole) != DB Role({$identity['role']})");
             invalidateSession($user_id, $token);
             exit;
         }
 
-        // Check if role matches if required
-        if ($requiredRole && strtolower($user['role']) !== strtolower($requiredRole)) {
-            error_log("[Auth Debug] Forbidden: Role mismatch. User ID: $user_id | SQL Role: {$user['role']} | Required: $requiredRole | Session Name: " . session_name());
-            logSecurityEvent($user_id, null, 'unauthorized_access', 'session', "Insufficient permissions. User Role: {$user['role']}. Required: $requiredRole");
+        // 7. Authorization: Required Role Check
+        if ($requiredRole && strtolower($identity['role']) !== strtolower($requiredRole)) {
+            logSecurityEvent($user_id, null, 'unauthorized_access', 'session', "Insufficient permissions. Required: $requiredRole");
             http_response_code(403);
             echo json_encode(['success' => false, 'message' => 'Forbidden. Insufficient permissions.']);
             exit;
         }
 
-        // Update last activity and extend session (sliding window)
-        $new_expiry = date('Y-m-d H:i:s', strtotime('+30 minutes'));
-        $stmt = $pdo->prepare("UPDATE auth_tokens SET last_activity = CURRENT_TIMESTAMP, expires_at = ? WHERE token = ?");
-        $stmt->execute([$new_expiry, $token]);
+        // 8. Admin Specific Provider Rule
+        if (strtolower($identity['role']) === 'admin' && $identity['auth_provider'] !== 'local') {
+            logSecurityEvent($user_id, null, 'policy_violation', 'session', "Admin accessed with non-local provider.");
+            invalidateSession($user_id, $token);
+            exit;
+        }
+
+        // Update last seen
+        $stmt = $pdo->prepare("UPDATE auth_accounts SET last_seen = NOW(), is_online = 1 WHERE id = ?");
+        $stmt->execute([$user_id]);
 
         return $user_id;
     } catch (PDOException $e) {
         http_response_code(500);
-        echo json_encode(['success' => false, 'message' => 'Auth check failed: ' . $e->getMessage()]);
+        echo json_encode(['success' => false, 'message' => 'Internal server error during auth check.']);
         exit;
     }
+}
+
+/**
+ * Role-Specific Middleware Wrappers
+ */
+function adminMiddleware()
+{
+    return checkAuth('admin');
+}
+function clientMiddleware()
+{
+    return checkAuth('client');
+}
+function userMiddleware()
+{
+    return checkAuth('user');
 }
 
 function invalidateSession($user_id, $token)
 {
     global $pdo;
 
-    // Log the invalidation event
-    logSecurityEvent($user_id, null, 'logout', 'system', "Session invalidated due to security check or logout.");
-
-    $stmt = $pdo->prepare("DELETE FROM auth_tokens WHERE token = ?");
-    $stmt->execute([$token]);
+    if ($user_id && $token) {
+        $stmt = $pdo->prepare("DELETE FROM auth_tokens WHERE token = ?");
+        $stmt->execute([$token]);
+    }
 
     if (session_status() === PHP_SESSION_ACTIVE) {
+        $_SESSION = [];
         session_destroy();
     }
 
     http_response_code(401);
-    echo json_encode(['success' => false, 'message' => 'Session invalid or role changed. Please login again.']);
+    echo json_encode(['success' => false, 'message' => 'Session invalid or expired.']);
 }
-?>

@@ -12,7 +12,69 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     await loadUsers(user.id);
+    initializeTableSorting();
 });
+
+function initializeTableSorting() {
+    const table = document.querySelector('table');
+    if (!table) return;
+
+    const headers = table.querySelectorAll('th');
+    
+    // Sort table rows dynamically
+    headers.forEach((header, index) => {
+        header.style.cursor = 'pointer';
+        header.addEventListener('click', () => {
+            const tbody = table.querySelector('tbody');
+            if (!tbody) return;
+            
+            const rows = Array.from(tbody.querySelectorAll('tr'));
+            if (rows.length === 0 || rows[0].children.length === 1) return; // Empty fallback row
+            
+            // Toggle sorting direction
+            const isAsc = header.classList.contains('sort-asc');
+            headers.forEach(h => {
+                h.classList.remove('sort-asc', 'sort-desc');
+                // Remove visual indicators if you had any
+                h.innerHTML = h.textContent.replace(' ↑', '').replace(' ↓', '');
+            });
+            
+            if (isAsc) {
+                header.classList.add('sort-desc');
+                header.innerHTML = header.textContent + ' ↓';
+            } else {
+                header.classList.add('sort-asc');
+                header.innerHTML = header.textContent + ' ↑';
+            }
+            
+            rows.sort((rowA, rowB) => {
+                const cellA = rowA.children[index].textContent.trim();
+                const cellB = rowB.children[index].textContent.trim();
+                
+                // Attempt date parsing first for robust sorting
+                const dateA = new Date(cellA);
+                const dateB = new Date(cellB);
+                
+                if (!isNaN(dateA) && !isNaN(dateB) && cellA !== 'N/A' && cellB !== 'N/A') {
+                    return isAsc ? dateB - dateA : dateA - dateB;
+                }
+                
+                // Numeric sorting
+                if (!isNaN(cellA) && !isNaN(cellB) && cellA !== '' && cellB !== '') {
+                    return isAsc ? Number(cellB) - Number(cellA) : Number(cellA) - Number(cellB);
+                }
+                
+                // Standard string locale sorting
+                return isAsc 
+                    ? cellB.localeCompare(cellA) 
+                    : cellA.localeCompare(cellB);
+            });
+            
+            // Re-inject rows
+            rows.forEach(row => tbody.appendChild(row));
+        });
+    });
+}
 
 async function loadUsers(clientId) {
     try {
@@ -21,9 +83,21 @@ async function loadUsers(clientId) {
 
         if (result.success) {
             updateUsersTable(result.users || []);
+            if (result.stats) {
+                updateStatsCards(result.stats);
+            }
         }
     } catch (error) {
         console.error('Error loading users:', error);
+    }
+}
+
+function updateStatsCards(stats) {
+    const cards = document.querySelectorAll('.summary-card .summary-value');
+    if (cards.length >= 3) {
+        cards[0].textContent = stats.active_users || 0;
+        cards[1].textContent = stats.engaged_users || 0;
+        cards[2].textContent = stats.registered_users || 0;
     }
 }
 
@@ -50,7 +124,10 @@ function updateUsersTable(users) {
             <td>${user.state || 'N/A'}</td>
             <td>${user.client_name || 'Direct'}</td>
             <td><span style="color: ${statusColor}; font-weight: 600;">${statusText}</span></td>
-            <td>${user.engagement || 'N/A'}</td>
+            <td>${user.country || 'N/A'}</td>
+            <td>${user.city || 'N/A'}</td>
+            <td>${formatDate(user.dob)}</td>
+            <td style="text-transform: capitalize;">${user.gender || 'N/A'}</td>
             <td>${formatDate(user.created_at)}</td>
         </tr>
     `;

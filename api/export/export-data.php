@@ -23,7 +23,7 @@ try {
     // Resolve client_id if user is client
     $client_id = null;
     if ($user_role === 'client') {
-        $stmt = $pdo->prepare("SELECT id FROM clients WHERE auth_id = ?");
+        $stmt = $pdo->prepare("SELECT id FROM clients WHERE client_auth_id = ?");
         $stmt->execute([$user_id]);
         $client = $stmt->fetch();
         if (!$client) {
@@ -99,7 +99,7 @@ try {
             $sql = "
                 SELECT u.id, u.display_name, a.email, u.phone, u.dob, u.gender, u.created_at
                 FROM users u
-                LEFT JOIN auth_accounts a ON u.auth_id = a.id
+                LEFT JOIN auth_accounts a ON u.user_auth_id = a.id
                 $where_sql
                 ORDER BY u.created_at DESC
             ";
@@ -137,8 +137,9 @@ try {
             $sql = "
                 SELECT t.id, e.event_name, u.display_name, t.quantity, t.total_price, t.ticket_code, t.status, t.purchase_date
                 FROM tickets t
-                LEFT JOIN events e ON t.event_id = e.id
-                LEFT JOIN users u ON t.user_id = u.id
+                LEFT JOIN payments p ON t.payment_id = p.id
+                LEFT JOIN events e ON p.event_id = e.id
+                LEFT JOIN users u ON p.user_id = u.id
                 $where_sql
                 ORDER BY t.purchase_date DESC
             ";
@@ -231,4 +232,3 @@ try {
     http_response_code(500);
     echo json_encode(['success' => false, 'message' => 'General error: ' . $e->getMessage()]);
 }
-?>

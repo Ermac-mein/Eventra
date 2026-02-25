@@ -15,6 +15,9 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="../../public/js/storage.js"></script>
     <script src="../../public/js/auth-guard.js"></script>
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="/public/favicon.ico">
 </head>
 <body>
     <!-- Sidebar -->
@@ -87,10 +90,9 @@
             </div>
 
             <div class="summary-grid">
-                <div class="summary-card"><div class="summary-label">User Checked-In</div><div class="summary-value">0</div></div>
+                <div class="summary-card"><div class="summary-label">User Active</div><div class="summary-value">0</div></div>
                 <div class="summary-card"><div class="summary-label">User Engaged</div><div class="summary-value">0</div></div>
                 <div class="summary-card"><div class="summary-label">User Registered</div><div class="summary-value">0</div></div>
-                <div class="summary-card"><div class="summary-label">User Follow-Up</div><div class="summary-value">0</div></div>
             </div>
 
             <h3 style="font-size: 1.1rem; margin-bottom: 1.5rem;">All Users</h3>
@@ -99,13 +101,16 @@
                 <table>
                     <thead>
                         <tr>
-                            <th>User</th>
+                            <th>Name</th>
                             <th>Email</th>
                             <th>Phone</th>
                             <th>State</th>
                             <th>Organiser</th>
                             <th>Status</th>
-                            <th>Engagement</th>
+                            <th>Country</th>
+                            <th>City</th>
+                            <th>Date of Birth</th>
+                            <th>Gender</th>
                             <th>Date Joined</th>
                         </tr>
                     </thead>

@@ -25,4 +25,3 @@ if (isset($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUEST_METHOD'] === 'OPTIONS
     http_response_code(200);
     exit;
 }
-?>

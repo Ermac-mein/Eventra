@@ -5,6 +5,7 @@
  */
 header('Content-Type: application/json');
 require_once '../../config/database.php';
+require_once '../utils/notification-helper.php';
 
 // Check authentication
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'client') {
@@ -15,7 +16,17 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'client') {
 
 $data = json_decode(file_get_contents("php://input"), true);
 $media_id = $data['media_id'] ?? null;
-$client_id = $_SESSION['user_id'];
+$user_id = $_SESSION['user_id'];
+
+// Get the actual client_id from clients table
+$stmt = $pdo->prepare("SELECT id FROM clients WHERE client_auth_id = ?");
+$stmt->execute([$user_id]);
+$client_id = $stmt->fetchColumn();
+
+if (!$client_id) {
+    echo json_encode(['success' => false, 'message' => 'Client profile not found']);
+    exit;
+}
 
 if (!$media_id) {
     echo json_encode(['success' => false, 'message' => 'Media ID is required']);
@@ -33,23 +44,23 @@ try {
         exit;
     }
 
-    // Delete physical file
-    $file_path = '../../' . ltrim($media['file_path'], '/');
-    if (file_exists($file_path)) {
-        unlink($file_path);
-    }
-
-    // Delete from database
-    $stmt = $pdo->prepare("DELETE FROM media WHERE id = ?");
+    // Soft delete from database
+    $stmt = $pdo->prepare("UPDATE media SET is_deleted = 1, deleted_at = NOW() WHERE id = ?");
     $stmt->execute([$media_id]);
 
-    echo json_encode([
-        'success' => true,
-        'message' => 'Media deleted successfully'
-    ]);
+    if ($stmt->rowCount() > 0) {
+        // Create notification
+        createMediaDeletedNotification($client_id, $media['file_name'], 'file');
+
+        echo json_encode([
+            'success' => true,
+            'message' => 'Media deleted successfully'
+        ]);
+    } else {
+        echo json_encode(['success' => false, 'message' => 'Failed to delete media or already in trash']);
+    }
 
 } catch (PDOException $e) {
     http_response_code(500);
     echo json_encode(['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);
 }
-?>

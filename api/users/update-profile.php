@@ -1,121 +1,110 @@
 <?php
 /**
  * Update User Profile API
- * Updates user or client profile information
  */
 header('Content-Type: application/json');
 require_once '../../config/database.php';
 
 // Check authentication
-if (!isset($_SESSION['user_id'])) {
+if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'user') {
     http_response_code(401);
     echo json_encode(['success' => false, 'message' => 'Unauthorized']);
     exit;
 }
 
 $user_id = $_SESSION['user_id'];
+$name = $_POST['name'] ?? null;
+$phone = $_POST['phone'] ?? null;
+$address = $_POST['address'] ?? null;
+$city = $_POST['city'] ?? null;
+$state = $_POST['state'] ?? null;
+$country = $_POST['country'] ?? null;
+$dob = $_POST['dob'] ?? null;
+$gender = $_POST['gender'] ?? null;
+
+if (empty($name)) {
+    echo json_encode(['success' => false, 'message' => 'Name is required']);
+    exit;
+}
 
 try {
-    // Handle profile picture upload
+    $pdo->beginTransaction();
+
+    // Handle Profile Picture Upload
     $profile_pic = null;
     if (isset($_FILES['profile_pic']) && $_FILES['profile_pic']['error'] === UPLOAD_ERR_OK) {
         $upload_dir = '../../uploads/profiles/';
         if (!is_dir($upload_dir)) {
-            mkdir($upload_dir, 0777, true);
+            mkdir($upload_dir, 0755, true);
         }
 
-        $file_extension = pathinfo($_FILES['profile_pic']['name'], PATHINFO_EXTENSION);
-        $file_name = 'profile_' . $user_id . '_' . time() . '.' . $file_extension;
-        $target_path = $upload_dir . $file_name;
+        $file_ext = strtolower(pathinfo($_FILES['profile_pic']['name'], PATHINFO_EXTENSION));
+        $allowed_exts = ['jpg', 'jpeg', 'png', 'gif'];
 
-        if (move_uploaded_file($_FILES['profile_pic']['tmp_name'], $target_path)) {
-            $profile_pic = '/uploads/profiles/' . $file_name;
-        }
-    }
+        if (in_array($file_ext, $allowed_exts)) {
+            $new_filename = 'user_' . $user_id . '_' . time() . '.' . $file_ext;
+            $upload_path = $upload_dir . $new_filename;
 
-    // Get POST data
-    $name = $_POST['name'] ?? null;
-    $phone = $_POST['phone'] ?? null;
-    $job_title = $_POST['job_title'] ?? null;
-    $company = $_POST['company'] ?? null;
-    $address = $_POST['address'] ?? null;
-    $city = $_POST['city'] ?? null;
-    $state = $_POST['state'] ?? null;
-    $dob = $_POST['dob'] ?? null;
-    $gender = $_POST['gender'] ?? null;
-
-    // Determine table and allowed fields based on role
-    $role = $_SESSION['role'] ?? 'user';
-    $table = 'users';
-    $allowed_fields = ['phone', 'dob', 'gender', 'profile_pic'];
-    $name_column = 'display_name';
-
-    if ($role === 'client') {
-        $table = 'clients';
-        $allowed_fields = ['phone', 'company', 'address', 'city', 'state', 'profile_pic'];
-        $name_column = 'business_name';
-    } elseif ($role === 'admin') {
-        $table = 'admins';
-        $allowed_fields = ['profile_pic'];
-        $name_column = 'name';
-    }
-
-    // Build update query
-    $update_fields = [];
-    $params = [];
-
-    // Handle Name Field Mapping
-    if ($name) {
-        $update_fields[] = "$name_column = ?";
-        $params[] = $name;
-    }
-
-    // Handle Standard Fields
-    $fields_map = [
-        'phone' => $phone,
-        'job_title' => $job_title, // Note: job_title is not in schema for any table currently, ignoring or needing specific handling if added later
-        'company' => $company,
-        'address' => $address,
-        'city' => $city,
-        'state' => $state,
-        'dob' => $dob,
-        'gender' => $gender,
-        'profile_pic' => $profile_pic
-    ];
-
-    foreach ($fields_map as $field => $value) {
-        if ($value !== null && in_array($field, $allowed_fields)) {
-            $update_fields[] = "$field = ?";
-            $params[] = $value;
+            if (move_uploaded_file($_FILES['profile_pic']['tmp_name'], $upload_path)) {
+                $profile_pic = 'uploads/profiles/' . $new_filename;
+            }
         }
     }
 
-    if (empty($update_fields)) {
-        echo json_encode(['success' => false, 'message' => 'No matching fields to update for this role']);
-        exit;
+    // Prepare Update Query
+    $query = "UPDATE users SET name = ?, phone = ?, address = ?, city = ?, state = ?, country = ?, dob = ?, gender = ?";
+    $params = [$name, $phone, $address, $city, $state, $country, $dob ?: null, $gender ?: null];
+
+    if ($profile_pic) {
+        $query .= ", profile_pic = ?";
+        $params[] = $profile_pic;
     }
 
+    $query .= " WHERE user_auth_id = ?";
     $params[] = $user_id;
-    $update_sql = implode(', ', $update_fields);
 
-    $stmt = $pdo->prepare("UPDATE $table SET $update_sql WHERE auth_id = ?"); // Changed WHERE id to WHERE auth_id
+    $stmt = $pdo->prepare($query);
     $stmt->execute($params);
 
-    // Get updated user
-    $stmt = $pdo->prepare("SELECT * FROM $table WHERE id = ?");
+    // Fetch updated user data to return
+    $stmt = $pdo->prepare("
+        SELECT u.*, a.email 
+        FROM users u 
+        JOIN auth_accounts a ON u.user_auth_id = a.id 
+        WHERE u.user_auth_id = ?
+    ");
     $stmt->execute([$user_id]);
-    $user = $stmt->fetch();
-    unset($user['password']);
-    $user['role'] = $role;
+    $updated_user = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    // Format for frontend
+    if ($updated_user) {
+        $updated_user['role'] = 'user';
+        if ($updated_user['profile_pic']) {
+            $updated_user['profile_pic'] = '/' . $updated_user['profile_pic'];
+        }
+    }
+
+    // Refresh session activity
+    if (session_status() === PHP_SESSION_ACTIVE) {
+        $_SESSION['last_activity'] = time();
+    }
+
+    // Notify user about profile update using helper
+    require_once '../utils/notification-helper.php';
+    createNotification($user_id, "Your profile has been updated successfully.", 'profile_updated', $user_id);
+
+    $pdo->commit();
 
     echo json_encode([
         'success' => true,
         'message' => 'Profile updated successfully',
-        'user' => $user
+        'user' => $updated_user
     ]);
 
 } catch (PDOException $e) {
+    if ($pdo->inTransaction()) {
+        $pdo->rollBack();
+    }
     http_response_code(500);
     echo json_encode(['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);
 }
-?>

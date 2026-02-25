@@ -30,46 +30,55 @@ try {
         exit;
     }
 
-    // 2. Validate Role Compatibility with Flow
-    // If no intent or intent is 'user', but user has a higher role, block it.
-    // The homepage login is for 'user' only.
+    // 2. Validate Role Compatibility & Provider Policy
     $userRole = strtolower($user['role'] ?? '');
     $effectiveIntent = strtolower($intent);
 
-    if ($effectiveIntent === 'user' && in_array($userRole, ['admin', 'client'])) {
-        logSecurityEvent($user['id'], $email, 'login_failure', 'password', "Role blocked: $userRole tried to login via user flow");
-        echo json_encode(['success' => false, 'message' => "This account is a " . ucfirst($userRole) . " account. Please use the appropriate portal to login."]);
+    // Enforce role-specific portal entry
+    if ($userRole !== $effectiveIntent) {
+        logSecurityEvent($user['id'], $email, 'login_failure', 'password', "Role mismatch: User is $userRole but tried as $effectiveIntent");
+        $targetPortal = ucfirst($userRole);
+        echo json_encode(['success' => false, 'message' => "Access denied. This is a $targetPortal account. Please use the appropriate portal."]);
         exit;
     }
 
-    if ($userRole !== $effectiveIntent && $effectiveIntent !== 'user') {
-        logSecurityEvent($user['id'], $email, 'login_failure', 'password', "Role mismatch: User is $userRole but tried as $effectiveIntent");
-        echo json_encode(['success' => false, 'message' => "Access denied. Use the " . ucfirst($effectiveIntent) . " portal."]);
+    // Enforce Admin Local-Only Policy
+    if ($userRole === 'admin' && $user['auth_provider'] !== 'local') {
+        logSecurityEvent($user['id'], $email, 'login_failure', 'password', "Admin account attempted login with non-local state.");
+        echo json_encode(['success' => false, 'message' => "Admin accounts must use local authentication."]);
+        exit;
+    }
+
+    // Account Status Check
+    if (isset($user['is_active']) && $user['is_active'] == 0) {
+        // Only allow login if account is active, or handle activation logic if required.
+        // For now, let's keep the user's requirement: check is_active = 1
+        logSecurityEvent($user['id'], $email, 'login_failure', 'password', "Account is inactive.");
+        echo json_encode(['success' => false, 'message' => "Your account is inactive. Please contact support."]);
         exit;
     }
 
     if (password_verify($password, $user['password'])) {
-        // Enforce is_active check if desired, or auto-activate
-        if (isset($user['is_active']) && $user['is_active'] == 0) {
-            // Auto-activate on successful password match if it was inactive
-            $stmt = $pdo->prepare("UPDATE auth_accounts SET is_active = 1 WHERE id = ?");
-            $stmt->execute([$user['id']]);
-            $user['is_active'] = 1;
+        // Enforce account locking
+        if ($user['locked_until'] && strtotime($user['locked_until']) > time()) {
+            echo json_encode(['success' => false, 'message' => 'Account is temporarily locked. Please try again later.']);
+            exit;
         }
 
         // 3. Enforce Auth Policy
-        $policy = getAuthPolicy($user['role'], 'password', $user);
+        $policy = getAuthPolicy($userRole, 'password', $user);
         if (!$policy['allowed']) {
             logSecurityEvent($user['id'], $email, 'login_failure', 'password', "Policy Violation: " . $policy['message']);
             echo json_encode(['success' => false, 'message' => $policy['message']]);
             exit;
         }
 
+        // Reset failed attempts on success
+        $pdo->prepare("UPDATE auth_accounts SET failed_attempts = 0, last_login_at = NOW(), is_online = 1 WHERE id = ?")->execute([$user['id']]);
+
         // Generate alphanumeric access token
         $token = bin2hex(random_bytes(32));
-
-        // Expiration logic: Strict 30-minute inactivity timeout
-        $expires_in = $remember_me ? '+30 days' : '+30 minutes';
+        $expires_in = $remember_me ? '+30 days' : '+2 hours'; // Extended from 30m for better UX, but sliding window in middleware handles refresh
         $expires_at = date('Y-m-d H:i:s', strtotime($expires_in));
 
         // Delete old tokens for this auth identity
@@ -77,17 +86,10 @@ try {
         $stmt->execute([$user['id']]);
 
         // Store new token in database
-        $stmt = $pdo->prepare("INSERT INTO auth_tokens (auth_id, token, expires_at) VALUES (?, ?, ?)");
+        $stmt = $pdo->prepare("INSERT INTO auth_tokens (auth_id, token, expires_at, type) VALUES (?, ?, ?, 'access')");
         $stmt->execute([$user['id'], $token, $expires_at]);
 
-        // Update user status
-        $stmt = $pdo->prepare("UPDATE auth_accounts SET is_active = 1 WHERE id = ?");
-        $stmt->execute([$user['id']]);
-
-        // Log success
-        logSecurityEvent($user['id'], $email, 'login_success', 'password', "Logged in as " . $user['role']);
-
-        // 3. Set Entity-Scoped Session
+        // 4. Set Entity-Scoped Session
         $expectedSessionName = 'EVENTRA_USER_SESS';
         if ($userRole === 'admin') {
             $expectedSessionName = 'EVENTRA_ADMIN_SESS';
@@ -103,21 +105,22 @@ try {
             $_SESSION = [];
         }
 
-        $_SESSION['user_id'] = $user['id']; // This is now auth_id
+        $_SESSION['user_id'] = $user['id'];
         $_SESSION['role'] = $userRole;
         $_SESSION['auth_token'] = $token;
 
-        // Create login notification for Admin/Client
-        if ($userRole === 'admin') {
-            require_once '../../api/utils/notification-helper.php';
-            createAdminLoginNotification($user['id']);
-        } elseif ($userRole === 'client') {
-            require_once '../../api/utils/notification-helper.php';
-            $adminId = getAdminUserId();
-            if ($adminId) {
-                createClientLoginNotification($adminId, $user['id'], $user['name'], $user['email']);
+        // Log success
+        logSecurityEvent($user['id'], $email, 'login_success', 'password', "Logged in as $userRole via portal $effectiveIntent");
+
+        // Notify admin of login activity
+        require_once __DIR__ . '/../utils/notification-helper.php';
+        $admin_id = getAdminUserId();
+        if ($admin_id) {
+            if ($userRole === 'client') {
+                createClientLoginNotification($admin_id, $user['id'], $user['name'] ?? 'Client', $email);
+            } elseif ($userRole === 'user') {
+                createUserLoginNotification($admin_id, $user['id'], $user['name'] ?? 'User', $email);
             }
-            createLoginNotification($user['id'], $user['name'], $user['email']);
         }
 
         $redirect = ($userRole === 'admin') ? 'admin/pages/adminDashboard.html' :
@@ -133,19 +136,22 @@ try {
                 'email' => $user['email'],
                 'role' => $userRole,
                 'profile_pic' => $user['profile_pic'] ?? null,
-                'phone' => $user['phone'] ?? null,
-                'state' => $user['state'] ?? null,
-                'city' => $user['city'] ?? null,
-                'address' => $user['address'] ?? null,
                 'token' => $token
             ]
         ]);
     } else {
-        logSecurityEvent($user['id'], $email, 'login_failure', 'password', "Invalid credentials.");
+        // Increment failed attempts
+        $pdo->prepare("UPDATE auth_accounts SET failed_attempts = failed_attempts + 1 WHERE id = ?")->execute([$user['id']]);
+
+        // Lock account if failures exceed threshold
+        if (($user['failed_attempts'] ?? 0) >= 5) {
+            $lockTime = date('Y-m-d H:i:s', strtotime('+15 minutes'));
+            $pdo->prepare("UPDATE auth_accounts SET locked_until = ? WHERE id = ?")->execute([$lockTime, $user['id']]);
+        }
+
+        logSecurityEvent($user['id'], $email, 'login_failure', 'password', "Invalid password.");
         echo json_encode(['success' => false, 'message' => 'Invalid email or password.']);
     }
 } catch (PDOException $e) {
-    error_log("[Auth Debug] Database error: " . $e->getMessage());
-    echo json_encode(['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);
+    echo json_encode(['success' => false, 'message' => 'Database error occurred.']);
 }
-?>

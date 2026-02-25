@@ -66,6 +66,10 @@ function showProfileEditModal() {
                                 </select>
                             </div>
                             <div class="form-group">
+                                <label>Country</label>
+                                <input type="text" name="country" value="${user.country || ''}" placeholder="Nigeria">
+                            </div>
+                            <div class="form-group">
                                 <label>Date of Birth</label>
                                 <input type="date" name="dob" value="${user.dob || ''}">
                             </div>
@@ -134,7 +138,7 @@ async function handleProfileUpdate(e) {
     const formData = new FormData(e.target);
     
     try {
-        const response = await apiFetch('../../api/users/update-profile.php', {
+        const response = await apiFetch('../../api/clients/update-profile.php', {
             method: 'POST',
             body: formData
         });
@@ -151,7 +155,17 @@ async function handleProfileUpdate(e) {
             closeProfileEditModal();
             
             // Reload page to reflect changes
-            setTimeout(() => window.location.reload(), 1000);
+            if (window.stateManager) {
+                if (result.user.profile_pic) {
+                    sessionStorage.setItem('profile_picture', result.user.profile_pic);
+                }
+                window.stateManager.setState({
+                    user: result.user,
+                    profilePicture: result.user.profile_pic || sessionStorage.getItem('profile_picture')
+                });
+            } else {
+                setTimeout(() => window.location.reload(), 1000);
+            }
         } else {
             showNotification('Failed to update profile: ' + result.message, 'error');
         }
@@ -399,7 +413,6 @@ function getPriorityBadgeColor(priority) {
         'trending': '#f59e0b',
         'featured': '#8b5cf6',
         'nearby': '#10b981',
-        'standard': '#10b981', // Display 'standard' as 'nearby' color
         'upcoming': '#3b82f6'
     };
     return colors[priority] || '#6b7280';
@@ -411,7 +424,6 @@ function getPriorityIcon(priority) {
         'trending': '📈',
         'featured': '⭐',
         'nearby': '📍',
-        'standard': '📍', // Display 'standard' as 'nearby' icon
         'upcoming': '🕒'
     };
     return icons[priority] || '';
@@ -520,6 +532,12 @@ function showEditEventModal(event) {
                                     <option value="Networking" ${event.event_type === 'Networking' ? 'selected' : ''}>Networking</option>
                                     <option value="Festival" ${event.event_type === 'Festival' ? 'selected' : ''}>Festival</option>
                                     <option value="Concert" ${event.event_type === 'Concert' ? 'selected' : ''}>Concert</option>
+                                    <option value="Social" ${event.event_type === 'Social' ? 'selected' : ''}>Social</option>
+                                    <option value="Personal" ${event.event_type === 'Personal' ? 'selected' : ''}>Personal</option>
+                                    <option value="Community" ${event.event_type === 'Community' ? 'selected' : ''}>Community</option>
+                                    <option value="Religious" ${event.event_type === 'Religious' ? 'selected' : ''}>Religious</option>
+                                    <option value="Cultural" ${event.event_type === 'Cultural' ? 'selected' : ''}>Cultural</option>
+                                    <option value="Educational & Institutional" ${event.event_type === 'Educational & Institutional' ? 'selected' : ''}>Educational & Institutional</option>
                                     <option value="Other" ${event.event_type === 'Other' ? 'selected' : ''}>Other</option>
                                 </select>
                             </div>

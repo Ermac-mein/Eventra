@@ -12,9 +12,9 @@ if (session_status() === PHP_SESSION_ACTIVE) {
 ini_set('session.use_cookies', '1');
 ini_set('session.use_only_cookies', '1');
 ini_set('session.cookie_httponly', '1');
-ini_set('session.cookie_samesite', 'Lax'); // Important for Brave browser
-ini_set('session.cookie_lifetime', '1800'); // 30 minutes
-ini_set('session.gc_maxlifetime', '1800'); // 30 minutes
+ini_set('session.cookie_samesite', 'Strict'); // Changed from Lax to Strict for better CSRF protection
+ini_set('session.cookie_lifetime', '7200'); // 2 hours
+ini_set('session.gc_maxlifetime', '7200'); // 2 hours
 
 // For localhost development, ensure cookies work properly
 $currentHost = $_SERVER['HTTP_HOST'] ?? '';
@@ -23,7 +23,7 @@ $isLocal = (strpos($currentHost, 'localhost') !== false || strpos($currentHost, 
 if ($isLocal) {
     ini_set('session.cookie_domain', '');
     ini_set('session.cookie_path', '/');
-    ini_set('session.cookie_secure', '0'); // Not using HTTPS on localhost
+    ini_set('session.cookie_secure', '0');
 } else {
     // Production settings
     ini_set('session.cookie_secure', '1'); // Require HTTPS in production
@@ -32,50 +32,49 @@ if ($isLocal) {
 // Set session save path to a project-local directory for reliability
 $session_path = __DIR__ . '/../sessions';
 if (!is_dir($session_path)) {
-    mkdir($session_path, 0777, true);
+    mkdir($session_path, 0700, true); // More restrictive permissions
 }
 ini_set('session.save_path', $session_path);
 
+/**
+ * Robustly determine the correct session name based on the target portal.
+ * This prevents cross-role session leakage.
+ */
 function getEventraSessionName()
 {
     $uri = $_SERVER['REQUEST_URI'] ?? '';
     $referer = $_SERVER['HTTP_REFERER'] ?? '';
     $portalHeader = $_SERVER['HTTP_X_EVENTRA_PORTAL'] ?? '';
 
-    // Priority 1: Explicit Portal Header (Most Reliable for API calls)
+    // Priority 1: Explicit Portal Header (Trusted source for internal requests)
     if ($portalHeader === 'admin')
         return 'EVENTRA_ADMIN_SESS';
     if ($portalHeader === 'client')
         return 'EVENTRA_CLIENT_SESS';
+    if ($portalHeader === 'user')
+        return 'EVENTRA_USER_SESS';
 
-    // Priority 2: Direct Path Detection
-    if (strpos($uri, '/admin/') !== false || strpos($uri, '/api/stats/get-admin') !== false) {
+    // Priority 2: Direct Path Detection (Most common for direct browser access)
+    if (strpos($uri, '/admin/') !== false) {
         return 'EVENTRA_ADMIN_SESS';
     }
-
-    if (strpos($uri, '/client/') !== false || strpos($uri, '/api/stats/get-client') !== false) {
+    if (strpos($uri, '/client/') !== false) {
         return 'EVENTRA_CLIENT_SESS';
     }
 
-    // Priority 2: API Context Handling
+    // Priority 3: API Context Handling
     if (strpos($uri, '/api/') !== false) {
-        // Check Referer for portal context
+        // Stats and role-specific endpoints
+        if (strpos($uri, '/get-admin') !== false || strpos($uri, '/admin-') !== false)
+            return 'EVENTRA_ADMIN_SESS';
+        if (strpos($uri, '/get-client') !== false || strpos($uri, '/client-') !== false)
+            return 'EVENTRA_CLIENT_SESS';
+
+        // Check Referer for portal context if not explicitly in URI
         if (strpos($referer, '/admin/') !== false)
             return 'EVENTRA_ADMIN_SESS';
         if (strpos($referer, '/client/') !== false)
             return 'EVENTRA_CLIENT_SESS';
-
-        // Check for specific API file patterns
-        if (strpos($uri, 'get-admin') !== false)
-            return 'EVENTRA_ADMIN_SESS';
-        if (strpos($uri, 'get-client') !== false)
-            return 'EVENTRA_CLIENT_SESS';
-
-        // If it's a generic API (like /api/events/)
-        if (isset($_COOKIE['EVENTRA_CLIENT_SESS']))
-            return 'EVENTRA_CLIENT_SESS';
-        if (isset($_COOKIE['EVENTRA_ADMIN_SESS']))
-            return 'EVENTRA_ADMIN_SESS';
     }
 
     // Default for users/public
@@ -85,28 +84,26 @@ function getEventraSessionName()
 // Start the session with a role-specific name
 $sessionName = getEventraSessionName();
 session_name($sessionName);
+
+// Set cookie params to match the role-specific session and path if needed
+$cookieParams = session_get_cookie_params();
+session_set_cookie_params([
+    'lifetime' => $cookieParams['lifetime'],
+    'path' => $cookieParams['path'],
+    'domain' => $cookieParams['domain'],
+    'secure' => $cookieParams['secure'],
+    'httponly' => true,
+    'samesite' => 'Strict'
+]);
+
 session_start();
 
-// Debug logging
-$debug_log = __DIR__ . '/../error/session_debug.log';
-$log_dir = dirname($debug_log);
-if (!is_dir($log_dir))
-    mkdir($log_dir, 0777, true);
-
-$uri = $_SERVER['REQUEST_URI'] ?? '';
-$referer = $_SERVER['HTTP_REFERER'] ?? '';
-$user_id = $_SESSION['user_id'] ?? 'None';
-$role = $_SESSION['role'] ?? 'None';
-
-$debug_msg = "[" . date('Y-m-d H:i:s') . "] URI: $uri | Referer: $referer | Session Name: $sessionName | ID: " . session_id() . " | UserID: $user_id | Role: $role" . PHP_EOL;
-file_put_contents($debug_log, $debug_msg, FILE_APPEND);
-
-// Regenerate session ID periodically to prevent session fixation
-if (!isset($_SESSION['created'])) {
-    $_SESSION['created'] = time();
-} elseif (time() - $_SESSION['created'] > 900) {
-    // Regenerate session ID every 15 minutes (half of session lifetime)
-    session_regenerate_id(true);
-    $_SESSION['created'] = time();
+// Enforce 30-minute inactivity timeout at the core session level
+$timeout_duration = 1800; // 30 minutes
+if (isset($_SESSION['last_activity']) && (time() - $_SESSION['last_activity']) > $timeout_duration) {
+    // Session expired due to inactivity
+    session_unset();
+    session_destroy();
+    session_start(); // Restart a fresh, empty session explicitly
 }
-?>
+$_SESSION['last_activity'] = time();

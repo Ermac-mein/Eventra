@@ -28,7 +28,7 @@ try {
     if ($client_id) {
         // If the requester is a client, the frontend might be passing their auth_id.
         // We should ensure we are filtering by the actual client.id (PK)
-        $stmt = $pdo->prepare("SELECT id FROM clients WHERE auth_id = ? OR id = ?");
+        $stmt = $pdo->prepare("SELECT id FROM clients WHERE client_auth_id = ? OR id = ?");
         $stmt->execute([$client_id, $client_id]);
         $resolved_client = $stmt->fetch();
 
@@ -136,4 +136,3 @@ try {
     http_response_code(500);
     echo json_encode(['success' => false, 'message' => 'General error: ' . $e->getMessage()]);
 }
-?>

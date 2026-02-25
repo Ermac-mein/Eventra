@@ -36,4 +36,3 @@ function loadEnv($path = __DIR__ . '/../.env')
 
 // Auto-load when this file is included
 loadEnv();
-?>

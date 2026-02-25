@@ -27,11 +27,19 @@ try {
     if ($role === 'admin')
         $table = 'admins';
 
+    $auth_col = 'auth_id';
+    if ($role === 'client')
+        $auth_col = 'client_auth_id';
+    elseif ($role === 'user')
+        $auth_col = 'user_auth_id';
+    elseif ($role === 'admin')
+        $auth_col = 'admin_auth_id';
+
     // Join with auth_accounts to get the role
     $stmt = $pdo->prepare("
         SELECT p.*, a.id, a.role, a.email 
         FROM auth_accounts a 
-        LEFT JOIN $table p ON a.id = p.auth_id 
+        LEFT JOIN $table p ON a.id = p.$auth_col
         WHERE a.id = ?
     ");
     $stmt->execute([$user_id]);
@@ -45,6 +53,11 @@ try {
     // Remove password from response
     unset($user['password']);
 
+    // Ensure profile_pic has leading slash for absolute path parsing
+    if (!empty($user['profile_pic']) && strpos($user['profile_pic'], '/') !== 0) {
+        $user['profile_pic'] = '/' . $user['profile_pic'];
+    }
+
     echo json_encode([
         'success' => true,
         'user' => $user
@@ -54,4 +67,3 @@ try {
     http_response_code(500);
     echo json_encode(['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);
 }
-?>

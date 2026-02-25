@@ -453,19 +453,21 @@ td { padding: 1.25rem 2rem; border-bottom: 1px solid var(--client-border); font-
 /* Media Specific Styles */
 .media-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 1.5rem;
-    margin-top: 1rem;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 2rem;
+    margin-top: 1.5rem;
 }
 
 .media-card {
     background: white;
-    border-radius: var(--client-radius);
+    border-radius: 20px;
     overflow: hidden;
-    box-shadow: var(--client-shadow);
-    transition: transform 0.2s, box-shadow 0.2s;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+    transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     border: 1px solid var(--client-border);
     cursor: pointer;
+    display: flex;
+    flex-direction: column;
 }
 
 .media-card:hover {
@@ -474,26 +476,39 @@ td { padding: 1.25rem 2rem; border-bottom: 1px solid var(--client-border); font-
 }
 
 .media-thumb {
-    height: 140px;
+    height: 180px;
     background: #f8fafc;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 3rem;
+    font-size: 4.5rem;
     position: relative;
+    border-bottom: 1px solid var(--client-border);
+}
+
+.media-thumb .folder-icon {
+    transition: transform 0.3s ease;
+}
+
+.media-card:hover .media-thumb .folder-icon {
+    transform: scale(1.1);
 }
 
 .media-info {
-    padding: 1rem;
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
 }
 
 .media-name {
-    font-size: 0.9rem;
-    font-weight: 600;
+    font-size: 1.1rem;
+    font-weight: 700;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    margin-bottom: 4px;
+    margin-bottom: 8px;
+    color: var(--client-text-main);
 }
 
 .media-meta {
@@ -521,7 +536,7 @@ td { padding: 1.25rem 2rem; border-bottom: 1px solid var(--client-border); font-
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.2);
+    /* background: rgba(0, 0, 0, 0.2); */
     display: flex;
     align-items: center;
     justify-content: center;
@@ -535,15 +550,21 @@ td { padding: 1.25rem 2rem; border-bottom: 1px solid var(--client-border); font-
 }
 
 .action-circle {
-    width: 35px;
-    height: 35px;
+    width: 38px;
+    height: 38px;
     background: white;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1rem;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    font-size: 1.1rem;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s ease, background-color 0.2s;
+}
+
+.action-circle:hover {
+    transform: translateY(-2px);
+    background: #f8fafc;
 }
 
 /* --- Premium Modal System --- */

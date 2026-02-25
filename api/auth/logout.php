@@ -89,4 +89,3 @@ try {
         'message' => 'Logout failed: ' . $e->getMessage()
     ]);
 }
-?>

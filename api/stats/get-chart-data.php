@@ -44,14 +44,25 @@ try {
 
         // Tickets sold per day
         $stmt = $pdo->prepare("
-            SELECT DATE(purchase_date) as date, COUNT(*) as count, SUM(total_price) as revenue
+            SELECT DATE(created_at) as date, COUNT(id) as count
             FROM tickets
-            WHERE purchase_date >= ?
-            GROUP BY DATE(purchase_date)
+            WHERE created_at >= ? AND status = 'paid'
+            GROUP BY DATE(created_at)
             ORDER BY date ASC
         ");
         $stmt->execute([$start_date]);
         $tickets_data = $stmt->fetchAll();
+
+        // Revenue per day
+        $stmt = $pdo->prepare("
+            SELECT DATE(paid_at) as date, SUM(amount) as revenue
+            FROM payments
+            WHERE status = 'paid' AND paid_at >= ?
+            GROUP BY DATE(paid_at)
+            ORDER BY date ASC
+        ");
+        $stmt->execute([$start_date]);
+        $revenue_query_data = $stmt->fetchAll();
 
         // Users registered per day
         $stmt = $pdo->prepare("
@@ -79,7 +90,7 @@ try {
             // Find matching data or use 0
             $events_counts[] = findCountForDate($events_data, $date);
             $tickets_counts[] = findCountForDate($tickets_data, $date);
-            $revenue_data[] = findRevenueForDate($tickets_data, $date);
+            $revenue_data[] = findRevenueForDate($revenue_query_data, $date);
             $users_counts[] = findCountForDate($users_data, $date);
         }
 
@@ -124,16 +135,30 @@ try {
             exit;
         }
 
-        // Client chart data - ticket sales and revenue for their events
+        // Client chart data - ticket sales for their events
         $stmt = $pdo->prepare("
-            SELECT DATE(purchase_date) as date, COUNT(*) as count, SUM(total_price) as revenue
-            FROM tickets
-            WHERE client_id = ? AND purchase_date >= ?
-            GROUP BY DATE(purchase_date)
+            SELECT DATE(t.created_at) as date, COUNT(t.id) as count
+            FROM tickets t
+            JOIN payments p ON t.payment_id = p.id
+            JOIN events e ON p.event_id = e.id
+            WHERE e.client_id = ? AND t.created_at >= ? AND t.status = 'paid'
+            GROUP BY DATE(t.created_at)
             ORDER BY date ASC
         ");
         $stmt->execute([$real_client_id, $start_date]);
         $sales_data = $stmt->fetchAll();
+
+        // Client revenue per day
+        $stmt = $pdo->prepare("
+            SELECT DATE(p.paid_at) as date, SUM(p.amount) as revenue
+            FROM payments p
+            JOIN events e ON p.event_id = e.id
+            WHERE e.client_id = ? AND p.status = 'paid' AND p.paid_at >= ?
+            GROUP BY DATE(p.paid_at)
+            ORDER BY date ASC
+        ");
+        $stmt->execute([$real_client_id, $start_date]);
+        $client_revenue_data = $stmt->fetchAll();
 
         // Format data
         $labels = [];
@@ -145,7 +170,7 @@ try {
             $labels[] = date('M d', strtotime($date));
 
             $tickets_counts[] = findCountForDate($sales_data, $date);
-            $revenue_data[] = findRevenueForDate($sales_data, $date);
+            $revenue_data[] = findRevenueForDate($client_revenue_data, $date);
         }
 
         echo json_encode([
@@ -202,4 +227,3 @@ function findRevenueForDate($data, $date)
     }
     return 0;
 }
-?>

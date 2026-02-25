@@ -10,11 +10,9 @@ require_once '../../config/database.php';
 require_once '../../includes/middleware/auth.php';
 $auth_id = checkAuth('client');
 
-$auth_id = $_SESSION['user_id'];
-
 try {
-    // Resolve real_client_id from auth_id
-    $client_stmt = $pdo->prepare("SELECT id FROM clients WHERE auth_id = ?");
+    // 1. Resolve real_client_id from auth_id
+    $client_stmt = $pdo->prepare("SELECT id FROM clients WHERE client_auth_id = ?");
     $client_stmt->execute([$auth_id]);
     $client_row = $client_stmt->fetch();
 
@@ -24,117 +22,101 @@ try {
     }
     $real_client_id = $client_row['id'];
 
-    // Get published events count (excluding soft-deleted)
+    // 2. Client Revenue (Paid)
     $stmt = $pdo->prepare("
-        SELECT COUNT(*) as total 
-        FROM events 
-        WHERE client_id = ? AND status = 'published' AND deleted_at IS NULL
+        SELECT COALESCE(SUM(p.amount), 0) as total 
+        FROM payments p
+        JOIN events e ON p.event_id = e.id
+        WHERE e.client_id = ? AND p.status = 'paid'
     ");
     $stmt->execute([$real_client_id]);
-    $upcoming_events = $stmt->fetch()['total'];
+    $client_revenue = $stmt->fetch()['total'];
 
-    // Get total tickets sold for client's events
+    // 3. Total Tickets Sold
     $stmt = $pdo->prepare("
-        SELECT COALESCE(SUM(quantity), 0) as total 
-        FROM tickets 
-        WHERE client_id = ?
+        SELECT COUNT(t.id) as total 
+        FROM tickets t
+        JOIN payments p ON t.payment_id = p.id
+        JOIN events e ON p.event_id = e.id
+        WHERE e.client_id = ? AND p.status = 'paid'
     ");
     $stmt->execute([$real_client_id]);
     $total_tickets = $stmt->fetch()['total'];
 
-    // Get unique users who bought tickets for client's events
+    // 3.5 Total Unique Users (Attendees)
     $stmt = $pdo->prepare("
-        SELECT COUNT(DISTINCT user_id) as total
-        FROM tickets 
-        WHERE client_id = ?
+        SELECT COUNT(DISTINCT p.user_id) as total
+        FROM payments p
+        JOIN events e ON p.event_id = e.id
+        WHERE e.client_id = ? AND p.status = 'paid'
     ");
     $stmt->execute([$real_client_id]);
     $total_users = $stmt->fetch()['total'];
 
-    // Get media uploads count for this client
-    $stmt = $pdo->prepare("
-        SELECT COUNT(*) as total 
-        FROM media 
-        WHERE client_id = ?
-    ");
+    // 4. Total Events
+    $stmt = $pdo->prepare("SELECT COUNT(*) as total FROM events WHERE client_id = ? AND deleted_at IS NULL AND status = 'published'");
     $stmt->execute([$real_client_id]);
-    $media_uploads = $stmt->fetch()['total'];
+    $total_events = $stmt->fetch()['total'];
 
-    // Get referral stats for this client
-    $stmt = $pdo->prepare("
-        SELECT 
-            COUNT(*) as tickets,
-            COUNT(DISTINCT user_id) as users
-        FROM tickets 
-        WHERE referred_by_id = ?
-    ");
+    // 5. Upcoming Events
+    $stmt = $pdo->prepare("SELECT COUNT(*) as total FROM events WHERE client_id = ? AND event_date >= CURDATE() AND status = 'published' AND deleted_at IS NULL");
     $stmt->execute([$real_client_id]);
-    $referral_data = $stmt->fetch();
-    $referred_tickets = $referral_data['tickets'] ?? 0;
-    $referred_users = $referral_data['users'] ?? 0;
+    $upcoming_events_count = $stmt->fetch()['total'];
 
-    // Get total revenue for client's events
+    // 6. Detailed Attendee List (With profile pics)
     $stmt = $pdo->prepare("
-        SELECT COALESCE(SUM(total_price), 0) as revenue
-        FROM tickets 
-        WHERE client_id = ?
-    ");
-    $stmt->execute([$real_client_id]);
-    $total_revenue = $stmt->fetch()['revenue'];
-
-    // Get upcoming published events with details
-    $stmt = $pdo->prepare("
-        SELECT 
-            e.*,
-            COUNT(t.id) as ticket_count,
-            COALESCE(SUM(t.total_price), 0) as event_revenue
-        FROM events e
-        LEFT JOIN tickets t ON e.id = t.event_id
-        WHERE e.client_id = ? AND e.status = 'published' AND e.deleted_at IS NULL
-        GROUP BY e.id
-        ORDER BY e.created_at DESC
-        LIMIT 10
-    ");
-    $stmt->execute([$real_client_id]);
-    $upcoming_events_list = $stmt->fetchAll();
-
-    // Get recent ticket sales
-    $stmt = $pdo->prepare("
-        SELECT 
-            t.*,
-            COALESCE(u.display_name, 'User') as user_name,
-            a.email as user_email,
-            u.profile_pic as user_profile_pic,
-            e.event_name
+        SELECT u.name, a.email, u.profile_pic, e.event_name, p.paid_at, t.barcode, t.used, p.amount, t.created_at, p.paystack_response
         FROM tickets t
-        INNER JOIN events e ON t.event_id = e.id
-        LEFT JOIN users u ON t.user_id = u.auth_id
-        LEFT JOIN auth_accounts a ON t.user_id = a.id
-        WHERE t.client_id = ?
-        ORDER BY t.purchase_date DESC
+        JOIN payments p ON t.payment_id = p.id
+        JOIN users u ON p.user_id = u.id
+        JOIN auth_accounts a ON u.user_auth_id = a.id
+        JOIN events e ON p.event_id = e.id
+        WHERE e.client_id = ? AND p.status = 'paid'
+        ORDER BY t.created_at DESC
         LIMIT 10
     ");
     $stmt->execute([$real_client_id]);
-    $recent_sales = $stmt->fetchAll();
+    $attendees = $stmt->fetchAll();
+
+    // 7. Event Performance Breakdown
+    $stmt = $pdo->prepare("
+        SELECT e.id, e.event_name, e.event_date, e.status, e.image_path,
+               COUNT(t.id) as tickets_sold, 
+               COALESCE(SUM(p.amount), 0) as revenue
+        FROM events e
+        LEFT JOIN payments p ON e.id = p.event_id AND p.status = 'paid'
+        LEFT JOIN tickets t ON p.id = t.payment_id
+        WHERE e.client_id = ? AND e.deleted_at IS NULL AND e.status = 'published'
+        GROUP BY e.id
+        ORDER BY e.event_date ASC
+    ");
+    $stmt->execute([$real_client_id]);
+    $event_breakdown = $stmt->fetchAll();
+
+    // 8. Total Media Items
+    $stmt = $pdo->prepare("
+        SELECT 
+            (SELECT COUNT(*) FROM media WHERE client_id = ? AND is_deleted = 0) +
+            (SELECT COUNT(*) FROM media_folders WHERE client_id = ? AND is_deleted = 0) as total
+    ");
+    $stmt->execute([$real_client_id, $real_client_id]);
+    $total_media = $stmt->fetch()['total'];
 
     echo json_encode([
         'success' => true,
         'stats' => [
-            'upcoming_events' => (int) $upcoming_events,
+            'total_revenue' => (float) $client_revenue,
             'total_tickets' => (int) $total_tickets,
+            'total_events' => (int) $total_events,
+            'upcoming_events' => (int) $upcoming_events_count,
             'total_users' => (int) $total_users,
-            'media_uploads' => (int) $media_uploads,
-            'total_revenue' => (float) $total_revenue,
-            'referred_tickets' => (int) $referred_tickets,
-            'referred_users' => (int) $referred_users
+            'total_media' => (int) $total_media
         ],
-        'upcoming_events_list' => $upcoming_events_list,
-        'recent_sales' => $recent_sales
+        'attendees' => $attendees,
+        'events' => $event_breakdown
     ]);
 
 } catch (PDOException $e) {
     http_response_code(500);
-    error_log("Client dashboard stats error: " . $e->getMessage());
-    echo json_encode(['success' => false, 'message' => 'Failed to fetch dashboard stats']);
+    echo json_encode(['success' => false, 'message' => 'Failed to fetch client stats: ' . $e->getMessage()]);
 }
-?>

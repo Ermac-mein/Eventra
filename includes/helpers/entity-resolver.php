@@ -26,7 +26,7 @@ function resolveEntity($email)
 
     if (!$auth) {
         // Fallback: Check if the email exists in the clients table (users might log in with their profile email)
-        $stmt = $pdo->prepare("SELECT auth_id FROM clients WHERE email = ?");
+        $stmt = $pdo->prepare("SELECT client_auth_id FROM clients WHERE email = ?");
         $stmt->execute([$email]);
         $client_auth_id = $stmt->fetchColumn();
 
@@ -60,7 +60,8 @@ function resolveEntity($email)
         $role_password_col = in_array($role, ['admin', 'client']) ? 'p.password as profile_password_hash' : 'NULL as profile_password_hash';
 
         // We also fetch password from the specific table to ensure redundancy works correctly
-        $stmt = $pdo->prepare("SELECT a.id as auth_id, a.email, a.role, a.is_active, a.password_hash as auth_password_hash, p.*, p.id as profile_id, p.$name_col as display_name, p.profile_pic, $role_password_col FROM auth_accounts a LEFT JOIN $table p ON a.id = p.auth_id WHERE a.id = ?");
+        $auth_col = ($role === 'client') ? 'client_auth_id' : (($role === 'user') ? 'user_auth_id' : 'admin_auth_id');
+        $stmt = $pdo->prepare("SELECT a.id as auth_id, a.email, a.role, a.is_active, a.password_hash as auth_password_hash, p.*, p.id as profile_id, p.$name_col as display_name, p.profile_pic, $role_password_col FROM auth_accounts a LEFT JOIN $table p ON a.id = p.$auth_col WHERE a.id = ?");
         $stmt->execute([$auth['id']]);
         $fullUser = $stmt->fetch(PDO::FETCH_ASSOC);
 

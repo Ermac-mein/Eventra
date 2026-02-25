@@ -34,7 +34,7 @@ try {
     // Resolve client_id if user is client
     $resolved_user_id = $user_id;
     if ($user_role === 'client') {
-        $stmt = $pdo->prepare("SELECT id FROM clients WHERE auth_id = ?");
+        $stmt = $pdo->prepare("SELECT id FROM clients WHERE client_auth_id = ?");
         $stmt->execute([$user_id]);
         $client = $stmt->fetch();
         if (!$client) {
@@ -57,7 +57,7 @@ try {
     // Send notifications for deletion activity
     if ($user_role === 'client') {
         // Client deleted their event - notify admin
-        $stmt = $pdo->prepare("SELECT business_name FROM clients WHERE auth_id = ?");
+        $stmt = $pdo->prepare("SELECT business_name FROM clients WHERE client_auth_id = ?");
         $stmt->execute([$user_id]);
         $client_info = $stmt->fetch();
         $user_name = $client_info['business_name'] ?? 'A Client';
@@ -74,7 +74,7 @@ try {
         }
     } else {
         // Admin deleted the event - notify the client owner
-        $stmt = $pdo->prepare("SELECT auth_id FROM clients WHERE id = ?");
+        $stmt = $pdo->prepare("SELECT client_auth_id FROM clients WHERE id = ?");
         $stmt->execute([$event['client_id']]);
         $client_auth = $stmt->fetch();
 
@@ -95,4 +95,3 @@ try {
     http_response_code(500);
     echo json_encode(['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);
 }
-?>

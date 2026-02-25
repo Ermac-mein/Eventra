@@ -71,7 +71,7 @@ function displaySearchResults(results, query) {
         searchContainer.appendChild(resultsContainer);
     }
 
-    const hasResults = results.events.length > 0 || results.tickets.length > 0 || results.users.length > 0;
+    const hasResults = results.events.length > 0 || results.tickets.length > 0 || results.users.length > 0 || (results.media && results.media.length > 0);
 
     if (!hasResults) {
         resultsContainer.innerHTML = `
@@ -126,6 +126,22 @@ function displaySearchResults(results, query) {
                 <div style="flex: 1;">
                     <div style="font-weight: 600; font-size: 0.9rem; color: #111827;">${highlightText(user.title, query)}</div>
                     <div style="font-size: 0.75rem; color: #6b7280;">${user.subtitle}</div>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    // Media Section
+    if (results.media && results.media.length > 0) {
+        html += `<div style="padding: 0.75rem 1rem; background: #f9fafb; font-size: 0.7rem; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid #f1f4f8;">Media & Folders</div>`;
+        html += results.media.map(item => `
+            <div class="search-result-item" onclick="window.location.href='media.html?highlight=${item.id}&type=${item.item_type}'" style="padding: 0.75rem 1rem; border-bottom: 1px solid #f1f4f8; cursor: pointer; display: flex; align-items: center; gap: 12px;">
+                <div style="width: 32px; height: 32px; border-radius: 6px; background: ${item.item_type === 'folder' ? '#fff7ed' : '#f0fdf4'}; display: flex; align-items: center; justify-content: center; font-size: 1rem;">
+                    ${item.item_type === 'folder' ? '📁' : '📄'}
+                </div>
+                <div style="flex: 1;">
+                    <div style="font-weight: 600; font-size: 0.9rem; color: #111827;">${highlightText(item.title, query)}</div>
+                    <div style="font-size: 0.75rem; color: #6b7280;">${item.subtitle} ${item.file_size ? '• ' + (item.file_size / 1024 / 1024).toFixed(2) + ' MB' : ''}</div>
                 </div>
             </div>
         `).join('');

@@ -21,7 +21,7 @@ try {
 
     // Resolve client_id if user is client
     if ($user_role === 'client') {
-        $stmt = $pdo->prepare("SELECT id FROM clients WHERE auth_id = ?");
+        $stmt = $pdo->prepare("SELECT id FROM clients WHERE client_auth_id = ?");
         $stmt->execute([$user_id]);
         $client = $stmt->fetch();
         if (!$client) {
@@ -77,4 +77,3 @@ try {
     http_response_code(500);
     echo json_encode(['success' => false, 'message' => 'General error: ' . $e->getMessage()]);
 }
-?>

@@ -24,7 +24,7 @@ if (!$event_id) {
 
 try {
     // Resolve client_id from auth_id
-    $stmt = $pdo->prepare("SELECT id FROM clients WHERE auth_id = ?");
+    $stmt = $pdo->prepare("SELECT id FROM clients WHERE client_auth_id = ?");
     $stmt->execute([$user_id]);
     $client = $stmt->fetch();
 
@@ -63,7 +63,7 @@ try {
     $recipient_auth_id = $user_id; // Default to current user
     if ($_SESSION['role'] === 'admin') {
         // Find the client's auth_id from their client_id
-        $stmt = $pdo->prepare("SELECT auth_id FROM clients WHERE id = ?");
+        $stmt = $pdo->prepare("SELECT client_auth_id as auth_id FROM clients WHERE id = ?");
         $stmt->execute([$event['client_id']]);
         $client_auth = $stmt->fetch();
         if ($client_auth) {
@@ -97,4 +97,3 @@ try {
     http_response_code(500);
     echo json_encode(['success' => false, 'message' => 'Server error: ' . $e->getMessage()]);
 }
-?>

@@ -40,7 +40,7 @@ try {
     $phone_contact_2 = !empty($_POST['phone_contact_2']) ? $_POST['phone_contact_2'] : null;
     $state = $_POST['state'] ?? '';
     $address = $_POST['address'] ?? '';
-    $visibility = $_POST['visibility'] ?? 'all_states';
+    $visibility = $_POST['visibility'] ?? 'all states';
     $price = $_POST['price'] ?? 0.00;
 
     // Validate priority
@@ -49,7 +49,10 @@ try {
     $priority = in_array($priority_input, $allowed_priorities) ? $priority_input : 'nearby';
 
     $status = $_POST['status'] ?? 'draft';
-    $scheduled_publish_time = !empty($_POST['scheduled_publish_time']) ? $_POST['scheduled_publish_time'] : null;
+    $scheduled_publish_time = !empty($_POST['scheduled_publish_time'])
+        ? $_POST['scheduled_publish_time']
+        : date('Y-m-d H:i:s');
+
 
     // Validate required fields
     if (
@@ -66,7 +69,7 @@ try {
 
     // Fetch Client ID (PK) and Name using Auth ID
     // The events table FK references clients(id), NOT auth_accounts(id)
-    $stmt = $pdo->prepare("SELECT id, name FROM clients WHERE auth_id = ?");
+    $stmt = $pdo->prepare("SELECT id, name FROM clients WHERE client_auth_id = ?");
     $stmt->execute([$client_id]); // $client_id here is actually the auth_id from session
     $client_data = $stmt->fetch();
 
@@ -121,8 +124,8 @@ try {
     // Notify admin about event creation
     $admin_id = getAdminUserId();
     if ($admin_id) {
-        $client_name = $client['name'];
-        $admin_message = "New event created: '{$event_name}' by {$client_name} - Status: {$status}";
+        $display_name = $client_data['name'] ?? 'Client';
+        $admin_message = "New event created: '{$event_name}' by {$display_name} - Status: {$status}";
         createNotification($admin_id, $admin_message, 'event_created', $client_id);
     }
 
@@ -151,4 +154,3 @@ try {
     http_response_code(500);
     echo json_encode(['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);
 }
-?>

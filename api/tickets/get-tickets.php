@@ -25,25 +25,24 @@ try {
     // Filter by client's events
     if ($client_id) {
         // Resolve real_client_id from auth_id
-        $client_res_stmt = $pdo->prepare("SELECT id FROM clients WHERE auth_id = ?");
+        $client_res_stmt = $pdo->prepare("SELECT id FROM clients WHERE client_auth_id = ?");
         $client_res_stmt->execute([$client_id]);
         $real_client_id = $client_res_stmt->fetchColumn();
 
         if ($real_client_id) {
-            $where_clauses[] = "t.client_id = ?";
+            $where_clauses[] = "e.client_id = ?";
             $params[] = $real_client_id;
         }
     }
 
-    // Filter by user
     if ($user_id) {
-        $where_clauses[] = "t.user_id = ?";
+        $where_clauses[] = "p.user_id = ?";
         $params[] = $user_id;
     }
 
     // Filter by event
     if ($event_id) {
-        $where_clauses[] = "t.event_id = ?";
+        $where_clauses[] = "p.event_id = ?";
         $params[] = $event_id;
     }
 
@@ -53,12 +52,13 @@ try {
     $count_sql = "
         SELECT COUNT(*) as total
         FROM tickets t
-        JOIN events e ON t.event_id = e.id
+        JOIN payments p ON t.payment_id = p.id
+        JOIN events e ON p.event_id = e.id
         $where_sql
     ";
     $count_stmt = $pdo->prepare($count_sql);
-    $count_stmt->execute($params);
-    $total = $count_stmt->fetch()['total'];
+    $count_stmt->execute(array_slice($params, 0, count($where_clauses)));
+    $total = $count_stmt->fetch()['total'] ?? 0;
 
     // Get tickets with user and event information
     $sql = "
@@ -74,12 +74,13 @@ try {
             e.image_path as event_image,
             c.business_name as organiser_name
         FROM tickets t
-        LEFT JOIN auth_accounts a ON t.user_id = a.id
-        LEFT JOIN users u ON a.id = u.auth_id
-        JOIN events e ON t.event_id = e.id
-        LEFT JOIN clients c ON t.client_id = c.id
+        JOIN payments p ON t.payment_id = p.id
+        LEFT JOIN auth_accounts a ON p.user_id = a.id
+        LEFT JOIN users u ON a.id = u.user_auth_id
+        JOIN events e ON p.event_id = e.id
+        LEFT JOIN clients c ON e.client_id = c.id
         $where_sql
-        ORDER BY t.purchase_date DESC
+        ORDER BY p.paid_at DESC
         LIMIT ? OFFSET ?
     ";
 
@@ -101,11 +102,14 @@ try {
     if ($client_id) {
         $stats_stmt = $pdo->prepare("
             SELECT 
-                COUNT(*) as total_tickets,
-                SUM(quantity) as total_quantity,
-                SUM(total_price) as total_revenue
+                COUNT(t.id) as total_tickets,
+                SUM(CASE WHEN t.status = 'paid' THEN p.amount ELSE 0 END) as total_revenue,
+                SUM(CASE WHEN t.status = 'pending' THEN 1 ELSE 0 END) as pending_tickets,
+                SUM(CASE WHEN t.status = 'cancelled' THEN 1 ELSE 0 END) as cancelled_tickets
             FROM tickets t
-            WHERE t.client_id = (SELECT id FROM clients WHERE auth_id = ?)
+            JOIN payments p ON t.payment_id = p.id
+            JOIN events e ON p.event_id = e.id
+            WHERE e.client_id = (SELECT id FROM clients WHERE client_auth_id = ?)
         ");
         $stats_stmt->execute([$client_id]);
         $stats = $stats_stmt->fetch();
@@ -122,4 +126,3 @@ try {
     http_response_code(500);
     echo json_encode(['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);
 }
-?>

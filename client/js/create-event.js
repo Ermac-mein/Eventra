@@ -159,9 +159,8 @@ function showCreateEventModal() {
                                 <div class="form-group">
                                     <label style="display: block; font-size: 0.875rem; font-weight: 600; color: #6b7280; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.5px;">Status</label>
                                     <select name="status" style="width: 100%; padding: 1rem 1.25rem; border: 2px solid #e5e7eb; border-radius: 12px; font-size: 1rem; background: white; transition: all 0.3s; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
-                                        <option value="published" selected>Published</option>
-                                        <option value="scheduled">Scheduled</option>
                                         <option value="draft">Draft</option>
+                                        <option value="schedule">Schedule</option>
                                     </select>
                                 </div>
 
@@ -261,6 +260,11 @@ function showCreateEventModal() {
 
     // Add modal to body
     document.body.insertAdjacentHTML('beforeend', modalHTML);
+
+    // Set minimum date to today
+    const today = new Date().toISOString().split('T')[0];
+    const dateInput = document.querySelector('input[name="event_date"]');
+    if (dateInput) dateInput.setAttribute('min', today);
 
     // Add form submit handler
     document.getElementById('createEventForm').addEventListener('submit', handleEventCreation);

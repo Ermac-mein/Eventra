@@ -50,4 +50,3 @@ try {
 
     die("Database connection failed. Please check error/errors.log for details.");
 }
-?>

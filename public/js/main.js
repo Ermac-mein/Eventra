@@ -293,6 +293,14 @@ function initUserIcon() {
                 setTimeout(() => loginModal.style.display = 'none', 300);
             }
         });
+
+        // Trigger Login Modal if redirected from checkout.html
+        if (sessionStorage.getItem('redirect_after_login')) {
+            if (loginModal) {
+                loginModal.style.display = 'flex';
+                setTimeout(() => loginModal.classList.add('show'), 10);
+            }
+        }
     }
 }
 
@@ -362,7 +370,13 @@ async function handleGoogleCredentialResponse(response) {
             showNotification('Google Sign-in successful!', 'success');
             
             setTimeout(() => {
-                location.reload(); // Refresh to update UI
+                const redirectUrl = sessionStorage.getItem('redirect_after_login');
+                if (redirectUrl) {
+                    sessionStorage.removeItem('redirect_after_login');
+                    window.location.href = redirectUrl;
+                } else {
+                    location.reload(); // Refresh to update UI
+                }
             }, 1000);
         } else {
             showNotification(result.message || 'Login failed', 'error');
@@ -784,10 +798,13 @@ function showEventModal(eventId) {
   }
 
   // Buy ticket button
-  const buyTicketBtn = document.getElementById('modalBuyTicketBtn');
-  buyTicketBtn.onclick = () => {
-    viewEventDetails(event.id);
-  };
+  const buyTicketBtn = document.getElementById('bookNowBtn');
+  if (buyTicketBtn) {
+    buyTicketBtn.onclick = () => {
+      closeEventModal();
+      window.location.href = `checkout.html?id=${event.id}&quantity=1`;
+    };
+  }
 
   // Show modal
   modal.classList.add('active');

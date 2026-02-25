@@ -30,4 +30,3 @@ try {
         'message' => 'Failed to load Google configuration'
     ]);
 }
-?>

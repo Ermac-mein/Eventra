@@ -1,3 +1,2 @@
 <?php
 // Email configuration
-?>

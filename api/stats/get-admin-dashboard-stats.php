@@ -11,125 +11,63 @@ require_once '../../includes/middleware/auth.php';
 $admin_id = checkAuth('admin');
 
 try {
-    // Get ALL events count (Published, Draft, Deleted, and Restored)
-    $stmt = $pdo->query("SELECT COUNT(*) as total FROM events");
-    $total_events = $stmt->fetch()['total'];
+    // 1. Total Users (Regular users)
+    $stmt = $pdo->query("SELECT COUNT(*) as total FROM auth_accounts WHERE role = 'user' AND deleted_at IS NULL");
+    $total_users = $stmt->fetch()['total'];
 
-    // Get strictly PUBLISHED and NOT DELETED events count
-    $stmt = $pdo->query("SELECT COUNT(*) as total FROM events WHERE status = 'published' AND deleted_at IS NULL");
-    $published_events_count = $stmt->fetch()['total'];
-
-    // Get active users count (regular users with an auth account)
-    $stmt = $pdo->query("SELECT COUNT(*) as total FROM auth_accounts WHERE role = 'user' AND is_active = 1");
-    $active_users = $stmt->fetch()['total'];
-
-    // Get total clients count (All clients in auth_accounts)
-    $stmt = $pdo->query("SELECT COUNT(*) as total FROM auth_accounts WHERE role = 'client'");
+    // 2. Total Clients
+    $stmt = $pdo->query("SELECT COUNT(*) as total FROM auth_accounts WHERE role = 'client' AND deleted_at IS NULL");
     $total_clients = $stmt->fetch()['total'];
 
-    // Get strictly RESTORED events count
-    $stmt = $pdo->query("SELECT COUNT(*) as total FROM events WHERE status = 'restored' AND deleted_at IS NULL");
-    $restored_events_count = $stmt->fetch()['total'];
+    // 3. Total Events (Published)
+    $stmt = $pdo->query("SELECT COUNT(*) as total FROM events WHERE status = 'published' AND deleted_at IS NULL");
+    $total_events = $stmt->fetch()['total'];
 
-    // Get total revenue from tickets
-    $stmt = $pdo->query("SELECT COALESCE(SUM(total_price), 0) as revenue FROM tickets");
-    $total_revenue = $stmt->fetch()['revenue'];
+    // 4. Total Revenue (Paid payments)
+    $stmt = $pdo->query("SELECT COALESCE(SUM(amount), 0) as total FROM payments WHERE status = 'paid'");
+    $total_revenue = $stmt->fetch()['total'];
 
-    $stmt = $pdo->prepare("
-        SELECT 
-            n.id,
-            n.message,
-            n.type,
-            n.is_read,
-            n.created_at,
-            a.email as sender_name,
-            COALESCE(u.profile_pic, c.profile_pic, adm.profile_pic) as sender_profile_pic
-        FROM notifications n
-        LEFT JOIN auth_accounts a ON n.sender_auth_id = a.id
-        LEFT JOIN users u ON a.id = u.auth_id
-        LEFT JOIN clients c ON a.id = c.auth_id
-        LEFT JOIN admins adm ON a.id = adm.auth_id
-        WHERE n.recipient_auth_id = ?
-        ORDER BY n.created_at DESC
+    // 5. Pending Payments
+    $stmt = $pdo->query("SELECT COUNT(*) as total FROM payments WHERE status = 'pending'");
+    $pending_payments = $stmt->fetch()['total'];
+
+    // Recent Security Logs
+    $stmt = $pdo->query("
+        SELECT al.*, aa.email 
+        FROM auth_logs al 
+        LEFT JOIN auth_accounts aa ON al.auth_id = aa.id 
+        ORDER BY al.created_at DESC 
         LIMIT 10
     ");
-    $stmt->execute([$_SESSION['user_id']]);
-    $recent_activities = $stmt->fetchAll();
+    $recent_logs = $stmt->fetchAll();
 
-    // Get top users (users with most ticket purchases)
+    // Top Revenue Events
     $stmt = $pdo->query("
-        SELECT 
-            a.id,
-            p.display_name as name,
-            a.email,
-            p.profile_pic,
-            IF(a.is_active = 1, 'active', 'inactive') as status,
-            COUNT(t.id) as ticket_count
-        FROM auth_accounts a
-        JOIN users p ON a.id = p.auth_id
-        LEFT JOIN tickets t ON a.id = t.user_id
-        WHERE a.role = 'user'
-        GROUP BY a.id
-        ORDER BY ticket_count DESC
-        LIMIT 5
-    ");
-    $top_users = $stmt->fetchAll();
-
-    // Get active clients (clients with most events)
-    $stmt = $pdo->query("
-        SELECT 
-            a.id,
-            p.business_name as name,
-            a.email,
-            p.profile_pic,
-            p.company,
-            IF(a.is_active = 1, 'active', 'inactive') as status,
-            COUNT(e.id) as event_count
-        FROM auth_accounts a
-        JOIN clients p ON a.id = p.auth_id
-        LEFT JOIN events e ON a.id = e.client_id
-        WHERE a.role = 'client'
-        GROUP BY a.id
-        ORDER BY event_count DESC
-        LIMIT 5
-    ");
-    $active_clients = $stmt->fetchAll();
-
-    // Get upcoming published events
-    $stmt = $pdo->query("
-        SELECT 
-            e.*,
-            p.business_name as client_name,
-            COUNT(t.id) as ticket_count
+        SELECT e.event_name, c.business_name as client_name, SUM(p.amount) as revenue
         FROM events e
-        LEFT JOIN clients p ON e.client_id = p.id
-        LEFT JOIN tickets t ON e.id = t.event_id
-        WHERE e.status = 'published' AND e.deleted_at IS NULL
+        JOIN clients c ON e.client_id = c.id
+        JOIN payments p ON e.id = p.event_id
+        WHERE p.status = 'paid'
         GROUP BY e.id
-        ORDER BY e.created_at DESC
-        LIMIT 10
+        ORDER BY revenue DESC
+        LIMIT 5
     ");
-    $upcoming_events = $stmt->fetchAll();
+    $top_events = $stmt->fetchAll();
 
     echo json_encode([
         'success' => true,
         'stats' => [
-            'total_events' => (int) $total_events,
-            'published_events' => (int) $published_events_count,
-            'restored_events' => (int) $restored_events_count,
-            'active_users' => (int) $active_users,
+            'total_users' => (int) $total_users,
             'total_clients' => (int) $total_clients,
-            'total_revenue' => (float) $total_revenue
+            'total_events' => (int) $total_events,
+            'total_revenue' => (float) $total_revenue,
+            'pending_payments' => (int) $pending_payments
         ],
-        'recent_activities' => $recent_activities,
-        'top_users' => $top_users,
-        'active_clients' => $active_clients,
-        'upcoming_events' => $upcoming_events
+        'recent_logs' => $recent_logs,
+        'top_events' => $top_events
     ]);
 
 } catch (PDOException $e) {
     http_response_code(500);
-    error_log("Admin dashboard stats error: " . $e->getMessage());
-    echo json_encode(['success' => false, 'message' => 'Failed to fetch dashboard stats']);
+    echo json_encode(['success' => false, 'message' => 'Failed to fetch admin stats.']);
 }
-?>

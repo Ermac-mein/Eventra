@@ -22,35 +22,44 @@ if (!in_array($intent, ['client', 'user', 'admin'])) {
 }
 
 try {
-    // 1. Resolve Entity by email (since schema doesn't have google_id anymore)
+    // 1. Resolve Entity by email
     $user = resolveEntity($email);
 
     if ($user) {
-        // 2. Validate Role Compatibility with Intent
-        if (strtolower($user['role']) !== $intent) {
-            // If user is admin/client but intent is user, block.
-            if ($intent === 'user' && in_array(strtolower($user['role']), ['admin', 'client'])) {
-                logSecurityEvent($user['id'], $email, 'login_failure', 'google', "Role blocked: " . $user['role'] . " tried user Google login");
-                echo json_encode(['success' => false, 'message' => "This Google account is linked to a " . ucfirst($user['role']) . " account. Please use the specific portal login."]);
-                exit;
-            }
-            logSecurityEvent($user['id'], $email, 'login_failure', 'google', "Role mismatch: Found as " . $user['role'] . " but intent was $intent");
-            echo json_encode(['success' => false, 'message' => "This identity is already bound to a " . ucfirst($user['role']) . " account and cannot be used as $intent."]);
+        $userRole = strtolower($user['role']);
+
+        // Block Admin Google Login
+        if ($userRole === 'admin') {
+            logSecurityEvent($user['id'], $email, 'login_failure', 'google', "Admin blocked from Google login.");
+            echo json_encode(['success' => false, 'message' => "Admin accounts are restricted to local authentication."]);
+            exit;
+        }
+
+        // Validate Role Compatibility with Portal Intent
+        if ($userRole !== strtolower($intent)) {
+            logSecurityEvent($user['id'], $email, 'login_failure', 'google', "Role mismatch: User is $userRole but tried via $intent portal");
+            echo json_encode(['success' => false, 'message' => "Access denied. Use the appropriate portal for your " . ucfirst($userRole) . " account."]);
             exit;
         }
 
         // 3. Enforce Auth Policy
-        $policy = getAuthPolicy($user['role'], 'google', $user);
+        $policy = getAuthPolicy($userRole, 'google', $user);
         if (!$policy['allowed']) {
             logSecurityEvent($user['id'], $email, 'login_failure', 'google', "Policy Violation: " . $policy['message']);
             echo json_encode(['success' => false, 'message' => $policy['message']]);
             exit;
         }
+
+        // Update provider_id if not set or mismatched (safely update tracking)
+        if ($user['auth_provider'] === 'google' && (empty($user['provider_id']) || $user['provider_id'] !== $google_id)) {
+            $stmt = $pdo->prepare("UPDATE auth_accounts SET provider_id = ? WHERE id = ?");
+            $stmt->execute([$google_id, $user['id']]);
+        }
     } else {
-        // 4. Registration Flow
+        // 4. Registration Flow (Google-only for Users/Clients)
         if ($intent === 'admin') {
             logSecurityEvent(null, $email, 'login_failure', 'google', "Attempted admin registration via Google.");
-            echo json_encode(['success' => false, 'message' => 'Admin accounts cannot be created via Google Sign-In.']);
+            echo json_encode(['success' => false, 'message' => 'Admin accounts cannot be created via Google.']);
             exit;
         }
 
@@ -64,16 +73,18 @@ try {
         $pdo->beginTransaction();
 
         // Create new auth_account
-        $stmt = $pdo->prepare("INSERT INTO auth_accounts (email, role, auth_provider) VALUES (?, ?, 'google')");
-        $stmt->execute([$email, $intent]);
+        $stmt = $pdo->prepare("INSERT INTO auth_accounts (email, role, auth_provider, provider_id, username, is_active, email_verified_at) VALUES (?, ?, 'google', ?, ?, 1, NOW())");
+        // Using email as username for google users if name is not unique/missing
+        $username = explode('@', $email)[0] . '_' . substr(bin2hex(random_bytes(2)), 0, 4);
+        $stmt->execute([$email, $intent, $google_id, $username]);
         $auth_id = $pdo->lastInsertId();
 
         if ($intent === 'client') {
-            $stmt = $pdo->prepare("INSERT INTO clients (auth_id, business_name, profile_pic) VALUES (?, ?, ?)");
-            $stmt->execute([$auth_id, $name, $profile_pic]);
+            $stmt = $pdo->prepare("INSERT INTO clients (client_auth_id, business_name, email, name, profile_pic, password) VALUES (?, ?, ?, ?, ?, 'GOOGLE_AUTH')");
+            $stmt->execute([$auth_id, $name, $email, $name, $profile_pic]);
         } else {
             // Default to 'user' role
-            $stmt = $pdo->prepare("INSERT INTO users (auth_id, display_name, profile_pic) VALUES (?, ?, ?)");
+            $stmt = $pdo->prepare("INSERT INTO users (user_auth_id, name, profile_pic) VALUES (?, ?, ?)");
             $stmt->execute([$auth_id, $name, $profile_pic]);
         }
 
@@ -89,72 +100,50 @@ try {
     $stmt = $pdo->prepare("DELETE FROM auth_tokens WHERE auth_id = ?");
     $stmt->execute([$user['id']]);
 
-    $stmt = $pdo->prepare("INSERT INTO auth_tokens (auth_id, token, expires_at) VALUES (?, ?, ?)");
+    $stmt = $pdo->prepare("INSERT INTO auth_tokens (auth_id, token, expires_at, type) VALUES (?, ?, ?, 'access')");
     $stmt->execute([$user['id'], $token, $expires_at]);
 
-    // Log success
-    logSecurityEvent($user['id'], $email, 'login_success', 'google', "Logged in as " . $user['role']);
+    // Update last login
+    $pdo->prepare("UPDATE auth_accounts SET last_login_at = NOW(), is_online = 1 WHERE id = ?")->execute([$user['id']]);
 
     // 4. Set Entity-Scoped Session
+    $userRole = strtolower($user['role']);
     $expectedSessionName = 'EVENTRA_USER_SESS';
-    if ($user['role'] === 'admin') {
+    if ($userRole === 'admin') {
         $expectedSessionName = 'EVENTRA_ADMIN_SESS';
-    } elseif ($user['role'] === 'client') {
+    } elseif ($userRole === 'client') {
         $expectedSessionName = 'EVENTRA_CLIENT_SESS';
     }
 
     if (session_name() !== $expectedSessionName) {
         session_write_close();
-
-        // Clear other potential session cookies before switching
-        $params = session_get_cookie_params();
-        $possibleNames = ['EVENTRA_CLIENT_SESS', 'EVENTRA_ADMIN_SESS', 'EVENTRA_USER_SESS'];
-        foreach ($possibleNames as $name) {
-            if ($name !== $expectedSessionName) {
-                setcookie(
-                    $name,
-                    '',
-                    time() - 42000,
-                    $params["path"],
-                    $params["domain"],
-                    $params["secure"],
-                    $params["httponly"]
-                );
-            }
-        }
-
         session_name($expectedSessionName);
         session_start();
+        session_regenerate_id(true);
         $_SESSION = [];
     }
 
     $_SESSION['user_id'] = $user['id'];
-    $_SESSION['role'] = $user['role'];
+    $_SESSION['role'] = $userRole;
     $_SESSION['auth_token'] = $token;
 
-    // Create notifications based on role
-    require_once '../../api/utils/notification-helper.php';
-    if ($user['role'] === 'admin') {
-        createAdminLoginNotification($user['id']);
-    } elseif ($user['role'] === 'client') {
-        $adminId = getAdminUserId();
-        if ($adminId) {
-            createClientLoginNotification($adminId, $user['id'], $user['name'], $user['email']);
+    // Log success
+    logSecurityEvent($user['id'], $email, 'login_success', 'google', "Logged in as $userRole via portal $intent");
+
+    // Notify admin of login activity
+    require_once __DIR__ . '/../utils/notification-helper.php';
+    $admin_id = getAdminUserId();
+    if ($admin_id) {
+        if ($userRole === 'client') {
+            createClientLoginNotification($admin_id, $user['id'], $user['name'] ?? 'Client', $email);
+        } elseif ($userRole === 'user') {
+            createUserLoginNotification($admin_id, $user['id'], $user['name'] ?? 'User', $email);
         }
-        createLoginNotification($user['id'], $user['name'], $user['email']);
-    } else {
-        // Regular user login
-        createLoginNotification($user['id'], $user['name'], $user['email']);
     }
 
     // Redirection logic
-    if ($user['role'] === 'client') {
-        $redirect = 'client/pages/clientDashboard.html';
-    } elseif ($user['role'] === 'admin') {
-        $redirect = 'admin/pages/adminDashboard.html';
-    } else {
-        $redirect = 'public/pages/index.html';
-    }
+    $redirect = ($userRole === 'admin') ? 'admin/pages/adminDashboard.html' :
+        (($userRole === 'client') ? 'client/pages/clientDashboard.html' : 'public/pages/index.html');
 
     echo json_encode([
         'success' => true,
@@ -164,7 +153,7 @@ try {
             'id' => $user['id'],
             'name' => $user['name'],
             'email' => $user['email'],
-            'role' => $user['role'],
+            'role' => $userRole,
             'profile_pic' => $user['profile_pic'] ?? null,
             'token' => $token
         ]
@@ -173,6 +162,5 @@ try {
     if ($pdo->inTransaction()) {
         $pdo->rollBack();
     }
-    echo json_encode(['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);
+    echo json_encode(['success' => false, 'message' => 'Auth failed due to server error.']);
 }
-?>

@@ -120,7 +120,8 @@ function renderEvent(event) {
     } else {
         buyTicketText.textContent = isFree ? 'Book Your Spot' : 'Buy Ticket Now';
         bookBtn.onclick = () => {
-            handleBooking(event.id);
+            const quantity = document.getElementById('ticketQuantity') ? document.getElementById('ticketQuantity').value : 1;
+            window.location.href = `checkout.html?id=${event.id}&quantity=${quantity}`;
         };
     }
 }

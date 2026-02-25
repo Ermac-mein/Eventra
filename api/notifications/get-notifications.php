@@ -37,8 +37,8 @@ try {
             COALESCE(u.profile_pic, c.profile_pic) as sender_profile_pic
         FROM notifications n
         LEFT JOIN auth_accounts a ON n.sender_auth_id = a.id
-        LEFT JOIN users u ON a.id = u.auth_id
-        LEFT JOIN clients c ON a.id = c.auth_id
+        LEFT JOIN users u ON a.id = u.user_auth_id
+        LEFT JOIN clients c ON a.id = c.client_auth_id
         WHERE $where_sql
         ORDER BY n.created_at DESC
         LIMIT ? OFFSET ?
@@ -72,4 +72,3 @@ try {
     http_response_code(500);
     echo json_encode(['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);
 }
-?>

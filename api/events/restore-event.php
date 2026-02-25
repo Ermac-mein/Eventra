@@ -39,7 +39,7 @@ try {
     // Resolve client_id if user is client
     $resolved_user_id = $user_id;
     if ($user_role === 'client') {
-        $stmt = $pdo->prepare("SELECT id FROM clients WHERE auth_id = ?");
+        $stmt = $pdo->prepare("SELECT id FROM clients WHERE client_auth_id = ?");
         $stmt->execute([$user_id]);
         $client = $stmt->fetch();
         if (!$client) {
@@ -61,7 +61,7 @@ try {
 
     // Notify admin about event restoration if restored by client
     if ($user_role === 'client') {
-        $stmt = $pdo->prepare("SELECT business_name FROM clients WHERE auth_id = ?");
+        $stmt = $pdo->prepare("SELECT business_name FROM clients WHERE client_auth_id = ?");
         $stmt->execute([$user_id]);
         $client_info = $stmt->fetch();
         $user_name = $client_info['business_name'] ?? 'A Client';
@@ -87,4 +87,3 @@ try {
     http_response_code(500);
     echo json_encode(['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);
 }
-?>

@@ -52,28 +52,27 @@ try {
             FROM tickets t
             INNER JOIN events e ON t.event_id = e.id
             WHERE e.client_id = ?
-            AND t.status = 'active'
+            AND t.status = 'paid'
         ");
         $stmt->execute([$real_client_id]);
         $stats['tickets_sold'] = $stmt->fetch()['count'] ?? 0;
 
-        // Total Users who bought tickets to client's events
-        $stmt = $pdo->prepare("
-            SELECT COUNT(DISTINCT t.user_id) as count 
-            FROM tickets t
-            INNER JOIN events e ON t.event_id = e.id
-            WHERE e.client_id = ?
-        ");
-        $stmt->execute([$real_client_id]);
-        $stats['total_users'] = $stmt->fetch()['count'] ?? 0;
-
-        // Media Uploads
+        // Total Registered Users in System
         $stmt = $pdo->prepare("
             SELECT COUNT(*) as count 
-            FROM media 
-            WHERE client_id = ?
+            FROM auth_accounts 
+            WHERE role = 'user' AND is_active = 1
         ");
-        $stmt->execute([$real_client_id]);
+        $stmt->execute();
+        $stats['total_users'] = $stmt->fetch()['count'] ?? 0;
+
+        // Media Items (Folders + Files that are not deleted)
+        $stmt = $pdo->prepare("
+            SELECT 
+                (SELECT COUNT(*) FROM media WHERE client_id = ? AND is_deleted = 0) +
+                (SELECT COUNT(*) FROM media_folders WHERE client_id = ? AND is_deleted = 0) as count
+        ");
+        $stmt->execute([$real_client_id, $real_client_id]);
         $stats['media_uploads'] = $stmt->fetch()['count'] ?? 0;
 
         // Total Events (all time)
@@ -91,13 +90,17 @@ try {
         $stmt = $pdo->query("SELECT COUNT(*) as count FROM events WHERE status = 'published'");
         $stats['total_events'] = $stmt->fetch()['count'] ?? 0;
 
-        $stmt = $pdo->query("SELECT COUNT(*) as count FROM tickets WHERE status = 'active'");
+        $stmt = $pdo->query("SELECT COUNT(*) as count FROM tickets WHERE status = 'paid'");
         $stats['tickets_sold'] = $stmt->fetch()['count'] ?? 0;
 
         $stmt = $pdo->query("SELECT COUNT(*) as count FROM auth_accounts WHERE role = 'user' AND is_active = 1");
         $stats['total_users'] = $stmt->fetch()['count'] ?? 0;
 
-        $stmt = $pdo->query("SELECT COUNT(*) as count FROM media");
+        $stmt = $pdo->query("
+            SELECT 
+                (SELECT COUNT(*) FROM media WHERE is_deleted = 0) +
+                (SELECT COUNT(*) FROM media_folders WHERE is_deleted = 0) as count
+        ");
         $stats['media_uploads'] = $stmt->fetch()['count'] ?? 0;
 
     } else {
@@ -107,7 +110,7 @@ try {
             SELECT COUNT(*) as count 
             FROM tickets 
             WHERE user_id = ? 
-            AND status = 'active'
+            AND status = 'paid'
         ");
         $stmt->execute([$user_id]);
         $stats['my_tickets'] = $stmt->fetch()['count'] ?? 0;
@@ -127,4 +130,3 @@ try {
         'message' => 'Failed to fetch statistics: ' . $e->getMessage()
     ]);
 }
-?>

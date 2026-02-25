@@ -147,6 +147,35 @@ function createMediaUploadedNotification($client_id, $file_name, $folder_name = 
 }
 
 /**
+ * Create a media deleted notification
+ */
+function createMediaDeletedNotification($client_id, $item_name, $type = 'file')
+{
+    $type_label = ucfirst($type);
+    $message = "{$type_label} '{$item_name}' has been moved to trash";
+    return createNotification($client_id, $message, 'media_deleted', $client_id);
+}
+
+/**
+ * Create a media restored notification
+ */
+function createMediaRestoredNotification($client_id, $item_name, $type = 'file')
+{
+    $type_label = ucfirst($type);
+    $message = "{$type_label} '{$item_name}' has been restored from trash";
+    return createNotification($client_id, $message, 'media_restored', $client_id);
+}
+
+/**
+ * Create a folder created notification
+ */
+function createFolderCreatedNotification($client_id, $folder_name)
+{
+    $message = "A new folder '{$folder_name}' has been created";
+    return createNotification($client_id, $message, 'folder_created', $client_id);
+}
+
+/**
  * Create a scheduled event due notification (with action buttons)
  */
 function createScheduledEventDueNotification($client_id, $event_id, $event_name)
@@ -256,4 +285,3 @@ function getAdminUserId()
         return null;
     }
 }
-?>

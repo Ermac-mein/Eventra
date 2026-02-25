@@ -97,4 +97,3 @@ try {
     error_log("Notification Cron Error: " . $e->getMessage());
     echo "Fatal Error: " . $e->getMessage() . "\n";
 }
-?>

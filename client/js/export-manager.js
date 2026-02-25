@@ -212,7 +212,13 @@ async function exportTableToExcel(dataType) {
 
 async function handleExport(dataType, format) {
     try {
-        const user = storage.get('user');
+        const user = storage.getUser ? storage.getUser() : (storage.get('client_user') || storage.get('user'));
+        
+        if (!user) {
+            showNotification('Authentication error: User not found', 'error');
+            return;
+        }
+
         let endpoint, dataKey, exportData;
         
         switch(dataType) {

@@ -77,4 +77,3 @@ try {
     error_log("Global Search Error: " . $e->getMessage());
     echo json_encode(['success' => false, 'message' => 'Search failed due to database error.']);
 }
-?>
