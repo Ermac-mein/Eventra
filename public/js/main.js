@@ -597,7 +597,7 @@ function createEventCard(event, index) {
   return `
     <div class="event-card" data-id="${event.id}" data-tag="${escapeHTML(event.tag) || event.id}" style="animation-delay: ${index * 0.1}s">
       <div class="event-image-container enhanced-hd">
-        <img src="${eventImage}" alt="${eventName}" class="event-image">
+        <img src="${eventImage}" alt="${eventName}" loading="lazy" class="event-image">
         <div class="event-badges">
           <div class="event-category-badge">${category}</div>
           ${event.priority ? `
