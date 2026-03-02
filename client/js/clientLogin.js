@@ -79,16 +79,31 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Google Sign In (Immediate Trigger)
-    if (googleSignIn) {
-        googleSignIn.addEventListener('click', () => {
-            handleGoogleSignIn();
-        });
+    // Google Sign In (Refactored to Container-based GIS)
+    const googleContainer = document.getElementById('googleContainer');
+    if (googleContainer) {
+        googleContainer.innerHTML = '<div id="googleSignInContainer"></div>';
         
-        // Auto-trigger if requested (e.g., from homepage)
-        if (trigger === 'google' && intent === 'user') {
-            handleGoogleSignIn();
-        }
+        // Load Google Config and Initialize
+        (async () => {
+            try {
+                const configResponse = await apiFetch(basePath + 'api/config/get-google-config.php');
+                const configData = await configResponse.json();
+                
+                if (configData.success && configData.client_id) {
+                    let attempts = 0;
+                    const checkGoogle = setInterval(() => {
+                        if (typeof google !== 'undefined') {
+                            clearInterval(checkGoogle);
+                            authController.initGoogle(configData.client_id, 'googleSignInContainer');
+                        } else if (attempts > 50) {
+                            clearInterval(checkGoogle);
+                        }
+                        attempts++;
+                    }, 100);
+                }
+            } catch (e) { console.error('Google config error:', e); }
+        })();
     }
 
     function validateEmail(email) {
@@ -199,113 +214,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    async function handleGoogleSignIn() {
-        // Fetch Google Client ID from server
-        let clientId;
-        try {
-            const configResponse = await apiFetch(basePath + 'api/config/get-google-config.php');
-            const configData = await configResponse.json();
-            
-            if (!configData.success || !configData.client_id) {
-                Swal.fire('Configuration Error', 'Google Sign-in is not configured on the server. Please contact the administrator.', 'error');
-                return;
-            }
-            
-            clientId = configData.client_id;
-        } catch (error) {
-            console.error('Failed to fetch Google config:', error);
-            Swal.fire('Error', 'Could not load Google Sign-in configuration. Please try again later.', 'error');
-            return;
-        }
-        
-        let attempts = 0;
-        const attemptGoogleInit = () => {
-            if (typeof google !== 'undefined') {
-                try {
-                    google.accounts.id.initialize({
-                        client_id: clientId,
-                        callback: handleCredentialResponse,
-                        auto_select: false,
-                        cancel_on_tap_outside: true,
-                    });
+    // Unified Google Init (Handled by AuthController)
 
-                    google.accounts.id.prompt();
-                } catch (error) {
-                    console.error('Google Initialization Error:', error);
-                    const errorMsg = 'Could not initialize Google Sign-in.\n\nPossible causes:\n- Ad blocker or privacy extension is blocking Google\n- Network connectivity issues\n- Browser security settings\n\nPlease try:\n1. Disabling ad blockers\n2. Using email/password login instead';
-                    Swal.fire('Error', errorMsg, 'error');
-                }
-            } else if (attempts < 20) {
-                attempts++;
-                setTimeout(attemptGoogleInit, 100);
-            } else {
-                const errorMsg = 'Google Sign-in is currently blocked by your browser or an extension (e.g., ad-blocker, privacy extension).\n\nTo use Google Sign-in:\n1. Disable your ad blocker for this site\n2. Disable privacy extensions temporarily\n3. Try again\n\nAlternatively, you can sign in using email and password.';
-                Swal.fire('Blocked', errorMsg, 'warning');
-            }
-        };
-        attemptGoogleInit();
-    }
-
-    async function handleCredentialResponse(response) {
-        const decodedToken = parseJwt(response.credential);
-        const googleData = {
-            google_id: decodedToken.sub,
-            email: decodedToken.email,
-            name: decodedToken.name,
-            profile_pic: decodedToken.picture
-        };
-
-        try {
-            const res = await apiFetch(basePath + 'api/auth/google-handler.php', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    ...googleData,
-                    intent: intent
-                })
-            });
-            
-            // Handle non-JSON responses (like 405 or 500 html errors)
-            const contentType = res.headers.get("content-type");
-            if (!contentType || !contentType.includes("application/json")) {
-                const text = await res.text();
-                console.error("Non-JSON response received:", text);
-                throw new Error("Server returned non-JSON response. Status: " + res.status);
-            }
-
-            const result = await res.json();
-
-            if (result.success) {
-                storage.setUser(result.user);
-                
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Authenticated!',
-                        text: 'Google Sign-in successful. Redirecting...',
-                        timer: 1500,
-                        showConfirmButton: false,
-                        background: 'rgba(30, 41, 59, 0.95)',
-                        color: '#fff'
-                    });
-                } else if (successMessage) {
-                    successMessage.classList.add('show');
-                    successMessage.textContent = 'Google Sign-in successful! Redirecting...';
-                }
-
-                setTimeout(() => {
-                    const redirectUrl = result.redirect || 'client/pages/clientDashboard.html';
-                    const cleanRedirect = redirectUrl.startsWith('/') ? redirectUrl.substring(1) : redirectUrl;
-                    window.location.href = basePath + cleanRedirect;
-                }, 1600);
-            } else {
-                Swal.fire('Login Failed', result.message, 'error');
-            }
-        } catch (error) {
-            console.error('Error:', error);
-            Swal.fire('Error', 'An error occurred during Google Sign-in.', 'error');
-        }
-    }
+    // handleCredentialResponse is now handled by AuthController.handleGoogleResponse
 
     function parseJwt(token) {
         var base64Url = token.split('.')[1];

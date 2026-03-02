@@ -129,7 +129,6 @@ function initMobileMenu() {
 }
 
 function initUserIcon() {
-  const userIcon = document.querySelector('.user-icon');
   const userProfileBtn = document.getElementById('userProfileBtn');
   const profileDropdown = document.getElementById('profileDropdown');
   const viewProfile = document.getElementById('viewProfile');
@@ -140,18 +139,18 @@ function initUserIcon() {
   const loginModal = document.getElementById('loginModal');
   const closeLoginModal = document.getElementById('closeLoginModal');
   
-  // Check if logged in and update display
+  // UI Elements for user state
   const defaultUserIcon = document.getElementById('defaultUserIcon');
   const userProfileImg = document.getElementById('userProfileImg');
   const userOnlineStatus = document.querySelector('.user-online-status');
+  const dropdownUserName = document.getElementById('dropdownUserName');
+  const dropdownUserEmail = document.getElementById('dropdownUserEmail');
   
-  // Handlers declared once for potential cleanup or multiple init calls
   const setupUI = () => {
-    const keys = typeof getRoleKeys === 'function' ? getRoleKeys() : { user: 'user' };
-    const user = storage.get(keys.user) || storage.get('user');
+    const user = authController.user;
 
-    if (isAuthenticated() && user && typeof user === 'object') {
-      // Show profile image, hide default SVG
+    if (authController.state === authController.states.AUTHENTICATED && user) {
+      // Update icon
       if (userProfileImg) {
           userProfileImg.src = user.profile_pic || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || 'User')}&background=FF5A5F&color=fff&size=128`;
           userProfileImg.title = `Logged in as ${user.name}`;
@@ -159,223 +158,190 @@ function initUserIcon() {
       }
       if (defaultUserIcon) defaultUserIcon.style.display = 'none';
       if (userOnlineStatus) userOnlineStatus.style.display = 'block';
+      
+      // Update dropdown details
+      if (dropdownUserName) dropdownUserName.textContent = user.name || 'User';
+      if (dropdownUserEmail) dropdownUserEmail.textContent = user.email || '';
     } else {
-      // Revert to guest UI if not authenticated or user data missing
+      // Revert to guest UI
       if (userProfileImg) userProfileImg.style.display = 'none';
       if (defaultUserIcon) defaultUserIcon.style.display = 'block';
       if (userOnlineStatus) userOnlineStatus.style.display = 'none';
     }
   };
 
-  // Initial UI setup based on localStorage
+  // Initial UI setup
   setupUI();
 
-  // Listen for session sync resulting in state change (e.g. stale session cleared)
-  window.addEventListener('sessionSyncComplete', () => {
+  // Listen for state changes from AuthController
+  window.addEventListener('auth:stateChange', (e) => {
+    console.log('[Main] Auth state change detected:', e.detail.state);
     setupUI();
-  }, { once: true }); // We only need the initial sync for the first load logic
+  });
 
-  if (isAuthenticated()) {
-    
-    // Toggle dropdown
-    if (userProfileBtn) {
-      userProfileBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        profileDropdown.classList.toggle('show');
-      });
-    }
+  window.addEventListener('auth:sync', (e) => {
+    setupUI();
+  });
 
-    // Close dropdown on click outside
-    document.addEventListener('click', () => {
-      if (profileDropdown) profileDropdown.classList.remove('show');
+  // Unified click handler for the profile button
+  if (userProfileBtn) {
+    userProfileBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (authController.state === authController.states.AUTHENTICATED) {
+        // Toggle dropdown if logged in
+        if (profileDropdown) profileDropdown.classList.toggle('show');
+      } else {
+        // Show login modal if guest - Ensure clean state
+        authController.clearSession();
+        if (loginModal) {
+          loginModal.style.display = 'flex';
+          setTimeout(() => loginModal.classList.add('show'), 10);
+        }
+      }
     });
+  }
 
-    // Logout logic
-    if (logoutBtn) {
-      logoutBtn.addEventListener('click', async (e) => {
-        e.preventDefault();
-        
-        const result = await Swal.fire({
-          title: 'Are you sure?',
-          text: "You will be logged out of your session!",
-          icon: 'warning',
-          showCancelButton: true,
-          confirmButtonColor: '#ff5a5f',
-          cancelButtonColor: '#9ca3af',
-          confirmButtonText: 'Yes, logout!',
-          background: 'rgba(30, 41, 59, 0.95)',
-          color: '#fff'
-        });
+  // Close dropdown on click outside
+  document.addEventListener('click', () => {
+    if (profileDropdown) profileDropdown.classList.remove('show');
+  });
 
-        if (!result.isConfirmed) return;
-
-        try {
-          const response = await apiFetch('../../api/auth/logout.php');
-          const result = await response.json();
-          if (result.success) {
-            // Clear all possible user keys
-            storage.remove('user');
-            storage.remove('auth_token');
-            storage.remove('client_user');
-            storage.remove('client_auth_token');
-            storage.remove('admin_user');
-            storage.remove('admin_auth_token');
-            location.reload();
-          }
-        } catch (error) {
-          console.error('Logout error:', error);
-          storage.remove('user');
-          storage.remove('auth_token');
-          location.reload();
-        }
+  // Logout logic
+  if (logoutBtn) {
+    logoutBtn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      
+      const result = await Swal.fire({
+        title: 'Logout?',
+        text: "You will be signed out of your account.",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#ff5a5f',
+        cancelButtonColor: '#9ca3af',
+        confirmButtonText: 'Yes, logout!',
+        background: '#fff',
+        color: '#000'
       });
-    }
 
-    // Modal logic
-    if (viewProfile) {
-      viewProfile.addEventListener('click', (e) => {
-        e.preventDefault();
-        profileDropdown.classList.remove('show');
+      if (result.isConfirmed) {
+        authController.logout(true);
+      }
+    });
+  }
+
+  // Modal logic (Profile Info)
+  if (viewProfile) {
+    viewProfile.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (profileDropdown) profileDropdown.classList.remove('show');
+      
+      const keys = typeof getRoleKeys === 'function' ? getRoleKeys() : { user: 'user' };
+      const user = storage.get(keys.user) || storage.get('user');
+      if (!user) {
+        showNotification('User profile not found. Please log in again.', 'info');
+        if (loginModal) {
+            loginModal.style.display = 'flex';
+            setTimeout(() => loginModal.classList.add('show'), 10);
+        }
+        return;
+      }
+      const modalPic = document.getElementById('modalProfilePic');
+      if (modalPic) modalPic.src = user.profile_pic || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || 'User')}&background=FF5A5F&color=fff&size=128`;
+      
+      const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.value = val || ''; };
+      setVal('profileName', user.name);
+      setVal('profileEmail', user.email);
+      setVal('profilePhone', user.phone);
+      setVal('profileState', user.state);
+      setVal('profileCity', user.city);
+      setVal('profileAddress', user.address);
+      
+      if (profileSideModal) profileSideModal.classList.add('open');
+    });
+  }
+
+  if (closeProfileModal) {
+    closeProfileModal.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (profileSideModal) profileSideModal.classList.remove('open');
+    });
+  }
+
+  if (profileEditForm) {
+    profileEditForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const formData = new FormData(profileEditForm);
+      const keys = typeof getRoleKeys === 'function' ? getRoleKeys() : { user: 'user' };
+      
+      try {
+        const response = await apiFetch('../../api/users/update-profile.php', {
+          method: 'POST',
+          body: formData
+        });
+        const result = await response.json();
         
-        const keys = typeof getRoleKeys === 'function' ? getRoleKeys() : { user: 'user' };
-        const user = storage.get(keys.user) || storage.get('user');
-        if (!user) {
-          showNotification('User profile not found. Please log in again.', 'info');
+        if (result.success) {
+          storage.set(keys.user, result.user);
+          showNotification('Profile updated successfully!', 'success');
+          if (profileSideModal) profileSideModal.classList.remove('open');
+          setupUI(); // Refresh icon and label immediately
+        } else {
+          showNotification(result.message || 'Error updating profile', 'error');
+        }
+      } catch (error) {
+        console.error('Update profile error:', error);
+        showNotification('System error occurred', 'error');
+      }
+    });
+  }
+
+  // Login Modal close logic
+  if (closeLoginModal) {
+      closeLoginModal.addEventListener('click', () => {
           if (loginModal) {
-              loginModal.style.display = 'flex';
-              setTimeout(() => loginModal.classList.add('show'), 10);
+              loginModal.classList.remove('show');
+              setTimeout(() => loginModal.style.display = 'none', 300);
           }
-          return;
-        }
-        document.getElementById('modalProfilePic').src = user.profile_pic || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || 'User')}&background=FF5A5F&color=fff&size=128`;
-        document.getElementById('profileName').value = user.name || '';
-        document.getElementById('profileEmail').value = user.email || '';
-        document.getElementById('profilePhone').value = user.phone || '';
-        document.getElementById('profileState').value = user.state || '';
-        document.getElementById('profileCity').value = user.city || '';
-        document.getElementById('profileAddress').value = user.address || '';
-        
-        profileSideModal.classList.add('open');
       });
-    }
+  }
+  
+  // Close login modal on backdrop click
+  window.addEventListener('click', (e) => {
+      if (e.target === loginModal) {
+          loginModal.classList.remove('show');
+          setTimeout(() => loginModal.style.display = 'none', 300);
+      }
+  });
 
-    if (closeProfileModal) {
-      closeProfileModal.addEventListener('click', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        profileSideModal.classList.remove('open');
-      });
-    }
-
-    if (profileEditForm) {
-      profileEditForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const formData = new FormData(profileEditForm);
-        
-        try {
-          const response = await apiFetch('../../api/users/update-profile.php', {
-            method: 'POST',
-            body: formData
-          });
-          const result = await response.json();
-          
-          if (result.success) {
-            storage.set(keys.user, result.user);
-            showNotification('Profile updated successfully!', 'success');
-            profileSideModal.classList.remove('open');
-            
-            // Instantly update UI without reload
-            const userProfileImg = document.getElementById('userProfileImg');
-            const modalProfilePic = document.getElementById('modalProfilePic');
-            if (userProfileImg) userProfileImg.src = result.user.profile_pic || `https://ui-avatars.com/api/?name=${encodeURIComponent(result.user.name)}&background=FF5A5F&color=fff&size=128`;
-            if (modalProfilePic) modalProfilePic.src = result.user.profile_pic || `https://ui-avatars.com/api/?name=${encodeURIComponent(result.user.name)}&background=FF5A5F&color=fff&size=128`;
-            
-            initUserIcon(); // Refresh icons and labels
-          } else {
-            showNotification(result.message || 'Error updating profile', 'error');
-          }
-        } catch (error) {
-          console.error('Update profile error:', error);
-          showNotification('System error occurred', 'error');
-        }
-      });
-    }
-    
-    } else {
-        // If not logged in, clicking should show the centered login modal
-        if (userProfileBtn) {
-            userProfileBtn.addEventListener('click', () => {
-                if (loginModal) {
-                    loginModal.style.display = 'flex';
-                    setTimeout(() => loginModal.classList.add('show'), 10);
-                }
-            });
-        }
-        
-        if (closeLoginModal) {
-            closeLoginModal.addEventListener('click', () => {
-                if (loginModal) {
-                    loginModal.classList.remove('show');
-                    setTimeout(() => loginModal.style.display = 'none', 300);
-                }
-            });
-        }
-        
-        // Close on backdrop click
-        window.addEventListener('click', (e) => {
-            if (e.target === loginModal) {
-                loginModal.classList.remove('show');
-                setTimeout(() => loginModal.style.display = 'none', 300);
-            }
-        });
-
-        // Trigger Login Modal if redirected from checkout.html
-        if (sessionStorage.getItem('redirect_after_login')) {
-            if (loginModal) {
-                loginModal.style.display = 'flex';
-                setTimeout(() => loginModal.classList.add('show'), 10);
-            }
-        }
-    }
+  // Trigger Login Modal if redirected from checkout.html or via URL trigger
+  const urlParams = new URLSearchParams(window.location.search);
+  if (sessionStorage.getItem('redirect_after_login') || urlParams.get('trigger') === 'login') {
+      if (loginModal && !isAuthenticated()) {
+          loginModal.style.display = 'flex';
+          setTimeout(() => loginModal.classList.add('show'), 10);
+      }
+  }
 }
 
-// Google Auth Logic for Homepage
+/**
+ * Google Auth Logic for Homepage (Refactored to use AuthController)
+ */
 async function initGoogleAuth() {
-    if (isAuthenticated()) return;
+    if (authController.state === authController.states.AUTHENTICATED) return;
 
     try {
         const basePath = getBasePath();
         const response = await apiFetch(basePath + 'api/config/get-google-config.php');
         const data = await response.json();
 
-
         if (data.success && data.client_id) {
-            // Check if google is defined
+            // Poll for Google SDK
             let attempts = 0;
             const checkGoogle = setInterval(() => {
                 if (typeof google !== 'undefined') {
                     clearInterval(checkGoogle);
-                    try {
-                        google.accounts.id.initialize({
-                            client_id: data.client_id,
-                            callback: handleGoogleCredentialResponse,
-                            auto_select: false,
-                            cancel_on_tap_outside: true,
-                        });
-
-                        const container = document.getElementById('googleSignInContainer');
-                        if (container) {
-                            google.accounts.id.renderButton(container, {
-                                type: 'standard',
-                                theme: 'outline',
-                                size: 'large',
-                                text: 'signin_with',
-                                shape: 'rectangular',
-                                logo_alignment: 'left',
-                                width: '320'
-                            });
-                        }
-                    } catch(e) { console.error('Error rendering Google button:', e); }
+                    authController.initGoogle(data.client_id, 'googleSignInContainer');
                 } else {
                     attempts++;
                     if (attempts > 50) {
@@ -384,71 +350,9 @@ async function initGoogleAuth() {
                     }
                 }
             }, 100);
-        } else {
-            console.error('Failed to load Google config:', data.message);
         }
     } catch (error) {
         console.error('Google Auth Init Error:', error);
-    }
-}
-
-async function handleGoogleCredentialResponse(response) {
-    try {
-        console.log('Google callback received, showing toast...');
-        showNotification('Getting Google information...', 'info');
-        
-        // Show loading state in the container
-        const container = document.getElementById('googleSignInContainer');
-        if (container) {
-            container.innerHTML = `
-                <div style="display: flex; align-items: center; gap: 10px; color: #fff; background: rgba(255,255,255,0.1); padding: 10px 20px; border-radius: 8px;">
-                    <div class="spinner" style="width: 20px; height: 20px; border: 2px solid #fff; border-top-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite;"></div>
-                    <span>Signing in...</span>
-                </div>
-            `;
-        }
-
-        const basePath = getBasePath();
-        const res = await apiFetch(basePath + 'api/auth/google-handler.php', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                credential: response.credential,
-                intent: 'user'
-            })
-        });
-
-
-        const result = await res.json();
-
-        if (result.success) {
-            const keys = typeof getRoleKeys === 'function' ? getRoleKeys() : { user: 'user', token: 'auth_token' };
-            storage.set(keys.user, result.user);
-            storage.set(keys.token, result.user.token);
-            
-            showNotification('Google Sign-in successful!', 'success');
-            
-            setTimeout(() => {
-                const redirectUrl = result.redirect || sessionStorage.getItem('redirect_after_login');
-                if (redirectUrl) {
-                    sessionStorage.removeItem('redirect_after_login');
-                    // Ensure redirectUrl is correctly handled if it's relative
-                    const finalTarget = redirectUrl.includes('://') ? redirectUrl : getBasePath() + redirectUrl.replace(/^\//, '');
-                    window.location.href = finalTarget;
-                } else {
-                    location.reload(); // Refresh to update UI
-                }
-            }, 1000);
-
-        } else {
-            showNotification(result.message || 'Login failed', 'error');
-            // Reset button
-            initGoogleAuth();
-        }
-    } catch (error) {
-        console.error('Google Response Error:', error);
-        showNotification('An error occurred during Google Sign-in', 'error');
-        initGoogleAuth();
     }
 }
 
@@ -728,7 +632,11 @@ function initHeaderScroll() {
 
 
 // Initialize all functions
-function init() {
+async function init() {
+  // 1. Initialize Auth Controller First
+  await authController.init();
+  
+  // 2. Load UI Components
   loadEvents();
   initMobileMenu();
   initUserIcon();
@@ -737,9 +645,9 @@ function init() {
   initSmoothScroll();
   initHeaderScroll();
   initGoogleAuth();
-  initUserLogin();
+  if (typeof initUserLogin === 'function') initUserLogin();
   
-  // Real-time synchronization (60s polling, only if not searching)
+  // Real-time synchronization (60s polling for events)
   setInterval(() => {
     const globalSearch = document.getElementById('globalSearch');
     if (!globalSearch || !globalSearch.value.trim()) {

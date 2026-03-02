@@ -42,7 +42,13 @@ function showNotification(message, type = 'info') {
       timer: 3000,
       timerProgressBar: true,
       background: '#ffffff',
-      color: '#000000'
+      color: '#000000',
+      customClass: {
+        container: 'eventra-toast-container'
+      },
+      didOpen: (toast) => {
+        toast.style.zIndex = '999999'; // Ensure above Google iframe
+      }
     });
     return;
   }
@@ -60,7 +66,7 @@ function showNotification(message, type = 'info') {
     color: white;
     border-radius: 8px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    z-index: 10000;
+    z-index: 999999;
     animation: slideIn 0.3s ease;
   `;
 
@@ -221,10 +227,19 @@ async function apiFetch(url, options = {}) {
   if (path.includes('/admin/')) portal = 'admin';
   else if (path.includes('/client/')) portal = 'client';
   
-  options.headers = {
-    ...options.headers,
-    'X-Eventra-Portal': portal
+  // Prepare headers
+  const headers = {
+    'X-Eventra-Portal': portal,
+    ...options.headers
   };
+
+  // Add Authorization header if token exists (Phase 1.5 Audit Fix)
+  const token = storage.getToken();
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  
+  options.headers = headers;
   
   try {
     const response = await fetch(url, options);
@@ -246,8 +261,7 @@ async function apiFetch(url, options = {}) {
         }
         
         // Clear stale local data
-        storage.remove('user');
-        storage.remove('auth_token');
+        storage.clearRoleSessions();
         
         window.location.href = loginPage;
         return null;

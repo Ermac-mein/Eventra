@@ -1,5 +1,7 @@
 <?php
 header('Content-Type: application/json');
+header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+header('Pragma: no-cache');
 require_once '../../config/database.php';
 require_once '../../includes/helpers/entity-resolver.php';
 
@@ -41,6 +43,12 @@ if (empty($clientId) || !isset($payload['aud']) || $payload['aud'] !== $clientId
 if (!isset($payload['sub']) || empty($payload['sub']) || !isset($payload['email'])) {
     echo json_encode(['success' => false, 'message' => 'Google information is missing from token.']);
     exit;
+}
+
+// Verify if email is verified by Google
+if (!isset($payload['email_verified']) || $payload['email_verified'] !== true) {
+    // Log as a warning but proceed - some Google accounts (like workspace or special accounts) may return false
+    error_log("Google Auth Warning: Email " . $payload['email'] . " is not marked as verified by Google.");
 }
 
 $google_id = $payload['sub'];
@@ -88,6 +96,20 @@ try {
             $stmt = $pdo->prepare("UPDATE auth_accounts SET provider_id = ? WHERE id = ?");
             $stmt->execute([$google_id, $user['id']]);
         }
+
+        // Sync Profile Data (Root Cause Fix: ensure name and pic are always fresh)
+        $pdo->beginTransaction();
+        if ($userRole === 'client') {
+            $stmt = $pdo->prepare("UPDATE clients SET name = ?, profile_pic = ? WHERE client_auth_id = ?");
+            $stmt->execute([$name, $profile_pic, $user['id']]);
+        } else {
+            $stmt = $pdo->prepare("UPDATE users SET name = ?, profile_pic = ? WHERE user_auth_id = ?");
+            $stmt->execute([$name, $profile_pic, $user['id']]);
+        }
+        $pdo->commit();
+
+        // Reload user entity to reflect changes
+        $user = resolveEntity($email);
     } else {
         // 4. Registration Flow (Google-only for Users/Clients)
         if ($intent === 'admin') {
