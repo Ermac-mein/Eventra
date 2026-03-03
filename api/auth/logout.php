@@ -6,19 +6,9 @@
 header('Content-Type: application/json');
 require_once '../../config/database.php';
 
-// Determine session name based on context (referer or path)
+// Ensure centralized session configuration is used
 if (session_status() === PHP_SESSION_NONE) {
-    // Try to guess based on referer first, then path
-    $ref = $_SERVER['HTTP_REFERER'] ?? '';
-
-    if (strpos($ref, '/admin/') !== false) {
-        session_name('EVENTRA_ADMIN_SESS');
-    } elseif (strpos($ref, '/client/') !== false) {
-        session_name('EVENTRA_CLIENT_SESS');
-    } else {
-        session_name('EVENTRA_USER_SESS');
-    }
-    session_start();
+    require_once '../../config/session-config.php';
 }
 
 try {

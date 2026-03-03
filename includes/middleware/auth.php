@@ -23,6 +23,40 @@ function checkAuth($requiredRole = null)
     $token = $_SESSION['auth_token'] ?? null;
     $sessionRole = $_SESSION['user_role'] ?? null;
 
+    // 2. Token Recovery: If session is missing, attempt to recover from Authorization header (Structural Fix)
+    if (!$token) {
+        $headers = array_change_key_case(getallheaders(), CASE_LOWER);
+        $authHeader = $headers['authorization'] ?? '';
+        if (!$authHeader && isset($_SERVER['HTTP_AUTHORIZATION'])) {
+            $authHeader = $_SERVER['HTTP_AUTHORIZATION'];
+        }
+
+        if (preg_match('/Bearer\s(\S+)/', $authHeader, $matches)) {
+            $token = $matches[1];
+
+            // Verify token and reconstruct session role/id if possible
+            $stmt = $pdo->prepare("SELECT a.id, a.role FROM auth_accounts a JOIN auth_tokens t ON a.id = t.auth_id WHERE t.token = ? AND t.expires_at > NOW()");
+            $stmt->execute([$token]);
+            $recovery = $stmt->fetch();
+
+            if ($recovery) {
+                $_SESSION['auth_token'] = $token;
+                $_SESSION['user_role'] = $recovery['role'];
+                $sessionRole = $recovery['role'];
+
+                // Set role-specific IDs
+                if ($sessionRole === 'admin')
+                    $_SESSION['admin_id'] = $recovery['id'];
+                elseif ($sessionRole === 'client')
+                    $_SESSION['client_id'] = $recovery['id'];
+                else
+                    $_SESSION['user_id'] = $recovery['id'];
+
+                $_SESSION['last_activity'] = time();
+            }
+        }
+    }
+
     // Resolve user_id based on role
     $user_id = null;
     if ($sessionRole === 'admin') {
@@ -112,6 +146,67 @@ function checkAuth($requiredRole = null)
         echo json_encode(['success' => false, 'message' => 'Internal server error during auth check.']);
         exit;
     }
+}
+
+/**
+ * Optional Authentication check.
+ * Returns user_id if authenticated, null otherwise.
+ * Does not exit or set HTTP 401.
+ */
+function checkAuthOptional()
+{
+    global $pdo;
+
+    if (session_status() === PHP_SESSION_NONE) {
+        require_once __DIR__ . '/../../config/session-config.php';
+    }
+
+    $token = $_SESSION['auth_token'] ?? null;
+    $sessionRole = $_SESSION['user_role'] ?? null;
+
+    // Token Recovery from Header
+    if (!$token) {
+        $headers = array_change_key_case(getallheaders(), CASE_LOWER);
+        $authHeader = $headers['authorization'] ?? '';
+        if (!$authHeader && isset($_SERVER['HTTP_AUTHORIZATION'])) {
+            $authHeader = $_SERVER['HTTP_AUTHORIZATION'];
+        }
+
+        if (preg_match('/Bearer\s(\S+)/', $authHeader, $matches)) {
+            $token = $matches[1];
+        }
+    }
+
+    if (!$token)
+        return null;
+
+    // Resolve user_id based on role if exists in session
+    $user_id = null;
+    if ($sessionRole === 'admin')
+        $user_id = $_SESSION['admin_id'] ?? null;
+    elseif ($sessionRole === 'client')
+        $user_id = $_SESSION['client_id'] ?? null;
+    else
+        $user_id = $_SESSION['user_id'] ?? null;
+
+    try {
+        if ($user_id) {
+            $stmt = $pdo->prepare("SELECT a.id, a.is_active FROM auth_accounts a JOIN auth_tokens t ON a.id = t.auth_id WHERE t.token = ? AND a.id = ? AND t.expires_at > NOW() AND a.deleted_at IS NULL");
+            $stmt->execute([$token, $user_id]);
+        } else {
+            // Recover from token alone if session ID is missing
+            $stmt = $pdo->prepare("SELECT a.id, a.is_active FROM auth_accounts a JOIN auth_tokens t ON a.id = t.auth_id WHERE t.token = ? AND t.expires_at > NOW() AND a.deleted_at IS NULL");
+            $stmt->execute([$token]);
+        }
+
+        $identity = $stmt->fetch();
+        if ($identity && $identity['is_active'] == 1) {
+            return $identity['id'];
+        }
+    } catch (PDOException $e) {
+    }
+
+    return null;
 }
 
 /**

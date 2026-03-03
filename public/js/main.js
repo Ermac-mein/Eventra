@@ -39,7 +39,7 @@ async function loadEvents() {
       
       // Get user location for Nearby events
       const keys = typeof getRoleKeys === 'function' ? getRoleKeys() : { user: 'user' };
-      const user = storage.get(keys.user) || storage.get('user');
+      const user = window.storage ? (window.storage.get(keys.user) || window.storage.get('user')) : null;
       const userState = user?.state?.toLowerCase();
       const userCity = user?.city?.toLowerCase();
 
@@ -236,7 +236,7 @@ function initUserIcon() {
       if (profileDropdown) profileDropdown.classList.remove('show');
       
       const keys = typeof getRoleKeys === 'function' ? getRoleKeys() : { user: 'user' };
-      const user = storage.get(keys.user) || storage.get('user');
+      const user = window.storage ? (window.storage.get(keys.user) || window.storage.get('user')) : null;
       if (!user) {
         showNotification('User profile not found. Please log in again.', 'info');
         if (loginModal) {
@@ -257,6 +257,22 @@ function initUserIcon() {
       setVal('profileAddress', user.address);
       
       if (profileSideModal) profileSideModal.classList.add('open');
+    });
+  }
+
+  // Profile Picture Preview Logic
+  const profilePicUpload = document.getElementById('profilePicUpload');
+  const modalProfilePic = document.getElementById('modalProfilePic');
+  if (profilePicUpload && modalProfilePic) {
+    profilePicUpload.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          modalProfilePic.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+      }
     });
   }
 
@@ -282,7 +298,7 @@ function initUserIcon() {
         const result = await response.json();
         
         if (result.success) {
-          storage.set(keys.user, result.user);
+          if (window.storage) window.storage.set(keys.user, result.user);
           showNotification('Profile updated successfully!', 'success');
           if (profileSideModal) profileSideModal.classList.remove('open');
           setupUI(); // Refresh icon and label immediately
@@ -796,10 +812,11 @@ async function initUserLogin() {
                 const result = await response.json();
                 if (result.success) {
                     const keys = typeof getRoleKeys === 'function' ? getRoleKeys() : { user: 'user', token: 'auth_token' };
-                    storage.set(keys.user, result.user);
-                    storage.set(keys.token, result.user.token);
-                    
-                    showNotification('Welcome back!', 'success');
+                    if (window.storage) {
+                        window.storage.set(keys.user, result.user);
+                        window.storage.set(keys.token, result.user.token);
+                    }
+                    showNotification('Sign in successful!', 'success');
                     
                     setTimeout(() => {
                         const redirectUrl = result.redirect || 'index.html';

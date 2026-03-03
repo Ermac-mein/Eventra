@@ -5,15 +5,22 @@
 class AuthController {
     constructor() {
         this.states = {
+            INITIALIZING: 'initializing',
             UNAUTHENTICATED: 'unauthenticated',
             AUTHENTICATING: 'authenticating',
             AUTHENTICATED: 'authenticated',
             ERROR: 'error'
         };
-        this.state = this.states.UNAUTHENTICATED;
+        this.state = this.states.INITIALIZING;
         this.user = null;
         this.googleInitialized = false;
         this.isRedirecting = false;
+        
+        // Promise that resolves when the first sync is complete
+        this._readyResolve = null;
+        this.ready = new Promise((resolve) => {
+            this._readyResolve = resolve;
+        });
     }
 
     /**
@@ -23,18 +30,24 @@ class AuthController {
         console.log('[AuthController] Initializing...');
         
         // 1. Initial State from Storage (Optimistic)
-        if (typeof isAuthenticated === 'function' && isAuthenticated()) {
-            this.user = storage.getUser();
-            this.state = this.states.AUTHENTICATED;
+        const storedUser = window.storage ? window.storage.getUser() : null;
+        const storedToken = window.storage ? window.storage.getToken() : null;
+        
+        if (storedUser && storedToken) {
+            this.user = storedUser;
+            this.setState(this.states.AUTHENTICATED);
         }
 
-        // 2. Clear Google prompt state on load to ensure clean start
-        if (typeof google !== 'undefined') {
-            google.accounts.id.cancel();
+        // 2. Perform server-side validation
+        try {
+            await this.syncSession();
+        } finally {
+            // Ensure ready promise resolves even on error
+            if (this._readyResolve) {
+                this._readyResolve(this.state);
+                this._readyResolve = null;
+            }
         }
-
-        // 3. Perform server-side validation
-        await this.syncSession();
         
         return this.state;
     }
@@ -43,16 +56,29 @@ class AuthController {
      * Synchronize session with backend
      */
     async syncSession() {
+        if (this.isRedirecting) return;
+        
         try {
             const basePath = getBasePath();
-            // Skip sync for login pages to avoid loops
-            if (window.location.pathname.includes('Login.html')) return;
+            const path = window.location.pathname;
+            
+            // Skip sync for portal/login pages to avoid loops, but still resolve ready
+            // Updated to be more robust for different environments
+            if (path.includes('Login.html') || path.includes('index.html')) {
+                // If we are on index.html, we only skip if trigger=login is present or if we are clearly in guest mode
+                const urlParams = new URLSearchParams(window.location.search);
+                if (path.includes('Login.html') || urlParams.get('trigger') === 'login') {
+                    this.setState(this.states.UNAUTHENTICATED);
+                    return;
+                }
+            }
 
             const response = await apiFetch(basePath + 'api/auth/check-session.php', {
                 cache: 'no-store'
             });
             
             if (!response) {
+                this.clearLocalState();
                 this.setState(this.states.UNAUTHENTICATED);
                 return;
             }
@@ -60,18 +86,19 @@ class AuthController {
             const result = await response.json();
             if (result.success) {
                 this.user = result.user;
-                storage.setUser(result.user);
+                if (window.storage) window.storage.setUser(result.user);
                 this.setState(this.states.AUTHENTICATED);
                 window.dispatchEvent(new CustomEvent('auth:sync', { detail: { success: true, user: result.user } }));
             } else {
-                if (this.state === this.states.AUTHENTICATED) {
-                    this.logout(false); // Silent logout if session expired
-                }
+                this.clearLocalState();
                 this.setState(this.states.UNAUTHENTICATED);
             }
         } catch (error) {
             console.error('[AuthController] Session sync failed:', error);
-            this.setState(this.states.ERROR);
+            // If we have local data but sync failed (network error?), keep current state but log error
+            if (this.state === this.states.INITIALIZING) {
+                this.setState(this.states.UNAUTHENTICATED);
+            }
         }
     }
 
@@ -83,6 +110,22 @@ class AuthController {
         console.log(`[AuthController] State change: ${this.state} -> ${newState}`);
         this.state = newState;
         window.dispatchEvent(new CustomEvent('auth:stateChange', { detail: { state: newState, user: this.user } }));
+        
+        // Global events for specific states
+        if (newState === this.states.AUTHENTICATED) {
+            window.dispatchEvent(new CustomEvent('auth:authenticated', { detail: { user: this.user } }));
+        } else if (newState === this.states.UNAUTHENTICATED) {
+            window.dispatchEvent(new CustomEvent('auth:unauthenticated'));
+        }
+    }
+
+    /**
+     * Clear only local auth data
+     */
+    clearLocalState() {
+        if (window.storage) window.storage.clearRoleSessions();
+        this.user = null;
+        this.setState(this.states.UNAUTHENTICATED);
     }
 
     /**
@@ -90,15 +133,13 @@ class AuthController {
      */
     clearSession() {
         console.log('[AuthController] Performing hard reset...');
-        storage.clearRoleSessions();
-        storage.remove('redirect_after_login');
-        this.user = null;
+        this.clearLocalState();
+        window.storage.remove('redirect_after_login');
         this.setState(this.states.UNAUTHENTICATED);
         
         // Force Google SDK reset
         if (typeof google !== 'undefined') {
             google.accounts.id.disableAutoSelect();
-            google.accounts.id.cancel();
         }
     }
 
@@ -153,25 +194,18 @@ class AuthController {
         
         this.setState(this.states.AUTHENTICATING);
         
-        // UI Requirement: Immediately show toast
         showNotification('Verifying with Google...', 'info');
 
-        // UI Requirement: Hide selector/prompt within 2s
-        setTimeout(() => {
-            if (typeof google !== 'undefined') {
-                google.accounts.id.cancel();
-            }
-            // Transition container to loading state
-            const container = document.getElementById('googleSignInContainer');
-            if (container) {
-                container.innerHTML = `
-                    <div class="auth-loading-spinner" style="display: flex; align-items: center; justify-content: center; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 8px;">
-                        <span class="spinner" style="margin-right: 10px;"></span>
-                        <span>Authenticating...</span>
-                    </div>
-                `;
-            }
-        }, 500);
+        // Transition container to loading state
+        const container = document.getElementById('googleSignInContainer');
+        if (container) {
+            container.innerHTML = `
+                <div class="auth-loading-spinner" style="display: flex; align-items: center; justify-content: center; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 8px;">
+                    <span class="spinner" style="margin-right: 10px; width: 20px; height: 20px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 0.8s linear infinite;"></span>
+                    <span style="color: white; font-size: 0.9rem;">Authenticating...</span>
+                </div>
+            `;
+        }
 
         try {
             const basePath = getBasePath();
@@ -189,16 +223,15 @@ class AuthController {
 
             if (result.success) {
                 this.user = result.user;
-                storage.setUser(result.user);
+                if (window.storage) window.storage.setUser(result.user);
                 this.setState(this.states.AUTHENTICATED);
                 
                 showNotification('Welcome to Eventra!', 'success');
                 
-                // UI Requirement: 2s delay BEFORE redirect
                 this.isRedirecting = true;
                 setTimeout(() => {
                     this.handleRedirect(result.redirect);
-                }, 2000);
+                }, 1500);
             } else {
                 throw new Error(result.message || 'Authentication failed');
             }
@@ -207,9 +240,8 @@ class AuthController {
             showNotification(error.message, 'error');
             this.setState(this.states.ERROR);
             
-            // UI Requirement: After 2s, reset button
             setTimeout(() => {
-                this.syncSession(); // Reset state
+                this.syncSession(); 
                 const container = document.getElementById('googleSignInContainer');
                 if (container) this.renderGoogleButton('googleSignInContainer');
             }, 2000);
@@ -229,11 +261,24 @@ class AuthController {
     /**
      * Unified Redirect Handler
      */
-    handleRedirect(backendRedirect) {
-        const storedRedirect = sessionStorage.getItem('redirect_after_login');
-        sessionStorage.removeItem('redirect_after_login');
-        
-        const target = storedRedirect || backendRedirect || 'public/pages/index.html';
+    handleRedirect(target) {
+        if (!target) {
+            const basePath = getBasePath();
+            const role = this.user ? this.user.role : 'user';
+            
+            if (role === 'admin') target = basePath + 'admin/pages/adminDashboard.html';
+            else if (role === 'client') target = basePath + 'client/pages/clientDashboard.html';
+            else target = basePath + 'public/pages/index.html';
+        }
+
+        // Check if there was a pending redirect
+        const pending = window.storage ? window.storage.get('redirect_after_login') : null;
+        if (pending) {
+            if (window.storage) window.storage.remove('redirect_after_login');
+            window.location.href = pending;
+            return;
+        }
+
         const finalUrl = target.includes('://') ? target : getBasePath() + target.replace(/^\//, '');
         
         window.location.href = finalUrl;

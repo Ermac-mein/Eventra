@@ -70,7 +70,13 @@ try {
             'name' => $user['name'],
             'email' => $user['email'],
             'role' => $user['role'],
-            'profile_pic' => $user['profile_pic'] ?? null,
+            'profile_pic' => (function ($pic) {
+                if (!$pic)
+                    return null;
+                if (preg_match('/^https?:\/\//i', $pic))
+                    return $pic;
+                return '/' . ltrim($pic, '/');
+            })($user['profile_pic'] ?? null),
             'token' => $token
         ]
     ]);

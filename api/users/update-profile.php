@@ -80,7 +80,10 @@ try {
     if ($updated_user) {
         $updated_user['role'] = 'user';
         if ($updated_user['profile_pic']) {
-            $updated_user['profile_pic'] = '/' . $updated_user['profile_pic'];
+            // Only prepend slash if it's a relative path (doesn't start with http/https)
+            if (!preg_match('/^https?:\/\//i', $updated_user['profile_pic'])) {
+                $updated_user['profile_pic'] = '/' . ltrim($updated_user['profile_pic'], '/');
+            }
         }
     }
 

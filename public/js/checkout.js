@@ -26,7 +26,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     try {
         // Fetch User Data from storage
         const keys = typeof getRoleKeys === 'function' ? getRoleKeys() : { user: 'user' };
-        currentUser = storage.get(keys.user) || storage.get('user');
+        currentUser = (window.storage?.get(keys.user)) || (window.storage?.get('user'));
         
         if (currentUser) {
             document.getElementById('firstName').value = currentUser.name ? currentUser.name.split(' ')[0] : '';
@@ -326,7 +326,7 @@ async function createTicket(eventId, quantity, paymentReference) {
                 confirmButtonColor: '#ff5a5f'
             }).then(() => {
                 const keys = typeof getRoleKeys === 'function' ? getRoleKeys() : { role: 'role' };
-                const role = storage.get(keys.role) || storage.get('role');
+                const role = window.storage?.get(keys.role) || window.storage?.get('role') || (window.storage?.getUser()?.role);
                 if(role === 'client') {
                     window.location.href = '../../client/pages/tickets.html';
                 } else if(role === 'admin') {

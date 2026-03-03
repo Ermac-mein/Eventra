@@ -82,14 +82,14 @@
                 <button class="close-modal" id="closeProfileModal">&times;</button>
             </div>
             <div class="side-modal-body">
-                <div class="profile-pic-large">
-                    <img id="modalProfilePic" src="" alt="Profile Picture">
-                    <label for="profilePicUpload" class="edit-pic-overlay">
-                        <span>Edit</span>
-                        <input type="file" id="profilePicUpload" hidden accept="image/*">
-                    </label>
-                </div>
                 <form id="profileEditForm">
+                    <div class="profile-pic-large">
+                        <img id="modalProfilePic" src="" alt="Profile Picture">
+                        <label for="profilePicUpload" class="edit-pic-overlay">
+                            <span>Edit</span>
+                            <input type="file" id="profilePicUpload" name="profile_pic" hidden accept="image/*">
+                        </label>
+                    </div>
                     <div class="form-group">
                         <label>Full Name</label>
                         <input type="text" id="profileName" name="name" class="form-input">
@@ -357,6 +357,7 @@
 
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="../js/storage.js"></script>
     <script src="../js/utils.js"></script>
     <script src="../js/auth-controller.js"></script>
     <script src="../js/main.js"></script>

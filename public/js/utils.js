@@ -81,65 +81,9 @@ function showNotification(message, type = 'info') {
 
 
 
-// Local storage helpers
-const storage = {
-  set: (key, value) => {
-    try {
-      localStorage.setItem(key, JSON.stringify(value));
-      return true;
-    } catch (e) {
-      console.error('Error saving to localStorage:', e);
-      return false;
-    }
-  },
-  get: (key) => {
-    try {
-      const item = localStorage.getItem(key);
-      return item ? JSON.parse(item) : null;
-    } catch (e) {
-      console.error('Error reading from localStorage:', e);
-      return null;
-    }
-  },
-  remove: (key) => {
-    try {
-      localStorage.removeItem(key);
-      return true;
-    } catch (e) {
-      console.error('Error removing from localStorage:', e);
-      return false;
-    }
-  },
-  // Role-aware helpers
-  getUser: () => {
-    const keys = getRoleKeys();
-    return storage.get(keys.user);
-  },
-  setUser: (userData) => {
-    const keys = getRoleKeys();
-    return storage.set(keys.user, userData);
-  },
-  getToken: () => {
-    const keys = getRoleKeys();
-    return storage.get(keys.token);
-  },
-  setToken: (token) => {
-    const keys = getRoleKeys();
-    return storage.set(keys.token, token);
-  },
-  clearRoleSessions: () => {
-    const keys = getRoleKeys();
-    storage.remove(keys.user);
-    storage.remove(keys.token);
-  }
-};
-
-// Auth helpers
+// Auth helpers - Rely on window.storage for consistency
 function getRoleKeys() {
-  const path = window.location.pathname;
-  if (path.includes('/admin/')) return { user: 'admin_user', token: 'admin_auth_token' };
-  if (path.includes('/client/')) return { user: 'client_user', token: 'client_auth_token' };
-  return { user: 'user', token: 'auth_token' };
+    return window.storage ? window.storage.getRoleKeys() : { user: 'user', token: 'auth_token' };
 }
 
 function getBasePath() {
@@ -153,54 +97,19 @@ function getBasePath() {
 }
 
 function isAuthenticated() {
-  const keys = getRoleKeys();
-  const user = storage.get(keys.user);
-  const token = storage.get(keys.token);
+  if (!window.storage) return false;
+  const user = window.storage.getUser();
+  const token = window.storage.getToken();
   return !!(user && token);
 }
 
-// Session Sync: Strictly verify authentication with the server
-async function syncSession() {
-  try {
-    const basePath = getBasePath();
-    
-    // Skip sync for login pages to avoid loops
-    if (window.location.pathname.includes('Login.html')) return;
-
-    const response = await apiFetch(basePath + 'api/auth/check-session.php');
-    if (!response) {
-      window.dispatchEvent(new CustomEvent('sessionSyncComplete', { detail: { success: false } }));
-      return;
-    }
-
-    const result = await response.json();
-    if (result.success) {
-      storage.setUser(result.user);
-      storage.setToken(result.user.token);
-      window.dispatchEvent(new CustomEvent('sessionSyncComplete', { detail: { success: true, user: result.user } }));
-    } else {
-      // Only clear if we were previously logged in to avoid constant clearing
-      if (isAuthenticated()) {
-         storage.clearRoleSessions();
-      }
-      window.dispatchEvent(new CustomEvent('sessionSyncComplete', { detail: { success: false } }));
-    }
-
-  } catch (error) {
-    console.error('Session sync failed:', error);
-    window.dispatchEvent(new CustomEvent('sessionSyncComplete', { detail: { success: false, error } }));
-  }
-}
-
-// Trigger sync on load
-if (typeof window !== 'undefined') {
-  document.addEventListener('DOMContentLoaded', syncSession);
-}
+// Trigger sync on load - Moved to AuthController.init() in main.js
+// document.addEventListener('DOMContentLoaded', syncSession);
 
 function handleAuthRedirect(targetURL) {
   if (!isAuthenticated()) {
     const effectiveTarget = targetURL || window.location.href;
-    storage.set('redirect_after_login', effectiveTarget);
+    window.storage.set('redirect_after_login', effectiveTarget);
     
     // Use origin-based absolute URLs to avoid broken relative path resolution
     const origin = window.location.origin;
@@ -234,7 +143,7 @@ async function apiFetch(url, options = {}) {
   };
 
   // Add Authorization header if token exists (Phase 1.5 Audit Fix)
-  const token = storage.getToken();
+  const token = window.storage ? window.storage.getToken() : null;
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
   }
@@ -253,17 +162,26 @@ async function apiFetch(url, options = {}) {
         
         let loginPage;
         if (path.includes('/admin/')) {
-          loginPage = origin + '/admin/pages/adminLogin.html?error=session_timeout';
+          loginPage = origin + '/admin/pages/adminLogin.html';
         } else if (path.includes('/client/')) {
-          loginPage = origin + '/client/pages/clientLogin.html?error=session_timeout';
+          loginPage = origin + '/client/pages/clientLogin.html';
         } else {
-          loginPage = origin + '/public/pages/index.html?trigger=login&error=session_timeout';
+          loginPage = origin + '/public/pages/index.html';
         }
         
-        // Clear stale local data
-        storage.clearRoleSessions();
+        // Prevent redirect loop if we are already on the potential login/portal page
+        if (path === new URL(loginPage).pathname || (path.includes('index.html') && loginPage.includes('index.html'))) {
+           if (window.storage) window.storage.clearRoleSessions();
+           return response; // Return response so caller can handle it or let it fail gracefully
+        }
+
+        // Add error param for feedback
+        const finalRedirect = loginPage + (loginPage.includes('?') ? '&' : '?') + 'error=session_timeout' + (loginPage.includes('index.html') ? '&trigger=login' : '');
         
-        window.location.href = loginPage;
+        // Clear stale local data
+        if (window.storage) window.storage.clearRoleSessions();
+        
+        window.location.href = finalRedirect;
         return null;
       }
     }
@@ -283,7 +201,6 @@ if (typeof module !== 'undefined' && module.exports) {
     debounce,
     isValidEmail,
     showNotification,
-    storage,
     getRoleKeys,
     isAuthenticated,
     handleAuthRedirect,

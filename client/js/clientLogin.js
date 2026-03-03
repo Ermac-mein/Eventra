@@ -174,7 +174,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (result.success) {
                 // Isolate session storage by role
-                storage.setUser(result.user);
+                if (window.storage) window.storage.setUser(result.user);
 
                 // Premium Feedback
                 if (typeof Swal !== 'undefined') {

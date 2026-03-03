@@ -3,7 +3,7 @@
  * Simple wrapper for localStorage with JSON support
  */
 
-if (typeof storage === 'undefined') {
+if (typeof window.storage === 'undefined' || !window.storage) {
     window.storage = {
         set: function(key, value) {
             try {
@@ -37,10 +37,10 @@ if (typeof storage === 'undefined') {
 
         clear: function() {
             try {
-                // Non-destructive clear (Only client-side keys)
-                localStorage.removeItem('client_user');
-                localStorage.removeItem('client_auth_token');
-                localStorage.removeItem('redirect_after_login');
+                const keys = this.getRoleKeys();
+                this.remove(keys.user);
+                this.remove(keys.token);
+                this.remove('redirect_after_login');
                 return true;
             } catch (error) {
                 console.error('Error clearing storage:', error);
@@ -65,18 +65,32 @@ if (typeof storage === 'undefined') {
 
         setUser: function(userData) {
             const keys = this.getRoleKeys();
-            if (userData.token) {
+            if (userData && userData.token) {
                 this.set(keys.token, userData.token);
             }
             return this.set(keys.user, userData);
+        },
+
+        getToken: function() {
+            const keys = this.getRoleKeys();
+            return this.get(keys.token);
+        },
+
+        clearRoleSessions: function() {
+             const keys = this.getRoleKeys();
+             this.remove(keys.user);
+             this.remove(keys.token);
         }
     };
 }
 
-// Global helper for role-specific keys
+// Global helper for role-specific keys (backward-compatible shorthand)
 if (typeof getRoleKeys === 'undefined') {
     window.getRoleKeys = function() {
         return window.storage.getRoleKeys();
     };
 }
 
+// Global alias: expose storage to global scope so existing code using bare `storage.` works
+// This bridges old code patterns with the unified window.storage singleton.
+var storage = window.storage;

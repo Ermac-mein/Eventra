@@ -45,7 +45,25 @@ function getEventraSessionName()
 {
     $uri = $_SERVER['REQUEST_URI'] ?? '';
     $referer = $_SERVER['HTTP_REFERER'] ?? '';
-    $portalHeader = $_SERVER['HTTP_X_EVENTRA_PORTAL'] ?? '';
+
+    // Polyfill for getallheaders in non-Apache/CLI environments
+    if (!function_exists('getallheaders')) {
+        function getallheaders()
+        {
+            $headers = [];
+            foreach ($_SERVER as $name => $value) {
+                if (substr($name, 0, 5) == 'HTTP_') {
+                    $headerName = str_replace(' ', '-', ucwords(strtolower(str_replace('_', ' ', substr($name, 5)))));
+                    $headers[$headerName] = $value;
+                }
+            }
+            return $headers;
+        }
+    }
+
+    // Normalize headers for case-insensitivity
+    $headers = array_change_key_case(getallheaders(), CASE_LOWER);
+    $portalHeader = $headers['x-eventra-portal'] ?? '';
 
     // Priority 1: Explicit Portal Header (Trusted source for internal requests)
     if ($portalHeader === 'admin')
@@ -56,25 +74,19 @@ function getEventraSessionName()
         return 'EVENTRA_USER_SESS';
 
     // Priority 2: Direct Path Detection (Most common for direct browser access)
-    if (strpos($uri, '/admin/') !== false) {
+    if (strpos($uri, '/admin/') !== false || strpos($referer, '/admin/') !== false) {
         return 'EVENTRA_ADMIN_SESS';
     }
-    if (strpos($uri, '/client/') !== false) {
+    if (strpos($uri, '/client/') !== false || strpos($referer, '/client/') !== false) {
         return 'EVENTRA_CLIENT_SESS';
     }
 
     // Priority 3: API Context Handling
     if (strpos($uri, '/api/') !== false) {
         // Stats and role-specific endpoints
-        if (strpos($uri, '/get-admin') !== false || strpos($uri, '/admin-') !== false)
+        if (strpos($uri, '/api/admin/') !== false || strpos($uri, '/admin-') !== false)
             return 'EVENTRA_ADMIN_SESS';
-        if (strpos($uri, '/get-client') !== false || strpos($uri, '/client-') !== false)
-            return 'EVENTRA_CLIENT_SESS';
-
-        // Check Referer for portal context if not explicitly in URI
-        if (strpos($referer, '/admin/') !== false)
-            return 'EVENTRA_ADMIN_SESS';
-        if (strpos($referer, '/client/') !== false)
+        if (strpos($uri, '/api/clients/') !== false || strpos($uri, '/client-') !== false)
             return 'EVENTRA_CLIENT_SESS';
     }
 

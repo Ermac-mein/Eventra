@@ -1,6 +1,13 @@
 # Apache configuration for URL rewriting and security
 
 <IfModule mod_headers.c>
+    # Critical for Google Identity Services (GSI) Popups
     Header set Cross-Origin-Opener-Policy "same-origin-allow-popups"
     Header set Cross-Origin-Embedder-Policy "unsafe-none"
+    
+    # Cache Control for API endpoints to prevent stale check-session responses
+    <FilesMatch "\.(php|json)$">
+        Header set Cache-Control "no-store, no-cache, must-revalidate, max-age=0"
+        Header set Pragma "no-cache"
+    </FilesMatch>
 </IfModule>

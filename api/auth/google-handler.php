@@ -97,19 +97,34 @@ try {
             $stmt->execute([$google_id, $user['id']]);
         }
 
-        // Sync Profile Data (Root Cause Fix: ensure name and pic are always fresh)
+        // Sync Profile Data (UPSERT logic to handle missing profile records)
         $pdo->beginTransaction();
         if ($userRole === 'client') {
-            $stmt = $pdo->prepare("UPDATE clients SET name = ?, profile_pic = ? WHERE client_auth_id = ?");
-            $stmt->execute([$name, $profile_pic, $user['id']]);
+            $stmt = $pdo->prepare("
+                INSERT INTO clients (client_auth_id, business_name, email, name, profile_pic, password) 
+                VALUES (?, ?, ?, ?, ?, 'GOOGLE_AUTH')
+                ON DUPLICATE KEY UPDATE name = VALUES(name), profile_pic = VALUES(profile_pic)
+            ");
+            $stmt->execute([$user['id'], $name, $email, $name, $profile_pic]);
         } else {
-            $stmt = $pdo->prepare("UPDATE users SET name = ?, profile_pic = ? WHERE user_auth_id = ?");
-            $stmt->execute([$name, $profile_pic, $user['id']]);
+            $stmt = $pdo->prepare("
+                INSERT INTO users (user_auth_id, name, profile_pic) 
+                VALUES (?, ?, ?)
+                ON DUPLICATE KEY UPDATE name = VALUES(name), profile_pic = VALUES(profile_pic)
+            ");
+            $stmt->execute([$user['id'], $name, $profile_pic]);
         }
         $pdo->commit();
 
         // Reload user entity to reflect changes
         $user = resolveEntity($email);
+
+        // Consistent URL formatting for the response
+        if (isset($user['profile_pic']) && $user['profile_pic']) {
+            if (!preg_match('/^https?:\/\//i', $user['profile_pic'])) {
+                $user['profile_pic'] = '/' . ltrim($user['profile_pic'], '/');
+            }
+        }
     } else {
         // 4. Registration Flow (Google-only for Users/Clients)
         if ($intent === 'admin') {
@@ -147,6 +162,7 @@ try {
         $user = resolveEntity($email);
     }
 
+    $userRole = strtolower($user['role']);
     // Set Token
     $token = bin2hex(random_bytes(32));
     $expires_at = date('Y-m-d H:i:s', strtotime('+2 hours'));
@@ -161,8 +177,13 @@ try {
     // Update last login
     $pdo->prepare("UPDATE auth_accounts SET last_login_at = NOW(), is_online = 1 WHERE id = ?")->execute([$user['id']]);
 
-    // 4. Set Entity-Scoped Session
-    $userRole = strtolower($user['role']);
+    // 4. Set Entity-Scoped Session using centralized config
+    if (session_status() === PHP_SESSION_NONE) {
+        require_once '../../config/session-config.php';
+    }
+
+    // Since session-config.php starts a session with a name based on headers/URI,
+    // we should ensure the name matches the user's role if we are on a login handler.
     $expectedSessionName = 'EVENTRA_USER_SESS';
     if ($userRole === 'admin') {
         $expectedSessionName = 'EVENTRA_ADMIN_SESS';
@@ -178,7 +199,11 @@ try {
         $_SESSION = [];
     }
 
-    // Strict Role-Specific Session Keys
+    // Atomic Session Data Assignment
+    $_SESSION['auth_token'] = $token;
+    $_SESSION['user_role'] = $userRole;
+
+    // Set role-specific IDs for broad middleware compatibility
     if ($userRole === 'admin') {
         $_SESSION['admin_id'] = $user['id'];
     } elseif ($userRole === 'client') {
@@ -187,9 +212,7 @@ try {
         $_SESSION['user_id'] = $user['id'];
     }
 
-    $_SESSION['user_role'] = $userRole;
-    $_SESSION['auth_token'] = $token;
-
+    $_SESSION['last_activity'] = time();
 
     // Log success
     logSecurityEvent($user['id'], $email, 'login_success', 'google', "Logged in as $userRole via portal $intent");
@@ -222,7 +245,13 @@ try {
             'name' => $user['name'],
             'email' => $user['email'],
             'role' => $userRole,
-            'profile_pic' => $user['profile_pic'] ?? null,
+            'profile_pic' => (function ($pic) {
+                if (!$pic)
+                    return null;
+                if (preg_match('/^https?:\/\//i', $pic))
+                    return $pic;
+                return '/' . ltrim($pic, '/');
+            })($user['profile_pic'] ?? null),
             'token' => $token
         ]
     ]);

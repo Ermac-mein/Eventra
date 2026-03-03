@@ -43,6 +43,9 @@ try {
     } elseif ($role === 'admin') {
         $stmt = $pdo->prepare("INSERT INTO admins (admin_auth_id, name, password) VALUES (?, ?, ?)");
         $stmt->execute([$auth_id, $name, $hashedPassword]);
+    } elseif ($role === 'user') {
+        $stmt = $pdo->prepare("INSERT INTO users (user_auth_id, name) VALUES (?, ?)");
+        $stmt->execute([$auth_id, $name]);
     }
 
     $pdo->commit();

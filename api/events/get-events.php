@@ -9,10 +9,8 @@ require_once '../../config/database.php';
 require_once '../../includes/middleware/auth.php';
 
 try {
-    // Optional check: if token exists, validate it. Otherwise, treat as guest.
-    if (isset($_SESSION['auth_token'])) {
-        checkAuth();
-    }
+    // Optional check: Use non-blocking auth check to support guest access with stale tokens
+    $user_id = checkAuthOptional();
 
     $client_id = $_GET['client_id'] ?? null;
     $status = $_GET['status'] ?? null;

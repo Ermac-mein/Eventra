@@ -127,7 +127,7 @@ document.addEventListener('DOMContentLoaded', () => {
             console.log("Login Result:", result);
 
             if (result.success) {
-                storage.setUser(result.user);
+                if (window.storage) window.storage.setUser(result.user);
 
                 // Premium Feedback
                 if (typeof Swal !== 'undefined') {
@@ -244,7 +244,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const result = await res.json();
 
             if (result.success) {
-                storage.setUser(result.user);
+                if (window.storage) window.storage.setUser(result.user);
                 
                 if (typeof Swal !== 'undefined') {
                     Swal.fire({
