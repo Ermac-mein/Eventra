@@ -11,15 +11,10 @@ header('Content-Type: application/json');
 
 try {
     require_once '../../config/database.php';
+    require_once '../../includes/middleware/auth.php';
 
-    // Check authentication
-    if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'client') {
-        http_response_code(401);
-        echo json_encode(['success' => false, 'message' => 'Unauthorized']);
-        exit;
-    }
-
-    $auth_id = $_SESSION['user_id'];
+    // Check authentication and ensure it's a client
+    $auth_id = clientMiddleware();
 
     // Resolve real_client_id from auth_id
     $client_stmt = $pdo->prepare("SELECT id FROM clients WHERE client_auth_id = ?");

@@ -19,7 +19,7 @@ try {
     // 1. "Day Before" Rule: Precisely 24 hours from now
     // Window: ±1 minute (since cron runs every minute)
     $oneDayQuery = $pdo->prepare("
-        SELECT e.*, c.auth_id as client_auth_id, c.business_name
+        SELECT e.*, c.client_auth_id, c.business_name
         FROM events e
         JOIN clients c ON e.client_id = c.id
         WHERE e.status = 'scheduled'
@@ -34,7 +34,7 @@ try {
 
     // 2. "Direct" Trigger: Event time has passed or is now
     $immediateQuery = $pdo->prepare("
-        SELECT e.*, c.auth_id as client_auth_id, c.business_name
+        SELECT e.*, c.client_auth_id, c.business_name
         FROM events e
         JOIN clients c ON e.client_id = c.id
         WHERE e.status = 'scheduled'

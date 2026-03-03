@@ -28,7 +28,7 @@ function initializeChart() {
 
 async function loadChartData() {
     try {
-        const user = storage.get('user');
+        const user = window.storage ? window.storage.getUser() : null;
         if (!user) return;
 
         // Fetch chart data from new API

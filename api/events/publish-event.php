@@ -5,17 +5,16 @@
  */
 header('Content-Type: application/json');
 require_once '../../config/database.php';
+require_once '../../includes/middleware/auth.php';
 
 // Check authentication
-if (!isset($_SESSION['user_id'])) {
-    http_response_code(401);
-    echo json_encode(['success' => false, 'message' => 'Unauthorized']);
-    exit;
-}
+$user_id = clientMiddleware();
+$role = $_SESSION['role'] ?? 'client';
 
 $data = json_decode(file_get_contents("php://input"), true);
 $event_id = $data['event_id'] ?? null;
-$user_id = $_SESSION['user_id'];
+// checkAuth('client') returns the auth_account.id stored as client_id in session
+$user_id = $_SESSION['client_id'] ?? $_SESSION['user_id'] ?? null;
 
 if (!$event_id) {
     echo json_encode(['success' => false, 'message' => 'Event ID is required']);
@@ -28,7 +27,7 @@ try {
     $stmt->execute([$user_id]);
     $client = $stmt->fetch();
 
-    if (!$client && $_SESSION['role'] !== 'admin') {
+    if (!$client && $role !== 'admin') {
         http_response_code(403);
         echo json_encode(['success' => false, 'message' => 'Client profile not found']);
         exit;
@@ -47,7 +46,7 @@ try {
     }
 
     // Check if user is the client who created the event or admin
-    if ($_SESSION['role'] !== 'admin' && $event['client_id'] != $resolved_client_id) {
+    if ($role !== 'admin' && $event['client_id'] != $resolved_client_id) {
         http_response_code(403);
         echo json_encode(['success' => false, 'message' => 'You do not have permission to publish this event']);
         exit;

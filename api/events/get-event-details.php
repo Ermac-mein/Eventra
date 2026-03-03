@@ -43,7 +43,7 @@ try {
     if ($user_role !== 'admin' && $event['status'] !== 'published') {
         if ($user_role === 'client') {
             // Check if it's the client's own event
-            $stmt = $pdo->prepare("SELECT id FROM clients WHERE auth_id = ?");
+            $stmt = $pdo->prepare("SELECT id FROM clients WHERE client_auth_id = ?");
             $stmt->execute([$user_id]);
             $client = $stmt->fetch();
             if (!$client || $event['client_id'] != $client['id']) {
@@ -55,6 +55,24 @@ try {
             exit;
         }
     }
+
+    // Sanitize and enhance event data for checkout
+    $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http';
+    $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+    $baseUrl = "$protocol://$host/";
+
+    if (!empty($event['image_path'])) {
+        $event['absolute_image_url'] = $baseUrl . ltrim($event['image_path'], '/');
+    } else {
+        $event['absolute_image_url'] = 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=600&h=400&fit=crop';
+    }
+
+    // Ensure price is numeric
+    $event['price'] = (float) ($event['price'] ?? 0);
+
+    // Calculate a mock end_datetime if not present (default 4 hours after start)
+    $event['event_start_datetime'] = $event['event_date'] . ' ' . ($event['event_time'] ?: '00:00:00');
+    $event['event_end_datetime'] = date('Y-m-d H:i:s', strtotime($event['event_start_datetime'] . ' +4 hours'));
 
     echo json_encode([
         'success' => true,

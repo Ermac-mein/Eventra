@@ -202,6 +202,7 @@ try {
     // Atomic Session Data Assignment
     $_SESSION['auth_token'] = $token;
     $_SESSION['user_role'] = $userRole;
+    $_SESSION['role'] = $userRole; // Normalize for legacy support
 
     // Set role-specific IDs for broad middleware compatibility
     if ($userRole === 'admin') {
@@ -244,6 +245,7 @@ try {
             'id' => $user['id'],
             'name' => $user['name'],
             'email' => $user['email'],
+            'phone' => $user['phone'] ?? null,
             'role' => $userRole,
             'profile_pic' => (function ($pic) {
                 if (!$pic)

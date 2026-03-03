@@ -91,8 +91,8 @@ try {
         INSERT INTO events (
             client_id, event_name, description, event_type, event_date, event_time,
             phone_contact_1, phone_contact_2, state, address, visibility, tag,
-            external_link, price, image_path, priority, status, scheduled_publish_time
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            external_link, price, image_path, priority, status, scheduled_publish_time, category
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ");
 
     $stmt->execute([
@@ -113,7 +113,8 @@ try {
         $image_path,
         $priority,
         $status,
-        $scheduled_publish_time
+        $scheduled_publish_time,
+        $event_type
     ]);
 
     $event_id = $pdo->lastInsertId();
@@ -150,7 +151,7 @@ try {
         ]
     ]);
 
-} catch (PDOException $e) {
+} catch (Throwable $e) {
     http_response_code(500);
-    echo json_encode(['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);
+    echo json_encode(['success' => false, 'message' => 'Error: ' . $e->getMessage()]);
 }

@@ -1,4 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
+    const basePath = getBasePath();
     const loginForm = document.getElementById('loginForm');
     const emailInput = document.getElementById('email');
     const passwordInput = document.getElementById('password');
@@ -79,11 +80,14 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Google Sign In (Refactored to Container-based GIS)
-    const googleContainer = document.getElementById('googleContainer');
-    if (googleContainer) {
-        googleContainer.innerHTML = '<div id="googleSignInContainer"></div>';
-        
+    // Google Sign In (Using Custom Themed Button)
+    if (googleSignIn) {
+        googleSignIn.addEventListener('click', () => {
+            if (window.authController) {
+                window.authController.handleGoogleLoginManual();
+            }
+        });
+
         // Load Google Config and Initialize
         (async () => {
             try {
@@ -95,7 +99,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     const checkGoogle = setInterval(() => {
                         if (typeof google !== 'undefined') {
                             clearInterval(checkGoogle);
-                            authController.initGoogle(configData.client_id, 'googleSignInContainer');
+                            // Initialize without rendering a button
+                            authController.initGoogle(configData.client_id, null);
                         } else if (attempts > 50) {
                             clearInterval(checkGoogle);
                         }
@@ -136,6 +141,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return '../';
     }
 
+
     // Add form submission listener
     if (loginForm) {
         loginForm.addEventListener('submit', (e) => {
@@ -143,7 +149,6 @@ document.addEventListener('DOMContentLoaded', () => {
             handleLogin();
         });
     }
-    const basePath = getBasePath();
 
     async function handleLogin() {
         const originalBtnText = loginButton.innerHTML;
@@ -194,10 +199,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 
                 setTimeout(() => {
-                    let redirectUrl = result.redirect || 'public/pages/index.html';
-                    const cleanRedirect = redirectUrl.startsWith('/') ? redirectUrl.substring(1) : redirectUrl;
-                    const finalTarget = basePath + cleanRedirect;
-                    window.location.href = finalTarget;
+                    if (window.authController) {
+                        window.authController.handleRedirect(result.redirect);
+                    } else {
+                        window.location.href = basePath + (result.redirect || 'client/pages/clientDashboard.html');
+                    }
                 }, 1600);
             } else {
                 // If the message contains "Email", show it there, otherwise show at password

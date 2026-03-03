@@ -149,6 +149,12 @@ function initUserIcon() {
   const setupUI = () => {
     const user = authController.user;
 
+    // Loading/Syncing state
+    if (authController.isSyncing && !user) {
+        if (dropdownUserName) dropdownUserName.textContent = 'Loading...';
+        return;
+    }
+
     if (authController.state === authController.states.AUTHENTICATED && user) {
       // Update icon
       if (userProfileImg) {
@@ -162,8 +168,8 @@ function initUserIcon() {
       // Update dropdown details
       if (dropdownUserName) dropdownUserName.textContent = user.name || 'User';
       if (dropdownUserEmail) dropdownUserEmail.textContent = user.email || '';
-    } else {
-      // Revert to guest UI
+    } else if (!authController.isSyncing) {
+      // Revert to guest UI ONLY if not syncing
       if (userProfileImg) userProfileImg.style.display = 'none';
       if (defaultUserIcon) defaultUserIcon.style.display = 'block';
       if (userOnlineStatus) userOnlineStatus.style.display = 'none';
@@ -252,6 +258,9 @@ function initUserIcon() {
       setVal('profileName', user.name);
       setVal('profileEmail', user.email);
       setVal('profilePhone', user.phone);
+      setVal('profileDob', user.dob);
+      setVal('profileGender', user.gender);
+      setVal('profileCountry', user.country);
       setVal('profileState', user.state);
       setVal('profileCity', user.city);
       setVal('profileAddress', user.address);
@@ -507,7 +516,7 @@ function createEventCard(event, index) {
   const eventTime = escapeHTML(event.event_time) || 'TBA';
   const isFavorite = event.is_favorite ? 'active' : '';
   const eventName = escapeHTML(event.event_name);
-  const category = escapeHTML(event.category) || 'Event';
+  const category = escapeHTML(event.category || event.event_type) || 'Event';
   const city = escapeHTML(event.city) || '';
   const state = escapeHTML(event.state) || 'Nigeria';
   const desc = escapeHTML(event.description || '');
@@ -716,7 +725,7 @@ function showEventModal(eventId) {
   document.getElementById('modalEventTime').textContent = event.event_time || 'TBA';
   document.getElementById('modalEventLocation').textContent = `${event.city || ''} ${event.state || 'Nigeria'}`.trim();
   document.getElementById('modalEventDescription').textContent = event.description || 'No description available';
-  document.getElementById('modalEventCategory').textContent = event.category || 'General';
+  document.getElementById('modalEventCategory').textContent = event.category || event.event_type || 'General';
   const modalPrice = !event.price || parseFloat(event.price) === 0 ? 'Free' : `₦${parseFloat(event.price).toLocaleString()}`;
   document.getElementById('modalEventPrice').textContent = modalPrice;
 

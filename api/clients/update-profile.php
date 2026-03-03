@@ -4,15 +4,10 @@
  */
 header('Content-Type: application/json');
 require_once '../../config/database.php';
+require_once '../../includes/middleware/auth.php';
 
 // Check authentication
-if (!isset($_SESSION['client_id']) || ($_SESSION['user_role'] ?? $_SESSION['role']) !== 'client') {
-    http_response_code(401);
-    echo json_encode(['success' => false, 'message' => 'Unauthorized']);
-    exit;
-}
-
-$client_id = $_SESSION['client_id'];
+$client_id = clientMiddleware();
 $name = $_POST['name'] ?? null;
 $business_name = $_POST['business_name'] ?? null;
 $phone = $_POST['phone'] ?? null;

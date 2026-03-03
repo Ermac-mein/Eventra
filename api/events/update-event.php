@@ -92,6 +92,7 @@ try {
             phone_contact_1 = ?,
             phone_contact_2 = ?,
             image_path = ?,
+            category = ?,
             updated_at = NOW()
             WHERE id = ?";
 
@@ -111,6 +112,7 @@ try {
         $_POST['phone_contact_1'],
         $_POST['phone_contact_2'] ?? null,
         $image_path,
+        $_POST['event_type'],
         $event_id
     ]);
 

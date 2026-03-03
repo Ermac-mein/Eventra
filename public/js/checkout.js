@@ -8,6 +8,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (isNaN(currentQuantity) || currentQuantity < 1) currentQuantity = 1;
 
     let eventData = null;
+    window._checkoutEventData = null; // module-scope reference for helpers
     let paystackPublicKey = null;
     let currentUser = null;
 
@@ -16,7 +17,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
     }
 
-    // 2. Auth Check
+    // 2. Auth Check - Initialize and ensure AuthController has finished syncing
+    authController.init();
+    await authController.ready;
+    
     if (!isAuthenticated()) {
         sessionStorage.setItem('redirect_after_login', window.location.href);
         window.location.href = 'index.html'; // Trigger index.html login modal logic
@@ -45,12 +49,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
         
         eventData = eventResult.event;
+        window._checkoutEventData = eventData; // expose for out-of-scope helpers
         
-        // Block checkout if event is past
-        const eventDateObj = new Date(eventData.event_date);
+        // Block checkout if event is past (Strict Timestamp Validation)
+        const eventEndDateTime = new Date(eventData.event_end_datetime);
         const now = new Date();
-        now.setHours(0, 0, 0, 0);
-        if (eventDateObj < now) {
+
+        if (now > eventEndDateTime) {
             showErrorAndRedirect('This event has already concluded', 'index.html');
             return;
         }
@@ -106,7 +111,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
 
-        const exactPrice = parseFloat(eventData.price) || 0;
+        const exactPrice = eventData.price || 0;
         if (exactPrice === 0) {
             createTicket(eventId, currentQuantity, null);
             return;
@@ -222,7 +227,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
 
-        const totalAmountNaira = (parseFloat(eventData.price) || 0) * currentQuantity;
+        const totalAmountNaira = (eventData.price || 0) * currentQuantity;
         const paystackAmountKobo = Math.round(totalAmountNaira * 100);
 
         const handler = PaystackPop.setup({
@@ -240,7 +245,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 // Success!
                 document.getElementById('loadingOverlay').style.display = 'flex';
                 document.querySelector('#loadingOverlay h3').textContent = 'Confirming Payment...';
-                createTicket(eventId, currentQuantity, currentPaymentRef); // Use currentPaymentRef as our reference
+                createTicket(eventId, currentQuantity, response.reference); 
             },
             onClose: function() {
                 showNotification('Payment window closed.', 'info');
@@ -255,17 +260,24 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 // Helper: Render Left Column
 function renderEventSummary(event, quantity) {
-    const price = parseFloat(event.price) || 0;
+    const price = event.price || 0;
     const total = price * quantity;
 
-    document.getElementById('summaryImg').src = event.image_path ? `../../${event.image_path.replace(/^\/+/, '')}` : 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=600&h=400&fit=crop';
-    document.getElementById('summaryTitle').textContent = event.event_name;
+    // Use absolute URL from API with fallback
+    const summaryImg = document.getElementById('summaryImg');
+    summaryImg.src = event.absolute_image_url || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=600&h=400&fit=crop';
+    summaryImg.onerror = () => {
+        summaryImg.src = 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=600&h=400&fit=crop';
+    };
+
+    document.getElementById('summaryTitle').innerHTML = `<strong>${event.event_name}</strong>`;
     document.getElementById('summaryDate').textContent = `${formatDate(event.event_date)} • ${event.event_time || 'TBA'}`;
     document.getElementById('summaryLocation').textContent = `${event.city || ''}, ${event.state || 'Nigeria'}`.replace(/^, /, '');
+    document.getElementById('summaryDescription').textContent = event.description || '';
     
-    document.getElementById('summaryPrice').textContent = price === 0 ? 'Free' : `₦${price.toLocaleString()}`;
+    document.getElementById('summaryPrice').textContent = price === 0 ? 'FREE' : `₦${price.toLocaleString()}`;
     document.getElementById('summaryQty').textContent = `x${quantity}`;
-    document.getElementById('summaryTotal').textContent = total === 0 ? 'Free' : `₦${total.toLocaleString()}`;
+    document.getElementById('summaryTotal').textContent = total === 0 ? 'FREE' : `₦${total.toLocaleString()}`;
 
     // Update button text
     resetPayBtn(event, quantity);
@@ -274,11 +286,11 @@ function renderEventSummary(event, quantity) {
 function resetPayBtn(event, quantity) {
      const payBtn = document.getElementById('paystackBtn');
      if (!payBtn) return;
-     const price = parseFloat(event.price) || 0;
+     const price = event.price || 0;
      const total = price * quantity;
      payBtn.disabled = false;
      payBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
-                        Pay <span id="btnPayAmount">${total === 0 ? 'Free (Claim)' : `₦${total.toLocaleString()}`}</span>`;
+                        Pay <span id="btnPayAmount">${total === 0 ? 'FREE (Claim)' : `₦${total.toLocaleString()}`}</span>`;
 }
 
 // Helper: Trigger the actual DB ticket insertion via Backend API
@@ -338,7 +350,7 @@ async function createTicket(eventId, quantity, paymentReference) {
         } else {
             document.getElementById('loadingOverlay').style.display = 'none';
             showNotification(result.message || 'Ticket generation failed', 'error');
-            resetPayBtn(window.eventDataForReset, quantity);
+            resetPayBtn(eventData || window._checkoutEventData, quantity);
         }
     } catch (error) {
         document.getElementById('loadingOverlay').style.display = 'none';

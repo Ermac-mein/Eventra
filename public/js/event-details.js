@@ -1,4 +1,7 @@
 document.addEventListener('DOMContentLoaded', async () => {
+    // Initialize Auth Controller
+    authController.init();
+    
     const urlParams = new URLSearchParams(window.location.search);
     const eventId = urlParams.get('id');
     const eventTag = urlParams.get('event'); // Fallback for old links

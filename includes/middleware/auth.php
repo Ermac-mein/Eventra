@@ -20,6 +20,15 @@ function checkAuth($requiredRole = null)
     }
     $_SESSION['last_activity'] = time();
 
+    // 2.5 Security: Regenerate session ID periodically (every 15 minutes)
+    if (!isset($_SESSION['created'])) {
+        $_SESSION['created'] = time();
+    } else if (time() - $_SESSION['created'] > 900) {
+        // Update session ID but keep the data
+        session_regenerate_id(true);
+        $_SESSION['created'] = time();
+    }
+
     $token = $_SESSION['auth_token'] ?? null;
     $sessionRole = $_SESSION['user_role'] ?? null;
 
@@ -42,6 +51,7 @@ function checkAuth($requiredRole = null)
             if ($recovery) {
                 $_SESSION['auth_token'] = $token;
                 $_SESSION['user_role'] = $recovery['role'];
+                $_SESSION['role'] = $recovery['role']; // Normalize
                 $sessionRole = $recovery['role'];
 
                 // Set role-specific IDs

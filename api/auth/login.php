@@ -103,6 +103,10 @@ try {
             $expectedSessionName = 'EVENTRA_CLIENT_SESS';
         }
 
+        if (session_status() === PHP_SESSION_NONE) {
+            require_once '../../config/session-config.php';
+        }
+
         if (session_name() !== $expectedSessionName) {
             session_write_close();
             session_name($expectedSessionName);
@@ -121,7 +125,9 @@ try {
         }
 
         $_SESSION['user_role'] = $userRole;
+        $_SESSION['role'] = $userRole; // Normalize for legacy API support
         $_SESSION['auth_token'] = $token;
+        $_SESSION['last_activity'] = time();
 
         // Log success
         logSecurityEvent($user['id'], $email, 'login_success', 'password', "Logged in as $userRole via portal $effectiveIntent");

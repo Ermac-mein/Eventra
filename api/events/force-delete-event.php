@@ -10,7 +10,7 @@ require_once '../../includes/middleware/auth.php';
 
 // Check authentication and role (client or admin)
 $user_id = checkAuth();
-$user_role = $_SESSION['role'];
+$user_role = $_SESSION['user_role'];
 
 $data = json_decode(file_get_contents("php://input"), true);
 $event_id = $data['event_id'] ?? null;
@@ -39,7 +39,7 @@ try {
     // Resolve client_id if user is client
     $resolved_user_id = $user_id;
     if ($user_role === 'client') {
-        $stmt = $pdo->prepare("SELECT id FROM clients WHERE auth_id = ?");
+        $stmt = $pdo->prepare("SELECT id FROM clients WHERE client_auth_id = ?");
         $stmt->execute([$user_id]);
         $client = $stmt->fetch();
         if (!$client) {
@@ -61,7 +61,7 @@ try {
 
     // Notify admin about permanent deletion if deleted by client
     if ($user_role === 'client') {
-        $stmt = $pdo->prepare("SELECT business_name FROM clients WHERE auth_id = ?");
+        $stmt = $pdo->prepare("SELECT business_name FROM clients WHERE client_auth_id = ?");
         $stmt->execute([$user_id]);
         $client_info = $stmt->fetch();
         $user_name = $client_info['business_name'] ?? 'A Client';

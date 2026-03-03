@@ -275,7 +275,7 @@ function displayEventPreview(event) {
                                 <div style="width: 48px; height: 48px; background: #fdf2f8; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 1.35rem;">📂</div>
                                 <div>
                                     <div style="font-size: 0.75rem; color: #6b7280; font-weight: 700; text-transform: uppercase; letter-spacing: 0.025em; margin-bottom: 2px;">Category</div>
-                                    <div style="font-weight: 700; color: #1f2937;">${event.event_type}</div>
+                                    <div style="font-weight: 700; color: #1f2937;">${event.category || event.event_type || 'General'}</div>
                                 </div>
                             </div>
                         </div>

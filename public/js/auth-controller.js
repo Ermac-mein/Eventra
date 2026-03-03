@@ -15,6 +15,8 @@ class AuthController {
         this.user = null;
         this.googleInitialized = false;
         this.isRedirecting = false;
+        this.isSyncing = false;
+        this.settled = false;
         
         // Promise that resolves when the first sync is complete
         this._readyResolve = null;
@@ -27,6 +29,7 @@ class AuthController {
      * Initialize Auth Controller
      */
     async init() {
+        if (this.settled || this.isSyncing) return this.ready;
         console.log('[AuthController] Initializing...');
         
         // 1. Initial State from Storage (Optimistic)
@@ -40,8 +43,11 @@ class AuthController {
 
         // 2. Perform server-side validation
         try {
+            this.isSyncing = true;
             await this.syncSession();
         } finally {
+            this.isSyncing = false;
+            this.settled = true;
             // Ensure ready promise resolves even on error
             if (this._readyResolve) {
                 this._readyResolve(this.state);
@@ -85,13 +91,17 @@ class AuthController {
 
             const result = await response.json();
             if (result.success) {
-                this.user = result.user;
-                if (window.storage) window.storage.setUser(result.user);
+                // Merge data to preserve any local-only fields if necessary, 
+                // but usually server is source of truth.
+                const updatedUser = { ...this.user, ...result.user };
+                this.user = updatedUser;
+                
+                if (window.storage) window.storage.setUser(updatedUser);
                 this.setState(this.states.AUTHENTICATED);
-                window.dispatchEvent(new CustomEvent('auth:sync', { detail: { success: true, user: result.user } }));
+                window.dispatchEvent(new CustomEvent('auth:sync', { detail: { success: true, user: updatedUser } }));
             } else {
+                // Only clear if the server explicitly says the session is invalid
                 this.clearLocalState();
-                this.setState(this.states.UNAUTHENTICATED);
             }
         } catch (error) {
             console.error('[AuthController] Session sync failed:', error);
@@ -156,6 +166,7 @@ class AuthController {
                 client_id: clientId,
                 callback: (res) => this.handleGoogleResponse(res),
                 auto_select: false,
+                prompt: 'select_account',
                 cancel_on_tap_outside: true,
                 itp_support: true
             });
@@ -182,8 +193,19 @@ class AuthController {
             text: 'signin_with',
             shape: 'rectangular',
             logo_alignment: 'left',
-            width: '320'
+            width: '400'
         });
+    }
+
+    /**
+     * Trigger Google Login Prompt manually
+     */
+    handleGoogleLoginManual() {
+        if (!this.googleInitialized) {
+            console.error('[AuthController] Google SDK not initialized');
+            return;
+        }
+        google.accounts.id.prompt();
     }
 
     /**

@@ -5,25 +5,18 @@
  */
 header('Content-Type: application/json');
 require_once '../../config/database.php';
+require_once '../../includes/middleware/auth.php';
 
 // Check authentication
-if (!isset($_SESSION['user_id'])) {
-    echo json_encode([
-        'success' => false,
-        'message' => 'Unauthorized'
-    ]);
-    exit;
-}
-
-$user_id = $_SESSION['user_id'];
-$user_role = $_SESSION['role'] ?? 'user';
+$user_id = checkAuth();
+$user_role = $_SESSION['user_role'] ?? $_SESSION['role'] ?? 'user';
 
 try {
     $stats = [];
 
     if ($user_role === 'client') {
         // Resolve real_client_id from auth_id
-        $client_stmt = $pdo->prepare("SELECT id FROM clients WHERE auth_id = ?");
+        $client_stmt = $pdo->prepare("SELECT id FROM clients WHERE client_auth_id = ?");
         $client_stmt->execute([$user_id]);
         $client_row = $client_stmt->fetch();
 

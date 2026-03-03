@@ -5,16 +5,11 @@
  */
 header('Content-Type: application/json');
 require_once '../../config/database.php';
+require_once '../../includes/middleware/auth.php';
 
-// Check authentication
-if (!isset($_SESSION['user_id'])) {
-    http_response_code(401);
-    echo json_encode(['success' => false, 'message' => 'Unauthorized']);
-    exit;
-}
-
-$user_role = $_SESSION['role'];
-$user_id = $_SESSION['user_id'];
+// Check authentication (allow both admin and client)
+$user_id = checkAuth();
+$user_role = $_SESSION['user_role'] ?? $_SESSION['role'] ?? 'client';
 $period = $_GET['period'] ?? '7days'; // 7days, 30days, 90days
 
 // Determine date range
@@ -126,7 +121,7 @@ try {
 
     } elseif ($user_role === 'client') {
         // Resolve real_client_id from auth_id
-        $client_stmt = $pdo->prepare("SELECT id FROM clients WHERE auth_id = ?");
+        $client_stmt = $pdo->prepare("SELECT id FROM clients WHERE client_auth_id = ?");
         $client_stmt->execute([$user_id]);
         $real_client_id = $client_stmt->fetchColumn();
 
@@ -141,7 +136,7 @@ try {
             FROM tickets t
             JOIN payments p ON t.payment_id = p.id
             JOIN events e ON p.event_id = e.id
-            WHERE e.client_id = ? AND t.created_at >= ? AND t.status = 'paid'
+            WHERE e.client_id = ? AND t.created_at >= ? AND p.status = 'paid'
             GROUP BY DATE(t.created_at)
             ORDER BY date ASC
         ");

@@ -185,7 +185,7 @@ function renderModalContent(container, eventData) {
       </div>
       
       <div style="margin-bottom: 2rem;">
-        <div style="display: inline-block; background: #f3f4f6; color: #374151; padding: 0.5rem 1rem; border-radius: 8px; font-weight: 600; font-size: 0.85rem;">${eventData.event_type || eventData.category || 'General Category'}</div>
+        <div style="display: inline-block; background: #f3f4f6; color: #374151; padding: 0.5rem 1rem; border-radius: 8px; font-weight: 600; font-size: 0.85rem;">${eventData.category || eventData.event_type || 'General'}</div>
       </div>
       
       <!-- Sticky-like Buy Button Container -->

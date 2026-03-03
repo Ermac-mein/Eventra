@@ -24,17 +24,28 @@
     if (!requiredRole) return; // Not a protected area
 
     // 2. Show Premium Loading Overlay
-    const loadingOverlay = document.createElement('div');
-    loadingOverlay.id = 'auth-guard-loading';
-    loadingOverlay.className = 'auth-loading-screen';
-    loadingOverlay.innerHTML = `
-        <div class="auth-spinner-container">
-            <div class="auth-spinner-ring"></div>
-            <div class="auth-spinner-active"></div>
-        </div>
-        <div class="auth-loading-text">Verifying Session...</div>
-    `;
-    document.body.appendChild(loadingOverlay);
+    const showOverlay = () => {
+        if (!document.body) {
+            console.warn('[Auth Guard] document.body not available yet. Retrying...');
+            setTimeout(showOverlay, 50);
+            return;
+        }
+        
+        const loadingOverlay = document.createElement('div');
+        loadingOverlay.id = 'auth-guard-loading';
+        loadingOverlay.className = 'auth-loading-screen';
+        loadingOverlay.innerHTML = `
+            <div class="auth-spinner-container">
+                <div class="auth-spinner-ring"></div>
+                <div class="auth-spinner-active"></div>
+            </div>
+            <div class="auth-loading-text">Verifying Session...</div>
+        `;
+        document.body.appendChild(loadingOverlay);
+        return loadingOverlay;
+    };
+
+    const loadingOverlay = showOverlay();
 
     try {
         // 3. Wait for AuthController to finish its server-side handshake
@@ -42,6 +53,12 @@
         
         if (!window.authController) {
              throw new Error('AuthController not initialized');
+        }
+
+        // 3.5 Ensure AuthController is initialized
+        if (!window.authController.settled && !window.authController.isSyncing) {
+            console.log('[Auth Guard] Triggering AuthController.init()...');
+            window.authController.init();
         }
 
         const authState = await window.authController.ready;

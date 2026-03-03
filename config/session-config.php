@@ -14,8 +14,8 @@ ini_set('session.use_only_cookies', '1');
 ini_set('session.cookie_httponly', '1');
 ini_set('session.cookie_samesite', 'Lax'); // Changed from Strict to Lax for better CSRF protection and redirect compatibility
 
-ini_set('session.cookie_lifetime', '7200'); // 2 hours
-ini_set('session.gc_maxlifetime', '7200'); // 2 hours
+ini_set('session.cookie_lifetime', '1800'); // 30 minutes
+ini_set('session.gc_maxlifetime', '1800'); // 30 minutes
 
 // For localhost development, ensure cookies work properly
 $currentHost = $_SERVER['HTTP_HOST'] ?? '';
@@ -101,16 +101,20 @@ session_name($sessionName);
 // Set cookie params to match the role-specific session and path if needed
 $cookieParams = session_get_cookie_params();
 session_set_cookie_params([
-    'lifetime' => $cookieParams['lifetime'],
+    'lifetime' => 1800, // 30 minutes
     'path' => $cookieParams['path'],
     'domain' => $cookieParams['domain'],
     'secure' => $cookieParams['secure'],
     'httponly' => true,
     'samesite' => 'Lax'
-
 ]);
 
 session_start();
+
+// Rolling Session Logic: Refresh cookie lifetime on every activity
+if (isset($_COOKIE[session_name()])) {
+    setcookie(session_name(), $_COOKIE[session_name()], time() + 1800, $cookieParams['path'], $cookieParams['domain'], $cookieParams['secure'], true);
+}
 
 // Enforce 30-minute inactivity timeout at the core session level
 $timeout_duration = 1800; // 30 minutes

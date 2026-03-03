@@ -193,6 +193,38 @@ async function apiFetch(url, options = {}) {
   }
 }
 
+
+// Activity Tracker: Periodically ping the server on user interaction to extend session
+(function initActivityTracker() {
+  if (typeof window === 'undefined') return;
+  
+  let lastPing = 0;
+  const pingInterval = 5 * 60 * 1000; // 5 minutes
+
+  const refreshSession = debounce(async () => {
+    const now = Date.now();
+    // Only ping if at least 5 minutes have passed since last ping to avoid spamming
+    if (now - lastPing < pingInterval) return;
+    
+    if (isAuthenticated()) {
+      try {
+        const basePath = getBasePath();
+        // Use check-session.php as a heartbeat
+        await apiFetch(basePath + 'api/auth/check-session.php', { method: 'GET', cache: 'no-store' });
+        lastPing = Date.now();
+        console.log('[Activity Tracker] Session extended');
+      } catch (e) {
+        console.warn('[Activity Tracker] Failed to extend session:', e);
+      }
+    }
+  }, 2000);
+
+  // Listen for common user interactions
+  ['mousedown', 'keydown', 'scroll', 'touchstart'].forEach(event => {
+    window.addEventListener(event, refreshSession, { passive: true });
+  });
+})();
+
 // Export utilities
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {

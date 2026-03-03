@@ -10,7 +10,7 @@ require_once '../../includes/middleware/auth.php';
 
 // Check authentication and role (client or admin)
 $user_id = checkAuth();
-$user_role = $_SESSION['role'];
+$user_role = $_SESSION['user_role'];
 
 $data = json_decode(file_get_contents("php://input"), true);
 $event_id = $data['event_id'] ?? null;
@@ -82,7 +82,7 @@ try {
             $message = "Your event '{$event['event_name']}' has been deleted by an administrator";
             $metadata = json_encode(['event_id' => $event_id, 'event_name' => $event['event_name']]);
             $stmt = $pdo->prepare("INSERT INTO notifications (recipient_auth_id, sender_auth_id, message, type, metadata) VALUES (?, ?, ?, ?, ?)");
-            $stmt->execute([$client_auth['auth_id'], $user_id, $message, 'event_deleted', $metadata]);
+            $stmt->execute([$client_auth['client_auth_id'], $user_id, $message, 'event_deleted', $metadata]);
         }
     }
 

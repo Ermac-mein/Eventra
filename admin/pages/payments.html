@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payments - Eventra Admin</title>
+    <link rel="stylesheet" href="../css/admin-style.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="../../public/js/storage.js"></script>
+    <script src="../../public/js/utils.js"></script>
+    <script src="../../public/js/auth-controller.js"></script>
+    <script src="../../public/js/auth-guard.js" defer></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/x-icon" href="/public/favicon.ico">
+
+    <style>
+        .payments-toolbar { display:flex; align-items:center; gap:.8rem; flex-wrap:wrap; margin-bottom:1.25rem; }
+        .search-box { flex:1; min-width:200px; position:relative; }
+        .search-box input { width:100%; padding:.65rem 1rem .65rem 2.5rem; border:1.5px solid #e2e8f0; border-radius:10px; font-size:.9rem; background:white; outline:none; transition:border-color .2s; }
+        .search-box input:focus { border-color:#6366f1; }
+        .search-box i { position:absolute; left:.75rem; top:50%; transform:translateY(-50%); color:#94a3b8; width:16px; height:16px; }
+        .filter-tab { padding:.4rem .9rem; border-radius:20px; font-size:.82rem; font-weight:600; border:1.5px solid #e2e8f0; background:white; cursor:pointer; transition:all .2s; color:#64748b; }
+        .filter-tab.active, .filter-tab:hover { background:#6366f1; color:white; border-color:#6366f1; }
+        .sort-select { padding:.6rem .85rem; border:1.5px solid #e2e8f0; border-radius:10px; font-size:.85rem; cursor:pointer; outline:none; background:white; color:#374151; }
+        .status-badge { display:inline-flex; align-items:center; padding:.25rem .75rem; border-radius:20px; font-size:.78rem; font-weight:700; text-transform:capitalize; }
+        .status-paid { background:#dcfce7; color:#16a34a; }
+        .status-pending { background:#fef9c3; color:#a16207; }
+        .status-failed { background:#fee2e2; color:#dc2626; }
+        .status-refunded { background:#e0f2fe; color:#0369a1; }
+        .export-dropdown { position:relative; }
+        .export-menu { display:none; position:absolute; right:0; top:110%; background:white; border:1.5px solid #e2e8f0; border-radius:12px; padding:.5rem; min-width:160px; box-shadow:0 8px 20px rgba(0,0,0,.1); z-index:200; }
+        .export-menu.open { display:block; }
+        .export-menu button { display:flex; align-items:center; gap:.5rem; width:100%; padding:.6rem 1rem; border:none; background:none; cursor:pointer; font-size:.875rem; color:#374151; border-radius:8px; font-weight:500; transition:background .15s; }
+        .export-menu button:hover { background:#f1f5f9; }
+        .table-row-clickable { cursor:pointer; }
+        .table-row-clickable:hover td { background:#f8fafc; }
+        .payment-detail-modal { position:fixed; inset:0; background:rgba(0,0,0,.5); display:none; align-items:center; justify-content:center; z-index:9000; backdrop-filter:blur(4px); padding:1rem; }
+        .payment-detail-modal.open { display:flex; }
+        .detail-card { background:white; border-radius:20px; padding:2rem; max-width:560px; width:100%; max-height:90vh; overflow-y:auto; box-shadow:0 25px 50px rgba(0,0,0,.2); animation:slideUp .3s ease-out; }
+        @keyframes slideUp { from{opacity:0;transform:translateY(30px)} to{opacity:1;transform:translateY(0)} }
+        .detail-row { display:flex; justify-content:space-between; align-items:flex-start; padding:.75rem 0; border-bottom:1px solid #f1f5f9; gap:1rem; }
+        .detail-row:last-child { border-bottom:none; }
+        .detail-label { font-size:.82rem; color:#94a3b8; font-weight:600; text-transform:uppercase; letter-spacing:.04em; }
+        .detail-value { font-size:.95rem; color:#1e293b; font-weight:600; text-align:right; }
+        .pagination-bar { display:flex; align-items:center; justify-content:space-between; margin-top:1.5rem; flex-wrap:wrap; gap:.75rem; }
+        .pagination-info { font-size:.85rem; color:#64748b; }
+        .pagination-btns { display:flex; gap:.4rem; }
+        .page-btn { padding:.45rem .875rem; border-radius:8px; border:1.5px solid #e2e8f0; background:white; cursor:pointer; font-weight:600; font-size:.85rem; transition:all .2s; }
+        .page-btn:hover, .page-btn.active { background:#6366f1; color:white; border-color:#6366f1; }
+        .page-btn:disabled { opacity:.4; cursor:not-allowed; }
+    </style>
+</head>
+<body>
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="sidebar-logo">EVENTRA</div>
+        <ul class="sidebar-menu">
+            <li class="menu-item"><a href="adminDashboard.html"><i data-lucide="layout-dashboard"></i><span>Dashboard</span></a></li>
+            <li class="menu-item"><a href="events.html"><i data-lucide="calendar"></i><span>Events</span></a></li>
+            <li class="menu-item"><a href="tickets.html"><i data-lucide="ticket"></i><span>Tickets</span></a></li>
+            <li class="menu-item active"><a href="payments.html"><i data-lucide="credit-card"></i><span>Payments</span></a></li>
+            <li class="menu-item"><a href="users.html"><i data-lucide="users"></i><span>Users</span></a></li>
+            <li class="menu-item"><a href="clients.html"><i data-lucide="briefcase"></i><span>Clients</span></a></li>
+        </ul>
+        <div class="sidebar-footer">
+            <a href="adminLogin.html" id="logoutBtn" style="color:white;text-decoration:none;font-size:.95rem;display:flex;align-items:center;gap:12px;opacity:.7;transition:opacity .3s;">
+                <i data-lucide="log-out"></i><span>Logout</span>
+            </a>
+        </div>
+    </aside>
+
+    <div class="main-layout">
+        <header class="header">
+            <div class="header-search">
+                <i data-lucide="search" class="search-icon"></i>
+                <input type="text" placeholder="Search payments...">
+            </div>
+            <div class="header-actions">
+                <div class="action-icon notification-bell-icon" id="notificationBellIcon" title="Notifications" style="position:relative;cursor:pointer;"><i data-lucide="bell"></i></div>
+                <div class="user-profile" id="openProfileDrawer" style="cursor:pointer;"><div class="user-avatar"></div></div>
+            </div>
+        </header>
+
+        <main class="content-area">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;flex-wrap:wrap;gap:1rem;">
+                <div>
+                    <h1 style="font-size:1.75rem;font-weight:800;color:#1e293b;margin:0;">All Payments</h1>
+                    <p style="color:#64748b;margin:.25rem 0 0;">Full transaction history across all clients and events</p>
+                </div>
+            </div>
+
+            <!-- Stats -->
+            <div class="stats-grid" style="margin-bottom:1.5rem;">
+                <div class="stat-card"><div class="stat-label">Total Payments</div><div class="stat-value" id="statTotal">—</div></div>
+                <div class="stat-card"><div class="stat-label">Successful</div><div class="stat-value" style="color:#10b981" id="statPaid">—</div></div>
+                <div class="stat-card"><div class="stat-label">Total Revenue</div><div class="stat-value" style="color:#6366f1" id="statRevenue">—</div></div>
+                <div class="stat-card"><div class="stat-label">Failed</div><div class="stat-value" style="color:#ef4444" id="statFailed">—</div></div>
+            </div>
+
+            <div class="table-container">
+                <!-- Toolbar -->
+                <div class="payments-toolbar">
+                    <div class="search-box">
+                        <i data-lucide="search"></i>
+                        <input type="text" id="paymentSearch" placeholder="Reference, event, status...">
+                    </div>
+                    <div style="display:flex;gap:.4rem;flex-wrap:wrap;">
+                        <button class="filter-tab active" data-range="all">All Time</button>
+                        <button class="filter-tab" data-range="today">Today</button>
+                        <button class="filter-tab" data-range="7days">7 Days</button>
+                        <button class="filter-tab" data-range="30days">30 Days</button>
+                    </div>
+                    <select class="sort-select" id="sortSelect">
+                        <option value="date_desc">Newest First</option>
+                        <option value="date_asc">Oldest First</option>
+                        <option value="amount_desc">Amount ↑</option>
+                        <option value="amount_asc">Amount ↓</option>
+                        <option value="status">Status</option>
+                    </select>
+                    <div class="export-dropdown">
+                        <button class="btn btn-primary" style="display:flex;align-items:center;gap:.4rem;font-size:.9rem;" onclick="toggleExportMenu(this)">
+                            <i data-lucide="download" style="width:15px;height:15px"></i> Export
+                        </button>
+                        <div class="export-menu" id="exportMenu">
+                            <button onclick="exportPayments('csv')">📄 Export CSV</button>
+                            <button onclick="exportPayments('excel')">📊 Export Excel</button>
+                            <button onclick="exportPayments('pdf')">🖨️ Export PDF</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Status filters -->
+                <div style="margin-bottom:1rem;display:flex;gap:.4rem;flex-wrap:wrap;">
+                    <button class="filter-tab active" data-status="">All Status</button>
+                    <button class="filter-tab" data-status="paid">✓ Paid</button>
+                    <button class="filter-tab" data-status="pending">⏳ Pending</button>
+                    <button class="filter-tab" data-status="failed">✗ Failed</button>
+                    <button class="filter-tab" data-status="refunded">↩ Refunded</button>
+                </div>
+
+                <div style="overflow-x:auto;">
+                    <table class="data-table" style="min-width:800px;">
+                        <thead>
+                            <tr>
+                                <th style="cursor:pointer;" onclick="changeSort('date_desc','date_asc')">Date ↕</th>
+                                <th>Event</th>
+                                <th>Buyer</th>
+                                <th style="cursor:pointer;" onclick="changeSort('amount_desc','amount_asc')">Amount ↕</th>
+                                <th>Tickets</th>
+                                <th>Reference</th>
+                                <th style="cursor:pointer;" onclick="changeSort('status','status')">Status ↕</th>
+                            </tr>
+                        </thead>
+                        <tbody id="paymentsTableBody">
+                            <tr><td colspan="7" style="text-align:center;padding:2rem;color:#94a3b8;">Loading payments...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="pagination-bar">
+                    <span class="pagination-info" id="paginationInfo">Showing 0 payments</span>
+                    <div class="pagination-btns" id="paginationBtns"></div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Payment Detail Modal -->
+    <div class="payment-detail-modal" id="paymentDetailModal">
+        <div class="detail-card">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
+                <h2 style="font-size:1.25rem;font-weight:800;color:#1e293b;">Transaction Details</h2>
+                <button onclick="closeDetailModal()" style="background:none;border:none;font-size:1.5rem;cursor:pointer;color:#94a3b8;line-height:1;">×</button>
+            </div>
+            <div id="paymentDetailContent"></div>
+            <p style="font-size:.75rem;color:#94a3b8;margin-top:1rem;text-align:center;">Read-only · Admin view</p>
+        </div>
+    </div>
+
+    <script src="../js/admin-auth.js"></script>
+    <script src="../js/payments.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => { lucide.createIcons(); });
+    </script>
+</body>
+</html>

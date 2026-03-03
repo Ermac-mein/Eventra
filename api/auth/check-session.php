@@ -69,7 +69,14 @@ try {
             'id' => $user['id'],
             'name' => $user['name'],
             'email' => $user['email'],
+            'phone' => $user['phone'] ?? null,
             'role' => $user['role'],
+            'dob' => $user['dob'] ?? null,
+            'gender' => $user['gender'] ?? null,
+            'country' => $user['country'] ?? null,
+            'city' => $user['city'] ?? null,
+            'state' => $user['state'] ?? null,
+            'address' => $user['address'] ?? null,
             'profile_pic' => (function ($pic) {
                 if (!$pic)
                     return null;

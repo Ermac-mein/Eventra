@@ -6,20 +6,27 @@
 header('Content-Type: application/json');
 require_once '../../config/database.php';
 require_once '../../config/payment.php';
+require_once '../../includes/middleware/auth.php';
 
-// Check authentication
-if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'user') {
-    http_response_code(401);
-    echo json_encode(['success' => false, 'message' => 'Unauthorized. User access required.']);
-    exit;
-}
+// Check authentication via standardized middleware
+$auth_id = checkAuth('user');
 
 $data = json_decode(file_get_contents("php://input"), true);
 $event_id = $data['event_id'] ?? null;
 $quantity = (int) ($data['quantity'] ?? 1);
 $payment_reference = $data['payment_reference'] ?? null;
 $referred_by_client_name = $data['referred_by_client'] ?? null;
-$user_id = $_SESSION['user_id'];
+
+// Resolve actual user profile id from auth_id
+$stmt = $pdo->prepare("SELECT id FROM users WHERE user_auth_id = ?");
+$stmt->execute([$auth_id]);
+$userProfile = $stmt->fetch();
+if (!$userProfile) {
+    http_response_code(404);
+    echo json_encode(['success' => false, 'message' => 'User profile not found.']);
+    exit;
+}
+$user_id = $userProfile['id'];
 
 if (!$event_id || $quantity < 1) {
     echo json_encode(['success' => false, 'message' => 'Invalid event ID or quantity']);
