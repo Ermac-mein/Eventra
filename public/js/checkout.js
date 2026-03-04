@@ -86,6 +86,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     // 3. Setup Paystack Payment Action
     // 3. Setup Paystack Payment Action WITH OTP
     const payBtn = document.getElementById('paystackBtn');
+    const cardModal = document.getElementById('cardModal');
+    const closeCardModal = document.getElementById('closeCardModal');
+    const cardForm = document.getElementById('cardForm');
+    
     const otpModal = document.getElementById('otpModal');
     const closeOtpModal = document.getElementById('closeOtpModal');
     const sendEmailOtp = document.getElementById('sendEmailOtp');
@@ -100,13 +104,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     let currentPaymentRef = null;
     let selectedChannel = null;
 
-    payBtn.addEventListener('click', () => {
+    payBtn.addEventListener('click', (e) => {
+        e.preventDefault();
         // Validation
-        const phone = document.getElementById('phoneNum').value;
-        const fname = document.getElementById('firstName').value;
-        const lname = document.getElementById('lastName').value;
+        const phone = document.getElementById('phoneNum').value.trim();
+        const email = document.getElementById('emailAdd').value.trim();
+        const fname = document.getElementById('firstName').value.trim();
+        const lname = document.getElementById('lastName').value.trim();
 
-        if (!phone || !fname || !lname) {
+        if (!phone || !email || !fname || !lname) {
             showNotification('Please provide all contact information.', 'error');
             return;
         }
@@ -117,9 +123,36 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
 
-        // Show OTP Modal
-        document.getElementById('otpEmailOverlay').textContent = currentUser.email;
-        document.getElementById('otpPhoneOverlay').textContent = phone;
+        // Show Card Modal First
+        cardModal.style.display = 'flex';
+    });
+
+    closeCardModal.addEventListener('click', () => {
+        cardModal.style.display = 'none';
+        resetPayBtn(eventData, currentQuantity);
+    });
+
+    cardForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        
+        // Basic Card Validation
+        const cname = document.getElementById('cardName').value.trim();
+        const cnum = document.getElementById('cardNumber').value.replace(/\s/g, '');
+        const cexp = document.getElementById('cardExpiry').value.trim();
+        const ccvv = document.getElementById('cardCvv').value.trim();
+
+        if (cnum.length < 16 || !cexp.includes('/') || ccvv.length < 3) {
+            showNotification('Please enter valid card details.', 'error');
+            return;
+        }
+
+        // Proceed to OTP Modal
+        cardModal.style.display = 'none';
+        
+        // Use dynamic checkout values for OTP
+        document.getElementById('otpEmailOverlay').textContent = document.getElementById('emailAdd').value;
+        document.getElementById('otpPhoneOverlay').textContent = document.getElementById('phoneNum').value;
+        
         otpModal.style.display = 'flex';
         resetOtpInput();
     });
@@ -136,11 +169,18 @@ document.addEventListener('DOMContentLoaded', async () => {
         selectedChannel = channel;
         payBtn.disabled = true;
         
+        const targetEmail = document.getElementById('emailAdd').value;
+        const targetPhone = document.getElementById('phoneNum').value;
+        
         try {
             const res = await apiFetch('../../api/otps/generate-otp.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ channel: channel })
+                body: JSON.stringify({ 
+                    channel: channel,
+                    email: targetEmail,
+                    phone: targetPhone
+                })
             });
             const result = await res.json();
             

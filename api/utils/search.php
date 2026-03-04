@@ -35,16 +35,17 @@ $results = [
 try {
     // 1. Search Events
     if ($type === 'all' || $type === 'events') {
-        $sql = "SELECT e.id, e.event_name as title, e.event_type as subtitle, e.event_type as category, e.price, e.state, e.status, e.event_date, e.event_time, e.image_path, e.priority 
+        $sql = "SELECT e.id, e.event_name as title, e.event_type as subtitle, e.category, e.price, e.state, e.status, e.event_date, e.event_time, e.image_path, e.priority 
                 FROM events e
                 LEFT JOIN clients c ON e.client_id = c.id
-                WHERE e.deleted_at IS NULL AND (e.event_name LIKE ? OR e.description LIKE ? OR e.state LIKE ? OR e.event_type LIKE ? OR c.business_name LIKE ? OR e.price LIKE ? OR e.event_date LIKE ?)";
+                WHERE e.deleted_at IS NULL AND (e.event_name LIKE ? OR e.description LIKE ? OR e.state LIKE ? OR e.category LIKE ? OR e.event_type LIKE ? OR c.business_name LIKE ? OR e.price LIKE ? OR e.event_date LIKE ?)";
 
-        $params = [$searchTerm, $searchTerm, $searchTerm, $searchTerm, $searchTerm, $searchTerm, $searchTerm];
+        $params = [$searchTerm, $searchTerm, $searchTerm, $searchTerm, $searchTerm, $searchTerm, $searchTerm, $searchTerm];
 
         // Add filters
         if ($category) {
-            $sql .= " AND e.event_type = ?";
+            $sql .= " AND (e.category = ? OR e.event_type = ?)";
+            $params[] = $category;
             $params[] = $category;
         }
         if ($priority) {
@@ -126,7 +127,7 @@ try {
     if (($userRole === 'admin' || $userRole === 'client') && ($type === 'all' || $type === 'users')) {
         if ($userRole === 'admin') {
             // FIXED: Properly join users and auth_accounts
-            $sql = "SELECT a.id, a.email as title, a.role as subtitle, u.name as display_name, u.profile_pic, a.created_at 
+            $sql = "SELECT a.id, a.email as title, a.role as subtitle, u.name as display_name, u.profile_image, a.created_at 
                     FROM auth_accounts a
                     LEFT JOIN users u ON a.id = u.user_auth_id
                     WHERE a.email LIKE ? OR u.name LIKE ? 
@@ -138,7 +139,7 @@ try {
             $c_stmt->execute([$userId]);
             $realClientId = $c_stmt->fetchColumn();
 
-            $sql = "SELECT DISTINCT u.user_auth_id as id, u.name as title, a.email as subtitle, u.profile_pic
+            $sql = "SELECT DISTINCT u.user_auth_id as id, u.name as title, a.email as subtitle, u.profile_image
                     FROM users u
                     INNER JOIN payments p ON u.user_auth_id = p.user_id
                     INNER JOIN tickets t ON p.id = t.payment_id

@@ -228,6 +228,61 @@ CREATE TABLE IF NOT EXISTS payments (
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
 
 -- =============================================================================
+-- PAYMENTS OTPS
+-- =============================================================================
+
+CREATE TABLE IF NOT EXISTS payment_otps (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    payment_reference VARCHAR(100) NOT NULL,
+    otp_hash VARCHAR(255) NOT NULL,
+    channel ENUM('email', 'sms') NOT NULL,
+    expires_at DATETIME NOT NULL,
+    attempts INT DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX (user_id),
+    INDEX (payment_reference)
+);
+
+-- =============================================================================
+-- PAYMENTS TRANSACTIONS
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS payment_transactions (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    event_id INT NOT NULL,
+    payment_reference VARCHAR(100) NOT NULL UNIQUE,
+    amount DECIMAL(15, 2) NOT NULL,
+    status ENUM(
+        'pending',
+        'success',
+        'failed'
+    ) DEFAULT 'pending',
+    provider_response TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX (user_id),
+    INDEX (event_id)
+);
+
+ALTER TABLE tickets ADD COLUMN user_id INT AFTER id;
+
+ALTER TABLE tickets ADD COLUMN event_id INT AFTER user_id;
+
+ALTER TABLE tickets
+ADD COLUMN ticket_code VARCHAR(100) UNIQUE AFTER event_id;
+
+ALTER TABLE tickets
+ADD COLUMN qr_code_path VARCHAR(255) AFTER ticket_code;
+
+ALTER TABLE tickets
+ADD COLUMN status ENUM('valid', 'used', 'cancelled') DEFAULT 'valid' AFTER qr_code_path;
+
+-- Indexing for performance
+CREATE INDEX idx_tickets_user ON tickets (user_id);
+
+CREATE INDEX idx_tickets_event ON tickets (event_id);
+
+-- =============================================================================
 -- TICKETS
 -- =============================================================================
 CREATE TABLE IF NOT EXISTS tickets (
@@ -240,6 +295,30 @@ CREATE TABLE IF NOT EXISTS tickets (
     UNIQUE KEY uq_ticket_barcode (barcode),
     CONSTRAINT fk_ticket_payment FOREIGN KEY (payment_id) REFERENCES payments (id) ON DELETE CASCADE
 ) ENGINE = INNODB DEFAULT CHARSET = UTF8MB4;
+
+SET FOREIGN_KEY_CHECKS = 1;
+
+-- =============================================================================
+-- FAVORITES
+-- =============================================================================
+
+CREATE TABLE IF NOT EXISTS favorites (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    user_id BIGINT UNSIGNED NOT NULL,
+    event_id BIGINT UNSIGNED NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_user_event (user_id, event_id),
+    CONSTRAINT fk_fav_user FOREIGN KEY (user_id) REFERENCES auth_accounts (id) ON DELETE CASCADE,
+    CONSTRAINT fk_fav_event FOREIGN KEY (event_id) REFERENCES events (id) ON DELETE CASCADE
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
+
+-- Add coordinates to events table for map integration
+ALTER TABLE events
+ADD COLUMN latitude DECIMAL(10, 8) DEFAULT NULL AFTER location;
+
+ALTER TABLE events
+ADD COLUMN longitude DECIMAL(11, 8) DEFAULT NULL AFTER latitude;
 
 -- =============================================================================
 -- NOTIFICATIONS
@@ -281,9 +360,7 @@ CREATE TABLE IF NOT EXISTS media (
     PRIMARY KEY (id),
     KEY idx_media_client (client_id),
     CONSTRAINT fk_media_client FOREIGN KEY (client_id) REFERENCES clients (id) ON DELETE CASCADE
-) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
-
-SET FOREIGN_KEY_CHECKS = 1;
+) ENGINE = INNODB DEFAULT CHARSET = UTF8MB4;
 
 -- =============================================================================
 -- SMS LOGS (TWILIO INTEGRATION + OTP + REMINDERS + RECEIPTS)
@@ -325,8 +402,6 @@ sent_at DATETIME DEFAULT NULL,
 delivered_at DATETIME DEFAULT NULL,
 
 -- Cost tracking (important for financial monitoring)
-
-
 price DECIMAL(10,5) DEFAULT NULL,
     price_unit VARCHAR(10) DEFAULT NULL,
 
@@ -407,3 +482,15 @@ VALUES (
             'Default system administrator account'
         )
     );
+
+DELETE FROM clients WHERE id = 1;
+
+SELECT * FROM admins;
+
+SELECT * FROM clients;
+
+SELECT * FROM events;
+
+SELECT * FROM users;
+
+delete from users where id = 1;

@@ -77,7 +77,7 @@ try {
             'city' => $user['city'] ?? null,
             'state' => $user['state'] ?? null,
             'address' => $user['address'] ?? null,
-            'profile_pic' => (function ($pic) {
+            'profile_image' => (function ($pic) {
                 if (!$pic)
                     return null;
                 if (preg_match('/^https?:\/\//i', $pic))

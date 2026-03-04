@@ -9,6 +9,8 @@ require_once '../../config/database.php';
 try {
     $q = $_GET['q'] ?? '';
     $limit = (int) ($_GET['limit'] ?? 50);
+    $priority = $_GET['priority'] ?? null;
+    $category = $_GET['category'] ?? null;
 
     // Build search query
     $where_clauses = ["e.status = 'published'", "e.deleted_at IS NULL"];
@@ -22,23 +24,52 @@ try {
             OR e.state LIKE ? 
             OR e.location LIKE ? 
             OR e.category LIKE ? 
+            OR e.priority LIKE ?
             OR DATE_FORMAT(e.event_date, '%Y-%m-%d') LIKE ?
         )";
         $search_term = "%$q%";
-        // Bind for each field in the OR clause
-        $params[] = $search_term; // event_name
-        $params[] = $search_term; // business_name (organizer)
-        $params[] = $search_term; // state
-        $params[] = $search_term; // location
-        $params[] = $search_term; // category
-        $params[] = $search_term; // event_date
+        $params[] = $search_term;
+        $params[] = $search_term;
+        $params[] = $search_term;
+        $params[] = $search_term;
+        $params[] = $search_term;
+        $params[] = $search_term;
+        $params[] = $search_term;
+    }
+
+    if ($priority && $priority !== 'all') {
+        $where_clauses[] = "e.priority = ?";
+        $params[] = $priority;
+    }
+
+    if ($category && $category !== 'all') {
+        $where_clauses[] = "e.category = ?";
+        $params[] = $category;
+    }
+
+    // Check if user is logged in for favorites
+    $user_id = null;
+    $user_role = $_SESSION['user_role'] ?? 'guest';
+    if ($user_role === 'admin') {
+        $user_id = $_SESSION['admin_id'] ?? null;
+    } elseif ($user_role === 'client') {
+        $user_id = $_SESSION['client_id'] ?? null;
+    } else {
+        $user_id = $_SESSION['user_id'] ?? null;
+    }
+
+    $favorite_select = "";
+    if ($user_id) {
+        $favorite_select = ", (SELECT COUNT(*) FROM favorites WHERE user_id = ? AND event_id = e.id) as is_favorite";
+    } else {
+        $favorite_select = ", 0 as is_favorite";
     }
 
     $where_sql = implode(' AND ', $where_clauses);
 
-    // Execute search (Default to upcoming date order as requested)
+    // Execute search
     $sql = "
-        SELECT e.*, c.business_name as organizer_name, c.profile_pic as client_profile_pic
+        SELECT e.*, c.business_name as organizer_name, c.profile_pic as client_profile_pic $favorite_select
         FROM events e
         LEFT JOIN clients c ON e.client_id = c.id
         WHERE $where_sql
@@ -46,12 +77,20 @@ try {
         LIMIT ?
     ";
 
-    $params[] = $limit;
+    // Rebuild params to include user_id for the subquery if needed
+    $query_params = [];
+    if ($user_id) {
+        $query_params[] = $user_id;
+    }
+    foreach ($params as $p) {
+        $query_params[] = $p;
+    }
+    $query_params[] = $limit;
 
     $stmt = $pdo->prepare($sql);
 
     // Bind parameters
-    foreach ($params as $key => $value) {
+    foreach ($query_params as $key => $value) {
         $stmt->bindValue($key + 1, $value, is_int($value) ? PDO::PARAM_INT : PDO::PARAM_STR);
     }
 

@@ -71,27 +71,30 @@ try {
         $user_id = $_SESSION['user_id'] ?? null;
     }
 
-    // Favorites table does not exist, setting is_favorite to 0
-    // $favorite_select = $user_id ? ", (SELECT COUNT(*) FROM favorites WHERE user_id = ? AND event_id = e.id) as is_favorite" : ", 0 as is_favorite";
-    $favorite_select = ", 0 as is_favorite";
+    // Check if user is logged in for favorites
+    $favoriteSubquery = "0 as is_favorite";
+    if ($user_id) {
+        $favoriteSubquery = "(SELECT COUNT(*) FROM favorites WHERE user_id = ? AND event_id = e.id) as is_favorite";
+    }
 
     $sql = "
-        SELECT e.*, u.business_name as client_name, u.profile_pic as client_profile_pic $favorite_select
+        SELECT 
+            e.*, 
+            c.business_name as organizer_name,
+            c.profile_pic as client_profile_pic,
+            $favoriteSubquery
         FROM events e
-        LEFT JOIN clients u ON e.client_id = u.id
+        JOIN clients c ON e.client_id = c.id
         $where_sql
         ORDER BY e.created_at DESC
         LIMIT ? OFFSET ?
     ";
 
     // Rebuild params to include user_id for the subquery if needed
-    // User ID param removed as favorites subquery was removed
     $query_params = [];
-    /*
     if ($user_id) {
         $query_params[] = $user_id;
     }
-    */
     foreach ($params as $p) {
         $query_params[] = $p;
     }

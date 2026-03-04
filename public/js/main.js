@@ -5,6 +5,7 @@ let eventsData = {
   featured: [],
   upcoming: [],
   nearby: [],
+  favorites: [],
   all: []
 };
 
@@ -86,6 +87,18 @@ async function loadEvents() {
         eventsData.nearby = sortByCreation([...priorityNearby]).slice(0, 12);
       }
       
+      // Favorites: events where is_favorite is 1
+      eventsData.favorites = publishedEvents.filter(e => parseInt(e.is_favorite) === 1);
+      
+      // Toggle favorites section visibility
+      const favoritesSection = document.getElementById('your-favorites');
+      if (favoritesSection) {
+          favoritesSection.style.display = (authController.state === authController.states.AUTHENTICATED && eventsData.favorites.length > 0) ? 'block' : 'none';
+          if (eventsData.favorites.length > 0) {
+              initializeSlider('favorites-grid');
+          }
+      }
+      
       // Render events
       renderEvents();
     } else {
@@ -158,21 +171,26 @@ function initUserIcon() {
     if (authController.state === authController.states.AUTHENTICATED && user) {
       // Update icon
       if (userProfileImg) {
-          userProfileImg.src = user.profile_pic || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || 'User')}&background=FF5A5F&color=fff&size=128`;
+          userProfileImg.src = user.profile_image || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || 'User')}&background=FF5A5F&color=fff&size=128`;
           userProfileImg.title = `Logged in as ${user.name}`;
           userProfileImg.style.display = 'block';
       }
       if (defaultUserIcon) defaultUserIcon.style.display = 'none';
       if (userOnlineStatus) userOnlineStatus.style.display = 'block';
       
-      // Update dropdown details
       if (dropdownUserName) dropdownUserName.textContent = user.name || 'User';
       if (dropdownUserEmail) dropdownUserEmail.textContent = user.email || '';
-    } else if (!authController.isSyncing) {
-      // Revert to guest UI ONLY if not syncing
+    } else {
+      // Guest/Unauthenticated UI
       if (userProfileImg) userProfileImg.style.display = 'none';
       if (defaultUserIcon) defaultUserIcon.style.display = 'block';
       if (userOnlineStatus) userOnlineStatus.style.display = 'none';
+      
+      const favoritesSection = document.getElementById('your-favorites');
+      if (favoritesSection) favoritesSection.style.display = 'none';
+
+      if (dropdownUserName) dropdownUserName.textContent = 'Guest';
+      if (dropdownUserEmail) dropdownUserEmail.textContent = 'Sign in to sync';
     }
   };
 
@@ -183,10 +201,16 @@ function initUserIcon() {
   window.addEventListener('auth:stateChange', (e) => {
     console.log('[Main] Auth state change detected:', e.detail.state);
     setupUI();
+    if (e.detail.state === authController.states.AUTHENTICATED) {
+        loadEvents(); // Refresh data to show is_favorite states
+    }
   });
 
   window.addEventListener('auth:sync', (e) => {
     setupUI();
+    if (e.detail.success) {
+        loadEvents();
+    }
   });
 
   // Unified click handler for the profile button
@@ -252,7 +276,7 @@ function initUserIcon() {
         return;
       }
       const modalPic = document.getElementById('modalProfilePic');
-      if (modalPic) modalPic.src = user.profile_pic || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || 'User')}&background=FF5A5F&color=fff&size=128`;
+      if (modalPic) modalPic.src = user.profile_image || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || 'User')}&background=FF5A5F&color=fff&size=128`;
       
       const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.value = val || ''; };
       setVal('profileName', user.name);
@@ -395,24 +419,29 @@ function debounce(func, wait) {
   };
 }
 
-// Search functionality
+// Enhanced search with real-time filtering
 function initEnhancedSearch() {
   const globalSearch = document.getElementById('globalSearch');
-  const searchButton = document.querySelector('.search-button-modern');
-  const loader = document.getElementById('searchLoader');
-
-  if (searchButton) {
-    searchButton.addEventListener('click', () => performServerSearch(globalSearch?.value || ''));
-  }
-
-  const debouncedSearch = debounce((val) => performServerSearch(val), 400);
+  const searchLoader = document.getElementById('searchLoader');
 
   if (globalSearch) {
-    globalSearch.addEventListener('input', (e) => {
-      const val = e.target.value.trim();
-      if (loader) loader.style.display = 'block';
-      debouncedSearch(val);
+    let debounceTimer;
+    globalSearch.addEventListener('input', () => {
+      clearTimeout(debounceTimer);
+      if (searchLoader) searchLoader.style.display = 'block';
+
+      debounceTimer = setTimeout(() => {
+        const query = globalSearch.value.trim();
+        performServerSearch(query);
+      }, 500);
     });
+
+    const searchButton = document.querySelector('.search-button-modern');
+    if (searchButton) {
+      searchButton.addEventListener('click', () => {
+        performServerSearch(globalSearch.value.trim());
+      });
+    }
   }
 }
 
@@ -443,7 +472,8 @@ async function performServerSearch(query) {
 
   try {
     const url = new URL('../../api/events/search-events.php', window.location.href);
-    url.searchParams.set('q', query);
+    url.searchParams.append('q', query);
+    url.searchParams.append('limit', '40');
 
     const response = await apiFetch(url.toString());
     const result = await response.json();
@@ -521,7 +551,10 @@ function createEventCard(event, index) {
   const state = escapeHTML(event.state) || 'Nigeria';
   const desc = escapeHTML(event.description || '');
   const organizer = escapeHTML(event.organizer_name || event.client_name || 'Eventra');
-  const priority = escapeHTML(event.priority || '');
+  const full_address = `${event.address || ''}, ${event.city || ''}, ${event.state || ''}`.replace(/^, /, '').replace(/, , /g, ', ');
+  const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(full_address || 'Nigeria')}`;
+  const shareTitle = `Eventra: ${eventName}`;
+  const shareText = `Check out ${eventName} organized by ${organizer} on Eventra!`;
   
   return `
     <div class="event-card" data-id="${event.id}" data-tag="${escapeHTML(event.tag) || event.id}" style="animation-delay: ${index * 0.1}s">
@@ -540,9 +573,14 @@ function createEventCard(event, index) {
       <div class="event-content">
         <div class="event-date-time">${eventDate} • ${eventTime}</div>
         <h3 class="event-title">${eventName}</h3>
-        <div class="event-location">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
-          ${city} ${state}
+        <div class="event-location" style="display: flex; align-items: center; justify-content: space-between;">
+          <div style="display: flex; align-items: center; gap: 0.4rem; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+            <span title="${escapeHTML(full_address)}">${escapeHTML(full_address)}</span>
+          </div>
+          <a href="${mapUrl}" target="_blank" class="map-icon-link" title="Open in Google Maps" style="color: #FF5A5F; transition: transform 0.2s; margin-left: 8px;" onclick="event.stopPropagation();">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 11 22 2 13 21 11 13 3 11"></polygon></svg>
+          </a>
         </div>
         <p class="event-description">${desc.substring(0, 100)}${desc.length > 100 ? '...' : ''}</p>
         <div class="event-organizer">Organized by ${organizer}</div>
@@ -554,7 +592,7 @@ function createEventCard(event, index) {
             <button class="card-action-btn favorite-btn ${isFavorite}" onclick="toggleFavorite(event, ${event.id})" title="Favorite">
               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
             </button>
-            <button class="card-action-btn share-btn" onclick="shareEvent(event, ${event.id})" title="Share">
+            <button class="card-action-btn share-btn" onclick="shareEvent(event, ${event.id}, '${escapeHTML(shareTitle)}', '${escapeHTML(shareText)}')" title="Share">
               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><polyline points="16 6 12 2 8 6"></polyline><line x1="12" y1="2" x2="12" y2="15"></line></svg>
             </button>
           </div>
@@ -568,6 +606,7 @@ function createEventCard(event, index) {
 function renderEvents() {
   renderEventsGrid('all-events-grid', eventsData.all, 'No events available at the moment');
   renderEventsGrid('hot-events-grid', eventsData.hot, 'No hot events at the moment');
+  renderEventsGrid('favorites-grid', eventsData.favorites, 'You haven\'t favorited any events yet');
   renderEventsGrid('trending-events-grid', eventsData.trending, 'No trending events at the moment');
   renderEventsGrid('featured-events-grid', eventsData.featured, 'No featured events at the moment');
   renderEventsGrid('upcoming-events-grid', eventsData.upcoming, 'No upcoming events at the moment');
@@ -575,13 +614,13 @@ function renderEvents() {
 }
 
 // Share event function
-function shareEvent(e, eventId) {
+function shareEvent(e, eventId, title = 'Check out this event!', text = 'I found this amazing event on Eventra') {
   if(e) e.stopPropagation();
   const shareUrl = `${window.location.origin}${window.location.pathname}?event=${eventId}`;
   if (navigator.share) {
     navigator.share({
-      title: 'Check out this event!',
-      text: 'I found this amazing event on Eventra',
+      title: title,
+      text: text,
       url: shareUrl
     }).catch(err => console.log('Error sharing:', err));
   } else {
@@ -616,6 +655,7 @@ async function toggleFavorite(e, eventId) {
                 }
             }
             showNotification(result.message, 'success');
+            loadEvents(); // Refresh favorites section
         }
     } catch (error) {
         console.error('Favorite toggle error:', error);
@@ -655,21 +695,79 @@ function initHeaderScroll() {
   });
 }
 
+/**
+ * Slider Logic for smooth animations
+ */
+function initializeSlider(gridId) {
+    const grid = document.getElementById(gridId);
+    if (!grid) return;
+
+    const container = grid.parentElement;
+    const cards = grid.children;
+    if (cards.length < 4) return; // Not enough cards for sliding
+
+    let isPaused = false;
+    let autoSlideInterval;
+    const cardWidth = 300 + 24; // Width + Gap
+
+    const slide = () => {
+        if (isPaused) return;
+        
+        const maxScroll = grid.scrollWidth - grid.clientWidth;
+        if (grid.scrollLeft >= maxScroll - 5) {
+            grid.scrollTo({ left: 0, behavior: 'smooth' });
+        } else {
+            grid.scrollBy({ left: cardWidth, behavior: 'smooth' });
+        }
+    };
+
+    const startAutoSlide = () => {
+        stopAutoSlide();
+        autoSlideInterval = setInterval(slide, 3000);
+    };
+
+    const stopAutoSlide = () => {
+        if (autoSlideInterval) clearInterval(autoSlideInterval);
+    };
+
+    grid.addEventListener('mouseenter', () => isPaused = true);
+    grid.addEventListener('mouseleave', () => isPaused = false);
+    
+    // Mobile Touch Support
+    let startX;
+    grid.addEventListener('touchstart', (e) => {
+        startX = e.touches[0].pageX;
+        isPaused = true;
+    }, { passive: true });
+
+    grid.addEventListener('touchend', (e) => {
+        const endX = e.changedTouches[0].pageX;
+        const diff = startX - endX;
+        if (Math.abs(diff) > 50) {
+            grid.scrollBy({ left: diff > 0 ? cardWidth : -cardWidth, behavior: 'smooth' });
+        }
+        setTimeout(() => isPaused = false, 2000);
+    }, { passive: true });
+
+    startAutoSlide();
+}
+
 
 // Initialize all functions
 async function init() {
   // 1. Initialize Auth Controller First
   await authController.init();
-  
-  // 2. Load UI Components
-  loadEvents();
-  initMobileMenu();
-  initUserIcon();
-  initEnhancedSearch();
-  initEventModal();
-  initSmoothScroll();
-  initHeaderScroll();
-  initGoogleAuth();
+    // Initialize dynamic components
+    loadEvents().then(() => {
+        initializeSlider('hot-events-grid');
+    });
+    initMobileMenu();
+    initUserIcon();
+    initEnhancedSearch();
+    initEventModal();
+    initSmoothScroll();
+    initHeaderScroll();
+    if (typeof initGoogleAuth === 'function') initGoogleAuth();
   if (typeof initUserLogin === 'function') initUserLogin();
   
   // Real-time synchronization (60s polling for events)

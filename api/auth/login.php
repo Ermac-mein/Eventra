@@ -161,7 +161,7 @@ try {
                 'name' => $user['name'],
                 'email' => $user['email'],
                 'role' => $userRole,
-                'profile_pic' => (function ($pic) {
+                'profile_image' => (function ($pic) {
                     if (!$pic)
                         return null;
                     if (preg_match('/^https?:\/\//i', $pic))
