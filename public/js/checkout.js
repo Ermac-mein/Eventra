@@ -100,13 +100,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 return;
             }
 
-            const exactPrice = eventData?.price || 0;
-            if (exactPrice === 0) {
-                createTicket(eventId, currentQuantity, null);
-                return;
-            }
-
-            // Proceed to real Payment Page
+            // Proceed to real Payment Page for all events
             const orderData = {
                 eventId: eventId,
                 quantity: currentQuantity,
@@ -175,71 +169,7 @@ function resetPayBtn(event, quantity) {
                         Checkout <span id="btnPayAmount">${total === 0 ? 'FREE (Claim)' : `₦${total.toLocaleString()}`}</span>`;
 }
 
-// Helper: Trigger the actual DB ticket insertion via Backend API
-async function createTicket(eventId, quantity, paymentReference) {
-    const referral = sessionStorage.getItem('referral_client');
-
-    try {
-        const response = await apiFetch('../../api/tickets/purchase-ticket.php', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                event_id: eventId,
-                quantity: parseInt(quantity),
-                referred_by_client: referral,
-                payment_reference: paymentReference
-            })
-        });
-
-        const result = await response.json();
-        if (result.success) {
-            // Send Receipt and Ticket Emails asynchronously
-            apiFetch('../../api/emails/send-email.php', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    type: 'receipt',
-                    payment_reference: paymentReference
-                })
-            }).catch(err => console.error('Receipt Email Error:', err));
-
-            apiFetch('../../api/emails/send-email.php', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    type: 'ticket',
-                    payment_reference: paymentReference
-                })
-            }).catch(err => console.error('Ticket Email Error:', err));
-
-            document.getElementById('loadingOverlay').style.display = 'none';
-            Swal.fire({
-                title: 'Payment Successful!',
-                text: 'Your tickets have been secured.',
-                icon: 'success',
-                confirmButtonColor: '#ff5a5f'
-            }).then(() => {
-                const keys = typeof getRoleKeys === 'function' ? getRoleKeys() : { role: 'role' };
-                const role = window.storage?.get(keys.role) || window.storage?.get('role') || (window.storage?.getUser()?.role);
-                if(role === 'client') {
-                    window.location.href = '../../client/pages/tickets.html';
-                } else if(role === 'admin') {
-                    window.location.href = '../../admin/pages/tickets.html';
-                } else {
-                    window.location.href = 'index.html';
-                }
-            });
-        } else {
-            document.getElementById('loadingOverlay').style.display = 'none';
-            showNotification(result.message || 'Ticket generation failed', 'error');
-            resetPayBtn(window._checkoutEventData || {}, quantity);
-        }
-    } catch (error) {
-        document.getElementById('loadingOverlay').style.display = 'none';
-        console.error('Ticket Creation Error:', error);
-        showNotification('Fatal Error creating ticket. Check email for receipt.', 'error');
-    }
-}
+// Helper: createTicket function removed - now handled by payment.html / payment.js
 
 function showErrorAndRedirect(msg, url) {
     document.getElementById('loadingOverlay').style.display = 'none';

@@ -537,7 +537,7 @@ function showEditEventModal(event) {
                                     <option value="Community" ${event.event_type === 'Community' ? 'selected' : ''}>Community</option>
                                     <option value="Religious" ${event.event_type === 'Religious' ? 'selected' : ''}>Religious</option>
                                     <option value="Cultural" ${event.event_type === 'Cultural' ? 'selected' : ''}>Cultural</option>
-                                    <option value="Educational & Institutional" ${event.event_type === 'Educational & Institutional' ? 'selected' : ''}>Educational & Institutional</option>
+                                    <option value="Educational" ${event.event_type === 'Educational' ? 'selected' : ''}>Educational</option>
                                     <option value="Other" ${event.event_type === 'Other' ? 'selected' : ''}>Other</option>
                                 </select>
                             </div>

@@ -13,6 +13,30 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     await loadUsers(user.id);
     initializeTableSorting();
+    
+    // Sort Select Wiring
+    const sortSelect = document.getElementById('userSortSelect');
+    if (sortSelect) {
+        sortSelect.addEventListener('change', (e) => {
+            if (e.target.value !== 'none') {
+                const parts = e.target.value.split('_');
+                const colIndex = parseInt(parts[0]);
+                const isDesc = parts[1] === 'desc';
+                
+                const table = document.querySelector('table');
+                const headers = table.querySelectorAll('th');
+                const header = headers[colIndex];
+                
+                // Set the status intentionally opposite so that .click() toggles it to the target status
+                if (isDesc) {
+                    header.classList.add('sort-asc');
+                } else {
+                    header.classList.add('sort-desc');
+                }
+                header.click();
+            }
+        });
+    }
 });
 
 function initializeTableSorting() {
@@ -116,9 +140,16 @@ function updateUsersTable(users) {
         const statusText = isActive ? 'Active' : 'Inactive';
         const statusColor = isActive ? '#10b981' : '#ef4444';
         
+        const profileImage = user.profile_pic 
+            ? `../../${user.profile_pic}`
+            : `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || 'User')}&background=random`;
+
         return `
         <tr style="cursor: pointer;" onclick='showUserPreviewModal(${JSON.stringify(user).replace(/'/g, "&#39;")})'>
-            <td>${user.name || 'N/A'}</td>
+            <td style="display: flex; align-items: center; gap: 12px;">
+                <img src="${profileImage}" alt="${user.name}" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover; border: 1px solid #e2e8f0;">
+                <span style="font-weight: 500;">${user.name || 'N/A'}</span>
+            </td>
             <td>${user.email || 'N/A'}</td>
             <td>${user.phone || 'N/A'}</td>
             <td>${user.state || 'N/A'}</td>

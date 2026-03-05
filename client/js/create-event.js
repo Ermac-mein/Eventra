@@ -70,7 +70,7 @@ function showCreateEventModal() {
                                             <option value="Networking">Networking</option>
                                             <option value="Festival">Festival</option>
                                             <option value="Concert">Concert</option>
-                                            <option value="Educational & Institutional">Educational & Institutional</option>
+                                            <option value="Educational">Educational</option>
                                             <option value="Social">Social</option>
                                             <option value="Personal">Personal</option>
                                             <option value="Community">Community</option>

@@ -90,15 +90,6 @@ async function loadEvents() {
       // Favorites: events where is_favorite is 1
       eventsData.favorites = publishedEvents.filter(e => parseInt(e.is_favorite) === 1);
       
-      // Toggle favorites section visibility
-      const favoritesSection = document.getElementById('your-favorites');
-      if (favoritesSection) {
-          favoritesSection.style.display = (authController.state === authController.states.AUTHENTICATED && eventsData.favorites.length > 0) ? 'block' : 'none';
-          if (eventsData.favorites.length > 0) {
-              initializeSlider('favorites-grid');
-          }
-      }
-      
       // Render events
       renderEvents();
     } else {
@@ -541,25 +532,29 @@ function escapeHTML(str) {
 // Create event card
 function createEventCard(event, index) {
   const price = !event.price || parseFloat(event.price) === 0 ? 'Free' : `₦${parseFloat(event.price).toLocaleString()}`;
-  const eventImage = escapeHTML(event.image_path) || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=400&h=250&fit=crop';
-  const eventDate = new Date(event.event_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-  const eventTime = escapeHTML(event.event_time) || 'TBA';
+  const eventImage = escapeHTML(event.absolute_image_url || event.image_path) || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=400&h=250&fit=crop';
+  
+  let eventDate = 'Date TBA';
+  if (event.event_date) {
+      const d = new Date(event.event_date);
+      if (!isNaN(d.getTime())) {
+          eventDate = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      }
+  }
+  const eventTime = escapeHTML(event.event_time) || '12:00:00';
   const isFavorite = event.is_favorite ? 'active' : '';
   const eventName = escapeHTML(event.event_name);
   const category = escapeHTML(event.category || event.event_type) || 'Event';
-  const city = escapeHTML(event.city) || '';
-  const state = escapeHTML(event.state) || 'Nigeria';
   const desc = escapeHTML(event.description || '');
   const organizer = escapeHTML(event.organizer_name || event.client_name || 'Eventra');
-  const full_address = `${event.address || ''}, ${event.city || ''}, ${event.state || ''}`.replace(/^, /, '').replace(/, , /g, ', ');
+  const full_address = `${event.address || ''}, ${event.city || ''}, ${event.state || ''}`.replace(/^, /, '').replace(/, , /g, ', ').replace(/, $/, '');
   const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(full_address || 'Nigeria')}`;
   const shareTitle = `Eventra: ${eventName}`;
   const shareText = `Check out ${eventName} organized by ${organizer} on Eventra!`;
-  
   return `
-    <div class="event-card" data-id="${event.id}" data-tag="${escapeHTML(event.tag) || event.id}" style="animation-delay: ${index * 0.1}s">
-      <div class="event-image-container enhanced-hd">
-        <img src="${eventImage}" alt="${eventName}" loading="lazy" class="event-image">
+    <div class="event-card" data-id="${event.id}" data-tag="${escapeHTML(event.tag) || event.id}" onclick="typeof openEventModal === 'function' ? openEventModal(${event.id}) : window.location.href='event-details.html?id=${event.id}'">
+      <div class="event-image-container">
+        <img src="${eventImage}" alt="${eventName}" loading="lazy" class="event-image" onerror="this.src='https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=400&h=250&fit=crop'">
         <div class="event-badges">
           <div class="event-category-badge">${category}</div>
           ${event.priority ? `
@@ -573,28 +568,39 @@ function createEventCard(event, index) {
       <div class="event-content">
         <div class="event-date-time">${eventDate} • ${eventTime}</div>
         <h3 class="event-title">${eventName}</h3>
-        <div class="event-location" style="display: flex; align-items: center; justify-content: space-between;">
-          <div style="display: flex; align-items: center; gap: 0.4rem; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
-            <span title="${escapeHTML(full_address)}">${escapeHTML(full_address)}</span>
-          </div>
-          <a href="${mapUrl}" target="_blank" class="map-icon-link" title="Open in Google Maps" style="color: #FF5A5F; transition: transform 0.2s; margin-left: 8px;" onclick="event.stopPropagation();">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 11 22 2 13 21 11 13 3 11"></polygon></svg>
-          </a>
-        </div>
-        <p class="event-description">${desc.substring(0, 100)}${desc.length > 100 ? '...' : ''}</p>
-        <div class="event-organizer">Organized by ${organizer}</div>
-
         
-        <div class="event-footer">
-          <span class="event-price">${price}</span>
-          <div class="event-card-actions">
-            <button class="card-action-btn favorite-btn ${isFavorite}" onclick="toggleFavorite(event, ${event.id})" title="Favorite">
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
-            </button>
-            <button class="card-action-btn share-btn" onclick="shareEvent(event, ${event.id}, '${escapeHTML(shareTitle)}', '${escapeHTML(shareText)}')" title="Share">
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><polyline points="16 6 12 2 8 6"></polyline><line x1="12" y1="2" x2="12" y2="15"></line></svg>
-            </button>
+        <div class="event-description">
+          ${desc.substring(0, 100)}${desc.length > 100 ? '...' : ''}
+        </div>
+        
+        <div class="event-location" onclick="window.open('${mapUrl}', '_blank'); event.stopPropagation();" title="Open in Google Maps">
+          <span class="location-text" title="${escapeHTML(full_address)}">${escapeHTML(full_address)}</span>
+          <svg class="location-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FF5A5F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+          </svg>
+        </div>
+        
+        <div class="event-footer" style="align-items: flex-end;">
+          <div style="display: flex; flex-direction: column; gap: 0.4rem;">
+            <div style="font-size: 1.2rem; font-weight: 800; color: ${price.toLowerCase() === 'free' ? '#FF5A5F' : '#111'};">${price}</div>
+          </div>
+          
+          <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 0.8rem;">
+            <div style="font-size: 0.8rem; color: #94a3b8; font-weight: 500;">By ${organizer}</div>
+            <div class="event-card-actions">
+              <!-- Heart Icon -->
+              <button class="card-action-btn favorite-btn ${isFavorite}" onclick="toggleFavorite(event, ${event.id})" title="Favorite">
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                </svg>
+              </button>
+              <!-- Share Icon -->
+              <button class="card-action-btn share-btn" onclick="shareEvent(event, ${event.id}, '${escapeHTML(shareTitle)}', '${escapeHTML(shareText)}')" title="Share">
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><polyline points="16 6 12 2 8 6"></polyline><line x1="12" y1="2" x2="12" y2="15"></line>
+                </svg>
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -645,17 +651,18 @@ async function toggleFavorite(e, eventId) {
         });
         const result = await response.json();
         if (result.success) {
-            const card = document.querySelector(`.event-card[data-id="${eventId}"]`);
-            if (card) {
-                const favIcon = card.querySelector('.favorite-btn');
-                if (result.is_favorite) {
-                    favIcon.classList.add('active');
-                } else {
-                    favIcon.classList.remove('active');
+            const cards = document.querySelectorAll(`.event-card[data-id="${eventId}"]`);
+            cards.forEach(cardItem => {
+                const favIcon = cardItem.querySelector('.favorite-btn');
+                if (favIcon) {
+                    if (result.is_favorite) {
+                        favIcon.classList.add('active');
+                    } else {
+                        favIcon.classList.remove('active');
+                    }
                 }
-            }
+            });
             showNotification(result.message, 'success');
-            loadEvents(); // Refresh favorites section
         }
     } catch (error) {
         console.error('Favorite toggle error:', error);
@@ -702,54 +709,41 @@ function initializeSlider(gridId) {
     const grid = document.getElementById(gridId);
     if (!grid) return;
 
-    const container = grid.parentElement;
-    const cards = grid.children;
-    if (cards.length < 4) return; // Not enough cards for sliding
+    const cards = Array.from(grid.children);
+    if (cards.length < 4) return; // Not enough cards for a continuous loop visually
+
+    // Clone the items to create a seamless infinite loop
+    cards.forEach(card => {
+        const clone = card.cloneNode(true);
+        // remove IDs if any were present to avoid duplicates
+        clone.removeAttribute('id');
+        grid.appendChild(clone);
+    });
 
     let isPaused = false;
-    let autoSlideInterval;
-    const cardWidth = 300 + 24; // Width + Gap
+    let animationFrameId;
 
     const slide = () => {
-        if (isPaused) return;
-        
-        const maxScroll = grid.scrollWidth - grid.clientWidth;
-        if (grid.scrollLeft >= maxScroll - 5) {
-            grid.scrollTo({ left: 0, behavior: 'smooth' });
-        } else {
-            grid.scrollBy({ left: cardWidth, behavior: 'smooth' });
+        if (!isPaused) {
+            grid.scrollLeft += 1; // Pan speed
+            
+            // Loop point is exactly half of the new scrollWidth
+            if (grid.scrollLeft >= grid.scrollWidth / 2) {
+                grid.scrollLeft = 0;
+            }
         }
-    };
-
-    const startAutoSlide = () => {
-        stopAutoSlide();
-        autoSlideInterval = setInterval(slide, 3000);
-    };
-
-    const stopAutoSlide = () => {
-        if (autoSlideInterval) clearInterval(autoSlideInterval);
+        animationFrameId = requestAnimationFrame(slide);
     };
 
     grid.addEventListener('mouseenter', () => isPaused = true);
     grid.addEventListener('mouseleave', () => isPaused = false);
     
     // Mobile Touch Support
-    let startX;
-    grid.addEventListener('touchstart', (e) => {
-        startX = e.touches[0].pageX;
-        isPaused = true;
-    }, { passive: true });
+    grid.addEventListener('touchstart', () => isPaused = true, { passive: true });
+    grid.addEventListener('touchend', () => { setTimeout(() => isPaused = false, 1000) }, { passive: true });
 
-    grid.addEventListener('touchend', (e) => {
-        const endX = e.changedTouches[0].pageX;
-        const diff = startX - endX;
-        if (Math.abs(diff) > 50) {
-            grid.scrollBy({ left: diff > 0 ? cardWidth : -cardWidth, behavior: 'smooth' });
-        }
-        setTimeout(() => isPaused = false, 2000);
-    }, { passive: true });
-
-    startAutoSlide();
+    // Start auto slide
+    slide();
 }
 
 
@@ -816,7 +810,7 @@ function showEventModal(eventId) {
 
   // Populate modal
   const modal = document.getElementById('eventDetailsModal');
-  document.getElementById('modalEventImage').src = event.image_path || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800&h=500&fit=crop';
+  document.getElementById('modalEventImage').src = event.absolute_image_url || event.image_path || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800&h=500&fit=crop';
   document.getElementById('modalEventTitle').textContent = event.event_name;
   document.getElementById('modalEventOrganizer').textContent = `Organized by ${event.organizer_name || event.client_name || 'Eventra'}`;
   document.getElementById('modalEventDate').textContent = new Date(event.event_date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });

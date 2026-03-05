@@ -167,29 +167,6 @@ async function handleFolderCreation(e) {
             showNotification('Folder "' + folderName + '" created successfully', 'success');
             closeFolderModal();
             hasFolders = true;
-            // Introduce a virtual folder item locally to update UI immediately without reload
-            // But for now, we'll reload the media list to fetch data from server if needed, 
-            // though folder support in get-media.php was partial (we removed fetching).
-            // Since get-media.php creates a virtual folder list based on DB, we need to ensure it sees it.
-            // Wait, create-folder.php only creates a physical directory. It doesn't insert into DB?
-            // Checking create-folder.php... it only does mkdir.
-            // But get-media.php reads from 'media' table.
-            // This implies folders are virtual or need DB entries.
-            // If get-media.php works by grouping file paths or distinct folder_name column...
-            // Wait, I removed the folder_name logic from get-media.php earlier because the column didn't exist!
-            // This means folders effectively don't exist in the DB schema yet.
-            // So creating a folder physically (mkdir) won't show anything in the UI if the UI relies on DB.
-            
-            // To make this work WITHOUT changing DB schema significantly (as per intructions), 
-            // we might just need to allow the upload to proceed with this "folder name" attached to the file upload.
-            // And maybe assume the folder exists for UI purposes if we track it.
-            
-            // However, for the user's immediate request "User must create a folder", we are enforcing the step.
-            // The upload-media.php likely takes a folder path/name.
-            
-            // For now, I'll reload media which might show nothing new if DB isn't updated, 
-            // BUT setting hasFolders=true allows the user to proceed to upload.
-            // Ideally, we should select this new folder as current.
             loadMedia();
         } else {
             showNotification('Failed to create folder: ' + result.message, 'error');

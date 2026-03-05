@@ -457,10 +457,10 @@ async function loadTrashEvents() {
                     <td class="text-center">
                         <div style="display: flex; gap: 0.5rem; justify-content: center;">
                             <button onclick="restoreEvent(${event.id})" title="Restore Event" style="background: #10b981; color: white; border: none; padding: 6px 14px; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 0.8rem; transition: all 0.2s;">
-                                ↩️ Restore
+                                Restore
                             </button>
                             <button onclick="permanentDeleteEvent(${event.id})" title="Delete Forever" style="background: #ef4444; color: white; border: none; padding: 6px 14px; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 0.8rem; transition: all 0.2s;">
-                                ❌ Delete Forever
+                                 Delete Forever
                             </button>
                         </div>
                     </td>

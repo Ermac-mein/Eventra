@@ -234,7 +234,10 @@
                 Card Information
             </h2>
 
-            <form id="paymentForm">
+            <div id="paymentLoading" style="text-align: center; padding: 2rem; color: #64748b;">
+                Loading securely...
+            </div>
+            <form id="paymentForm" style="display: none;">
                 <div class="form-grid">
                     <div class="input-group full-width">
                         <label>Cardholder Name</label>
@@ -259,7 +262,7 @@
 
                 <button type="submit" class="pay-btn" id="confirmPaymentBtn">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
-                    Confirm Secure Payment
+                    Pay
                 </button>
             </form>
 

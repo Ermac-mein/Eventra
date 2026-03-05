@@ -94,7 +94,7 @@ async function openEventDetailsModal(eventIdOrData) {
 }
 
 function renderModalContent(container, eventData) {
-  const eventImage = eventData.image_path || '../assets/default-event.jpg';
+  const eventImage = eventData.absolute_image_url || eventData.image_path || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800&h=500&fit=crop';
   
   // Format Date and Time safely
   let eventDate = 'Date TBA';
@@ -210,11 +210,7 @@ function closeEventDetailsModal() {
 
 function handleBuyTicket() {
   if (currentEventData) {
-    if (currentEventData.tag) {
-      window.location.href = `details.html?event=${currentEventData.tag}`;
-    } else {
-      window.location.href = `checkout.html?id=${currentEventData.id}`;
-    }
+    window.location.href = `checkout.html?id=${currentEventData.id}&quantity=1`;
   }
 }
 

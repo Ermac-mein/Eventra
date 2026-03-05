@@ -104,7 +104,16 @@
                 <div class="summary-card"><div class="summary-label">Cancelled Tickets</div><div class="summary-value">0</div></div>
             </div>
 
-            <h3 style="font-size: 1.1rem; margin-bottom: 1.5rem;">All Tickets</h3>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                <h3 style="font-size: 1.1rem; margin: 0;">All Tickets</h3>
+                <select class="sort-select" id="ticketSortSelect" style="padding: 0.5rem 1rem; border-radius: 8px; border: 1.5px solid #e2e8f0; background: white; outline: none; cursor: pointer; color: #374151; font-weight: 500;">
+                    <option value="none">Sort by...</option>
+                    <option value="5_desc">Newest First</option>
+                    <option value="5_asc">Oldest First</option>
+                    <option value="3_desc">Price: High to Low</option>
+                    <option value="3_asc">Price: Low to High</option>
+                </select>
+            </div>
 
             <div class="table-card">
                 <table>

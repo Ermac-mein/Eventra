@@ -13,6 +13,31 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     await loadTickets(user.id);
     initializeTableSorting();
+    
+    // Sort Select Wiring
+    const sortSelect = document.getElementById('ticketSortSelect');
+    if (sortSelect) {
+        sortSelect.addEventListener('change', (e) => {
+            if (e.target.value !== 'none') {
+                const parts = e.target.value.split('_');
+                const colIndex = parseInt(parts[0]);
+                const isDesc = parts[1] === 'desc';
+                
+                const table = document.querySelector('table');
+                const headers = table.querySelectorAll('th');
+                const header = headers[colIndex];
+                
+                // Set the class explicitly then trigger click logic
+                if (isDesc) {
+                    header.classList.add('sort-asc'); // will toggle to desc in click
+                } else {
+                    header.classList.add('sort-desc'); // will toggle to asc in click
+                }
+                
+                header.click();
+            }
+        });
+    }
 });
 
 function initializeTableSorting() {

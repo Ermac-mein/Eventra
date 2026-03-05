@@ -16,36 +16,64 @@ document.addEventListener('DOMContentLoaded', async () => {
     const { eventId, quantity, contactInfo } = orderData;
     let eventData = null;
 
+    // Handle Free Events logic (moved inside data loaded)
+    function setupFreeEventState() {
+        const titleEl = document.querySelector('.section-title');
+        if (titleEl) {
+            titleEl.innerHTML = `
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                Secure Confirmation
+            `;
+        }
+        paymentForm.innerHTML = `
+            <div style="text-align: center; padding: 2rem 0;">
+                <p style="color: #64748b; margin-bottom: 2rem;">This event is free of charge. Click below to secure your tickets.</p>
+                <button type="button" class="pay-btn" id="confirmFreeBtn">
+                    Confirm & Claim Free Tickets
+                </button>
+            </div>
+        `;
+        document.getElementById('confirmFreeBtn').addEventListener('click', () => {
+            finalizePayment();
+        });
+    }
+
     // Load Event Details for summary
     try {
-        const res = await apiFetch(`../../api/events/get-event.php?id=${eventId}`);
+        const res = await apiFetch(`../../api/events/get-event-details.php?event_id=${eventId}`);
         const result = await res.json();
-        if (result.success) {
+        if (result.success && result.event) {
             eventData = result.event;
+            // Handle free events state here to avoid flicker if loaded after
+            const isFree = parseFloat(eventData.price || 0) === 0;
+            if (isFree) {
+                setupFreeEventState();
+            }
             renderSummary(eventData, quantity);
+            
+            // Hide loading state and show content
+            const paymentLoading = document.getElementById('paymentLoading');
+            if(paymentLoading) paymentLoading.style.display = 'none';
+            paymentForm.style.display = 'block';
+        } else {
+            Swal.fire('Error', 'Failed to load event details.', 'error').then(() => {
+                window.location.href = 'index.html';
+            });
         }
     } catch (e) {
         console.error('Failed to load event details', e);
+        Swal.fire('Error', 'An error occurred fetching event details.', 'error');
     }
-
-    // Populate contact info in modals
-    document.getElementById('summaryEmail').textContent = contactInfo.email;
-    document.getElementById('summaryPhone').textContent = contactInfo.phone;
-
-    // 2. Form Handling
-    const paymentForm = document.getElementById('paymentForm');
-    const otpSelectModal = document.getElementById('otpSelectModal');
-    const otpInputModal = document.getElementById('otpInputModal');
 
     paymentForm.addEventListener('submit', (e) => {
         e.preventDefault();
         
         // Card Validation (Simple)
-        const cnum = document.getElementById('cardNumber').value.replace(/\s/g, '');
-        const cexp = document.getElementById('cardExpiry').value.trim();
-        const ccvv = document.getElementById('cardCvv').value.trim();
+        const cnum = document.getElementById('cardNumber')?.value.replace(/\s/g, '');
+        const cexp = document.getElementById('cardExpiry')?.value.trim();
+        const ccvv = document.getElementById('cardCvv')?.value.trim();
 
-        if (cnum.length < 16 || !cexp.includes('/') || ccvv.length < 3) {
+        if (cnum && (cnum.length < 16 || !cexp.includes('/') || ccvv.length < 3)) {
             showNotification('Please enter valid card details.', 'error');
             return;
         }
@@ -146,18 +174,16 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
 
         try {
-            // Requirement 8: Backend Verification
-            // Note: Since this is a custom card flow, we bypass Paystack pop and call purchase-ticket.php directly
-            // with a mock success ref that purchase-ticket.php can accept if we adjust it for local testing.
-            // For now, we use currentReference.
-            
+            const isFree = parseFloat(eventData?.price || 0) === 0;
+            const finalRef = isFree ? ('FREE-' + Math.random().toString(36).substr(2, 9).toUpperCase()) : currentReference;
+
             const res = await apiFetch('../../api/tickets/purchase-ticket.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     event_id: eventId,
                     quantity: quantity,
-                    payment_reference: currentReference // purchase-ticket.php will verify this
+                    payment_reference: finalRef // purchase-ticket.php will verify this
                 })
             });
             const result = await res.json();
@@ -182,27 +208,35 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     function renderSummary(event, qty) {
-        const total = (event.price || 0) * qty;
+        const priceNum = parseFloat(event.price || 0);
+        const total = priceNum * qty;
         const container = document.getElementById('summaryContent');
+        
+        let placeholderAttr = `onerror="this.src='https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=600&h=400&fit=crop'"`;
+        const imgUrl = event.absolute_image_url || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=600&h=400&fit=crop';
+        
+        const locParts = [];
+        if (event.address && event.address !== 'undefined') locParts.push(event.address);
+        if (event.city && event.city !== 'undefined') locParts.push(event.city);
+        if (event.state && event.state !== 'undefined') locParts.push(event.state);
+        let locStr = locParts.join(', ');
+        if (!locStr) locStr = event.location || 'Location details unavailable';
+
         container.innerHTML = `
             <div style="display: flex; gap: 1rem; margin-bottom: 2rem;">
-                <img src="${event.image_url || '../assets/event-placeholder.jpg'}" style="width: 80px; height: 80px; border-radius: 1rem; object-fit: cover;">
+                <img src="${imgUrl}" ${placeholderAttr} style="width: 80px; height: 80px; border-radius: 1rem; object-fit: cover;">
                 <div>
                     <h4 style="font-weight: 700;">${event.event_name}</h4>
-                    <p style="font-size: 0.8rem; color: #64748b;">${event.city}, ${event.state}</p>
+                    <p style="font-size: 0.8rem; color: #64748b;">${locStr}</p>
                 </div>
             </div>
             <div class="summary-item">
                 <span>Price</span>
-                <span>₦${parseFloat(event.price).toLocaleString()}</span>
-            </div>
-            <div class="summary-item">
-                <span>Quantity</span>
-                <span>x${qty}</span>
+                <span>${priceNum === 0 ? 'FREE' : '₦' + priceNum.toLocaleString()}</span>
             </div>
             <div class="summary-total">
                 <span>Total Amount</span>
-                <span>₦${total.toLocaleString()}</span>
+                <span>${total === 0 ? 'FREE' : '₦' + total.toLocaleString()}</span>
             </div>
         `;
     }
