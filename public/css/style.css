@@ -576,7 +576,7 @@ body {
 }
 
 .event-card:hover .event-image {
-  transform: scale(1.08);
+  transform: scale(1.05);
 }
 
 .event-badges {
@@ -595,9 +595,9 @@ body {
   padding: 0.4rem 1rem;
   border-radius: 20px;
   font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--text-dark);
-  backdrop-filter: blur(4px);
+  font-weight: 700;
+  color: #111;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
 .event-status-badge {
