@@ -130,9 +130,14 @@ function renderEventSummary(event, quantity) {
 
     // Use absolute URL from API with fallback
     const summaryImg = document.getElementById('summaryImg');
-    summaryImg.src = event.absolute_image_url || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=600&h=400&fit=crop';
+    const relPath = event.image_path ? `../../${event.image_path.replace(/^\/+/ , '')}` : null;
+    const fallback = 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=600&h=400&fit=crop';
+    const imgUrl = encodeURI(relPath || event.absolute_image_url || fallback);
+    
+    summaryImg.src = imgUrl;
+    summaryImg.loading = 'lazy'; // Performance: Lazy load
     summaryImg.onerror = () => {
-        summaryImg.src = 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=600&h=400&fit=crop';
+        summaryImg.src = fallback;
     };
 
     const elTitle = document.getElementById('summaryTitle');

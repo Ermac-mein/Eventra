@@ -13,8 +13,6 @@ $role = $_SESSION['role'] ?? 'client';
 
 $data = json_decode(file_get_contents("php://input"), true);
 $event_id = $data['event_id'] ?? null;
-// checkAuth('client') returns the auth_account.id stored as client_id in session
-$user_id = $_SESSION['client_id'] ?? $_SESSION['user_id'] ?? null;
 
 if (!$event_id) {
     echo json_encode(['success' => false, 'message' => 'Event ID is required']);

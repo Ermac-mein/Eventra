@@ -43,8 +43,8 @@ try {
             createLogoutNotification($user_id, $user['name']);
         }
 
-        // Update status to offline
-        $stmt = $pdo->prepare("UPDATE auth_accounts SET is_active = 0 WHERE id = ?");
+        // Update status to offline (only mark is_online = 0, NOT is_active!)
+        $stmt = $pdo->prepare("UPDATE auth_accounts SET is_online = 0, last_seen = NOW() WHERE id = ?");
         $stmt->execute([$user_id]);
 
         // Delete auth tokens

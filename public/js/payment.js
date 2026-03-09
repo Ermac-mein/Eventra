@@ -212,8 +212,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         const total = priceNum * qty;
         const container = document.getElementById('summaryContent');
         
-        let placeholderAttr = `onerror="this.src='https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=600&h=400&fit=crop'"`;
-        const imgUrl = event.absolute_image_url || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=600&h=400&fit=crop';
+        const relPath = event.image_path ? `../../${event.image_path.replace(/^\/+/ , '')}` : null;
+        const fallback = 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=600&h=400&fit=crop';
+        const imgUrl = encodeURI(relPath || event.absolute_image_url || fallback);
+        let placeholderAttr = `onerror="this.src='${fallback}'" loading="lazy"`;
         
         const locParts = [];
         if (event.address && event.address !== 'undefined') locParts.push(event.address);

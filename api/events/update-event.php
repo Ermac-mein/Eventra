@@ -4,16 +4,12 @@
  * Updates event details (only for draft and scheduled events)
  */
 header('Content-Type: application/json');
-require_once '../../config/database.php';
+require_once '../../includes/middleware/auth.php';
 
-// Check authentication
-if (!isset($_SESSION['user_id'])) {
-    http_response_code(401);
-    echo json_encode(['success' => false, 'message' => 'Unauthorized']);
-    exit;
-}
+// Check authentication - allows any logged in user with valid role
+$user_id = checkAuth();
+$role = $_SESSION['role'] ?? 'client';
 
-$user_id = $_SESSION['user_id'];
 $event_id = $_POST['event_id'] ?? null;
 
 if (!$event_id) {
@@ -22,13 +18,12 @@ if (!$event_id) {
 }
 
 try {
-    // RESOLVE: Get the actual client_id from the client_auth_id in session
-    // The events table uses clients.id as client_id, while session stores auth_accounts.id
+    // RESOLVE: Get the actual client_id from the auth_id in session
     $client_stmt = $pdo->prepare("SELECT id FROM clients WHERE client_auth_id = ?");
     $client_stmt->execute([$user_id]);
     $client_row = $client_stmt->fetch();
 
-    if (!$client_row && $_SESSION['role'] !== 'admin') {
+    if (!$client_row && $role !== 'admin') {
         http_response_code(403);
         echo json_encode(['success' => false, 'message' => 'Client profile not found.']);
         exit;
@@ -47,8 +42,8 @@ try {
     }
 
     // Check if user owns the event or is admin
-    if ($_SESSION['role'] !== 'admin' && $event['client_id'] != $real_client_id) {
-        error_log("[Update Event Debug] Role: " . $_SESSION['role'] . " | Event Client ID: " . $event['client_id'] . " | User Real Client ID: " . $real_client_id);
+    if ($role !== 'admin' && $event['client_id'] != $real_client_id) {
+        error_log("[Update Event Debug] Role: $role | Event Client ID: " . $event['client_id'] . " | User Real Client ID: " . $real_client_id);
         http_response_code(403);
         echo json_encode(['success' => false, 'message' => 'You do not have permission to update this event']);
         exit;
@@ -63,17 +58,50 @@ try {
         }
 
         $file_extension = pathinfo($_FILES['event_image']['name'], PATHINFO_EXTENSION);
-        $new_filename = 'event_' . $event_id . '_' . time() . '.' . $file_extension;
+        $new_filename = uniqid('event_') . '.' . $file_extension;
         $upload_path = $upload_dir . $new_filename;
 
         if (move_uploaded_file($_FILES['event_image']['tmp_name'], $upload_path)) {
             $image_path = '/uploads/events/' . $new_filename;
 
             // Delete old image if it exists
-            if ($event['image_path'] && file_exists('../../' . $event['image_path'])) {
-                unlink('../../' . $event['image_path']);
+            if ($event['image_path'] && file_exists(__DIR__ . '/../../' . ltrim($event['image_path'], '/'))) {
+                unlink(__DIR__ . '/../../' . ltrim($event['image_path'], '/'));
             }
+
+            // [NEW] Register the image in the media table
+            try {
+                $file_size = filesize($upload_path);
+                $mime_type = mime_content_type($upload_path);
+
+                $media_stmt = $pdo->prepare("
+                    INSERT INTO media (client_id, file_name, file_path, file_type, file_size, mime_type)
+                    VALUES (?, ?, ?, 'image', ?, ?)
+                ");
+                $media_stmt->execute([
+                    $event['client_id'],
+                    $new_filename,
+                    $image_path,
+                    $file_size,
+                    $mime_type
+                ]);
+            } catch (Throwable $media_err) {
+                // Log media registration error but don't fail the entire update
+                error_log("[Update Event Media Register Error] " . $media_err->getMessage());
+            }
+        } else {
+            throw new Exception("Failed to move uploaded file to $upload_path. Check directory permissions.");
         }
+    } elseif (isset($_FILES['event_image']) && $_FILES['event_image']['error'] !== UPLOAD_ERR_NO_FILE) {
+        $error_code = $_FILES['event_image']['error'];
+        $error_message = "Image upload failed (Error: $error_code)";
+        
+        if ($error_code === UPLOAD_ERR_INI_SIZE || $error_code === UPLOAD_ERR_FORM_SIZE) {
+            $max_size = ini_get('upload_max_filesize');
+            $error_message = "The uploaded image is too large. Your server's current limit is $max_size. Please upload a smaller image or increase 'upload_max_filesize' in your PHP configuration.";
+        }
+        
+        throw new Exception($error_message);
     }
 
     // Update event

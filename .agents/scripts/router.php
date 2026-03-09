@@ -1,10 +1,5 @@
 <?php
-/**
- * Eventra Development Router
- * Handles COOP headers for Google Identity Services
- */
 
-// Set necessary headers for Google Sign-In popups
 header("Cross-Origin-Opener-Policy: same-origin-allow-popups");
 header("Cross-Origin-Embedder-Policy: unsafe-none");
 

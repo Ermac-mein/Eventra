@@ -50,7 +50,7 @@ curl_setopt($ch, CURLOPT_HTTPHEADER, [
 ]);
 $response = curl_exec($ch);
 $curlError = curl_error($ch);
-curl_close($ch);
+// curl_close($ch); is deprecated in PHP 8.4+ and no longer needed.
 
 if ($curlError || !$response) {
     http_response_code(502);

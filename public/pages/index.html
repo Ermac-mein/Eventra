@@ -293,6 +293,47 @@
             });
     </script>
 
+    <!-- Event Details Modal -->
+    <div id="eventDetailsModal" class="event-details-modal">
+        <div class="event-details-content">
+            <button class="event-details-close" id="closeEventModal" aria-label="Close">&times;</button>
+            <div class="event-details-header">
+                <img id="modalEventImage" src="" alt="Event Detail">
+                <div id="modalPriorityBadge" style="position: absolute; top: 1.5rem; left: 1.5rem; z-index: 5; padding: 0.5rem 1rem; border-radius: 30px; font-weight: 700; font-size: 0.75rem; text-transform: uppercase;"></div>
+            </div>
+            <div class="event-details-body">
+                <h2 id="modalEventTitle" class="event-details-title">Event Name</h2>
+                <p id="modalEventOrganizer" style="color: #666; margin-bottom: 1.5rem; font-weight: 500;"></p>
+                
+                <div class="event-details-meta">
+                    <div class="event-meta-item">📅 <span id="modalEventDate"></span></div>
+                    <div class="event-meta-item">🕒 <span id="modalEventTime"></span></div>
+                    <div class="event-meta-item">📍 <span id="modalEventLocation"></span></div>
+                </div>
+
+                <div class="event-details-info-grid">
+                    <div class="event-info-card">
+                        <div class="event-info-label">Category</div>
+                        <div id="modalEventCategory" class="event-info-value">General</div>
+                    </div>
+                </div>
+
+                <div class="event-details-description">
+                    <h3 style="margin-bottom: 0.5rem; color: #111;">About this event</h3>
+                    <p id="modalEventDescription"></p>
+                </div>
+
+                <div class="event-details-footer">
+                    <div class="event-price-display">
+                        <div class="event-price-label">Ticket Price</div>
+                        <div id="modalEventPrice" class="event-price-amount">Free</div>
+                    </div>
+                    <button id="bookNowBtn" class="buy-ticket-btn">Get Tickets</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="../js/storage.js"></script>

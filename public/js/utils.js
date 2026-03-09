@@ -153,8 +153,8 @@ async function apiFetch(url, options = {}) {
   try {
     const response = await fetch(url, options);
     
-    // Handle 401 (Unauthorized) or 403 (Forbidden) indicating session expiration
-    if (response.status === 401 || response.status === 403) {
+    // Handle 401 (Unauthorized) indicating session expiration
+    if (response.status === 401) {
       // Skip redirect for login endpoints themselves to avoid infinite loops
       if (!url.includes('login.php') && !url.includes('google-handler.php') && !url.includes('check-session.php')) {
         const path = window.location.pathname;
@@ -172,7 +172,7 @@ async function apiFetch(url, options = {}) {
         // Prevent redirect loop if we are already on the potential login/portal page
         if (path === new URL(loginPage).pathname || (path.includes('index.html') && loginPage.includes('index.html'))) {
            if (window.storage) window.storage.clearRoleSessions();
-           return response; // Return response so caller can handle it or let it fail gracefully
+           return response;
         }
 
         // Add error param for feedback
@@ -180,14 +180,22 @@ async function apiFetch(url, options = {}) {
         
         // Clear stale local data
         if (window.storage) window.storage.clearRoleSessions();
-        
         window.location.href = finalRedirect;
         return null;
       }
     }
+
+    // Handle 403 (Forbidden) indicating permission issue, NOT session expiry
+    if (response.status === 403) {
+      console.warn('Access Forbidden (403): User does not have permission for this action.');
+      // Special case: check if it's a profile-not-found error specifically for clients
+      // but generally we want the caller to handle 403 so they can show a specific message.
+      return response; 
+    }
     
     return response;
   } catch (error) {
+    if (error.name === 'AbortError') return null; // Silence aborts
     console.error('API Fetch Error:', error);
     throw error;
   }

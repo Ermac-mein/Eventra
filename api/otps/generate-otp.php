@@ -2,52 +2,59 @@
 /**
  * Generate OTP API
  * Generates and sends a 6-digit OTP to the user via Email or SMS
+ * - OTP expires in 5 minutes (single-use, time-sensitive)
+ * - Uses standardized auth middleware
  */
 header('Content-Type: application/json');
 require_once '../../config/database.php';
+require_once '../../includes/middleware/auth.php';
 require_once '../../includes/helpers/email-helper.php';
 require_once '../../includes/helpers/sms-helper.php';
 
-// Check authentication
-if (!isset($_SESSION['user_id'])) {
-    http_response_code(401);
-    echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+// Use standardized auth middleware
+$auth_id = checkAuth('user');
+
+// Resolve actual user profile id from auth_id
+$stmt = $pdo->prepare("SELECT id, email, phone, name FROM users WHERE user_auth_id = ?");
+$stmt->execute([$auth_id]);
+$user = $stmt->fetch();
+
+if (!$user) {
+    http_response_code(404);
+    echo json_encode(['success' => false, 'message' => 'User profile not found.']);
     exit;
 }
 
-$user_id = $_SESSION['user_id'];
+$user_id = $user['id'];
+
 $data = json_decode(file_get_contents("php://input"), true);
 $channel = $data['channel'] ?? 'email'; // 'email' or 'sms'
 $payment_reference = $data['payment_reference'] ?? 'PAY-' . strtoupper(uniqid());
 
 if (!in_array($channel, ['email', 'sms'])) {
-    echo json_encode(['success' => false, 'message' => 'Invalid channel']);
+    echo json_encode(['success' => false, 'message' => 'Invalid channel. Use "email" or "sms".']);
     exit;
 }
 
 try {
-    // 1. Get user details
-    $stmt = $pdo->prepare("SELECT email, phone, name FROM users WHERE id = ?");
-    $stmt->execute([$user_id]);
-    $user = $stmt->fetch();
-
-    if (!$user) {
-        echo json_encode(['success' => false, 'message' => 'User not found']);
-        exit;
-    }
-
-    // 2. Rate limit check (e.g., max 3 OTPs per 5 minutes per user)
+    // 1. Rate limit check (max 3 OTPs per 5 minutes per user)
     $stmt = $pdo->prepare("SELECT COUNT(*) FROM payment_otps WHERE user_id = ? AND created_at > DATE_SUB(NOW(), INTERVAL 5 MINUTE)");
     $stmt->execute([$user_id]);
     if ($stmt->fetchColumn() >= 3) {
-        echo json_encode(['success' => false, 'message' => 'Too many OTP requests. Please try again later.']);
+        echo json_encode(['success' => false, 'message' => 'Too many OTP requests. Please wait a few minutes before trying again.']);
         exit;
     }
 
-    // 3. Generate 6-digit OTP
-    $otp = sprintf("%06d", mt_rand(0, 999999));
+    // 2. Invalidate any previous unverified OTPs for this reference
+    $stmt = $pdo->prepare("UPDATE payment_otps SET expires_at = NOW() WHERE user_id = ? AND payment_reference = ? AND verified_at IS NULL");
+    $stmt->execute([$user_id, $payment_reference]);
+
+    // 3. Generate cryptographically secure 6-digit OTP
+    $otp = sprintf("%06d", random_int(0, 999999));
     $otp_hash = password_hash($otp, PASSWORD_DEFAULT);
-    $expires_at = date('Y-m-d H:i:s', strtotime('+10 minutes'));
+    // Requirement: 5-minute maximum expiry
+    $expires_at = date('Y-m-d H:i:s', strtotime('+5 minutes'));
+    $expires_human = date('H:i', strtotime('+5 minutes'));
 
     // 4. Store in database
     $stmt = $pdo->prepare("INSERT INTO payment_otps (user_id, payment_reference, otp_hash, channel, expires_at) VALUES (?, ?, ?, ?, ?)");
@@ -58,37 +65,46 @@ try {
     $error_msg = '';
 
     if ($channel === 'email') {
-        $subject = "Your Eventra Verification Code";
+        $subject = "Your Eventra Payment Verification Code";
         $body = "
-            <div style='font-family: sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 10px;'>
-                <h2 style='color: #ff5a5f;'>Verify Your Payment</h2>
+            <div style='font-family: sans-serif; max-width: 500px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;'>
+                <h2 style='color: #7c3aed; margin-bottom: 0;'>Verify Your Payment</h2>
+                <p style='color: #6b7280; font-size: 14px;'>Eventra Payment Security</p>
+                <hr style='border: 0; border-top: 1px solid #eee; margin: 16px 0;'>
                 <p>Hello <strong>{$user['name']}</strong>,</p>
-                <p>Your verification code for payment reference <strong>{$payment_reference}</strong> is:</p>
-                <div style='font-size: 32px; font-weight: bold; letter-spacing: 5px; color: #333; margin: 20px 0; text-align: center;'>{$otp}</div>
-                <p>This code will expire in 10 minutes. If you did not request this, please ignore this email.</p>
+                <p>Your one-time verification code for payment reference <strong>{$payment_reference}</strong> is:</p>
+                <div style='font-size: 36px; font-weight: 900; letter-spacing: 8px; color: #7c3aed; text-align: center; background: #f5f3ff; padding: 20px; border-radius: 10px; margin: 20px 0;'>{$otp}</div>
+                <p><strong>⏱ This code expires at {$expires_human} (in 5 minutes).</strong></p>
+                <p style='color: #ef4444; font-size: 13px;'>Do not share this code with anyone. Eventra will never ask for your OTP.</p>
                 <hr style='border: 0; border-top: 1px solid #eee; margin: 20px 0;'>
-                <p style='font-size: 12px; color: #666;'>© " . date('Y') . " Eventra. All rights reserved.</p>
+                <p style='font-size: 12px; color: #9ca3af; text-align: center;'>If you did not request this, please ignore this email. &copy; " . date('Y') . " Eventra.</p>
             </div>
         ";
         $emailResult = sendEmail($user['email'], $subject, $body);
         $sent = $emailResult['success'];
         $error_msg = $emailResult['message'];
     } else {
+        // SMS channel
         if (empty($user['phone'])) {
-            echo json_encode(['success' => false, 'message' => 'Phone number not found in profile']);
+            echo json_encode(['success' => false, 'message' => 'No phone number found on your profile. Please update your profile or use email OTP.']);
             exit;
         }
-        $message = "Your Eventra verification code is: {$otp}. Valid for 10 minutes.";
+        $message = "Your Eventra payment verification code is: {$otp}\nExpires at {$expires_human} (5 minutes).\nDo not share this code.";
         $smsResult = sendSMS($user['phone'], $message);
         $sent = $smsResult['success'];
         $error_msg = $smsResult['message'];
     }
 
     if ($sent) {
+        $maskedDestination = ($channel === 'email')
+            ? preg_replace('/(?<=.{2}).(?=.*@)/u', '*', $user['email'])
+            : preg_replace('/\d(?=\d{4})/', '*', $user['phone']);
+
         echo json_encode([
             'success' => true,
-            'message' => 'OTP sent successfully',
-            'payment_reference' => $payment_reference
+            'message' => "OTP sent to {$maskedDestination}. It expires in 5 minutes.",
+            'payment_reference' => $payment_reference,
+            'expires_in_minutes' => 5
         ]);
     } else {
         echo json_encode(['success' => false, 'message' => 'Failed to send OTP: ' . $error_msg]);

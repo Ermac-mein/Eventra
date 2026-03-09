@@ -81,9 +81,12 @@ function renderEvent(event) {
     document.getElementById('eventPrice').textContent = priceText;
     
     const hero = document.getElementById('eventHero');
-    if (event.image_path) {
-        hero.style.backgroundImage = `url(../../${event.image_path.replace(/^\/+/ , '')})`;
-    }
+    // Security: Sanitize path. Priority: Relative -> Absolute -> Fallback
+    const relPath = event.image_path ? `../../${event.image_path.replace(/^\/+/ , '')}` : null;
+    const fallback = 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1200&h=800&fit=crop';
+    const heroImg = encodeURI(relPath || event.absolute_image_url || fallback);
+    
+    hero.style.backgroundImage = `url('${heroImg}')`;
 
     // Priority badge style
     const badge = document.getElementById('priorityBadge');

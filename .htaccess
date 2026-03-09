@@ -11,3 +11,13 @@
         Header set Pragma "no-cache"
     </FilesMatch>
 </IfModule>
+
+# PHP configuration for larger uploads
+<IfModule mod_php7.c>
+    php_value upload_max_filesize 10M
+    php_value post_max_size 12M
+</IfModule>
+<IfModule mod_php.c>
+    php_value upload_max_filesize 10M
+    php_value post_max_size 12M
+</IfModule>

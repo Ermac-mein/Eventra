@@ -57,14 +57,16 @@ try {
     }
 
     // Sanitize and enhance event data for checkout
-    $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http';
-    $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
-    $baseUrl = "$protocol://$host/";
+    $baseUrl = rtrim($_ENV['APP_URL'] ?? 'http://localhost:8000/', '/');
 
     if (!empty($event['image_path'])) {
-        $event['absolute_image_url'] = $baseUrl . ltrim($event['image_path'], '/');
+        // Ensure path starts with a slash
+        $path = '/' . ltrim($event['image_path'], '/');
+        $event['image_path'] = $path;
+        $event['absolute_image_url'] = $baseUrl . $path;
     } else {
-        $event['absolute_image_url'] = 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=600&h=400&fit=crop';
+        $event['image_path'] = null;
+        $event['absolute_image_url'] = 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1200&h=800&fit=crop';
     }
 
     // Ensure price is numeric

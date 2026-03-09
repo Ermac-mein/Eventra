@@ -1,39 +1,62 @@
 <?php
+/**
+ * Scan Ticket API
+ * Called when a client scans a QR code at a venue entrance.
+ * Validates the ticket via backend-only verification (Ticket::validateAndUse).
+ *
+ * Supports:
+ *  - Raw barcode strings
+ *  - Signed QR payload tokens (base64-encoded HMAC-SHA256 JSON)
+ *
+ * Protected: client session required (clients scan tickets at their events).
+ */
 header('Content-Type: application/json');
 require_once '../../config/database.php';
-require_once '../../includes/middleware/auth.php'; // For clientMiddleware or similar
+require_once '../../includes/middleware/auth.php';
 require_once '../../includes/classes/Ticket.php';
 
-// This endpoint should be protected by ClientMiddleware as they are the ones scanning
+// Protect: must be a client (event organizer) scanning tickets
+$client_auth_id = checkAuth('client');
+
 try {
-    // clientMiddleware(); // Assuming client scans tickets
-
     $data = json_decode(file_get_contents("php://input"), true);
-    $barcode = $data['barcode'] ?? null;
+    $qrData = $data['qr_data'] ?? $data['barcode'] ?? null;
 
-    if (!$barcode) {
-        echo json_encode(['success' => false, 'message' => 'Barcode is required.']);
+    if (!$qrData) {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'message' => 'QR data or barcode is required.']);
         exit;
     }
 
-    $result = Ticket::validateAndUse($pdo, $barcode);
+    // Run backend validation (atomic, locked transaction)
+    $result = Ticket::validateAndUse($pdo, $qrData);
 
     if ($result['success']) {
         echo json_encode([
-            'success' => true,
-            'message' => 'Ticket Validated!',
-            'data' => [
-                'event_name' => $result['data']['event_name'],
-                'event_date' => $result['data']['event_date'],
-                'organizer' => $result['data']['client_name'],
-                'buyer_name' => $result['data']['buyer_name'],
+            'success'    => true,
+            'message'    => 'Ticket Validated! Entry Granted ✅',
+            'status'     => 'used',
+            'data'       => [
+                'event_name'  => $result['data']['event_name'],
+                'event_date'  => $result['data']['event_date'],
+                'organizer'   => $result['data']['client_name'],
+                'buyer_name'  => $result['data']['buyer_name'],
                 'buyer_email' => $result['data']['buyer_email'],
-                'scanned_at' => date('Y-m-d H:i:s')
+                'ticket_id'   => $result['data']['barcode'],
+                'scanned_at'  => date('Y-m-d H:i:s')
             ]
         ]);
     } else {
-        echo json_encode($result);
+        // Ticket invalid — return reason and status
+        http_response_code(422);
+        echo json_encode([
+            'success' => false,
+            'message' => $result['message'],
+            'status'  => $result['status'] ?? 'invalid',
+            'details' => $result['details'] ?? null
+        ]);
     }
+
 } catch (Exception $e) {
     http_response_code(500);
     echo json_encode(['success' => false, 'message' => 'Server error: ' . $e->getMessage()]);

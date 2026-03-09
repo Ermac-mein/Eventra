@@ -658,7 +658,7 @@ async function previewEvent(eventId) {
     content.innerHTML = `
         <div class="event-preview">
             <div style="height: 250px; overflow: hidden; position: relative;">
-                <img src="${eventImage}" style="width: 100%; height: 100%; object-fit: cover;" alt="Event">
+                <img src="${eventImage.startsWith('http') ? eventImage : (eventImage.startsWith('/') ? '../..' + eventImage : '../../' + eventImage)}" style="width: 100%; height: 100%; object-fit: cover;" alt="Event">
                 <div style="position: absolute; top: 1rem; left: 1rem; background: ${getStatusColor(eventStatus.toLowerCase())}; color: white; padding: 0.5rem 1rem; border-radius: 30px; font-weight: 700; font-size: 0.75rem; text-transform: uppercase; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
                     ${eventStatus}
                 </div>

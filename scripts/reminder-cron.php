@@ -34,7 +34,7 @@ try {
     foreach ($reminders as $rem) {
         $message = "Hi {$rem['name']}, reminder for {$rem['event_name']} tomorrow at {$rem['event_time']}. Have your barcode ready!";
 
-        $smsResult = sendSMS($rem['phone'], $message, 'event_reminder', null, null);
+        $smsResult = sendSMS($rem['phone'], $message);
 
         if ($smsResult['success']) {
             $update = $pdo->prepare("UPDATE tickets SET reminder_sent = 1 WHERE id = ?");

@@ -1,3 +1,10 @@
+// Load Tesseract.js from CDN for universal hosting support
+if (typeof Tesseract === 'undefined') {
+    const script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
+    document.head.appendChild(script);
+}
+
 function showCreateEventModal() {
     const user = storage.getUser();
     if (!user) return;
@@ -262,6 +269,13 @@ function showCreateEventModal() {
     // Add modal to body
     document.body.insertAdjacentHTML('beforeend', modalHTML);
 
+    // Inject Flyer Auto-Extract Button after the image input
+    const imageInput = document.getElementById('eventImageInput');
+    if (imageInput && imageInput.parentNode) {
+        const flyerBtnHTML = '<div style="text-align:center; margin-top:0.75rem;"><button type="button" id="analyzeFlyer" onclick="autoExtractFromFlyer()" disabled style="background:linear-gradient(135deg,#7c3aed,#4c1d95);color:white;border:none;padding:0.65rem 1.75rem;border-radius:50px;font-size:0.875rem;font-weight:700;cursor:pointer;opacity:0.4;transition:all 0.3s;box-shadow:0 4px 12px rgba(124,58,237,0.3);pointer-events:none;">Auto-Extract Data from Flyer</button><div id="flyerExtractStatus" style="font-size:0.78rem;color:#6b7280;margin-top:0.4rem;min-height:1.2em;"></div></div>';
+        imageInput.parentNode.insertAdjacentHTML('afterend', flyerBtnHTML);
+    }
+
     // Set minimum date to today
     const today = new Date().toISOString().split('T')[0];
     const dateInput = document.querySelector('input[name="event_date"]');
@@ -306,12 +320,29 @@ function closeCreateEventModal() {
 
 function previewEventImage(event) {
     const file = event.target.files[0];
+    const analyzeBtn = document.getElementById('analyzeFlyer');
+    const status = document.getElementById('flyerExtractStatus');
+
     if (file) {
         const reader = new FileReader();
         reader.onload = function(e) {
             document.getElementById('eventImagePreview').src = e.target.result;
         };
         reader.readAsDataURL(file);
+
+        if (analyzeBtn) {
+            analyzeBtn.disabled = false;
+            analyzeBtn.style.opacity = '1';
+            analyzeBtn.style.pointerEvents = 'auto';
+            if (status) status.textContent = 'Flyer ready. Click "Auto-Extract" to populate the form.';
+        }
+    } else {
+        if (analyzeBtn) {
+            analyzeBtn.disabled = true;
+            analyzeBtn.style.opacity = '0.4';
+            analyzeBtn.style.pointerEvents = 'none';
+            if (status) status.textContent = '';
+        }
     }
 }
 
@@ -394,4 +425,171 @@ window.showCreateEventModal = showCreateEventModal;
 window.closeCreateEventModal = closeCreateEventModal;
 window.previewEventImage = previewEventImage;
 window.generateEventTagAndLink = generateEventTagAndLink;
+window.autoExtractFromFlyer = autoExtractFromFlyer;
 
+/**
+ * Auto-Extract event data from the uploaded flyer image using OCR.
+ * Calls extract-flyer.php and populates the Create Event form fields.
+ */
+async function autoExtractFromFlyer() {
+    const imageInput = document.getElementById('eventImageInput');
+    const statusEl = document.getElementById('flyerExtractStatus');
+    const analyzeBtn = document.getElementById('analyzeFlyer');
+
+    if (!imageInput || !imageInput.files[0]) {
+        if (statusEl) statusEl.textContent = 'Please upload a flyer image first.';
+        return;
+    }
+
+    // Loading state
+    analyzeBtn.disabled = true;
+    analyzeBtn.textContent = 'Analyzing...';
+    if (statusEl) statusEl.textContent = 'Reading flyer with OCR, please wait...';
+
+    try {
+        const file = imageInput.files[0];
+        
+        // Step 1: Pre-process image for better OCR (Grayscale + Contrast)
+        if (statusEl) statusEl.textContent = 'Enhancing image for better readability...';
+        const processedImageBase64 = await preprocessFlyerImage(file);
+
+        // Step 2: Client-side OCR with Tesseract.js
+        if (typeof Tesseract === 'undefined') {
+            throw new Error('Tesseract.js library is still loading. Please try again in a few seconds.');
+        }
+
+        const worker = await Tesseract.createWorker('eng');
+        const { data: { text } } = await worker.recognize(processedImageBase64);
+        await worker.terminate();
+
+        console.log('[OCR Debug] Raw Extracted Text:', text);
+
+        if (!text || text.trim().length < 5) {
+            throw new Error('No readable text found on this flyer. Please ensure the image contains text and is well-lit.');
+        }
+
+        // Step 2: Send extracted text to backend for intelligent parsing
+        const formData = new FormData();
+        formData.append('extracted_text', text);
+
+        const basePath = getBasePath ? getBasePath() : '../../';
+        const response = await apiFetch(basePath + 'api/events/extract-flyer.php', {
+            method: 'POST',
+            body: formData
+        });
+
+        const result = await response.json();
+
+        if (result.success && result.fields) {
+            const f = result.fields;
+            let filledCount = 0;
+
+            // Helper to set a field if extracted value is non-empty
+            const fill = (selector, value) => {
+                if (value) {
+                    const el = document.querySelector(selector);
+                    if (el) { el.value = value; filledCount++; }
+                }
+            };
+
+            fill('[name="event_name"]', f.event_name);
+            fill('[name="event_date"]', f.event_date);
+            fill('[name="event_time"]', f.event_time);
+            fill('[name="address"]', f.address);
+            fill('[name="price"]', f.price);
+            fill('[name="phone_contact_1"]', f.phone);
+
+            // State: match against select options
+            if (f.state) {
+                const stateSelect = document.querySelector('[name="state"]');
+                if (stateSelect) {
+                    const opt = Array.from(stateSelect.options).find(o =>
+                        o.value.toLowerCase() === f.state.toLowerCase()
+                    );
+                    if (opt) { stateSelect.value = opt.value; filledCount++; }
+                }
+            }
+
+            // Trigger event name → tag generation
+            const eventNameInput = document.getElementById('eventNameInput');
+            if (eventNameInput && f.event_name) {
+                eventNameInput.value = f.event_name;
+                if (typeof generateEventTagAndLink === 'function') generateEventTagAndLink();
+            }
+
+            if (statusEl) statusEl.innerHTML = filledCount > 0
+                ? `<span style="color:#16a34a">&#10003; ${filledCount} field(s) filled! Review and adjust as needed.</span>`
+                : `<span style="color:#d97706">Flyer analyzed but no clear event data was found. Please fill in the form manually.</span>`;
+        } else {
+            if (statusEl) statusEl.innerHTML = `<span style="color:#dc2626">Could not extract data: ${result.message || 'Unknown error'}. Please fill in the form manually.</span>`;
+        }
+    } catch (err) {
+        console.error('Flyer extraction error:', err);
+        if (statusEl) {
+            statusEl.textContent = err.message;
+            statusEl.style.color = '#ef4444';
+        }
+        
+        // Make button "inaccessible" as requested for no-text / failure cases
+        if (analyzeBtn) {
+            analyzeBtn.disabled = true;
+            analyzeBtn.style.opacity = '0.4';
+            analyzeBtn.style.pointerEvents = 'none';
+        }
+    } finally {
+        if (!analyzeBtn.disabled) {
+            analyzeBtn.disabled = false;
+            analyzeBtn.textContent = 'Auto-Extract Data from Flyer';
+        }
+    }
+}
+
+/**
+ * Pre-processes a flyer image for better OCR accuracy.
+ * Converts to grayscale and boosts contrast using HTML5 Canvas.
+ */
+async function preprocessFlyerImage(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                
+                // Set dimensions
+                canvas.width = img.width;
+                canvas.height = img.height;
+                
+                // Draw original
+                ctx.drawImage(img, 0, 0);
+                
+                // Apply Grayscale + Contrast Enhancement
+                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                const data = imageData.data;
+                
+                for (let i = 0; i < data.length; i += 4) {
+                    const r = data[i];
+                    const g = data[i+1];
+                    const b = data[i+2];
+                    
+                    // Simple grayscale
+                    let gray = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+                    
+                    // Boost contrast (Thresholding-like effect)
+                    // Push darks darker and brights brighter
+                    gray = (gray > 128) ? Math.min(255, gray * 1.2) : gray * 0.8;
+                    
+                    data[i] = data[i+1] = data[i+2] = gray;
+                }
+                
+                ctx.putImageData(imageData, 0, 0);
+                resolve(canvas.toDataURL('image/png'));
+            };
+            img.onerror = reject;
+            img.src = e.target.result;
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+    });
+}

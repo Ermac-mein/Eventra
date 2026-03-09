@@ -87,6 +87,7 @@ CREATE TABLE IF NOT EXISTS admins (
     username VARCHAR(190) NOT NULL,
     password VARCHAR(255) NOT NULL,
     profile_pic VARCHAR(255) DEFAULT NULL,
+    status ENUM('active', 'suspended', 'deleted') NOT NULL DEFAULT 'active',
     metadata JSON DEFAULT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -219,6 +220,8 @@ CREATE TABLE IF NOT EXISTS payments (
         'refunded'
     ) DEFAULT 'pending',
     paystack_response JSON DEFAULT NULL,
+    payment_id VARCHAR(100) DEFAULT NULL,
+    transaction_id VARCHAR(100) DEFAULT NULL,
     paid_at DATETIME DEFAULT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
@@ -265,36 +268,28 @@ CREATE TABLE IF NOT EXISTS payment_transactions (
     INDEX (event_id)
 );
 
-ALTER TABLE tickets ADD COLUMN user_id INT AFTER id;
-
-ALTER TABLE tickets ADD COLUMN event_id INT AFTER user_id;
-
-ALTER TABLE tickets
-ADD COLUMN ticket_code VARCHAR(100) UNIQUE AFTER event_id;
-
-ALTER TABLE tickets
-ADD COLUMN qr_code_path VARCHAR(255) AFTER ticket_code;
-
-ALTER TABLE tickets
-ADD COLUMN status ENUM('valid', 'used', 'cancelled') DEFAULT 'valid' AFTER qr_code_path;
-
--- Indexing for performance
-CREATE INDEX idx_tickets_user ON tickets (user_id);
-
-CREATE INDEX idx_tickets_event ON tickets (event_id);
-
 -- =============================================================================
 -- TICKETS
 -- =============================================================================
 CREATE TABLE IF NOT EXISTS tickets (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    user_id BIGINT UNSIGNED NOT NULL,
+    event_id BIGINT UNSIGNED NOT NULL,
     payment_id BIGINT UNSIGNED NOT NULL,
     barcode VARCHAR(255) NOT NULL,
+    ticket_code VARCHAR(100) DEFAULT NULL,
+    qr_code_path VARCHAR(255) DEFAULT NULL,
+    status ENUM('valid', 'used', 'cancelled') DEFAULT 'valid',
     used TINYINT(1) DEFAULT 0,
     used_at DATETIME DEFAULT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE KEY uq_ticket_barcode (barcode),
-    CONSTRAINT fk_ticket_payment FOREIGN KEY (payment_id) REFERENCES payments (id) ON DELETE CASCADE
+    UNIQUE KEY uq_ticket_code (ticket_code),
+    INDEX idx_tickets_user (user_id),
+    INDEX idx_tickets_event (event_id),
+    CONSTRAINT fk_ticket_payment FOREIGN KEY (payment_id) REFERENCES payments (id) ON DELETE CASCADE,
+    CONSTRAINT fk_ticket_event FOREIGN KEY (event_id) REFERENCES events (id) ON DELETE CASCADE,
+    CONSTRAINT fk_ticket_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
 ) ENGINE = INNODB DEFAULT CHARSET = UTF8MB4;
 
 SET FOREIGN_KEY_CHECKS = 1;
@@ -432,6 +427,30 @@ price DECIMAL(10,5) DEFAULT NULL,
         ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+
+UPDATE auth_accounts
+SET
+    is_active = 1,
+    is_online = 0
+WHERE
+    is_active = 0
+    AND deleted_at IS NULL;
+
+-- Step 2: Mark all accounts as offline (they are not currently connected)
+UPDATE auth_accounts SET is_online = 0;
+
+-- Step 3: Clear any expired auth tokens that may be blocking re-login
+DELETE FROM auth_tokens WHERE expires_at < NOW();
+
+-- Confirmation
+SELECT
+    COUNT(*) AS total_accounts,
+    SUM(is_active) AS active_accounts,
+    SUM(is_online) AS online_accounts
+FROM auth_accounts
+WHERE
+    deleted_at IS NULL;
+
 -- =============================================================================
 -- SEED DEFAULT SYSTEM ADMIN (LOCAL AUTH ONLY)
 -- =============================================================================
@@ -467,6 +486,7 @@ INSERT INTO
         username,
         password,
         profile_pic,
+        status,
         metadata
     )
 VALUES (
@@ -475,6 +495,7 @@ VALUES (
         'admin',
         '$2y$10$iPiJGuc.fOdzO109eUDsvefK44TZwvQlCICiVxbD1KHYRx1lxwrVS',
         '/public/assets/imgs/admin.png',
+        'active',
         JSON_OBJECT(
             'created_by',
             'system',

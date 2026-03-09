@@ -113,7 +113,7 @@ try {
                 "Cache-Control: no-cache",
             ]);
             $gatewayResponse = curl_exec($ch);
-            curl_close($ch);
+            // curl_close($ch); is deprecated in PHP 8.4+ and no longer needed.
 
             $paystackResult = json_decode($gatewayResponse);
             if ($paystackResult && $paystackResult->status && $paystackResult->data->status === 'success') {
@@ -136,23 +136,29 @@ try {
         }
 
         // --- Save Payment Record ---
-        $stmt = $pdo->prepare("INSERT INTO payments (event_id, user_id, reference, amount, status, paystack_response, paid_at) VALUES (?, ?, ?, ?, 'paid', ?, NOW())");
-        $stmt->execute([$event_id, $user_id, $payment_reference, $total_price, $gatewayResponse]);
+        $paystack_id = isset($paystackResult->data->id) ? (string)$paystackResult->data->id : 'sim_' . bin2hex(random_bytes(8));
+        $transaction_id = isset($paystackResult->data->gateway_response) ? (string)$paystackResult->data->gateway_response : $payment_reference;
+
+        $stmt = $pdo->prepare("INSERT INTO payments (event_id, user_id, reference, amount, status, paystack_response, payment_id, transaction_id, paid_at) VALUES (?, ?, ?, ?, 'paid', ?, ?, ?, NOW())");
+        $stmt->execute([$event_id, $user_id, $payment_reference, $total_price, $gatewayResponse, $paystack_id, $transaction_id]);
         $payment_id = $pdo->lastInsertId();
     } else {
         // Free ticket
-        $stmt = $pdo->prepare("INSERT INTO payments (event_id, user_id, reference, amount, status, paystack_response, paid_at) VALUES (?, ?, ?, ?, 'paid', '{\"status\": \"free\"}', NOW())");
-        $stmt->execute([$event_id, $user_id, 'FREE-' . strtoupper(uniqid()), 0]);
+        $ref = 'FREE-' . strtoupper(bin2hex(random_bytes(8)));
+        $stmt = $pdo->prepare("INSERT INTO payments (event_id, user_id, reference, amount, status, paystack_response, payment_id, transaction_id, paid_at) VALUES (?, ?, ?, ?, 'paid', '{\"status\": \"free\"}', ?, ?, NOW())");
+        $stmt->execute([$event_id, $user_id, $ref, 0, 'free_' . uniqid(), 'free_' . uniqid()]);
         $payment_id = $pdo->lastInsertId();
     }
 
-    // 5. Insert tickets
-    $stmt = $pdo->prepare("INSERT INTO tickets (payment_id, barcode, used, created_at) VALUES (?, ?, 0, NOW())");
+    // 5. Insert tickets with full identity binding
+    $stmt = $pdo->prepare("INSERT INTO tickets (user_id, event_id, payment_id, barcode, ticket_code, status, used, created_at) VALUES (?, ?, ?, ?, ?, 'valid', 0, NOW())");
     $tickets_generated = [];
 
     for ($i = 0; $i < $quantity; $i++) {
-        $barcode = 'VIP-' . strtoupper(substr(md5(uniqid(mt_rand(), true)), 0, 8));
-        $stmt->execute([$payment_id, $barcode]);
+        // Requirement 10: Generate cryptographically secure UUID-based barcode
+        $barcode = 'EVT-' . strtoupper(bin2hex(random_bytes(12)));
+        $ticket_code = strtoupper(bin2hex(random_bytes(4))); // Short human-readable code
+        $stmt->execute([$user_id, $event_id, $payment_id, $barcode, $ticket_code]);
         $tickets_generated[] = $barcode;
     }
 

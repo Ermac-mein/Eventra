@@ -532,7 +532,11 @@ function escapeHTML(str) {
 // Create event card
 function createEventCard(event, index) {
   const price = !event.price || parseFloat(event.price) === 0 ? 'Free' : `₦${parseFloat(event.price).toLocaleString()}`;
-  const eventImage = escapeHTML(event.absolute_image_url || event.image_path) || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=400&h=250&fit=crop';
+  
+  // Security: Sanitize and Path Priority
+  const relPath = event.image_path ? ltrim(event.image_path, '/') : null;
+  const fallback = 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=400&h=250&fit=crop';
+  const eventImage = encodeURI(relPath || event.absolute_image_url || fallback);
   
   let eventDate = 'Date TBA';
   if (event.event_date) {
@@ -554,7 +558,7 @@ function createEventCard(event, index) {
   return `
     <div class="event-card" data-id="${event.id}" data-tag="${escapeHTML(event.tag) || event.id}" onclick="typeof openEventModal === 'function' ? openEventModal(${event.id}) : window.location.href='event-details.html?id=${event.id}'">
       <div class="event-image-container">
-        <img src="${eventImage}" alt="${eventName}" loading="lazy" class="event-image" onerror="this.src='https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=400&h=250&fit=crop'">
+        <img src="${eventImage}" alt="${eventName}" loading="lazy" class="event-image" onerror="this.src='${fallback}'">
         <div class="event-badges">
           <div class="event-category-badge">${category}</div>
           ${event.priority ? `
@@ -812,18 +816,22 @@ function showEventModal(eventId) {
   const modal = document.getElementById('eventDetailsModal');
   const modalImage = document.getElementById('modalEventImage');
   if (modalImage) {
-      modalImage.src = event.absolute_image_url || event.image_path || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800&h=500&fit=crop';
+      const relPath = event.image_path ? ltrim(event.image_path, '/') : null;
+      const fallback = 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800&h=500&fit=crop';
+      modalImage.src = encodeURI(relPath || event.absolute_image_url || fallback);
+      modalImage.loading = 'lazy';
+      modalImage.onerror = () => { modalImage.src = fallback; };
   }
-  document.getElementById('modalEventTitle').textContent = event.event_name;
-  document.getElementById('modalEventOrganizer').textContent = `Organized by ${event.organizer_name || event.client_name || 'Eventra'}`;
-  document.getElementById('modalEventDate').textContent = new Date(event.event_date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-  document.getElementById('modalEventTime').textContent = event.event_time || 'TBA';
+  if (document.getElementById('modalEventTitle')) document.getElementById('modalEventTitle').textContent = event.event_name;
+  if (document.getElementById('modalEventOrganizer')) document.getElementById('modalEventOrganizer').textContent = `Organized by ${event.organizer_name || event.client_name || 'Eventra'}`;
+  if (document.getElementById('modalEventDate')) document.getElementById('modalEventDate').textContent = new Date(event.event_date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+  if (document.getElementById('modalEventTime')) document.getElementById('modalEventTime').textContent = event.event_time || 'TBA';
   const full_address = `${event.address || ''}, ${event.city || ''}, ${event.state || ''}`.replace(/^, /, '').replace(/, , /g, ', ').trim() || 'Nigeria';
-  document.getElementById('modalEventLocation').textContent = full_address;
-  document.getElementById('modalEventDescription').textContent = event.description || 'No description available';
-  document.getElementById('modalEventCategory').textContent = event.category || event.event_type || 'General';
+  if (document.getElementById('modalEventLocation')) document.getElementById('modalEventLocation').textContent = full_address;
+  if (document.getElementById('modalEventDescription')) document.getElementById('modalEventDescription').textContent = event.description || 'No description available';
+  if (document.getElementById('modalEventCategory')) document.getElementById('modalEventCategory').textContent = event.category || event.event_type || 'General';
   const modalPrice = !event.price || parseFloat(event.price) === 0 ? 'Free' : `₦${parseFloat(event.price).toLocaleString()}`;
-  document.getElementById('modalEventPrice').textContent = modalPrice;
+  if (document.getElementById('modalEventPrice')) document.getElementById('modalEventPrice').textContent = modalPrice;
 
   // Priority badge
   const priorityBadge = document.getElementById('modalPriorityBadge');

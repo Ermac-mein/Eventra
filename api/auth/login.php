@@ -84,7 +84,7 @@ try {
 
         // Generate alphanumeric access token
         $token = bin2hex(random_bytes(32));
-        $expires_in = $remember_me ? '+30 days' : '+2 hours'; // Extended from 30m for better UX, but sliding window in middleware handles refresh
+        $expires_in = $remember_me ? '+30 days' : '+30 minutes'; // 30-minute inactivity session policy
         $expires_at = date('Y-m-d H:i:s', strtotime($expires_in));
 
         // Delete old tokens for this auth identity
@@ -115,13 +115,12 @@ try {
             $_SESSION = [];
         }
 
-        // Strict Role-Specific Session Keys
+        // Strict Role-Specific Session Keys + Universal user_id
+        $_SESSION['user_id'] = $user['id']; // Universal key for broad compatibility
         if ($userRole === 'admin') {
             $_SESSION['admin_id'] = $user['id'];
         } elseif ($userRole === 'client') {
             $_SESSION['client_id'] = $user['id'];
-        } else {
-            $_SESSION['user_id'] = $user['id'];
         }
 
         $_SESSION['user_role'] = $userRole;

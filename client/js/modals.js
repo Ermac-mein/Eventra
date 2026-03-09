@@ -237,7 +237,7 @@ function displayEventPreview(event) {
                     <button onclick="closeEventPreviewModal()" style="position: absolute; top: 1.5rem; right: 1.5rem; background: rgba(255,255,255,0.2); border: none; width: 40px; height: 40px; border-radius: 50%; color: white; font-size: 1.5rem; cursor: pointer; z-index: 10; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px);">&times;</button>
                     
                     <div style="height: 300px; overflow: hidden; position: relative;">
-                        <img src="${eventImage}" style="width: 100%; height: 100%; object-fit: cover;" alt="Event">
+                        <img src="${eventImage.startsWith('http') ? eventImage : (eventImage.startsWith('/') ? '../..' + eventImage : '../../' + eventImage)}" style="width: 100%; height: 100%; object-fit: cover;" alt="Event">
                         <div style="position: absolute; top: 1.5rem; left: 1.5rem; background: ${getStatusBadgeColor(status.toLowerCase())}; color: white; padding: 0.6rem 1.25rem; border-radius: 30px; font-weight: 700; font-size: 0.8rem; text-transform: uppercase; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
                             ${status}
                         </div>
@@ -504,7 +504,7 @@ function showEditEventModal(event) {
                             <label style="display: block; font-weight: 600; margin-bottom: 0.5rem;">Event Image</label>
                             <div style="position: relative;">
                                 <img id="editEventImagePreview" 
-                                     src="${event.image_path || ''}" 
+                                     src="${event.image_path ? (event.image_path.startsWith('/') ? '../..' + event.image_path : '../../' + event.image_path) : ''}" 
                                      style="width: 100%; height: 250px; object-fit: cover; border-radius: 12px; border: 2px dashed #d1d5db;">
                                 <label for="editEventImageInput" style="position: absolute; bottom: 1rem; right: 1rem; background: var(--card-blue); color: white; padding: 0.75rem 1.5rem; border-radius: 8px; cursor: pointer; font-weight: 600; box-shadow: 0 4px 12px rgba(0,0,0,0.2);">
                                     📷 Change Image

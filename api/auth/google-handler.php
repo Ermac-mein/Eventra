@@ -25,7 +25,7 @@ curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 curl_setopt($ch, CURLOPT_TIMEOUT, 10);
 $response = curl_exec($ch);
 $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-curl_close($ch);
+// curl_close($ch); is deprecated in PHP 8.4+ and no longer needed.
 
 if ($httpCode !== 200 || !$response) {
     echo json_encode(['success' => false, 'message' => 'Invalid Google token.']);
@@ -203,14 +203,13 @@ try {
     $_SESSION['auth_token'] = $token;
     $_SESSION['user_role'] = $userRole;
     $_SESSION['role'] = $userRole; // Normalize for legacy support
+    $_SESSION['user_id'] = $user['id']; // Universal key for broad compatibility
 
     // Set role-specific IDs for broad middleware compatibility
     if ($userRole === 'admin') {
         $_SESSION['admin_id'] = $user['id'];
     } elseif ($userRole === 'client') {
         $_SESSION['client_id'] = $user['id'];
-    } else {
-        $_SESSION['user_id'] = $user['id'];
     }
 
     $_SESSION['last_activity'] = time();
