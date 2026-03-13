@@ -73,6 +73,10 @@
                 <div id="searchResultsDropdown" class="search-results-dropdown"></div>
             </div>
             <div class="header-actions">
+                <button class="btn btn-secondary btn-export" style="background: transparent; border: 1px solid var(--admin-border); color: var(--admin-text-main); height: 40px; padding: 0 1rem; border-radius: 10px; margin-right: 1rem; display: flex; align-items: center; gap: 8px;">
+                    <i data-lucide="download" style="width: 18px;"></i>
+                    <span>Export</span>
+                </button>
                 <div class="action-icon notification-bell-icon" id="notificationBellIcon" title="Notifications" style="position: relative; cursor: pointer;">
                     <i data-lucide="bell"></i>
                 </div>
@@ -87,10 +91,6 @@
                 <div class="page-title">
                     <h1 style="font-size: 1.75rem; font-weight: 800;">Users Management</h1>
                 </div>
-                <button class="btn btn-primary btn-export">
-                    <i data-lucide="download"></i>
-                    <span>Export Data</span>
-                </button>
             </div>
 
             <div class="stats-grid">
@@ -125,7 +125,7 @@
             </div>
 
             <div class="table-container" style="padding: 2rem; border-radius: 16px;">
-                <div class="table-header" style="margin-bottom: 1.5rem; padding: 0; border: none;">
+                <div class="table-header" style="margin-bottom: 1.5rem; padding: 0; border: none; display: flex; justify-content: space-between; align-items: center;">
                     <h3 style="font-size: 1.25rem; font-weight: 700;">All Users</h3>
                 </div>
                 <table style="width: 100%; border-collapse: separate; border-spacing: 0 10px;">
@@ -133,10 +133,11 @@
                         <tr>
                             <th class="sortable" data-sort="id" style="border-bottom: 2px solid #f1f5f9;">ID</th>
                             <th class="sortable" data-sort="name" style="border-bottom: 2px solid #f1f5f9;">User Name</th>
+                            <th class="sortable" data-sort="gender" style="border-bottom: 2px solid #f1f5f9;">Gender</th>
                             <th class="sortable" data-sort="state" style="border-bottom: 2px solid #f1f5f9;">Location</th>
                             <th class="sortable" data-sort="email" style="border-bottom: 2px solid #f1f5f9;">Email</th>
-                            <th class="sortable" data-sort="client_name" style="border-bottom: 2px solid #f1f5f9;">Organiser</th>
                             <th class="sortable" data-sort="status" style="border-bottom: 2px solid #f1f5f9;">Status</th>
+                            <th class="sortable" data-sort="last_login_at" style="border-bottom: 2px solid #f1f5f9;">Last Login</th>
                             <th class="sortable" data-sort="phone" style="border-bottom: 2px solid #f1f5f9;">Contact</th>
                         </tr>
                     </thead>

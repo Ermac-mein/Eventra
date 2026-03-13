@@ -32,10 +32,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         clientsTableBody.innerHTML = clients.map(client => `
             <tr data-id="${client.id}" data-profile-pic="${client.profile_pic || ''}">
                 <td>${client.id}</td>
-                <td><img src="${client.profile_pic || 'https://ui-avatars.com/api/?name=' + client.name}" style="width: 24px; height: 24px; border-radius: 50%; margin-right: 8px; vertical-align: middle;"> ${client.name}</td>
+                <td><img src="${getProfileImg(client.profile_pic, client.name)}" style="width: 24px; height: 24px; border-radius: 50%; margin-right: 8px; vertical-align: middle;"> ${client.name}</td>
                 <td>${client.email}</td>
+                <td>${client.company || 'N/A'}</td>
                 <td>${client.state || 'N/A'}</td>
                 <td>${client.phone || 'N/A'}</td>
+                <td><span class="status-badge status-${client.verification_status === 'verified' ? 'active' : client.verification_status === 'rejected' ? 'offline' : 'ongoing'}">${client.verification_status || 'Pending'}</span></td>
                 <td><span class="status-badge status-${client.status === 'active' ? 'ongoing' : 'concluded'}">${client.status === 'active' ? 'Active' : 'Offline'}</span></td>
             </tr>
         `).join('');
@@ -100,4 +102,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     await loadClients();
+
+    // Auto-refresh every 30s
+    setInterval(() => {
+        if (document.visibilityState === 'visible') {
+            loadClients();
+        }
+    }, 30000);
 });

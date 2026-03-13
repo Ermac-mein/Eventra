@@ -4,6 +4,7 @@
  */
 
 let _paymentsState = {
+    viewMode: 'transactions', // 'transactions' or 'refunds'
     page: 1,
     limit: 20,
     sort: 'date_desc',
@@ -75,40 +76,113 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     });
 
+    // Wire View Mode tabs
+    document.querySelectorAll('[data-view]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('[data-view]').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            _paymentsState.viewMode = btn.dataset.view;
+            _paymentsState.page = 1;
+            _paymentsState.status = ''; // reset status filter when switching views
+            
+            // Sync status tabs UI
+            document.querySelectorAll('[data-status]').forEach(b => {
+                b.classList.toggle('active', b.dataset.status === '');
+            });
+
+            updateTableHeaders();
+            loadPayments();
+        });
+    });
+
     await loadPayments();
 });
+
+function updateTableHeaders() {
+    const theadRow = document.querySelector('thead tr');
+    if (!theadRow) return;
+
+    if (_paymentsState.viewMode === 'transactions') {
+        theadRow.innerHTML = `
+            <th style="cursor:pointer;" onclick="changeSort('date_desc','date_asc')">Date <i data-lucide="chevron-down" style="width:14px;display:inline-block;vertical-align:middle;margin-left:4px;"></i></th>
+            <th style="cursor:pointer;" onclick="changeSort('event','event')">Event</th>
+            <th>Organizer</th>
+            <th style="cursor:pointer;" onclick="changeSort('amount_desc','amount_asc')">Amount</th>
+            <th style="text-align:center;">Tickets</th>
+            <th>User Email</th>
+            <th style="cursor:pointer;" onclick="changeSort('status','status')">Status</th>
+        `;
+    } else {
+        theadRow.innerHTML = `
+            <th>Date Requested</th>
+            <th>Event / User</th>
+            <th>Reason</th>
+            <th>Amount</th>
+            <th>Status</th>
+            <th style="text-align:right;">Actions</th>
+        `;
+    }
+    if (window.lucide) lucide.createIcons();
+}
 
 // ─── Load payments from API ────────────────────────────────────────────────
 async function loadPayments() {
     const tbody = document.getElementById('paymentsTableBody');
     if (tbody) tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:2rem;color:#94a3b8;"><span class="btn-spinner" style="margin-right:8px"></span>Loading...</td></tr>';
 
-    const { page, limit, sort, dateRange, status, search } = _paymentsState;
-    const params = new URLSearchParams({
-        page, limit, sort,
-        date_range: dateRange,
-        ...(status && { status }),
-        ...(search && { search }),
-    });
+    const { viewMode, page, limit, sort, dateRange, status, search } = _paymentsState;
+    
+    if (viewMode === 'transactions') {
+        const params = new URLSearchParams({
+            page, limit, sort,
+            date_range: dateRange,
+            ...(status && { status }),
+            ...(search && { search }),
+        });
 
-    try {
-        const res = await apiFetch(`../../api/payments/get-payments.php?${params}`);
-        const data = await res.json();
+        try {
+            const res = await apiFetch(`../../api/payments/get-payments.php?${params}`);
+            const data = await res.json();
 
-        if (!data.success) {
-            if (tbody) tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:2rem;color:#ef4444;">Failed to load payments: ${data.message}</td></tr>`;
-            return;
+            if (!data.success) {
+                if (tbody) tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:2rem;color:#ef4444;">Failed to load payments: ${data.message}</td></tr>`;
+                return;
+            }
+
+            _paymentsState.totalPages = data.pages || 1;
+            _paymentsState.allPayments = data.payments || [];
+
+            renderPaymentsTable(data.payments);
+            renderPagination(data.total, data.page, data.limit, data.pages);
+            computeStats(data.payments, data.total);
+        } catch (err) {
+            console.error('Payments load error', err);
+            if (tbody) tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:2rem;color:#ef4444;">An error occurred loading payments.</td></tr>';
         }
+    } else {
+        // Load Refund Requests
+        const params = new URLSearchParams({
+            ...(status && { status }),
+        });
+        try {
+            const res = await apiFetch(`../../api/payments/get-refund-requests.php?${params}`);
+            const data = await res.json();
 
-        _paymentsState.totalPages = data.pages || 1;
-        _paymentsState.allPayments = data.payments || [];
+            if (!data.success) {
+                if (tbody) tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:2rem;color:#ef4444;">Failed to load refunds: ${data.message}</td></tr>`;
+                return;
+            }
 
-        renderPaymentsTable(data.payments);
-        renderPagination(data.total, data.page, data.limit, data.pages);
-        computeStats(data.payments, data.total);
-    } catch (err) {
-        console.error('Payments load error', err);
-        if (tbody) tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:2rem;color:#ef4444;">An error occurred loading payments.</td></tr>';
+            renderRefundsTable(data.requests);
+            // Pagination not implemented for refunds in this version (usually smaller set)
+            const info = document.getElementById('paginationInfo');
+            if (info) info.textContent = `Total ${data.total} refund requests`;
+            const btns = document.getElementById('paginationBtns');
+            if (btns) btns.innerHTML = '';
+        } catch (err) {
+            console.error('Refunds load error', err);
+            if (tbody) tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:2rem;color:#ef4444;">An error occurred loading refund requests.</td></tr>';
+        }
     }
 }
 
@@ -132,7 +206,7 @@ function renderPaymentsTable(payments) {
                 <div style="font-weight:600;color:#1e293b;font-size:0.9rem;">${p.relative_time}</div>
                 <div style="font-size:0.78rem;color:#94a3b8;">${new Date(p.created_at).toLocaleString()}</div>
             </td>
-            <td style="font-weight:600;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escapeHtml(p.event_name || '-')}">
+            <td style="font-weight:600;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escapeHtml(p.event_name || '-')}">
                 ${escapeHtml(p.event_name || '—')}
             </td>
             <td>
@@ -140,7 +214,7 @@ function renderPaymentsTable(payments) {
             </td>
             <td style="font-weight:700;">${amountDisplay}</td>
             <td style="text-align:center;">
-                <span style="background:#e0f2fe;color:#0369a1;padding:2px 10px;border-radius:20px;font-size:0.8rem;font-weight:700;">${p.ticket_count || 0}</span>
+                <span style="background:#eef2ff;color:#4f46e5;padding:2px 10px;border-radius:20px;font-size:0.8rem;font-weight:700;">${p.ticket_count || 0}</span>
             </td>
             <td>
                 <span style="font-size:0.85rem;color:#64748b;">${escapeHtml(p.buyer_email || '—')}</span>
@@ -148,6 +222,88 @@ function renderPaymentsTable(payments) {
             <td><span class="status-badge ${badgeClass}">${ucfirst(p.status)}</span></td>
         </tr>`;
     }).join('');
+}
+
+function renderRefundsTable(requests) {
+    const tbody = document.getElementById('paymentsTableBody');
+    if (!tbody) return;
+
+    if (!requests.length) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:2rem;color:#94a3b8;">No refund requests found.</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = requests.map(r => {
+        const statusClass = `status-${r.status}`;
+        return `
+        <tr>
+            <td>
+                <div style="font-weight:600;">${new Date(r.created_at).toLocaleDateString()}</div>
+                <div style="font-size:0.75rem;color:#64748b;">${new Date(r.created_at).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</div>
+            </td>
+            <td>
+                <div style="font-weight:700;color:#1e293b;">${escapeHtml(r.event_name)}</div>
+                <div style="font-size:0.85rem;color:#64748b;">Requested by: ${escapeHtml(r.user_name)}</div>
+            </td>
+            <td style="max-width:240px;font-size:0.9rem;line-height:1.4;">${escapeHtml(r.reason)}</td>
+            <td style="font-weight:700;color:#ef4444;">₦${parseFloat(r.amount).toLocaleString()}</td>
+            <td><span class="status-badge ${statusClass}">${ucfirst(r.status)}</span></td>
+            <td style="text-align:right;">
+                ${r.status === 'pending' ? `
+                    <div style="display:flex;gap:8px;justify-content:flex-end;">
+                        <button onclick="reviewRefund(${r.id}, 'approve')" class="page-btn active" style="padding:4px 12px;background:#10b981;border-color:#10b981;font-size:0.8rem;">Approve</button>
+                        <button onclick="reviewRefund(${r.id}, 'decline')" class="page-btn" style="padding:4px 12px;color:#ef4444;font-size:0.8rem;">Decline</button>
+                    </div>
+                ` : `
+                    <span style="font-size:0.75rem;color:#94a3b8;">Processed ${r.processed_at ? new Date(r.processed_at).toLocaleDateString() : 'n/a'}</span>
+                `}
+            </td>
+        </tr>`;
+    }).join('');
+}
+
+async function reviewRefund(requestId, action) {
+    let note = '';
+    if (action === 'decline') {
+        const { value: text } = await Swal.fire({
+            title: 'Decline Reason',
+            input: 'textarea',
+            inputLabel: 'Provide a reason for the user',
+            inputPlaceholder: 'Type your reason here...',
+            inputAttributes: { 'aria-label': 'Type your reason here' },
+            showCancelButton: true
+        });
+        if (text === undefined) return; // cancelled
+        note = text;
+    } else {
+        const confirm = await Swal.fire({
+            title: 'Approve Refund?',
+            text: "This will call Paystack to refund the money and cancel the ticket. This action cannot be undone.",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#10b981',
+            cancelButtonColor: '#9ca3af',
+            confirmButtonText: 'Yes, Approve'
+        });
+        if (!confirm.isConfirmed) return;
+    }
+
+    try {
+        const res = await apiFetch('../../api/payments/review-refund.php', {
+            method: 'POST',
+            body: JSON.stringify({ refund_request_id: requestId, action, note })
+        });
+        const data = await res.json();
+        if (data.success) {
+            Swal.fire('Success', data.message, 'success');
+            loadPayments();
+        } else {
+            Swal.fire('Error', data.message, 'error');
+        }
+    } catch (err) {
+        console.error('Refund review error', err);
+        Swal.fire('Error', 'An error occurred while processing the refund.', 'error');
+    }
 }
 
 // ─── Stats Cards ───────────────────────────────────────────────────────────

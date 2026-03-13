@@ -31,40 +31,81 @@ try {
     $stmt = $pdo->query("SELECT COUNT(*) as total FROM payments WHERE status = 'pending'");
     $pending_payments = $stmt->fetch()['total'];
 
-    // Recent Security Logs
+    // 6. Recent Activities based on auth_logs
     $stmt = $pdo->query("
-        SELECT al.*, aa.email 
+        SELECT al.event_type as type, al.details as message, al.created_at 
         FROM auth_logs al 
-        LEFT JOIN auth_accounts aa ON al.auth_id = aa.id 
         ORDER BY al.created_at DESC 
         LIMIT 10
     ");
-    $recent_logs = $stmt->fetchAll();
+    $recent_activities = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    // Top Revenue Events
+    // 7. Top Users (by tickets)
     $stmt = $pdo->query("
-        SELECT e.event_name, c.business_name as client_name, SUM(p.amount) as revenue
-        FROM events e
-        JOIN clients c ON e.client_id = c.id
-        JOIN payments p ON e.id = p.event_id
-        WHERE p.status = 'paid'
-        GROUP BY e.id
-        ORDER BY revenue DESC
+        SELECT p.id, p.name, p.profile_pic, p.state, 'active' as status,
+               (SELECT COUNT(*) FROM tickets WHERE user_id = p.id) as ticket_count
+        FROM users p
+        JOIN auth_accounts a ON p.user_auth_id = a.id
+        ORDER BY ticket_count DESC
         LIMIT 5
     ");
-    $top_events = $stmt->fetchAll();
+    $top_users = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    // 8. Active Clients (by events)
+    $stmt = $pdo->query("
+        SELECT p.id, p.business_name as name, p.profile_pic, p.company, p.state, p.email, 'active' as status,
+               (SELECT COUNT(*) FROM events WHERE client_id = p.id) as event_count
+        FROM clients p
+        JOIN auth_accounts a ON p.client_auth_id = a.id
+        ORDER BY event_count DESC
+        LIMIT 5
+    ");
+    $active_clients = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    // 9. Upcoming Events
+    $stmt = $pdo->query("
+        SELECT e.id, e.event_name, e.event_date, e.image_path, c.business_name as client_name
+        FROM events e
+        JOIN clients c ON e.client_id = c.id
+        WHERE e.status = 'published' AND e.event_date >= CURDATE()
+        ORDER BY e.event_date ASC
+        LIMIT 10
+    ");
+    $upcoming_events = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    // 9.1 Past & Trending Events
+    $stmt = $pdo->query("
+        SELECT e.id, e.event_name, e.event_date, e.image_path, c.business_name as client_name
+        FROM events e
+        JOIN clients c ON e.client_id = c.id
+        WHERE e.status = 'published' AND e.event_date < CURDATE()
+        ORDER BY e.event_date DESC
+        LIMIT 10
+    ");
+    $past_events = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    // 10. Restored Events Count (placeholder or specific logic)
+    $stmt = $pdo->query("SELECT COUNT(*) as total FROM events WHERE status = 'restored' AND deleted_at IS NULL");
+    $restored_events = $stmt->fetch()['total'] ?? 0;
 
     echo json_encode([
         'success' => true,
         'stats' => [
             'total_users' => (int) $total_users,
+            'active_users' => (int) $total_users, // Alias for frontend
             'total_clients' => (int) $total_clients,
             'total_events' => (int) $total_events,
+            'published_events' => (int) $total_events, // Alias
             'total_revenue' => (float) $total_revenue,
-            'pending_payments' => (int) $pending_payments
+            'pending_payments' => (int) $pending_payments,
+            'restored_events' => (int) $restored_events
         ],
-        'recent_logs' => $recent_logs,
-        'top_events' => $top_events
+        'recent_activities' => $recent_activities,
+        'top_users' => $top_users,
+        'active_clients' => $active_clients,
+        'upcoming_events' => $upcoming_events,
+        'past_events' => $past_events,
+        'recent_logs' => $recent_activities // Backwards compatibility for other potential users
     ]);
 
 } catch (PDOException $e) {

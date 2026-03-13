@@ -661,20 +661,56 @@ tbody tr:hover {
 .events-slider-track {
     display: flex;
     gap: 1.5rem;
-    animation: slideEvents 30s linear infinite;
-    width: max-content;
+    overflow-x: auto;
+    scroll-behavior: smooth;
+    width: 100%;
+    padding: 0.5rem 0.25rem;
+    -ms-overflow-style: none; /* Hide scrollbar IE/Edge */
+    scrollbar-width: none; /* Hide scrollbar Firefox */
 }
 
-.events-slider-track:hover {
-    animation-play-state: paused;
+.events-slider-track::-webkit-scrollbar {
+    display: none; /* Hide scrollbar Chrome/Safari */
+}
+
+.slider-controls {
+    display: flex;
+    gap: 10px;
+}
+
+.slider-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 1px solid var(--admin-border);
+    background: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: var(--admin-text-main);
+}
+
+.slider-btn:hover {
+    background: var(--admin-primary);
+    color: white;
+    border-color: var(--admin-primary);
+}
+
+.slider-btn i {
+    width: 16px;
+    height: 16px;
 }
 
 .event-mini-card {
-    width: 260px;
+    min-width: 300px;
+    width: 300px;
     background: white;
     border-radius: var(--admin-radius);
     overflow: hidden;
     box-shadow: var(--admin-shadow);
+    flex-shrink: 0;
 }
 
 .event-mini-img {

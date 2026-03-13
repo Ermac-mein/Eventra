@@ -69,7 +69,7 @@ try {
 
     // Execute search
     $sql = "
-        SELECT e.*, c.business_name as organizer_name, c.profile_pic as client_profile_pic $favorite_select
+        SELECT e.*, c.business_name as organizer_name, c.profile_pic as client_profile_pic, c.verification_status $favorite_select
         FROM events e
         LEFT JOIN clients c ON e.client_id = c.id
         WHERE $where_sql

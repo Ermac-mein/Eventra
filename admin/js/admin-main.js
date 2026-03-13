@@ -165,11 +165,12 @@ function initLogout() {
 }
 
 function initExportModal() {
-    const exportBtn = document.querySelector('.btn-export');
     const modalBackdrop = document.getElementById('exportModal');
     
-    if (exportBtn && modalBackdrop) {
-        exportBtn.addEventListener('click', () => {
+    // Use event delegation for naturally occurring and dynamic export buttons
+    document.addEventListener('click', (e) => {
+        const exportBtn = e.target.closest('.btn-export');
+        if (exportBtn && modalBackdrop) {
             // Check if there's a table on the current page
             const hasTable = document.querySelector('table tbody tr');
             
@@ -184,8 +185,10 @@ function initExportModal() {
             }
             
             modalBackdrop.style.display = 'flex';
-        });
-        
+        }
+    });
+    
+    if (modalBackdrop) {
         modalBackdrop.addEventListener('click', (e) => {
             if (e.target === modalBackdrop) {
                 modalBackdrop.style.display = 'none';
@@ -401,7 +404,7 @@ window.initPreviews = function() {
         backdrop = document.createElement('div');
         backdrop.className = 'preview-modal-backdrop';
         backdrop.innerHTML = `
-            <div class="preview-modal">
+            <div class="preview-modal" style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); margin: 0; width: 600px; max-height: 90vh; overflow-y: auto;">
                 <span class="preview-close">←</span>
                 <div id="previewContent"></div>
             </div>
@@ -449,36 +452,56 @@ window.initPreviews = function() {
                 const status = cells[4].innerText;
                 const contact = cells[5].innerText;
                 
-                const profilePic = row.dataset.profilePic || `https://ui-avatars.com/api/?name=${name}`;
-                
+                // Fetch details for user to get full metadata
                 html = `
                     <div class="profile-preview">
                         <div class="profile-preview-header">User Profile</div>
-                        <div class="profile-preview-cover-box">
-                            <img src="${profilePic}" alt="Cover">
-                            <div class="profile-preview-avatar-wrapper">
-                                <img src="${profilePic}" class="profile-preview-avatar" alt="Avatar">
-                                <div class="profile-verified-badge">✓</div>
-                            </div>
-                        </div>
-                        <div class="profile-preview-info">
-                            <h2>${name}</h2>
-                            <p>${email}</p>
-                        </div>
-                        <div class="profile-preview-details">
-                            <div class="profile-preview-detail-item"><span class="profile-detail-label">Phone</span><span class="profile-detail-val">${contact}</span></div>
-                            <div class="profile-preview-detail-item"><span class="profile-detail-label">Job Title</span><span class="profile-detail-val">Student</span></div>
-                            <div class="profile-preview-detail-item"><span class="profile-detail-label">Address</span><span class="profile-detail-val">Nigeria</span></div>
-                            <div class="profile-preview-detail-item"><span class="profile-detail-label">City</span><span class="profile-detail-val">${location}</span></div>
-                            <div class="profile-preview-detail-item"><span class="profile-detail-label">State</span><span class="profile-detail-val">${location}</span></div>
-                            <div class="profile-preview-detail-item"><span class="profile-detail-label">Status</span><span class="profile-detail-val">${status}</span></div>
+                        <div class="profile-preview-info" style="padding: 2rem; text-align: center;">
+                            <p>Loading user details...</p>
                         </div>
                     </div>
                 `;
+                content.innerHTML = html;
+                backdrop.style.display = 'flex';
+                setTimeout(() => backdrop.classList.add('active'), 10);
+
+                apiFetch(`../../api/admin/get-users.php`) // We search in the cached allUsers or just refetch? Let's use the data we already have in the row if possible or fetch.
+                    .then(res => res.json())
+                    .then(data => {
+                        const user = data.users.find(u => u.id == row.dataset.id);
+                        if (user) {
+                            const profilePic = getProfileImg(user.profile_pic, user.name);
+                            content.innerHTML = `
+                                <div class="profile-preview">
+                                    <div class="profile-preview-header">User Profile</div>
+                                    <div class="profile-preview-cover-box">
+                                        <img src="${profilePic}" alt="Cover">
+                                        <div class="profile-preview-avatar-wrapper">
+                                            <img src="${profilePic}" class="profile-preview-avatar" alt="Avatar">
+                                            <div class="profile-verified-badge">✓</div>
+                                        </div>
+                                    </div>
+                                    <div class="profile-preview-info">
+                                        <h2>${user.name}</h2>
+                                        <p>${user.email}</p>
+                                    </div>
+                                    <div class="profile-preview-details">
+                                        <div class="profile-preview-detail-item"><span class="profile-detail-label">Phone</span><span class="profile-detail-val">${user.phone || 'N/A'}</span></div>
+                                        <div class="profile-preview-detail-item"><span class="profile-detail-label">Gender</span><span class="profile-detail-val" style="text-transform: capitalize;">${user.gender || 'N/A'}</span></div>
+                                        <div class="profile-preview-detail-item"><span class="profile-detail-label">DOB</span><span class="profile-detail-val">${user.dob || 'N/A'}</span></div>
+                                        <div class="profile-preview-detail-item"><span class="profile-detail-label">Last Login</span><span class="profile-detail-val">${user.last_login_at ? new Date(user.last_login_at).toLocaleString() : 'Never'}</span></div>
+                                        <div class="profile-preview-detail-item" style="grid-column: span 2;"><span class="profile-detail-label">Address</span><span class="profile-detail-val">${user.address || 'N/A'}, ${user.city || ''}, ${user.state || ''}, ${user.country || ''}</span></div>
+                                        <div class="profile-preview-detail-item"><span class="profile-detail-label">Status</span><span class="profile-detail-val" style="text-transform: capitalize;">${user.status}</span></div>
+                                    </div>
+                                </div>
+                            `;
+                        }
+                    });
+                return;
             } else if (path.includes('clients.html')) {
                 const clientId = row.dataset.id;
                 const name = row.cells[1].innerText;
-                const profilePic = row.dataset.profilePic || `https://ui-avatars.com/api/?name=${name}`;
+                const profilePic = getProfileImg(row.dataset.profilePic, name);
                 
                 // Show loading state
                 html = `
@@ -506,10 +529,12 @@ window.initPreviews = function() {
                                 <div class="profile-preview">
                                     <div class="profile-preview-header">Client Profile</div>
                                     <div class="profile-preview-cover-box">
-                                        <img src="${profilePic}" alt="Cover">
+                                        <img src="${getProfileImg(client.profile_pic, client.business_name)}" alt="Cover">
                                         <div class="profile-preview-avatar-wrapper">
-                                            <img src="${profilePic}" class="profile-preview-avatar" alt="Avatar">
-                                            ${Number(client.is_verified) === 1 ? '<div class="profile-verified-badge" style="background:#10b981; border:none; color:white; font-size: 0.7rem; padding: 2px 6px; border-radius: 10px; position:absolute; bottom:-10px; left:50%; transform:translateX(-50%); white-space:nowrap; z-index: 10;">✓ Verified</div>' : '<div class="profile-verified-badge" style="background:#ef4444; border:none; color:white; font-size: 0.7rem; padding: 2px 6px; border-radius: 10px; position:absolute; bottom:-10px; left:50%; transform:translateX(-50%); white-space:nowrap; z-index: 10;">✕ Unverified</div>'}
+                                            <img src="${getProfileImg(client.profile_pic, client.business_name)}" class="profile-preview-avatar" alt="Avatar">
+                                            ${client.verification_status === 'verified' ? '<div class="profile-verified-badge" style="background:#10b981; border:none; color:white; font-size: 0.7rem; padding: 2px 6px; border-radius: 10px; position:absolute; bottom:-10px; left:50%; transform:translateX(-50%); white-space:nowrap; z-index: 10;">✓ Verified</div>' : 
+                                              client.verification_status === 'rejected' ? '<div class="profile-verified-badge" style="background:#ef4444; border:none; color:white; font-size: 0.7rem; padding: 2px 6px; border-radius: 10px; position:absolute; bottom:-10px; left:50%; transform:translateX(-50%); white-space:nowrap; z-index: 10;">✕ Declined</div>' :
+                                              '<div class="profile-verified-badge" style="background:#f59e0b; border:none; color:white; font-size: 0.7rem; padding: 2px 6px; border-radius: 10px; position:absolute; bottom:-10px; left:50%; transform:translateX(-50%); white-space:nowrap; z-index: 10;">⚠ Pending</div>'}
                                         </div>
                                     </div>
                                     <div class="profile-preview-info">
@@ -519,14 +544,36 @@ window.initPreviews = function() {
                                     <div class="profile-preview-details">
                                         <div class="profile-preview-detail-item"><span class="profile-detail-label">Phone</span><span class="profile-detail-val">${client.phone || 'N/A'}</span></div>
                                         <div class="profile-preview-detail-item"><span class="profile-detail-label">State</span><span class="profile-detail-val">${client.state || 'N/A'}</span></div>
-                                        <div class="profile-preview-detail-item"><span class="profile-detail-label">Company</span><span class="profile-detail-val">${client.company || 'N/A'}</span></div>
+                                        <div class="profile-preview-detail-item" style="grid-column: span 2;"><span class="profile-detail-label">Company</span><span class="profile-detail-val">${client.company || 'N/A'}</span></div>
                                         
+                                        <div class="profile-preview-detail-item" style="grid-column: span 2; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #eee;">
+                                            <div style="font-weight: 700; color: #333; margin-bottom: 0.5rem; font-size: 0.9rem; text-transform: uppercase;">Bank & Settlement Details</div>
+                                            <div style="background: #f8fafc; padding: 1rem; border-radius: 12px; display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                                                <div>
+                                                    <span style="font-size: 0.75rem; color: #64748b; display: block;">Bank Name</span>
+                                                    <span style="font-weight: 600; font-size: 0.9rem;">${client.bank_name || 'N/A'}</span>
+                                                </div>
+                                                <div>
+                                                    <span style="font-size: 0.75rem; color: #64748b; display: block;">Account Number</span>
+                                                    <span style="font-weight: 600; font-size: 0.9rem;">${client.account_number || 'N/A'}</span>
+                                                </div>
+                                                <div>
+                                                    <span style="font-size: 0.75rem; color: #64748b; display: block;">Account Name</span>
+                                                    <span style="font-weight: 600; font-size: 0.9rem;">${client.account_name || 'N/A'}</span>
+                                                </div>
+                                                <div>
+                                                    <span style="font-size: 0.75rem; color: #64748b; display: block;">Paystack Subaccount</span>
+                                                    <span style="font-weight: 600; font-size: 0.9rem; color: var(--admin-primary);">${client.subaccount_code || 'Not Connected'}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+
                                         <div class="profile-preview-detail-item" style="grid-column: span 2; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #eee;">
                                             <div style="font-weight: 700; color: #333; margin-bottom: 0.5rem; font-size: 0.9rem; text-transform: uppercase;">Verification Status</div>
                                             
                                             <div style="display: flex; gap: 10px; margin-bottom: 1rem;">
-                                                <button onclick="approveClient(${client.id}, 1, this)" style="flex:1; background: #10b981; color: white; border: none; padding: 0.6rem; border-radius: 8px; font-weight: bold; cursor: pointer; opacity: ${Number(client.is_verified) === 1 ? '0.5' : '1'};" ${Number(client.is_verified) === 1 ? 'disabled' : ''}>Approve Client</button>
-                                                <button onclick="approveClient(${client.id}, 0, this)" style="flex:1; background: #ef4444; color: white; border: none; padding: 0.6rem; border-radius: 8px; font-weight: bold; cursor: pointer; opacity: ${Number(client.is_verified) === 0 ? '0.5' : '1'};" ${Number(client.is_verified) === 0 ? 'disabled' : ''}>Decline Client</button>
+                                                <button onclick="approveClient(${client.id}, 1, this)" style="flex:1; background: #10b981; color: white; border: none; padding: 0.6rem; border-radius: 8px; font-weight: bold; cursor: pointer; opacity: ${client.verification_status === 'verified' ? '0.5' : '1'};" ${client.verification_status === 'verified' ? 'disabled' : ''}>Approve Client</button>
+                                                <button onclick="approveClient(${client.id}, 0, this)" style="flex:1; background: #ef4444; color: white; border: none; padding: 0.6rem; border-radius: 8px; font-weight: bold; cursor: pointer; opacity: ${client.verification_status === 'rejected' ? '0.5' : '1'};" ${client.verification_status === 'rejected' ? 'disabled' : ''}>Decline Client</button>
                                             </div>
 
                                             <div style="display: flex; flex-direction: column; gap: 0.75rem;">
@@ -582,7 +629,7 @@ window.initPreviews = function() {
                                         <div style="display: flex; flex-direction: column; gap: 0.75rem; max-height: 200px; overflow-y: auto;">
                                             ${buyers.length > 0 ? buyers.map(b => `
                                                 <div style="display: flex; align-items: center; gap: 10px; padding: 0.5rem; background: #f8fafc; border-radius: 8px;">
-                                                    <img src="${b.profile_pic || `https://ui-avatars.com/api/?name=${b.name}`}" style="width: 32px; height: 32px; border-radius: 50%;">
+                                                    <img src="${getProfileImg(b.profile_pic, b.name)}" style="width: 32px; height: 32px; border-radius: 50%;">
                                                     <div style="flex: 1;">
                                                         <div style="font-weight: 600; font-size: 0.85rem;">${b.name}</div>
                                                         <div style="font-size: 0.75rem; color: #64748b;">${b.email}</div>

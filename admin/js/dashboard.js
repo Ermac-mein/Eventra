@@ -18,8 +18,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Load dashboard stats
     await loadDashboardStats();
 
-    // Task 3: Real-time synchronization (10s polling)
-    setInterval(loadDashboardStats, 10000);
+    // Set up polling for dashboard data (auto-population of cards)
+    setInterval(async () => {
+        // Only refresh if the tab is visible to save resources
+        if (document.visibilityState === 'visible') {
+            await loadDashboardStats();
+        }
+    }, 30000); // 30 seconds
 });
 
 async function loadAdminProfile() {
@@ -77,11 +82,12 @@ async function loadDashboardStats() {
         const revenueVal = findStatValue('Revenue');
         if (revenueVal) revenueVal.textContent = '₦' + parseFloat(stats.total_revenue).toLocaleString();
 
-        // Update Events Showcase badge
-        const publishedBadge = document.getElementById('publishedEventsBadge');
-        if (publishedBadge) {
-            publishedBadge.textContent = stats.published_events || 0;
-        }
+        // Update Events Showcase badges
+        const upcomingBadge = document.getElementById('upcomingEventsBadge');
+        if (upcomingBadge) upcomingBadge.textContent = result.upcoming_events.length || 0;
+        
+        const pastBadge = document.getElementById('pastEventsBadge');
+        if (pastBadge) pastBadge.textContent = result.past_events.length || 0;
 
         // Load recent activities
         loadRecentActivities(result.recent_activities);
@@ -93,7 +99,13 @@ async function loadDashboardStats() {
         loadActiveClients(result.active_clients);
 
         // Load upcoming events
-        loadUpcomingEvents(result.upcoming_events);
+        loadEventsToSlider('upcomingEventsSlider', result.upcoming_events);
+
+        // Load past/trending events
+        loadEventsToSlider('pastEventsSlider', result.past_events || []);
+
+        // Initialize slider controls
+        initSliders();
 
     } catch (error) {
         console.error('Error loading stats:', error);
@@ -136,7 +148,7 @@ function loadTopUsers(users) {
 
     container.innerHTML = users.map(user => `
         <div class="quick-item">
-            <img src="${user.profile_pic || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=random`}" 
+            <img src="${getProfileImg(user.profile_pic, user.name)}" 
                  class="small-avatar" alt="${user.name}">
             <div style="flex:1">
                 <div style="font-size: 0.9rem; font-weight: 600;">${user.name}</div>
@@ -158,7 +170,7 @@ function loadActiveClients(clients) {
 
     container.innerHTML = clients.map(client => `
         <div class="quick-item">
-            <img src="${client.profile_pic || `https://ui-avatars.com/api/?name=${encodeURIComponent(client.name)}&background=random`}" 
+            <img src="${getProfileImg(client.profile_pic, client.name)}" 
                  class="small-avatar" alt="${client.name}">
             <div style="flex:1">
                 <div style="font-size: 0.9rem; font-weight: 600;">${client.name}</div>
@@ -169,37 +181,93 @@ function loadActiveClients(clients) {
     `).join('');
 }
 
-function loadUpcomingEvents(events) {
-    const container = document.getElementById('upcomingEventsSlider');
+function loadEventsToSlider(containerId, events) {
+    const container = document.getElementById(containerId);
     if (!container) return;
 
-    if (events.length === 0) {
-        container.innerHTML = '<p style="text-align: center; color: #999; padding: 2rem;">No upcoming events</p>';
+    if (!events || events.length === 0) {
+        container.innerHTML = `<p style="text-align: center; color: #999; padding: 2rem;">No events found</p>`;
         return;
     }
 
-    container.innerHTML = events.map(event => `
-        <div class="event-mini-card">
-            <img src="${event.image_path || '../../assets/images/event-placeholder.png'}" 
-                 onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(event.event_name)}&background=1d4ed8&color=fff&size=400'"
-                 class="event-mini-img" alt="${event.event_name}">
-            <div class="event-mini-info">
-                <div class="event-mini-title">${event.event_name}</div>
-                <div class="event-mini-meta">
-                    <span>${event.client_name || 'Eventra'}</span>
-                    <span>${formatDate(event.event_date)}</span>
+    container.innerHTML = events.map(event => {
+        const imagePath = getProfileImg(event.image_path, event.event_name);
+        return `
+            <div class="event-mini-card">
+                <img src="${imagePath}" 
+                     onerror="this.src='/public/assets/imgs/event-placeholder.png'"
+                     class="event-mini-img" alt="${event.event_name}">
+                <div class="event-mini-info">
+                    <div class="event-mini-title">${event.event_name}</div>
+                    <div class="event-mini-meta">
+                        <span>${event.client_name || 'Eventra'}</span>
+                        <span>${formatDate(event.event_date)}</span>
+                    </div>
                 </div>
             </div>
-        </div>
-    `).join('');
+        `;
+    }).join('');
 
-    // Handle animation dynamically based on item count
-    if (events.length > 3) {
-        container.style.animation = `slideEvents ${events.length * 6}s linear infinite`;
-    } else {
-        container.style.animation = 'none';
-        container.style.justifyContent = 'center';
+    // Reset scroll position
+    container.scrollLeft = 0;
+}
+
+function initSliders() {
+    const sliders = ['upcomingEventsSlider', 'pastEventsSlider'];
+    
+    sliders.forEach(sliderId => {
+        const track = document.getElementById(sliderId);
+        if (!track) return;
+
+        // Manual controls
+        const section = track.closest('.events-slider-section');
+        const prevBtn = section.querySelector('.slider-btn.prev');
+        const nextBtn = section.querySelector('.slider-btn.next');
+
+        if (prevBtn) prevBtn.onclick = () => moveSlider(sliderId, -1);
+        if (nextBtn) nextBtn.onclick = () => moveSlider(sliderId, 1);
+
+        // Auto-slide every 5 seconds
+        if (track.dataset.timer) clearInterval(track.dataset.timer);
+        const timerId = setInterval(() => {
+            if (!isElementInViewport(track)) return;
+            moveSlider(sliderId, 1, true);
+        }, 5000);
+        track.dataset.timer = timerId;
+    });
+}
+
+function moveSlider(sliderId, direction, isAuto = false) {
+    const track = document.getElementById(sliderId);
+    if (!track) return;
+
+    const cardWidth = 320; // Card width + gap
+    const visibleCards = Math.floor(track.offsetWidth / cardWidth);
+    const scrollAmount = cardWidth * Math.max(1, visibleCards);
+    
+    let newScroll = track.scrollLeft + (direction * scrollAmount);
+    
+    // Loop back for auto-slide
+    if (isAuto && newScroll >= (track.scrollWidth - track.offsetWidth)) {
+        newScroll = 0;
+    } else if (newScroll < 0) {
+        newScroll = track.scrollWidth - track.offsetWidth;
     }
+
+    track.scrollTo({
+        left: newScroll,
+        behavior: 'smooth'
+    });
+}
+
+function isElementInViewport(el) {
+    const rect = el.getBoundingClientRect();
+    return (
+        rect.top >= 0 &&
+        rect.left >= 0 &&
+        rect.bottom <= (window.innerHeight || document.documentElement.clientHeight) &&
+        rect.right <= (window.innerWidth || document.documentElement.clientWidth)
+    );
 }
 
 function getActivityIcon(type) {

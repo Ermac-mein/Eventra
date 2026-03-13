@@ -13,14 +13,14 @@ if (!isset($_SESSION['user_id']) || ($_SESSION['user_role'] ?? $_SESSION['role']
 }
 
 $user_id = $_SESSION['user_id'];
-$name = $_POST['name'] ?? null;
-$phone = $_POST['phone'] ?? null;
-$address = $_POST['address'] ?? null;
-$city = $_POST['city'] ?? null;
-$state = $_POST['state'] ?? null;
-$country = $_POST['country'] ?? null;
-$dob = $_POST['dob'] ?? null;
-$gender = $_POST['gender'] ?? null;
+$name = $_POST['name'];
+$phone = $_POST['phone'];
+$address = $_POST['address'];
+$city = $_POST['city'];
+$state = $_POST['state'];
+$country = $_POST['country'];
+$dob = $_POST['dob'];
+$gender = $_POST['gender'];
 
 if (empty($name)) {
     echo json_encode(['success' => false, 'message' => 'Name is required']);

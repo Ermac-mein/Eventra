@@ -14,20 +14,20 @@
  * Handles unified identity resolution and security policies for different entity types.
  */
 
-function resolveEntity($email)
+function resolveEntity($identity)
 {
     global $pdo;
 
     // First check the auth_accounts table
-    // We remove the is_active = 1 requirement here because login.php will handle validation.
-    $stmt = $pdo->prepare("SELECT * FROM auth_accounts WHERE email = ?");
-    $stmt->execute([$email]);
+    // Support resolution by either email or username
+    $stmt = $pdo->prepare("SELECT * FROM auth_accounts WHERE email = ? OR username = ?");
+    $stmt->execute([$identity, $identity]);
     $auth = $stmt->fetch(PDO::FETCH_ASSOC);
 
     if (!$auth) {
-        // Fallback: Check if the email exists in the clients table (users might log in with their profile email)
+        // Fallback: Check if the identity exists in the clients table as an email
         $stmt = $pdo->prepare("SELECT client_auth_id FROM clients WHERE email = ?");
-        $stmt->execute([$email]);
+        $stmt->execute([$identity]);
         $client_auth_id = $stmt->fetchColumn();
 
         if ($client_auth_id) {

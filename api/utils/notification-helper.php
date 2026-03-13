@@ -285,3 +285,56 @@ function getAdminUserId()
         return null;
     }
 }
+
+/**
+ * Payment success notification for the buyer
+ */
+function createPaymentSuccessNotification($user_auth_id, $event_name, $amount)
+{
+    $msg = "Payment confirmed! ₦" . number_format($amount, 2) . " for '{$event_name}'. Your ticket is on its way.";
+    return createNotification($user_auth_id, $msg, 'payment_success', $user_auth_id);
+}
+
+/**
+ * Ticket issued notification for the buyer
+ */
+function createTicketIssuedNotification($user_auth_id, $event_name, $barcode)
+{
+    $msg = "Your ticket for '{$event_name}' has been issued. Ticket ID: {$barcode}";
+    return createNotification($user_auth_id, $msg, 'ticket_issued', $user_auth_id);
+}
+
+/**
+ * New sale alert for the organizer
+ */
+function createNewSaleNotification($organizer_auth_id, $buyer_name, $event_name, $amount)
+{
+    $msg = "New sale: {$buyer_name} purchased a ticket for '{$event_name}' — ₦" . number_format($amount, 2);
+    return createNotification($organizer_auth_id, $msg, 'ticket_purchase', null);
+}
+
+/**
+ * Refund requested — notify organizer
+ */
+function createRefundRequestedNotification($organizer_auth_id, $buyer_name, $event_name, $order_id)
+{
+    $msg = "Refund requested: {$buyer_name} requested a refund for '{$event_name}' (Order #{$order_id}). Review in Payments → Refund Requests.";
+    return createNotification($organizer_auth_id, $msg, 'refund_requested', null, ['order_id' => $order_id]);
+}
+
+/**
+ * Refund processed — notify the buyer
+ */
+function createRefundProcessedNotification($user_auth_id, $event_name, $amount)
+{
+    $msg = "Your refund of ₦" . number_format($amount, 2) . " for '{$event_name}' has been processed. Funds arrive in 3-5 business days.";
+    return createNotification($user_auth_id, $msg, 'refund_processed', null);
+}
+/**
+ * Notify admin when client profile is updated
+ */
+function createClientProfileUpdatedNotification($admin_id, $client_id, $client_name)
+{
+    $message = "Client '{$client_name}' has updated their profile details and is awaiting verification review.";
+    return createNotification($admin_id, $message, 'client_profile_updated', $client_id, ['client_id' => $client_id]);
+}

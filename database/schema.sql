@@ -117,6 +117,16 @@ CREATE TABLE IF NOT EXISTS clients (
     state VARCHAR(100) DEFAULT NULL,
     country VARCHAR(100) DEFAULT NULL,
     profile_pic VARCHAR(255) DEFAULT NULL,
+    nin VARCHAR(20) DEFAULT NULL,
+    bvn VARCHAR(20) DEFAULT NULL,
+    nin_verified TINYINT(1) DEFAULT 0,
+    bvn_verified TINYINT(1) DEFAULT 0,
+    account_name VARCHAR(150) DEFAULT NULL,
+    account_number VARCHAR(50) DEFAULT NULL,
+    bank_name VARCHAR(100) DEFAULT NULL,
+    subaccount_code VARCHAR(100) DEFAULT NULL,
+    verification_status ENUM('pending', 'verified', 'rejected') DEFAULT 'pending',
+    bank_code VARCHAR(20) DEFAULT NULL,
     metadata JSON DEFAULT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -202,6 +212,32 @@ CREATE TABLE IF NOT EXISTS events (
     PRIMARY KEY (id),
     KEY idx_event_client (client_id),
     CONSTRAINT fk_event_client FOREIGN KEY (client_id) REFERENCES clients (id) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
+
+-- =============================================================================
+-- ORDERS
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS orders (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    user_id BIGINT UNSIGNED NOT NULL,
+    event_id BIGINT UNSIGNED NOT NULL,
+    organizer_id BIGINT UNSIGNED NOT NULL,
+    subaccount_code VARCHAR(100) DEFAULT NULL,
+    amount DECIMAL(12, 2) NOT NULL,
+    transaction_reference VARCHAR(191) NOT NULL,
+    payment_status ENUM('pending', 'success', 'failed') DEFAULT 'pending',
+    payment_method VARCHAR(50) DEFAULT NULL,
+    metadata JSON DEFAULT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_order_reference (transaction_reference),
+    KEY idx_order_user (user_id),
+    KEY idx_order_event (event_id),
+    KEY idx_order_organizer (organizer_id),
+    CONSTRAINT fk_order_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
+    CONSTRAINT fk_order_event FOREIGN KEY (event_id) REFERENCES events (id) ON DELETE CASCADE,
+    CONSTRAINT fk_order_organizer FOREIGN KEY (organizer_id) REFERENCES clients (id) ON DELETE CASCADE
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
 
 -- =============================================================================
@@ -443,6 +479,7 @@ UPDATE auth_accounts SET is_online = 0;
 DELETE FROM auth_tokens WHERE expires_at < NOW();
 
 -- Confirmation
+-- Confirmation
 SELECT
     COUNT(*) AS total_accounts,
     SUM(is_active) AS active_accounts,
@@ -450,15 +487,6 @@ SELECT
 FROM auth_accounts
 WHERE
     deleted_at IS NULL;
-
-ALTER TABLE clients
-ADD COLUMN nin VARCHAR(20) DEFAULT NULL AFTER gender,
-ADD COLUMN bvn VARCHAR(20) DEFAULT NULL AFTER nin,
-ADD COLUMN nin_verified TINYINT(1) DEFAULT 0 AFTER bvn,
-ADD COLUMN bvn_verified TINYINT(1) DEFAULT 0 AFTER nin_verified,
-ADD COLUMN account_name VARCHAR(150) DEFAULT NULL AFTER bvn_verified,
-ADD COLUMN account_number VARCHAR(50) DEFAULT NULL AFTER account_name,
-ADD COLUMN bank_name VARCHAR(100) DEFAULT NULL AFTER account_number;
 
 -- =============================================================================
 -- SEED DEFAULT SYSTEM ADMIN (LOCAL AUTH ONLY)

@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
     const loginForm = document.getElementById('loginForm');
-    const emailInput = document.getElementById('email');
+    const usernameInput = document.getElementById('username');
     const passwordInput = document.getElementById('password');
     const rememberMeInput = document.getElementById('rememberMe');
     const togglePassword = document.getElementById('togglePassword');
@@ -18,9 +18,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // Role-Specific UI Adjustments
     if (intent === 'admin') {
         document.title = "Admin Login - Eventra";
-        const sliderText = document.querySelector('.slider-text');
-        if (sliderText) sliderText.style.display = 'none';
-        
     }
 
     // Check for session timeout error
@@ -106,11 +103,18 @@ document.addEventListener('DOMContentLoaded', () => {
         loginButton.innerHTML = '<span class="spinner"></span> Logging in...';
 
         try {
+            if (!usernameInput || !passwordInput) {
+                console.error("Critical elements not found in DOM");
+                loginButton.disabled = false;
+                loginButton.innerHTML = originalBtnText;
+                return;
+            }
+
             const response = await apiFetch(basePath + 'api/admin/login.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    email: emailInput.value,
+                    username: usernameInput.value,
                     password: passwordInput.value,
                     remember_me: rememberMeInput?.checked || false,
                 })
@@ -153,9 +157,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     window.location.href = finalTarget;
                 }, 1600);
             } else {
-                // If the message contains "Email", show it there, otherwise show at password
-                const errorElement = result.message?.toLowerCase().includes('email') ? 'emailError' : 'passwordError';
-                showError(errorElement, result.message || 'Invalid email or password');
+                // If the message contains "username", show it there, otherwise show at password
+                const errorElement = result.message?.toLowerCase().includes('username') ? 'usernameError' : 'passwordError';
+                showError(errorElement, result.message || 'Invalid username or password');
                 loginButton.disabled = false;
                 loginButton.innerHTML = originalBtnText;
             }
@@ -200,14 +204,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     google.accounts.id.prompt();
                 } catch (error) {
                     console.error('Google Initialization Error:', error);
-                    const errorMsg = 'Could not initialize Google Sign-in.\n\nPossible causes:\n- Ad blocker or privacy extension is blocking Google\n- Network connectivity issues\n- Browser security settings\n\nPlease try:\n1. Disabling ad blockers\n2. Using email/password login instead';
+                    const errorMsg = 'Could not initialize Google Sign-in.\n\nPossible causes:\n- Ad blocker or privacy extension is blocking Google\n- Network connectivity issues\n- Browser security settings\n\nPlease try:\n1. Disabling ad blockers\n2. Using username/password login instead';
                     Swal.fire('Error', errorMsg, 'error');
                 }
             } else if (attempts < 20) {
                 attempts++;
                 setTimeout(attemptGoogleInit, 100);
             } else {
-                const errorMsg = 'Google Sign-in is currently blocked by your browser or an extension (e.g., ad-blocker, privacy extension).\n\nTo use Google Sign-in:\n1. Disable your ad blocker for this site\n2. Disable privacy extensions temporarily\n3. Try again\n\nAlternatively, you can sign in using email and password.';
+                const errorMsg = 'Google Sign-in is currently blocked by your browser or an extension (e.g., ad-blocker, privacy extension).\n\nTo use Google Sign-in:\n1. Disable your ad blocker for this site\n2. Disable privacy extensions temporarily\n3. Try again\n\nAlternatively, you can sign in using username and password.';
                 Swal.fire('Blocked', errorMsg, 'warning');
             }
         };
@@ -218,7 +222,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const decodedToken = parseJwt(response.credential);
         const googleData = {
             google_id: decodedToken.sub,
-            email: decodedToken.email,
+            username: decodedToken.username,
             name: decodedToken.name,
             profile_pic: decodedToken.picture
         };
@@ -284,46 +288,5 @@ document.addEventListener('DOMContentLoaded', () => {
         return JSON.parse(jsonPayload);
     };
 
-    // Event Image Slider Logic
-    async function initSlider() {
-        const sliderContainer = document.querySelector('.slider-images');
-        
-        if (!sliderContainer) return;
-
-        try {
-            const response = await apiFetch(basePath + 'api/events/get-events.php?status=published&limit=10');
-            const data = await response.json();
-
-            if (data.success && data.events.length > 0) {
-                const events = data.events.filter(e => e.image_path);
-                if (events.length === 0) return;
-
-                // Inject images (using high quality placeholder or actual path)
-                sliderContainer.innerHTML = events.map((event, index) => `
-                    <img src="${event.image_path}" 
-                         alt="${event.event_name}" 
-                         class="slider-img ${index === 0 ? 'active' : ''}" 
-                         data-index="${index}">
-                `).join('');
-
-                let currentIndex = 0;
-                
-                const updateSlider = () => {
-                    const images = document.querySelectorAll('.slider-img');
-                    if (images.length === 0) return;
-                    
-                    images[currentIndex].classList.remove('active');
-                    currentIndex = (currentIndex + 1) % images.length;
-                    images[currentIndex].classList.add('active');
-                };
-
-                // Cycle every 5 seconds
-                setInterval(updateSlider, 5000);
-            }
-        } catch (error) {
-            console.error('Slider init error:', error);
-        }
-    }
-
-    initSlider();
+    // Event Image Slider Logic removed to stop showing client details
 });

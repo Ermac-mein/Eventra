@@ -234,13 +234,18 @@ class ProfilePicUpload {
             window.toast.success('Profile picture updated successfully!');
         }
 
-        // Update all profile pictures on the page
-        this.updateProfilePictures(newProfilePicPath);
-
         // Update admin auth cached data
         if (window.adminAuth && window.adminAuth.adminData) {
             window.adminAuth.adminData.profile_pic = newProfilePicPath;
         }
+
+        // Dispatch global sync event
+        document.dispatchEvent(new CustomEvent('EventraProfileUpdated', {
+            detail: { 
+                profile_pic: newProfilePicPath,
+                name: window.adminAuth?.adminData?.name || ''
+            }
+        }));
 
         // Close modal
         setTimeout(() => {
@@ -259,21 +264,8 @@ class ProfilePicUpload {
     }
 
     updateProfilePictures(newPath) {
-        // Update header avatar
-        const headerAvatar = document.querySelector('.user-avatar-display');
-        if (headerAvatar) {
-            headerAvatar.style.backgroundImage = `url(${newPath})`;
-            headerAvatar.style.backgroundSize = 'cover';
-            headerAvatar.style.backgroundPosition = 'center';
-        }
-
-        // Update profile drawer avatar
-        const drawerAvatar = document.querySelector('.profile-avatar-large');
-        if (drawerAvatar) {
-            drawerAvatar.style.backgroundImage = `url(${newPath})`;
-            drawerAvatar.style.backgroundSize = 'cover';
-            drawerAvatar.style.backgroundPosition = 'center';
-        }
+        // Redundant - now handled by EventraProfileUpdated listener in utils.js
+        console.log('[Profile Upload] Global sync triggered for:', newPath);
     }
 }
 

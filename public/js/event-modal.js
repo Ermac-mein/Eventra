@@ -131,7 +131,7 @@ function renderModalContent(container, eventData) {
     <div style="position: relative; height: 320px; overflow: hidden; border-radius: 20px 20px 0 0; margin: -2rem -2rem 2rem -2rem;">
       <img src="${eventImage}" onerror="this.src='../assets/default-event.jpg'" style="width: 100%; height: 100%; object-fit: cover;" alt="${eventData.event_name}">
       <div style="position: absolute; bottom: 0; left: 0; right: 0; height: 50%; background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);"></div>
-      ${eventData.priority ? `<div style="position: absolute; top: 1.5rem; left: 1.5rem; background: rgba(255,255,255,0.9); backdrop-filter: blur(8px); padding: 0.5rem 1rem; border-radius: 30px; font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #111827; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">${eventData.priority}</div>` : ''}
+      ${eventData.priority ? `<div class="card-priority-badge priority-${eventData.priority.toLowerCase()}">${eventData.priority}</div>` : ''}
     </div>
     
     <div style="padding: 0 1rem;">
@@ -139,7 +139,10 @@ function renderModalContent(container, eventData) {
       
       <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 2rem;">
         <div style="width: 32px; height: 32px; border-radius: 50%; background: #f3f4f6; display: flex; align-items: center; justify-content: center; color: #6b7280; font-size: 1rem;">👤</div>
-        <p style="color: #6b7280; font-size: 1rem; margin: 0;">Organized by <span style="font-weight: 600; color: #374151;">${escapeHTML(eventData.client_name || eventData.organizer_name || 'Eventra')}</span></p>
+        <p style="color: #6b7280; font-size: 1rem; margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+          Organized by <span style="font-weight: 600; color: #374151;">${escapeHTML(eventData.client_name || eventData.organizer_name || 'Eventra')}</span>
+          ${eventData.verification_status === 'verified' ? '<span style="color: #10b981; font-size: 0.9rem;" title="Verified Organizer">✓</span>' : ''}
+        </p>
       </div>
       
       <div style="height: 1px; background: #e5e7eb; margin-bottom: 2rem;"></div>
@@ -166,7 +169,14 @@ function renderModalContent(container, eventData) {
           <div>
             <div style="font-size: 0.75rem; color: #6b7280; font-weight: 600; text-transform: uppercase; margin-bottom: 0.25rem;">Location</div>
             <div style="font-weight: 600; color: #111827; font-size: 0.95rem;">${escapeHTML(eventData.location || '')} ${escapeHTML(eventData.state || 'TBD')}</div>
-            ${eventData.address ? `<div style="font-size: 0.8rem; color: #6b7280; margin-top: 0.2rem;">${escapeHTML(eventData.address)}</div>` : ''}
+            ${eventData.address ? `<div style="font-size: 0.8rem; color: #6b7280; margin-top: 0.2rem;">
+              <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(eventData.address + ', ' + (eventData.city || '') + ', ' + (eventData.state || ''))}" target="_blank" class="address-link">
+                ${escapeHTML(eventData.address)}
+                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-left: 4px;">
+                  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
+                </svg>
+              </a>
+            </div>` : ''}
           </div>
         </div>
         

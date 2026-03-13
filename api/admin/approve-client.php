@@ -16,8 +16,9 @@ if (!$client_id || !in_array($status, [0, 1], true)) {
 }
 
 try {
-    $stmt = $pdo->prepare("UPDATE clients SET is_verified = ?, updated_at = NOW() WHERE id = ?");
-    $stmt->execute([(int)$status, $client_id]);
+    $verification_status = $status ? 'verified' : 'rejected';
+    $stmt = $pdo->prepare("UPDATE clients SET verification_status = ?, updated_at = NOW() WHERE id = ?");
+    $stmt->execute([$verification_status, $client_id]);
 
     if ($stmt->rowCount() > 0) {
         $status_text = $status ? 'Approved' : 'Declined';

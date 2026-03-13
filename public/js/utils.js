@@ -24,6 +24,66 @@ function debounce(func, wait) {
   };
 }
 
+/**
+ * Get normalized profile image URL with cache busting
+ * @param {string} path - Database image path
+ * @param {string} name - Fallback name for avatar
+ * @returns {string} - Final URL
+ */
+function getProfileImg(path, name = '') {
+  if (!path || path.trim() === '') {
+    if (name) {
+      return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random&color=fff`;
+    }
+    return '/public/assets/imgs/admin.png'; // Default admin fallback
+  }
+
+  // Handle external URLs (like Google profile pics)
+  if (path.startsWith('http')) {
+    // Avoid adding timestamp to external URLs to prevent 429 Too Many Requests
+    return path;
+  }
+
+  let finalPath = path;
+  
+  // Normalize path
+  if (!finalPath.startsWith('/')) {
+    // If it starts with ../.. or public/, etc
+    if (finalPath.startsWith('../../')) {
+        finalPath = finalPath.replace('../../', '/');
+    } else if (!finalPath.startsWith('/')) {
+        finalPath = '/' + finalPath;
+    }
+  }
+
+  // Ensure double slashes are removed
+  finalPath = finalPath.replace(/\/\//g, '/');
+
+  // Add cache header for local images only
+  const timestamp = Date.now();
+  const separator = finalPath.includes('?') ? '&' : '?';
+  return `${finalPath}${separator}t=${timestamp}`;
+}
+
+// Global listener for profile updates to refresh all avatars on the page
+document.addEventListener('EventraProfileUpdated', (e) => {
+    const { profile_pic, name } = e.detail;
+    if (!profile_pic) return;
+
+    // Refresh all elements with data-profile-sync="true"
+    const syncedElements = document.querySelectorAll('[data-profile-sync="true"]');
+    syncedElements.forEach(el => {
+        const imgUrl = getProfileImg(profile_pic, name || el.alt || '');
+        if (el.tagName === 'IMG') {
+            el.src = imgUrl;
+        } else {
+            el.style.backgroundImage = `url(${imgUrl})`;
+        }
+    });
+
+    console.log('[Profile Sync] UI refreshed for all synced elements');
+});
+
 // Validate email
 function isValidEmail(email) {
   const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;

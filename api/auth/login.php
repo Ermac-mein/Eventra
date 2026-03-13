@@ -5,19 +5,20 @@ require_once '../../includes/helpers/entity-resolver.php';
 
 $data = json_decode(file_get_contents("php://input"), true);
 
-if (!isset($data['email']) || !isset($data['password'])) {
-    echo json_encode(['success' => false, 'message' => 'Email and password are required.']);
-    exit;
-}
-
-$email = $data['email'];
-$password = $data['password'];
+$identity = $data['email'] ?? $data['username'] ?? null;
+$password = $data['password'] ?? null;
 
 // Support for dedicated login endpoint overrides
 if (isset($auth_intent)) {
     $intent = $auth_intent;
 } else {
     $intent = $data['intent'] ?? 'client';
+}
+
+if (!$identity || !$password) {
+    $fieldLabel = ($intent === 'admin') ? 'Username' : 'Username/Email';
+    echo json_encode(['success' => false, 'message' => "$fieldLabel and password are required."]);
+    exit;
 }
 $remember_me = isset($data['remember_me']) && $data['remember_me'] === true;
 
@@ -28,11 +29,12 @@ if (!in_array($intent, ['admin', 'client', 'user'])) {
 
 try {
     // 1. Resolve Entity (Centralized Backend Decision)
-    $user = resolveEntity($email);
+    $user = resolveEntity($identity);
 
     if (!$user) {
-        logSecurityEvent(null, $email, 'login_failure', 'password', "Identity not found.");
-        echo json_encode(['success' => false, 'message' => 'Invalid email or password.']);
+        logSecurityEvent(null, $identity, 'login_failure', 'password', "Identity not found.");
+        $fieldLabel = ($intent === 'admin') ? 'username' : 'email';
+        echo json_encode(['success' => false, 'message' => "Invalid $fieldLabel or password."]);
         exit;
     }
 
@@ -42,7 +44,7 @@ try {
 
     // Enforce role-specific portal entry
     if ($userRole !== $effectiveIntent) {
-        logSecurityEvent($user['id'], $email, 'login_failure', 'password', "Role mismatch: User is $userRole but tried as $effectiveIntent");
+        logSecurityEvent($user['id'], $identity, 'login_failure', 'password', "Role mismatch: User is $userRole but tried as $effectiveIntent");
         $targetPortal = ucfirst($userRole);
         echo json_encode(['success' => false, 'message' => "Access denied. This is a $targetPortal account. Please use the appropriate portal."]);
         exit;
@@ -50,7 +52,7 @@ try {
 
     // Enforce Admin Local-Only Policy
     if ($userRole === 'admin' && $user['auth_provider'] !== 'local') {
-        logSecurityEvent($user['id'], $email, 'login_failure', 'password', "Admin account attempted login with non-local state.");
+        logSecurityEvent($user['id'], $identity, 'login_failure', 'password', "Admin account attempted login with non-local state.");
         echo json_encode(['success' => false, 'message' => "Admin accounts must use local authentication."]);
         exit;
     }
@@ -59,7 +61,7 @@ try {
     if (isset($user['is_active']) && $user['is_active'] == 0) {
         // Only allow login if account is active, or handle activation logic if required.
         // For now, let's keep the user's requirement: check is_active = 1
-        logSecurityEvent($user['id'], $email, 'login_failure', 'password', "Account is inactive.");
+        logSecurityEvent($user['id'], $identity, 'login_failure', 'password', "Account is inactive.");
         echo json_encode(['success' => false, 'message' => "Your account is inactive. Please contact support."]);
         exit;
     }
@@ -74,7 +76,7 @@ try {
         // 3. Enforce Auth Policy
         $policy = getAuthPolicy($userRole, 'password', $user);
         if (!$policy['allowed']) {
-            logSecurityEvent($user['id'], $email, 'login_failure', 'password', "Policy Violation: " . $policy['message']);
+            logSecurityEvent($user['id'], $identity, 'login_failure', 'password', "Policy Violation: " . $policy['message']);
             echo json_encode(['success' => false, 'message' => $policy['message']]);
             exit;
         }
@@ -129,7 +131,7 @@ try {
         $_SESSION['last_activity'] = time();
 
         // Log success
-        logSecurityEvent($user['id'], $email, 'login_success', 'password', "Logged in as $userRole via portal $effectiveIntent");
+        logSecurityEvent($user['id'], $identity, 'login_success', 'password', "Logged in as $userRole via portal $effectiveIntent");
 
         // Notify admin of login activity
         require_once __DIR__ . '/../utils/notification-helper.php';
@@ -180,8 +182,9 @@ try {
             $pdo->prepare("UPDATE auth_accounts SET locked_until = ? WHERE id = ?")->execute([$lockTime, $user['id']]);
         }
 
-        logSecurityEvent($user['id'], $email, 'login_failure', 'password', "Invalid password.");
-        echo json_encode(['success' => false, 'message' => 'Invalid email or password.']);
+        logSecurityEvent($user['id'], $identity, 'login_failure', 'password', "Invalid password.");
+        $fieldLabel = ($intent === 'admin') ? 'username' : 'email';
+        echo json_encode(['success' => false, 'message' => "Invalid $fieldLabel or password."]);
     }
 } catch (PDOException $e) {
     echo json_encode(['success' => false, 'message' => 'Database error occurred.']);

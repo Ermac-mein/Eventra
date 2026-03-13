@@ -49,7 +49,7 @@ try {
         JOIN tickets t ON t.user_id = u.id
         JOIN events e ON t.event_id = e.id
         WHERE e.client_id = ?
-        GROUP BY u.id
+        GROUP BY u.id, u.name, u.profile_pic, a.email
         ORDER BY tickets_bought DESC
     ");
     $buyStmt->execute([$client_id]);

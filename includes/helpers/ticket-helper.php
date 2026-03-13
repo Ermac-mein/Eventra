@@ -28,6 +28,7 @@ function buildSecureQRPayload(array $ticketData): string
         'tid' => $ticketData['barcode'],                          // Ticket ID
         'eid' => $ticketData['event_id'] ?? null,                 // Event ID
         'uid' => $ticketData['user_id'] ?? null,                  // User ID
+        'oid' => $ticketData['order_id'] ?? null,                 // Order ID
         'ps'  => $ticketData['payment_status'] ?? 'paid',         // Payment status
         'iat' => time(),                                           // Issued at
     ];
@@ -37,6 +38,7 @@ function buildSecureQRPayload(array $ticketData): string
         $payload['tid'],
         $payload['eid'],
         $payload['uid'],
+        $payload['oid'] ?? '',
         $payload['ps'],
         $payload['iat']
     ]);
@@ -230,6 +232,10 @@ function generateTicketPDF(array $ticketData): string
                             <tr>
                                 <td>🎟 Ticket ID</td>
                                 <td><strong>{$ticketId}</strong></td>
+                            </tr>
+                            <tr>
+                                <td>📦 Order</td>
+                                <td>#" . ($ticketData['order_id'] ?? 'N/A') . "</td>
                             </tr>
                         </table>
                     </div>

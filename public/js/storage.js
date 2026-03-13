@@ -18,7 +18,13 @@ if (typeof window.storage === 'undefined' || !window.storage) {
         get: function(key) {
             try {
                 const item = localStorage.getItem(key);
-                return item ? JSON.parse(item) : null;
+                if (!item) return null;
+                try {
+                    return JSON.parse(item);
+                } catch (e) {
+                    // If it's not JSON, return the raw value (e.g., "mock-token")
+                    return item;
+                }
             } catch (error) {
                 console.error('Error reading from storage:', error);
                 return null;

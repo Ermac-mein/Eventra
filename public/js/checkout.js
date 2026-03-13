@@ -87,8 +87,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     const payBtn = document.getElementById('paystackBtn');
 
     if (payBtn) {
-        payBtn.addEventListener('click', (e) => {
+        payBtn.addEventListener('click', async (e) => {
             e.preventDefault();
+            
             // Validation
             const phone = document.getElementById('phoneNum')?.value.trim();
             const email = document.getElementById('emailAdd')?.value.trim();
@@ -100,23 +101,53 @@ document.addEventListener('DOMContentLoaded', async () => {
                 return;
             }
 
-            // Proceed to real Payment Page for all events
-            const orderData = {
-                eventId: eventId,
-                quantity: currentQuantity,
-                contactInfo: {
-                    firstName: fname,
-                    lastName: lname,
-                    email: email,
-                    phone: phone
+            // Disable button & show loading
+            payBtn.disabled = true;
+            payBtn.innerHTML = '<span class="btn-spinner"></span> Initializing...';
+            
+            try {
+                // Initialize Order via Marketplace API
+                const res = await apiFetch('../../api/payments/initialize.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        event_id: eventId,
+                        quantity: currentQuantity
+                    })
+                });
+                
+                const result = await res.json();
+                
+                if (result.success) {
+                    // Store detailed order data in session
+                    const orderData = {
+                        eventId: eventId,
+                        quantity: currentQuantity,
+                        order_id: result.order_id,
+                        reference: result.reference,
+                        authorization_url: result.authorization_url,
+                        amount: result.amount,
+                        contactInfo: {
+                            firstName: fname,
+                            lastName: lname,
+                            email: email,
+                            phone: phone
+                        }
+                    };
+                    
+                    sessionStorage.setItem('pending_order', JSON.stringify(orderData));
+                    
+                    // Redirect to payment transition/processing page
+                    window.location.href = 'payment.html';
+                } else {
+                    Swal.fire('Error', result.message || 'Payment initialization failed.', 'error');
+                    resetPayBtn(eventData, currentQuantity);
                 }
-            };
-            
-            // Store pending order securely
-            sessionStorage.setItem('pending_order', JSON.stringify(orderData));
-            
-            // Redirect to payment page
-            window.location.href = 'payment.html';
+            } catch (err) {
+                console.error('Payment Error:', err);
+                Swal.fire('Error', 'Could not connect to payment server.', 'error');
+                resetPayBtn(eventData, currentQuantity);
+            }
         });
     }
 

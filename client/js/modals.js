@@ -25,9 +25,9 @@ function showProfileEditModal() {
                                      style="width: 160px; height: 160px; border-radius: 50%; object-fit: cover; box-shadow: 0 4px 20px rgba(0,0,0,0.08);">
                                      
                                 <div class="profile-badge-overlay" style="position: absolute; bottom: 8px; right: 8px; background: white; border-radius: 50%; padding: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.15); display: flex; align-items: center; justify-content: center; z-index: 2;">
-                                    ${(Number(user.nin_verified) === 1 && Number(user.bvn_verified) === 1)
+                                    ${user.verification_status === 'verified'
                                        ? '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="#10b981" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="border-radius: 50%;"><polyline points="20 6 9 17 4 12"></polyline></svg>'
-                                       : '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="#ef4444" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="border-radius: 50%;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>'}
+                                       : '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="#9ca3af" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="border-radius: 50%;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>'}
                                 </div>
                                 
                                 <label for="profilePicInput" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(139, 92, 246, 0.8); color: white; width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 1.2rem; box-shadow: 0 4px 12px rgba(0,0,0,0.15); transition: all 0.2s; z-index: 3;" onmouseover="this.style.transform='translate(-50%, -50%) scale(1.1)'; this.style.background='rgba(139, 92, 246, 0.9)'" onmouseout="this.style.transform='translate(-50%, -50%)'; this.style.background='rgba(139, 92, 246, 0.8)'">
@@ -115,25 +115,27 @@ function showProfileEditModal() {
                         
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
                             <div class="form-group" style="grid-column: span 2;">
-                                <label style="font-weight: 600; margin-bottom: 0.5rem; display: flex; align-items: center; justify-content: space-between; width: 100%;">
-                                    <span>BVN (Bank Verification Number)</span>
-                                    <div id="bvnStatus" class="verification-status-indicator" style="display: flex; align-items: center; gap: 0.5rem;">
-                                        <!-- Will be populated dynamically -->
-                                    </div>
-                                </label>
-                                <input type="text" id="bvnInput" name="bvn" value="${user.bvn || ''}" placeholder="11-digit BVN" style="width: 100%; padding: 0.75rem; border: 1px solid #ccc; border-radius: 8px;" onblur="validateAndVerifyField('bvn')">
+                                <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Settlement Bank</label>
+                                <select id="bankSelect" name="bank_code" style="width: 100%; padding: 0.75rem; border: 1px solid #ccc; border-radius: 8px; background: white;" onchange="resolveAccount()">
+                                    <option value="">Select Bank</option>
+                                    <!-- Populated by PaystackBanks -->
+                                </select>
+                                <input type="hidden" name="bank_name" id="bankNameInput" value="${user.bank_name || ''}">
                             </div>
                             <div class="form-group" style="grid-column: span 2;">
-                                <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Account Name</label>
-                                <input type="text" name="account_name" value="${user.account_name || ''}" placeholder="John Doe" style="width: 100%; padding: 0.75rem; border: 1px solid #ccc; border-radius: 8px;">
+                                <label style="font-weight: 600; margin-bottom: 0.5rem; display: flex; align-items: center; justify-content: space-between; width: 100%;">
+                                    <span>Account Number (10 Digits)</span>
+                                    <div id="accountStatus" class="verification-status-indicator" style="display: flex; align-items: center; gap: 0.5rem;">
+                                        ${user.subaccount_code 
+                                            ? '<span style="color:#10b981; font-weight: bold;" title="Verified Subaccount">✓ Verified</span>' 
+                                            : '<span style="color:#f59e0b; font-weight: bold; font-size: 0.85rem;" title="Setup Incomplete">⚠️ Incomplete Setup</span>'}
+                                    </div>
+                                </label>
+                                <input type="text" id="accountNumberInput" name="account_number" value="${user.account_number || ''}" maxlength="10" placeholder="10-digit Account Number" style="width: 100%; padding: 0.75rem; border: 1px solid #ccc; border-radius: 8px;" oninput="this.value = this.value.replace(/[^0-9]/g, '');" onblur="resolveAccount()">
                             </div>
-                            <div class="form-group">
-                                <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Account Number</label>
-                                <input type="text" name="account_number" value="${user.account_number || ''}" placeholder="0123456789" style="width: 100%; padding: 0.75rem; border: 1px solid #ccc; border-radius: 8px;">
-                            </div>
-                            <div class="form-group">
-                                <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Bank Name</label>
-                                <input type="text" name="bank_name" value="${user.bank_name || ''}" placeholder="e.g. GTBank" style="width: 100%; padding: 0.75rem; border: 1px solid #ccc; border-radius: 8px;">
+                            <div class="form-group" style="grid-column: span 2;">
+                                <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Account Holder Name (Auto-resolved)</label>
+                                <input type="text" id="accountNameInput" name="account_name" value="${user.account_name || ''}" readonly style="width: 100%; padding: 0.75rem; border: 1px solid #e0e0e0; border-radius: 8px; background: #f1f5f9; color: #475569; font-weight: 500;">
                             </div>
                         </div>
 
@@ -159,6 +161,12 @@ function showProfileEditModal() {
 
     // Add modal to body
     document.body.insertAdjacentHTML('beforeend', modalHTML);
+
+    // Populate Banks
+    const bankSelect = document.getElementById('bankSelect');
+    if (bankSelect && window.PaystackBanks) {
+        window.PaystackBanks.populate(bankSelect, user.bank_code);
+    }
 
     // Add form submit handler
     document.getElementById('profileEditForm').addEventListener('submit', handleProfileUpdate);
@@ -198,6 +206,7 @@ async function handleProfileUpdate(e) {
             
             // Update stored user data
             storage.set('client_user', result.user);
+            storage.set('user', result.user); // Sync both
             
             // Close modal
             closeProfileEditModal();
@@ -219,6 +228,47 @@ async function handleProfileUpdate(e) {
     } catch (error) {
         console.error('Error updating profile:', error);
         showNotification('An error occurred while updating profile', 'error');
+    }
+}
+
+// Real-time Account Resolution
+async function resolveAccount() {
+    const bankCode = document.getElementById('bankSelect').value;
+    const accountNumber = document.getElementById('accountNumberInput').value.trim();
+    const statusDiv = document.getElementById('accountStatus');
+    const nameInput = document.getElementById('accountNameInput');
+    const bankNameInput = document.getElementById('bankNameInput');
+
+    if (bankCode) {
+        const selectedOption = document.getElementById('bankSelect').options[document.getElementById('bankSelect').selectedIndex];
+        bankNameInput.value = selectedOption.text;
+    }
+
+    if (!bankCode || accountNumber.length !== 10) {
+        statusDiv.innerHTML = '';
+        nameInput.value = '';
+        return;
+    }
+
+    // Show Loading
+    statusDiv.innerHTML = '<span class="spinner" style="width: 16px; height: 16px; border: 2px solid #8b5cf6; border-top-color: transparent; border-radius: 50%; display: inline-block; animation: spin 0.8s linear infinite;"></span>';
+
+    try {
+        const response = await apiFetch(`../../api/clients/bank-details.php?bank_code=${bankCode}&account_number=${accountNumber}`, {
+            method: 'GET'
+        });
+        const result = await response.json();
+
+        if (result.success) {
+            statusDiv.innerHTML = '<span style="color:#10b981; font-weight: bold;">✓ Verified</span>';
+            nameInput.value = result.account_name;
+        } else {
+            statusDiv.innerHTML = '<span style="color:#ef4444; font-weight: bold;">✕ Invalid</span>';
+            nameInput.value = 'Resolution Failed';
+        }
+    } catch (error) {
+        console.error('Error resolving account:', error);
+        statusDiv.innerHTML = '<span style="color:#ef4444;">✕ Error</span>';
     }
 }
 
@@ -294,11 +344,19 @@ function updateVerificationBadge() {
     const badgeContainer = document.querySelector('.profile-badge-overlay');
     if (!badgeContainer || !user) return;
 
-    const isFullyVerified = Number(user.nin_verified) === 1 && Number(user.bvn_verified) === 1;
+    const status = user.verification_status || 'pending';
     
-    badgeContainer.innerHTML = isFullyVerified 
-        ? '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="#10b981" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="border-radius: 50%;"><polyline points="20 6 9 17 4 12"></polyline></svg>'
-        : '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="#ef4444" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="border-radius: 50%;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>';
+    if (status === 'verified') {
+        badgeContainer.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="#10b981" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="border-radius: 50%;"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+        badgeContainer.title = 'Verified Organizer';
+    } else if (status === 'rejected') {
+        badgeContainer.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="#ef4444" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="border-radius: 50%;"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
+        badgeContainer.title = 'Verification Declined';
+    } else {
+        // Pending
+        badgeContainer.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="#f59e0b" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="border-radius: 50%;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>';
+        badgeContainer.title = 'Verification Pending';
+    }
 }
 
 // Add CSS for spin animation

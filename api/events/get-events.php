@@ -80,12 +80,13 @@ try {
     $sql = "
         SELECT 
             e.*, 
-            c.business_name as organizer_name,
-            c.profile_pic as client_profile_pic,
-            (c.nin_verified = 1 AND c.bvn_verified = 1) as is_verified,
+            u.business_name as organizer_name,
+            u.profile_pic as client_profile_pic,
+            u.verification_status,
+            (u.verification_status = 'verified') as is_verified,
             $favoriteSubquery
         FROM events e
-        JOIN clients c ON e.client_id = c.id
+        LEFT JOIN clients u ON e.client_id = u.id
         $where_sql
         ORDER BY e.created_at DESC
         LIMIT ? OFFSET ?

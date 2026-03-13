@@ -80,6 +80,10 @@
                 <div id="searchResultsDropdown" class="search-results-dropdown"></div>
             </div>
             <div class="header-actions">
+                <button class="btn btn-secondary btn-export" style="background: transparent; border: 1px solid var(--admin-border); color: var(--admin-text-main); height: 40px; padding: 0 1rem; border-radius: 10px; margin-right: 1rem; display: flex; align-items: center; gap: 8px;">
+                    <i data-lucide="download" style="width: 18px;"></i>
+                    <span>Export</span>
+                </button>
                 <div class="action-icon notification-bell-icon" id="notificationBellIcon" title="Notifications" style="position: relative; cursor: pointer;">
                     <i data-lucide="bell"></i>
                 </div>
@@ -95,10 +99,6 @@
                 <div class="page-title">
                     <h1 style="font-size: 1.75rem; font-weight: 800;">Dashboard Overview</h1>
                 </div>
-                <button class="btn btn-primary btn-export">
-                    <i data-lucide="download"></i>
-                    <span>Export Data</span>
-                </button>
             </div>
 
             <!-- Stats Grid (Neutral as requested) -->
@@ -123,13 +123,6 @@
                         <i data-lucide="briefcase" class="stat-icon"></i>
                     </div>
                     <span class="stat-value" id="totalClientsCount">0</span>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-header">
-                        <span class="stat-label">Restored Events</span>
-                        <i data-lucide="rotate-ccw" class="stat-icon"></i>
-                    </div>
-                    <span class="stat-value" id="restoredEventsCount">0</span>
                 </div>
                 <div class="stat-card">
                     <div class="stat-header">
@@ -189,14 +182,31 @@
                 </div>
             </div>
 
-            <!-- showcase slider -->
+            <!-- Events Showcase (Upcoming) -->
             <div class="events-slider-section" style="margin-top: 2rem; padding: 2rem; background: #fff; border-radius: 16px; border: 1px solid var(--admin-border);">
-                <div class="quick-card-header" style="margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: center;">
-                    <h3 style="font-size: 1.25rem; font-weight: 700;">Events Showcase <span id="publishedEventsBadge" style="background: #f1f5f9; color: #64748b; font-size: 0.75rem; padding: 4px 10px; border-radius: 20px; margin-left: 8px; font-weight: 600;">0</span></h3>
-                    <a href="events.html" style="font-size: 0.9rem; color: var(--admin-primary); text-decoration: none; font-weight: 600;">View All</a>
+                <div class="quick-card-header" style="margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center;">
+                    <h3 style="font-size: 1.25rem; font-weight: 700;">Upcoming Events <span id="upcomingEventsBadge" style="background: var(--admin-primary); color: white; font-size: 0.75rem; padding: 4px 10px; border-radius: 20px; margin-left: 8px; font-weight: 600;">0</span></h3>
+                    <div class="slider-controls">
+                        <button class="slider-btn prev" data-slider="upcomingEventsSlider"><i data-lucide="chevron-left"></i></button>
+                        <button class="slider-btn next" data-slider="upcomingEventsSlider"><i data-lucide="chevron-right"></i></button>
+                    </div>
                 </div>
                 <div class="events-slider-track" id="upcomingEventsSlider">
-                    <p style="text-align: center; color: var(--admin-text-muted);">Loading Events...</p>
+                    <p style="text-align: center; color: var(--admin-text-muted);">Loading upcoming events...</p>
+                </div>
+            </div>
+
+            <!-- Events Showcase (Past/Trending) -->
+            <div class="events-slider-section" style="margin-top: 2rem; padding: 2rem; background: #fff; border-radius: 16px; border: 1px solid var(--admin-border);">
+                <div class="quick-card-header" style="margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center;">
+                    <h3 style="font-size: 1.25rem; font-weight: 700;">Past <span id="pastEventsBadge" style="background: #f1f5f9; color: #64748b; font-size: 0.75rem; padding: 4px 10px; border-radius: 20px; margin-left: 8px; font-weight: 600;">0</span></h3>
+                    <div class="slider-controls">
+                        <button class="slider-btn prev" data-slider="pastEventsSlider"><i data-lucide="chevron-left"></i></button>
+                        <button class="slider-btn next" data-slider="pastEventsSlider"><i data-lucide="chevron-right"></i></button>
+                    </div>
+                </div>
+                <div class="events-slider-track" id="pastEventsSlider">
+                    <p style="text-align: center; color: var(--admin-text-muted);">Loading past events...</p>
                 </div>
             </div>
         </main>

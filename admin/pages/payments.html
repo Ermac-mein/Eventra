@@ -77,19 +77,20 @@
                 <input type="text" placeholder="Search payments...">
             </div>
             <div class="header-actions">
-                <div class="action-icon notification-bell-icon" id="notificationBellIcon" title="Notifications" style="position:relative;cursor:pointer;"><i data-lucide="bell"></i></div>
-                <div class="user-profile" id="openProfileDrawer" style="cursor:pointer;"><div class="user-avatar"></div></div>
+                <button class="btn btn-secondary btn-export" style="background: transparent; border: 1px solid var(--admin-border); color: var(--admin-text-main); height: 40px; padding: 0 1rem; border-radius: 10px; margin-right: 1rem; display: flex; align-items: center; gap: 8px;">
+                    <i data-lucide="download" style="width: 18px;"></i>
+                    <span>Export</span>
+                </button>
+                <div class="action-icon notification-bell-icon" id="notificationBellIcon" title="Notifications" style="position: relative; cursor: pointer;">
+                    <i data-lucide="bell"></i>
+                </div>
+                <div class="user-profile" id="openProfileDrawer" style="cursor: pointer;">
+                    <div class="user-avatar"></div>
+                </div>
             </div>
         </header>
 
         <main class="content-area">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;flex-wrap:wrap;gap:1rem;">
-                <div>
-                    <h1 style="font-size:1.75rem;font-weight:800;color:#1e293b;margin:0;">All Payments</h1>
-                    <p style="color:#64748b;margin:.25rem 0 0;">Full transaction history across all clients and events</p>
-                </div>
-            </div>
-
             <!-- Stats -->
             <div class="stats-grid" style="margin-bottom:1.5rem;">
                 <div class="stat-card"><div class="stat-label">Total Payments</div><div class="stat-value" id="statTotal">—</div></div>

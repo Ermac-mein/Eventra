@@ -32,11 +32,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         usersTableBody.innerHTML = users.map(user => `
             <tr data-id="${user.id}" data-profile-pic="${user.profile_pic || ''}">
                 <td>${user.id}</td>
-                <td><img src="${user.profile_pic || 'https://ui-avatars.com/api/?name=' + user.name}" style="width: 24px; height: 24px; border-radius: 50%; margin-right: 8px; vertical-align: middle;"> ${user.name}</td>
+                <td><img src="${getProfileImg(user.profile_pic, user.name)}" style="width: 24px; height: 24px; border-radius: 50%; margin-right: 8px; vertical-align: middle;"> ${user.name}</td>
+                <td style="text-transform: capitalize;">${user.gender || 'N/A'}</td>
                 <td>${user.state || user.city || 'N/A'}</td>
-                <td>${user.email}</td>
-                <td>${user.client_name || 'Direct'}</td>
+                <td style="font-size: 0.85rem;">${user.email}</td>
                 <td><span class="status-badge status-${user.status === 'active' ? 'ongoing' : 'concluded'}">${user.status === 'active' ? 'Active' : 'Offline'}</span></td>
+                <td>${user.last_login_at ? new Date(user.last_login_at).toLocaleDateString() : 'Never'}</td>
                 <td>${user.phone || 'N/A'}</td>
             </tr>
         `).join('');
@@ -101,4 +102,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     await loadUsers();
+
+    // Auto-refresh every 30s
+    setInterval(() => {
+        if (document.visibilityState === 'visible') {
+            loadUsers();
+        }
+    }, 30000);
 });

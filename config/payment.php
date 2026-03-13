@@ -6,6 +6,93 @@ define('PAYSTACK_PUBLIC_KEY', $_ENV['PAYSTACK_PUBLIC_KEY'] ?? '');
 define('PAYSTACK_SECRET_KEY', $_ENV['PAYSTACK_SECRET_KEY'] ?? '');
 define('PAYSTACK_WEBHOOK_SECRET', $_ENV['PAYSTACK_WEBHOOK_SECRET'] ?? '');
 
+/**
+ * Helper: call Paystack API
+ */
+function paystackRequest(string $method, string $path, array $payload = []): array
+{
+    $secretKey = defined('PAYSTACK_SECRET_KEY') ? PAYSTACK_SECRET_KEY : '';
+    
+    // Masked key for logging
+    $maskedKey = !empty($secretKey) 
+        ? substr($secretKey, 0, 4) . '...' . substr($secretKey, -4) 
+        : 'MISSING';
+    
+    $url = 'https://api.paystack.co' . $path;
+    $ch  = curl_init($url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 20);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, [
+        'Authorization: Bearer ' . $secretKey,
+        'Content-Type: application/json',
+        'Cache-Control: no-cache',
+    ]);
+
+    if ($method === 'POST') {
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
+    } elseif ($method === 'PUT') {
+        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'PUT');
+        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
+    }
+
+    $response  = curl_exec($ch);
+    $httpCode  = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $curlError = curl_error($ch);
+
+    if ($curlError || !$response) {
+        error_log("[Paystack API] [Error] Curl: " . ($curlError ?: 'Empty response'));
+        return ['ok' => false, 'code' => $httpCode, 'body' => null, 'error' => $curlError ?: 'Empty response'];
+    }
+
+    $result = json_decode($response, true);
+    if ($httpCode === 401) {
+        error_log("[Paystack API] [Error] 401 Unauthorized for path {$path}. Check PAYSTACK_SECRET_KEY.");
+    }
+
+    return [
+        'ok' => ($httpCode >= 200 && $httpCode < 300), 
+        'code' => $httpCode, 
+        'body' => $result, 
+        'error' => null
+    ];
+}
+
+/**
+ * Ensures a client has a subaccount in Paystack
+ * Returns ['success' => bool, 'subaccount_code' => string, 'message' => string]
+ */
+function ensureSubaccount($pdo, $client_id, $bank_code, $account_number, $business_name, $email, $existing_subaccount_code = null)
+{
+    $subPayload = [
+        'business_name'     => $business_name,
+        'settlement_bank'   => $bank_code,
+        'account_number'    => $account_number,
+        'percentage_charge' => 20.0, // Platform commission as per requirements
+    ];
+
+    if ($existing_subaccount_code) {
+        $res = paystackRequest('PUT', "/subaccount/{$existing_subaccount_code}", $subPayload);
+    } else {
+        $subPayload['primary_contact_email'] = $email;
+        $res = paystackRequest('POST', '/subaccount', $subPayload);
+    }
+
+    if (!$res['ok']) {
+        $msg = $res['body']['message'] ?? $res['error'] ?? 'Unknown Paystack error';
+        return ['success' => false, 'message' => "Paystack: " . $msg];
+    }
+
+    $code = $res['body']['data']['subaccount_code'] ?? $existing_subaccount_code;
+    $id   = $res['body']['data']['id'] ?? null;
+
+    // Update local database with subaccount info
+    $stmt = $pdo->prepare("UPDATE clients SET subaccount_code = ?, subaccount_id = ? WHERE client_auth_id = ?");
+    $stmt->execute([$code, $id, $client_id]);
+
+    return ['success' => true, 'subaccount_code' => $code];
+}
+
 function verifyPaystackSignature($payload, $signature_header)
 {
     if (empty(PAYSTACK_WEBHOOK_SECRET))

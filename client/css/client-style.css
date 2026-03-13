@@ -1318,19 +1318,35 @@ td { padding: 1.25rem 2rem; border-bottom: 1px solid var(--client-border); font-
     position: absolute;
     top: 100%;
     right: 0;
-    width: 160px;
-    background: white;
+    width: 200px;
+    background: #ffffff;
     border-radius: 12px;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+    box-shadow: 0 10px 25px rgba(0,0,0,0.15);
     border: 1px solid var(--client-border);
-    margin-top: 8px;
+    margin-top: 12px;
     display: none;
     z-index: 1000;
     overflow: hidden;
+    padding: 8px 0;
 }
 
 .user-profile:hover .profile-dropdown {
     display: block;
+}
+
+.logout-link {
+    display: flex;
+    align-items: center;
+    padding: 12px 20px;
+    color: #ef4444;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 0.95rem;
+    transition: background 0.2s;
+}
+
+.logout-link:hover {
+    background: #fef2f2;
 }
 
 .logout-link {

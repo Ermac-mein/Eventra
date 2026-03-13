@@ -74,6 +74,10 @@
                 <div id="searchResultsDropdown" class="search-results-dropdown"></div>
             </div>
             <div class="header-actions">
+                <button class="btn btn-secondary btn-export" style="background: transparent; border: 1px solid var(--admin-border); color: var(--admin-text-main); height: 40px; padding: 0 1rem; border-radius: 10px; margin-right: 1rem; display: flex; align-items: center; gap: 8px;">
+                    <i data-lucide="download" style="width: 18px;"></i>
+                    <span>Export</span>
+                </button>
                 <div class="action-icon notification-bell-icon" id="notificationBellIcon" title="Notifications" style="position: relative; cursor: pointer;">
                     <i data-lucide="bell"></i>
                 </div>
@@ -88,45 +92,41 @@
                 <div class="page-title">
                     <h1 style="font-size: 1.75rem; font-weight: 800;">Tickets Management</h1>
                 </div>
-                <button class="btn btn-primary btn-export">
-                    <i data-lucide="download"></i>
-                    <span>Export Data</span>
-                </button>
             </div>
 
             <div class="stats-grid">
                 <div class="stat-card">
                     <div class="stat-header">
-                        <span class="stat-label">Tickets Sold</span>
+                        <span class="stat-label">Ticket Issues</span>
                         <i data-lucide="ticket" class="stat-icon"></i>
                     </div>
-                    <span class="stat-value" id="ticketsSold">0</span>
+                    <span class="stat-value" id="ticketsIssued">0</span>
                 </div>
                 <div class="stat-card">
                     <div class="stat-header">
-                        <span class="stat-label">Total Revenue</span>
-                        <i data-lucide="credit-card" class="stat-icon"></i>
+                        <span class="stat-label">Ticket Scanned</span>
+                        <i data-lucide="scan" class="stat-icon"></i>
                     </div>
-                    <span class="stat-value" id="totalRevenue">₦0</span>
+                    <span class="stat-value" id="ticketsScanned">0</span>
                 </div>
                 <div class="stat-card">
                     <div class="stat-header">
-                        <span class="stat-label">Pending Tickets</span>
+                        <span class="stat-label">Ticket Remaining</span>
                         <i data-lucide="clock" class="stat-icon"></i>
                     </div>
-                    <span class="stat-value" id="pendingTickets">0</span>
+                    <span class="stat-value" id="ticketsRemaining">0</span>
                 </div>
                 <div class="stat-card">
                     <div class="stat-header">
-                        <span class="stat-label">Cancelled Tickets</span>
+                        <span class="stat-label">Ticket Cancelled</span>
                         <i data-lucide="x-circle" class="stat-icon"></i>
                     </div>
-                    <span class="stat-value" id="cancelledTickets">0</span>
+                    <span class="stat-value" id="ticketsCancelled">0</span>
                 </div>
             </div>
 
             <div class="table-container" style="padding: 2rem; border-radius: 16px;">
-                <div class="table-header" style="margin-bottom: 1.5rem; padding: 0; border: none;">
+                <div class="table-header" style="margin-bottom: 1.5rem; padding: 0; border: none; display: flex; justify-content: space-between; align-items: center;">
                     <h3 style="font-size: 1.25rem; font-weight: 700;">All Tickets</h3>
                 </div>
                 <table style="width: 100%; border-collapse: separate; border-spacing: 0 10px;">

@@ -539,6 +539,12 @@ body {
   scrollbar-width: none; /* Firefox */
   position: relative;
   transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  scroll-snap-type: x mandatory;
+}
+
+.events-grid .event-card {
+  scroll-snap-align: start;
+  flex-shrink: 0;
 }
 
 .events-grid::-webkit-scrollbar {
@@ -671,19 +677,83 @@ body {
   font-size: 0.9rem;
   color: var(--text-gray);
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 0.4rem;
+  word-break: break-word;
+  white-space: normal;
 }
 
-.event-description {
-  font-size: 0.9rem;
-  color: var(--text-gray);
+.location-truncate {
+  display: block;
+  overflow: visible;
+  text-overflow: clip;
+}
+
+.event-card-description {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+  margin: 0.5rem 0 1.25rem 0;
   display: -webkit-box;
-  line-clamp: 2;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  margin: 0.25rem 0;
+  text-overflow: ellipsis;
+  min-height: 3.8rem; /* Maintain consistent height */
+}
+
+.address-link {
+  text-decoration: none;
+  color: inherit;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.address-link:hover {
+  color: var(--primary-color);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.card-priority-badge {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  padding: 5px 12px;
+  border-radius: 30px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: white;
+  z-index: 5;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  letter-spacing: 0.03em;
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.priority-featured { background: linear-gradient(135deg, #10b981, #059669); }
+.priority-hot { background: linear-gradient(135deg, #ef4444, #b91c1c); }
+.priority-trending { background: linear-gradient(135deg, #f59e0b, #d97706); }
+.priority-nearby { background: linear-gradient(135deg, #3b82f6, #1d4ed8); }
+.priority-upcoming { background: linear-gradient(135deg, #8b5cf6, #6d28d9); }
+
+.fav-btn svg {
+  transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), fill 0.3s ease;
+}
+
+.fav-btn:active svg {
+  transform: scale(1.4);
+}
+
+.fav-btn.active svg {
+  fill: currentColor;
 }
 
 .event-organizer {
@@ -988,7 +1058,7 @@ body {
     position: absolute;
     top: 100%;
     right: 0;
-    background-color: var(--bg-white);
+    background-color: #fff;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     border-radius: 8px;
     min-width: 150px;

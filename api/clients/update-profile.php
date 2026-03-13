@@ -4,27 +4,28 @@
  */
 header('Content-Type: application/json');
 require_once '../../config/database.php';
+require_once '../../config/payment.php';
 require_once '../../includes/middleware/auth.php';
 
 // Check authentication
 $client_id = clientMiddleware();
-$name = $_POST['name'] ?? null;
-$business_name = $_POST['business_name'] ?? null;
-$phone = $_POST['phone'] ?? null;
-$address = $_POST['address'] ?? null;
-$city = $_POST['city'] ?? null;
-$state = $_POST['state'] ?? null;
-$country = $_POST['country'] ?? null;
-$job_title = $_POST['job_title'] ?? null;
-$company = $_POST['company'] ?? null;
-$dob = $_POST['dob'] ?? null;
-$gender = $_POST['gender'] ?? null;
+$name = $_POST['name'];
+$business_name = $_POST['business_name'];
+$phone = $_POST['phone'];
+$address = $_POST['address'];
+$city = $_POST['city'];
+$state = $_POST['state'];
+$country = $_POST['country'];
+$job_title = $_POST['job_title'];
+$company = $_POST['company'];
+$dob = $_POST['dob'];
+$gender = $_POST['gender'];
 
-$nin = $_POST['nin'] ?? null;
-$bvn = $_POST['bvn'] ?? null;
-$account_name = $_POST['account_name'] ?? null;
-$account_number = $_POST['account_number'] ?? null;
-$bank_name = $_POST['bank_name'] ?? null;
+$nin = $_POST['nin'];
+$bvn = $_POST['bvn'];
+$account_number = $_POST['account_number'];
+$bank_code = $_POST['bank_code']; 
+$bank_name = $_POST['bank_name'];
 
 if (empty($name)) {
     echo json_encode(['success' => false, 'message' => 'Name is required']);
@@ -67,7 +68,7 @@ try {
     }
 
     // Fetch existing data for comparison and filling missing fields
-    $stmt_existing = $pdo->prepare("SELECT business_name, nin, bvn FROM clients WHERE client_auth_id = ?");
+    $stmt_existing = $pdo->prepare("SELECT business_name, email, nin, bvn, nin_verified, bvn_verified, subaccount_code FROM clients WHERE client_auth_id = ?");
     $stmt_existing->execute([$client_id]);
     $existing = $stmt_existing->fetch();
     
@@ -79,64 +80,38 @@ try {
     $nin_verified = null;
     $bvn_verified = null;
 
-    function verifyWithDojahMock($type, $number) {
-        if (empty($number)) return 0;
-        
-        $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http';
-        $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
-        
-        // Construct the mock URL safely. Assuming this file is in api/clients and the mock is in api/admin
-        $script_dir = dirname($_SERVER['SCRIPT_NAME']); // e.g., /api/clients
-        $base_url = rtrim(dirname($script_dir), '/'); // e.g., /api
-        $url = "$protocol://$host$base_url/admin/dojah-mock.php";
-        
-        $ch = curl_init($url);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode(['type' => $type, 'number' => $number]));
-        curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-        curl_setopt($ch, CURLOPT_TIMEOUT, 3);
-        
-        $result = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
-        
-        if ($httpCode === 200 && $result) {
-            $data = json_decode($result, true);
-            if (isset($data['success']) && $data['success']) {
-                return $data['data']['verified'] ? 1 : 0;
-            }
-        }
-        
-        // Fallback for local testing environments where cURL might fail
-        $last_digit = substr(trim($number), -1);
-        if ($last_digit === '1') return 1;
-        if ($last_digit === '0') return 0;
-        return (rand(1, 100) <= 80) ? 1 : 0;
-    }
+    // Recalculate verification_status after potential NIN/BVN changes
+    // IMPORTANT: As per Issue 1 requirements, any profile change resets status to pending for admin review
+    $new_verification_status = 'pending';
 
-    $verify_updates = "";
-    $verify_params = [];
+    // ── Paystack Subaccount Automation ─────────────────────────────────────
+    if (!empty($bank_code) && !empty($account_number)) {
+        // Resolve Account Name first if we don't have it (optional but good for business_name)
+        $resolveRes = paystackRequest('GET', "/bank/resolve?account_number={$account_number}&bank_code={$bank_code}");
+        $resolved_account_name = $resolveRes['body']['data']['account_name'] ?? ($business_name ?: $name);
 
-    if ($existing) {
-        if (!empty($nin) && $nin !== $existing['nin']) {
-            $nin_verified = verifyWithDojahMock('nin', $nin);
-            $verify_updates .= ", nin_verified = ?";
-            $verify_params[] = $nin_verified;
+        $subRes = ensureSubaccount(
+            $pdo, 
+            $client_id, 
+            $bank_code, 
+            $account_number, 
+            $resolved_account_name, 
+            $updated_client['email'] ?? '', // We'll get email in a moment or use from auth
+            $existing['subaccount_code']
+        );
+
+        if (!$subRes['success']) {
+            $pdo->rollBack();
+            echo json_encode(['success' => false, 'message' => $subRes['message']]);
+            exit;
         }
-        if (!empty($bvn) && $bvn !== $existing['bvn']) {
-            $bvn_verified = verifyWithDojahMock('bvn', $bvn);
-            $verify_updates .= ", bvn_verified = ?";
-            $verify_params[] = $bvn_verified;
-        }
+        $account_name = $resolved_account_name;
     }
 
     // Prepare Update Query
-    $query = "UPDATE clients SET name = ?, business_name = ?, phone = ?, address = ?, city = ?, state = ?, country = ?, job_title = ?, company = ?, dob = ?, gender = ?, nin = ?, bvn = ?, account_name = ?, account_number = ?, bank_name = ?{$verify_updates}, updated_at = NOW()";
+    $query = "UPDATE clients SET name = ?, business_name = ?, phone = ?, address = ?, city = ?, state = ?, country = ?, job_title = ?, company = ?, dob = ?, gender = ?, nin = ?, bvn = ?, account_name = ?, account_number = ?, bank_name = ?, bank_code = ?, verification_status = ?, updated_at = NOW()";
     // Use existing business_name if not provided so we don't null it out accidentally if it's required in some places
-    $params = [$name, $business_name, $phone, $address, $city, $state, $country, $job_title, $company, $dob, $gender, $nin, $bvn, $account_name, $account_number, $bank_name];
-    $params = array_merge($params, $verify_params);
+    $params = [$name, $business_name, $phone, $address, $city, $state, $country, $job_title, $company, $dob, $gender, $nin, $bvn, $account_name, $account_number, $bank_name, $bank_code, $new_verification_status];
 
     if ($profile_pic) {
         $query .= ", profile_pic = ?";
@@ -177,6 +152,13 @@ try {
     // Notify user about profile update using helper
     require_once '../utils/notification-helper.php';
     createNotification($client_id, "Your profile has been updated successfully.", 'profile_updated', $client_id);
+    
+    // Notify admin about profile change for review
+    $admin_id = getAdminUserId();
+    if ($admin_id) {
+        $client_name = $updated_client['business_name'] ?? $updated_client['name'];
+        createClientProfileUpdatedNotification($admin_id, $client_id, $client_name);
+    }
 
     $pdo->commit();
 

@@ -24,7 +24,7 @@ try {
             ad.created_at,
             ad.updated_at
         FROM auth_accounts a
-        JOIN admins ad ON a.id = ad.auth_id
+        JOIN admins ad ON a.id = ad.admin_auth_id
         WHERE a.id = ?
     ");
     $stmt->execute([$user_id]);

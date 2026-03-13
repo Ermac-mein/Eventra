@@ -19,23 +19,24 @@ try {
     $where_clause = "WHERE a.role = 'user'";
 
     if (!empty($search)) {
-        $where_clause .= " AND (p.display_name LIKE ? OR a.email LIKE ? OR p.phone LIKE ?)";
+        $where_clause .= " AND (p.name LIKE ? OR a.email LIKE ? OR p.phone LIKE ?)";
         $search_param = "%$search%";
         $params = [$search_param, $search_param, $search_param];
     }
 
     // Get total count
-    $count_sql = "SELECT COUNT(*) FROM auth_accounts a JOIN users p ON a.id = p.auth_id $where_clause";
+    $count_sql = "SELECT COUNT(*) FROM auth_accounts a JOIN users p ON a.id = p.user_auth_id $where_clause";
     $count_stmt = $pdo->prepare($count_sql);
     $count_stmt->execute($params);
     $total_records = $count_stmt->fetchColumn();
 
     // Get users
-    $sql = "SELECT a.id, p.display_name as name, a.email, p.profile_pic, p.phone, 
-            IF(a.is_active = 1, 'active', 'inactive') as status, a.created_at,
+    $sql = "SELECT a.id, p.name, a.email, p.profile_pic, p.phone, 
+            p.gender, p.dob, p.address, p.city, p.state, p.country,
+            IF(a.is_active = 1, 'active', 'inactive') as status, a.created_at, a.last_login_at,
             (SELECT business_name FROM clients WHERE id = (SELECT client_id FROM events WHERE id = (SELECT event_id FROM tickets WHERE user_id = p.id LIMIT 1))) as client_name
             FROM auth_accounts a
-            JOIN users p ON a.id = p.auth_id
+            JOIN users p ON a.id = p.user_auth_id
             $where_clause 
             ORDER BY a.created_at DESC 
             LIMIT ? OFFSET ?";

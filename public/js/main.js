@@ -564,10 +564,23 @@ function createEventCard(event, index) {
   const shareTitle = `Eventra: ${eventName}`;
   const shareText = `Check out ${eventName} organized by ${organizer} on Eventra!`;
 
+  const getPriorityIcon = (p) => {
+    switch(p.toLowerCase()) {
+      case 'hot': return '🔥';
+      case 'trending': return '📈';
+      case 'featured': return '⭐';
+      case 'nearby': return '📍';
+      case 'upcoming': return '🕒';
+      default: return '';
+    }
+  };
+  const priorityBadge = event.priority ? `<div class="card-priority-badge priority-${event.priority.toLowerCase()}">${getPriorityIcon(event.priority)} ${event.priority}</div>` : '';
+
   return `
     <div class="event-card modern-card" data-id="${event.id}" data-status="${status}" onclick="showEventModal(${event.id})">
       <div class="card-image-wrapper">
         <img src="${eventImage}" alt="${eventName}" loading="lazy" class="card-main-img" onerror="this.src='${fallback}'">
+        ${priorityBadge}
         <div class="card-badge-top" style="background: ${statusColor};">${statusLabel}</div>
         <div class="card-category-tag">${category}</div>
       </div>
@@ -581,11 +594,15 @@ function createEventCard(event, index) {
         
         <h3 class="card-title">${eventName}</h3>
         
+        <div class="event-card-description">${desc}</div>
+        
         <div class="card-location">
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/>
-          </svg>
-          <span class="location-truncate">${escapeHTML(full_address)}</span>
+          <a href="${mapUrl}" target="_blank" class="address-link" onclick="event.stopPropagation();">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/>
+            </svg>
+            <span class="location-truncate">${escapeHTML(full_address)}</span>
+          </a>
         </div>
 
         <div class="card-footer-modern">
@@ -599,20 +616,20 @@ function createEventCard(event, index) {
           </div>
         </div>
 
+        ${!isPassed ? `
         <div class="card-hover-actions">
-          ${!isPassed ? `
-            <button class="action-btn-circle fav-btn ${isFavorite}" onclick="toggleFavorite(event, ${event.id}); event.stopPropagation();" title="Favorite">
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="${isFavorite ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2">
-                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
-              </svg>
-            </button>
-          ` : ''}
+          <button class="action-btn-circle fav-btn ${isFavorite}" onclick="toggleFavorite(event, ${event.id}); event.stopPropagation();" title="Favorite">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="${isFavorite ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2">
+              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+            </svg>
+          </button>
           <button class="action-btn-circle share-btn" onclick="shareEvent(event, ${event.id}, '${escapeHTML(shareTitle)}', '${escapeHTML(shareText)}'); event.stopPropagation();" title="Share">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><polyline points="16 6 12 2 8 6"></polyline><line x1="12" y1="2" x2="12" y2="15"></line>
             </svg>
           </button>
         </div>
+        ` : ''}
       </div>
     </div>
   `;
@@ -925,6 +942,7 @@ async function init() {
     // Initialize dynamic components
     loadEvents().then(() => {
         initializeSlider('hot-events-grid');
+        initializeSlider('all-events-grid');
     });
     initMobileMenu();
     initUserIcon();
@@ -992,11 +1010,17 @@ function showEventModal(eventId) {
       modalImage.onerror = () => { modalImage.src = fallback; };
   }
   if (document.getElementById('modalEventTitle')) document.getElementById('modalEventTitle').textContent = event.event_name;
-  if (document.getElementById('modalEventOrganizer')) document.getElementById('modalEventOrganizer').textContent = `Organized by ${event.organizer_name || event.client_name || 'Eventra'}`;
+  if (document.getElementById('modalEventOrganizer')) {
+      const orgContainer = document.getElementById('modalEventOrganizer');
+      orgContainer.innerHTML = `Organized by ${event.organizer_name || event.client_name || 'Eventra'} ${event.is_verified == 1 ? '<span class="verified-check" style="color: #10b981; margin-left: 5px;" title="Verified">✓</span>' : ''}`;
+  }
   if (document.getElementById('modalEventDate')) document.getElementById('modalEventDate').textContent = new Date(event.event_date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
   if (document.getElementById('modalEventTime')) document.getElementById('modalEventTime').textContent = event.event_time || 'TBA';
-  const full_address = `${event.address || ''}, ${event.city || ''}, ${event.state || ''}`.replace(/^, /, '').replace(/, , /g, ', ').trim() || 'Nigeria';
-  if (document.getElementById('modalEventLocation')) document.getElementById('modalEventLocation').textContent = full_address;
+  const full_address = `${event.address || ''}, ${event.city || ''}, ${event.state || ''}`.replace(/^, /, '').replace(/, , /g, ', ').replace(/, $/, '') || 'Nigeria';
+  const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(full_address || 'Nigeria')}`;
+  if (document.getElementById('modalEventLocation')) {
+      document.getElementById('modalEventLocation').innerHTML = `<a href="${mapUrl}" target="_blank" class="address-link">${full_address}</a>`;
+  }
   if (document.getElementById('modalEventDescription')) document.getElementById('modalEventDescription').textContent = event.description || 'No description available';
   if (document.getElementById('modalEventCategory')) document.getElementById('modalEventCategory').textContent = event.category || event.event_type || 'General';
   const modalPrice = !event.price || parseFloat(event.price) === 0 ? 'Free' : `₦${parseFloat(event.price).toLocaleString()}`;
@@ -1279,7 +1303,7 @@ function proceedToPayment(e, eventId) {
     // If eventId is provided, proceed with that specific event
     // Otherwise, proceed with the first event in the list (legacy/simple behavior)
     const targetId = eventId || favorites[0].id;
-    window.location.href = `payment.html?event_id=${targetId}&quantity=1`;
+    window.location.href = `checkout.html?id=${targetId}&quantity=1`;
 }
 
 // Make functions global

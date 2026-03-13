@@ -36,10 +36,14 @@ class AdminAuth {
         // Update header avatar with profile picture from database or default admin avatar
         const headerAvatar = document.querySelector('.user-avatar-display, .user-avatar');
         if (headerAvatar) {
-            const profilePic = '../../public/assets/imgs/admin.png';
+            const profilePic = getProfileImg(this.adminData.profile_pic, this.adminData.name);
+            headerAvatar.setAttribute('data-profile-sync', 'true');
             headerAvatar.style.backgroundImage = `url(${profilePic})`;
             headerAvatar.style.backgroundSize = 'cover';
             headerAvatar.style.backgroundPosition = 'center';
+            if (headerAvatar.tagName === 'IMG') {
+                headerAvatar.src = profilePic;
+            }
         }
 
         // Update header name display
@@ -67,7 +71,8 @@ class AdminAuth {
         // Update profile avatar in drawer with database profile_pic or default admin avatar
         const profileAvatar = profileDrawer.querySelector('.profile-avatar-large');
         if (profileAvatar) {
-            const profilePic = '../../public/assets/imgs/admin.png';
+            const profilePic = getProfileImg(this.adminData.profile_pic, this.adminData.name);
+            profileAvatar.setAttribute('data-profile-sync', 'true');
             profileAvatar.style.backgroundImage = `url(${profilePic})`;
             profileAvatar.style.backgroundSize = 'cover';
             profileAvatar.style.backgroundPosition = 'center';

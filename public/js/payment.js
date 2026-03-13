@@ -1,11 +1,29 @@
 /**
- * Payment Logic
- * Handles card processing, OTP flow, and ticket generation.
+ * Payment Logic — Callback & Verification
+ * Handles: Paystack redirect callback, order polling, and success UI.
  */
 
 document.addEventListener('DOMContentLoaded', async () => {
-    // 1. Data Loading
+    const urlParams = new URLSearchParams(window.location.search);
+    const reference = urlParams.get('reference');
     const orderData = JSON.parse(sessionStorage.getItem('pending_order'));
+    
+    const paymentLoading = document.getElementById('paymentLoading');
+    const paymentForm = document.getElementById('paymentForm');
+    const statusContainer = document.getElementById('paymentStatusContainer');
+    const summaryContent = document.getElementById('summaryContent');
+
+    // 1. Check if this is a callback from Paystack
+    if (reference) {
+        if (paymentLoading) paymentLoading.style.display = 'none';
+        if (paymentForm) paymentForm.style.display = 'none';
+        if (statusContainer) statusContainer.style.display = 'block';
+
+        startPolling(reference);
+        return;
+    }
+
+    // 2. No reference? Check for pending order in session
     if (!orderData) {
         Swal.fire('Error', 'No pending order found.', 'error').then(() => {
             window.location.href = 'index.html';
@@ -13,48 +31,33 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
     }
 
-    const { eventId, quantity, contactInfo } = orderData;
-    let eventData = null;
+    const { eventId, quantity, contactInfo, authorization_url } = orderData;
 
-    // Handle Free Events logic (moved inside data loaded)
-    function setupFreeEventState() {
-        const titleEl = document.querySelector('.section-title');
-        if (titleEl) {
-            titleEl.innerHTML = `
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
-                Secure Confirmation
-            `;
-        }
-        paymentForm.innerHTML = `
-            <div style="text-align: center; padding: 2rem 0;">
-                <p style="color: #64748b; margin-bottom: 2rem;">This event is free of charge. Click below to secure your tickets.</p>
-                <button type="button" class="pay-btn" id="confirmFreeBtn">
-                    Confirm & Claim Free Tickets
-                </button>
-            </div>
-        `;
-        document.getElementById('confirmFreeBtn').addEventListener('click', () => {
-            finalizePayment();
-        });
+    // 3. If we have a Paystack authorization_url, redirect immediately
+    if (authorization_url) {
+        window.location.href = authorization_url;
+        return;
     }
 
-    // Load Event Details for summary
+    // 4. Fallback: Load Event Details for summary / Legacy OTP Flow / Free Events
     try {
         const res = await apiFetch(`../../api/events/get-event-details.php?event_id=${eventId}`);
         const result = await res.json();
+        
         if (result.success && result.event) {
-            eventData = result.event;
-            // Handle free events state here to avoid flicker if loaded after
-            const isFree = parseFloat(eventData.price || 0) === 0;
-            if (isFree) {
-                setupFreeEventState();
-            }
+            const eventData = result.event;
             renderSummary(eventData, quantity);
             
-            // Hide loading state and show content
-            const paymentLoading = document.getElementById('paymentLoading');
-            if(paymentLoading) paymentLoading.style.display = 'none';
-            paymentForm.style.display = 'block';
+            const isFree = parseFloat(eventData.price || 0) === 0;
+            if (isFree) {
+                setupFreeEventState(paymentForm, eventData, quantity);
+            } else {
+                // If it's not free and has no auth_url, it's likely the old manual OTP flow
+                // Re-enable the form for legacy support if needed, but marketplace is priority
+                if (paymentLoading) paymentLoading.style.display = 'none';
+                if (paymentForm) paymentForm.style.display = 'block';
+                setupLegacyFlow(paymentForm, currentReference, contactInfo, eventId, quantity);
+            }
         } else {
             Swal.fire('Error', 'Failed to load event details.', 'error').then(() => {
                 window.location.href = 'index.html';
@@ -64,182 +67,175 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.error('Failed to load event details', e);
         Swal.fire('Error', 'An error occurred fetching event details.', 'error');
     }
+});
 
-    paymentForm.addEventListener('submit', (e) => {
-        e.preventDefault();
-        
-        // Card Validation (Simple)
-        const cnum = document.getElementById('cardNumber')?.value.replace(/\s/g, '');
-        const cexp = document.getElementById('cardExpiry')?.value.trim();
-        const ccvv = document.getElementById('cardCvv')?.value.trim();
+// ─── Polling Logic ──────────────────────────────────────────────────────────
 
-        if (cnum && (cnum.length < 16 || !cexp.includes('/') || ccvv.length < 3)) {
-            showNotification('Please enter valid card details.', 'error');
+let pollCount = 0;
+const maxPolls = 20; // 1 minute roughly
+
+async function startPolling(reference) {
+    const icon = document.getElementById('statusIcon');
+    const title = document.getElementById('statusTitle');
+    const msg = document.getElementById('statusMessage');
+    const actions = document.getElementById('successActions');
+    const downloadBtn = document.getElementById('downloadTicketBtn');
+
+    const poll = async () => {
+        pollCount++;
+        try {
+            const res = await apiFetch(`../../api/payments/get-order.php?reference=${reference}`);
+            const result = await res.json();
+
+            if (result.success && result.order) {
+                const order = result.order;
+                
+                if (order.payment_status === 'paid') {
+                    // SUCCESS!
+                    icon.textContent = '🎉';
+                    title.textContent = 'Payment Successful!';
+                    msg.innerHTML = `Your tickets for <strong>${order.event_name}</strong> are ready.<br>Reference: ${reference}`;
+                    
+                    if (order.tickets && order.tickets.length > 0) {
+                        const barcode = order.tickets[0].barcode;
+                        downloadBtn.href = `../../api/tickets/download-ticket.php?barcode=${barcode}`;
+                        downloadBtn.target = '_blank';
+                        actions.style.display = 'flex';
+                    }
+                    
+                    sessionStorage.removeItem('pending_order');
+                    return; // Stop polling
+                } 
+                
+                if (order.payment_status === 'failed') {
+                    icon.textContent = '❌';
+                    title.textContent = 'Payment Failed';
+                    msg.textContent = 'Paystack declined the transaction. Please try again.';
+                    return;
+                }
+            }
+        } catch (e) {
+            console.error('Polling error', e);
+        }
+
+        if (pollCount >= maxPolls) {
+            icon.textContent = '🤔';
+            title.textContent = 'Taking a bit longer...';
+            msg.innerHTML = "We haven't received confirmation yet. If you've been debited, don't worry—your ticket will be sent to your email eventually.<br><br>You can safely close this page.";
             return;
         }
 
-        // Show OTP selection as per Requirement 5
-        otpSelectModal.style.display = 'flex';
-    });
+        setTimeout(poll, 3000); // Poll every 3 seconds
+    };
 
-    // 3. OTP Flow
-    let currentReference = 'PAY-' + Math.random().toString(36).substr(2, 9).toUpperCase();
-    let selectedChannel = '';
+    poll();
+}
 
-    document.getElementById('channelEmail').addEventListener('click', () => sendOtp('email'));
-    document.getElementById('channelSms').addEventListener('click', () => sendOtp('sms'));
+// ─── Free Event Handler ─────────────────────────────────────────────────────
 
-    async function sendOtp(channel) {
-        selectedChannel = channel;
-        document.getElementById('activeChannel').textContent = channel;
-        
-        try {
-            const res = await apiFetch('../../api/otps/generate-otp.php', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    channel: channel,
-                    payment_reference: currentReference,
-                    email: contactInfo.email,
-                    phone: contactInfo.phone
-                })
-            });
-            const result = await res.json();
-            if (result.success) {
-                otpSelectModal.style.display = 'none';
-                otpInputModal.style.display = 'flex';
-                showNotification('OTP sent!', 'success');
-            } else {
-                showNotification(result.message, 'error');
-            }
-        } catch (e) {
-            showNotification('Failed to send OTP.', 'error');
-        }
+function setupFreeEventState(form, eventData, quantity) {
+    const paymentLoading = document.getElementById('paymentLoading');
+    if (paymentLoading) paymentLoading.style.display = 'none';
+    form.style.display = 'block';
+
+    const titleEl = document.querySelector('.section-title');
+    if (titleEl) {
+        titleEl.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg> Confirm Free Tickets`;
     }
+    
+    form.innerHTML = `
+        <div style="text-align: center; padding: 1rem 0;">
+            <p style="color: #64748b; margin-bottom: 2rem;">This event is free. Click below to secure your ${quantity} ticket(s).</p>
+            <button type="button" class="pay-btn" id="confirmFreeBtn">
+                ✓ Confirm & Claim Free Tickets
+            </button>
+        </div>
+    `;
 
-    // OTP Input Handling
-    const otpInputs = document.querySelectorAll('.otp-input');
-    otpInputs.forEach((input, idx) => {
-        input.addEventListener('input', (e) => {
-            if (e.target.value && idx < 5) otpInputs[idx + 1].focus();
-        });
-        input.addEventListener('keydown', (e) => {
-            if (e.key === 'Backspace' && !e.target.value && idx > 0) otpInputs[idx - 1].focus();
-        });
-    });
-
-    // 4. Verification & Finalization
-    document.getElementById('verifyOtpBtn').addEventListener('click', async () => {
-        const otp = Array.from(otpInputs).map(i => i.value).join('');
-        if (otp.length < 6) {
-            showNotification('Enter 6-digit code.', 'error');
-            return;
-        }
-
-        const btn = document.getElementById('verifyOtpBtn');
+    document.getElementById('confirmFreeBtn').addEventListener('click', async () => {
+        const btn = document.getElementById('confirmFreeBtn');
         btn.disabled = true;
-        btn.textContent = 'Verifying...';
+        btn.textContent = 'Processing...';
 
         try {
-            const res = await apiFetch('../../api/otps/verify-otp.php', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    otp: otp,
-                    payment_reference: currentReference
-                })
-            });
-            const result = await res.json();
-
-            if (result.success) {
-                finalizePayment();
-            } else {
-                showNotification(result.message, 'error');
-                btn.disabled = false;
-                btn.textContent = 'Verify & Complete';
-            }
-        } catch (e) {
-            showNotification('Verification Error.', 'error');
-            btn.disabled = false;
-            btn.textContent = 'Verify & Complete';
-        }
-    });
-
-    async function finalizePayment() {
-        Swal.fire({
-            title: 'Finalizing Transaction',
-            html: 'Connecting to banking server...',
-            allowOutsideClick: false,
-            didOpen: () => { Swal.showLoading(); }
-        });
-
-        try {
-            const isFree = parseFloat(eventData?.price || 0) === 0;
-            const finalRef = isFree ? ('FREE-' + Math.random().toString(36).substr(2, 9).toUpperCase()) : currentReference;
-
+            const finalRef = 'FREE-' + Math.random().toString(36).substr(2, 9).toUpperCase();
             const res = await apiFetch('../../api/tickets/purchase-ticket.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    event_id: eventId,
+                    event_id: eventData.id,
                     quantity: quantity,
-                    payment_reference: finalRef // purchase-ticket.php will verify this
+                    payment_reference: finalRef
                 })
             });
             const result = await res.json();
 
             if (result.success) {
-                // Requirement 6: Only success UI after verification
                 sessionStorage.removeItem('pending_order');
                 Swal.fire({
-                    title: 'Payment Successful!',
-                    text: 'Your tickets have been generated and sent to your email.',
-                    icon: 'success',
-                    confirmButtonText: 'View My Tickets'
-                }).then(() => {
-                    window.location.href = '../../client/pages/tickets.html';
-                });
+                    title: 'Tickets Issued!',
+                    text: 'Your free tickets are ready. Check your email.',
+                    icon: 'success'
+                }).then(() => { window.location.href = 'index.html'; });
             } else {
-                Swal.fire('Payment Failed', result.message, 'error');
+                Swal.fire('Error', result.message, 'error');
+                btn.disabled = false;
+                btn.textContent = 'Confirm & Claim Free Tickets';
             }
         } catch (e) {
-            Swal.fire('Fatal Error', 'Payment verification failed.', 'error');
+            Swal.fire('Error', 'An internal error occurred.', 'error');
+            btn.disabled = false;
         }
-    }
+    });
+}
 
-    function renderSummary(event, qty) {
-        const priceNum = parseFloat(event.price || 0);
-        const total = priceNum * qty;
-        const container = document.getElementById('summaryContent');
-        
-        const relPath = event.image_path ? `../../${event.image_path.replace(/^\/+/ , '')}` : null;
-        const fallback = 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=600&h=400&fit=crop';
-        const imgUrl = encodeURI(relPath || event.absolute_image_url || fallback);
-        let placeholderAttr = `onerror="this.src='${fallback}'" loading="lazy"`;
-        
-        const locParts = [];
-        if (event.address && event.address !== 'undefined') locParts.push(event.address);
-        if (event.city && event.city !== 'undefined') locParts.push(event.city);
-        if (event.state && event.state !== 'undefined') locParts.push(event.state);
-        let locStr = locParts.join(', ');
-        if (!locStr) locStr = event.location || 'Location details unavailable';
+// ─── Summary UI ─────────────────────────────────────────────────────────────
 
-        container.innerHTML = `
-            <div style="display: flex; gap: 1rem; margin-bottom: 2rem;">
-                <img src="${imgUrl}" ${placeholderAttr} style="width: 80px; height: 80px; border-radius: 1rem; object-fit: cover;">
-                <div>
-                    <h4 style="font-weight: 700;">${event.event_name}</h4>
-                    <p style="font-size: 0.8rem; color: #64748b;">${locStr}</p>
-                </div>
+function renderSummary(event, qty) {
+    const priceNum = parseFloat(event.price || 0);
+    const total = priceNum * qty;
+    const container = document.getElementById('summaryContent');
+    if (!container) return;
+    
+    const relPath = event.image_path ? `../../${event.image_path.replace(/^\/+/ , '')}` : null;
+    const fallback = 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=600&h=400&fit=crop';
+    const imgUrl = encodeURI(relPath || event.absolute_image_url || fallback);
+    
+    const locStr = [event.address, event.city, event.state].filter(Boolean).join(', ') || 'Location details unavailable';
+
+    container.innerHTML = `
+        <div style="display: flex; gap: 1rem; margin-bottom: 2rem;">
+            <img src="${imgUrl}" onerror="this.src='${fallback}'" style="width: 80px; height: 80px; border-radius: 1rem; object-fit: cover;">
+            <div>
+                <h4 style="font-weight: 700; color: #1e293b;">${event.event_name}</h4>
+                <p style="font-size: 0.8rem; color: #64748b;">${locStr}</p>
             </div>
-            <div class="summary-item">
-                <span>Price</span>
-                <span>${priceNum === 0 ? 'FREE' : '₦' + priceNum.toLocaleString()}</span>
-            </div>
-            <div class="summary-total">
-                <span>Total Amount</span>
-                <span>${total === 0 ? 'FREE' : '₦' + total.toLocaleString()}</span>
-            </div>
-        `;
-    }
-});
+        </div>
+        <div class="summary-item">
+            <span>Price</span>
+            <span>${priceNum === 0 ? 'FREE' : '₦' + priceNum.toLocaleString()}</span>
+        </div>
+        <div class="summary-item">
+            <span>Quantity</span>
+            <span>× ${qty}</span>
+        </div>
+        <div class="summary-total">
+            <span>Total Amount</span>
+            <span>${total === 0 ? 'FREE' : '₦' + total.toLocaleString()}</span>
+        </div>
+    `;
+}
+
+// ─── Legacy OTP Flow (Optional Refactor) ────────────────────────────────────
+// Keeping variables to maintain minimal functionality if form is shown
+let currentReference = 'PAY-' + Math.random().toString(36).substr(2, 9).toUpperCase();
+
+function setupLegacyFlow(form, ref, contact, eid, qty) {
+    // This is essentially parts of the old payment.js 
+    // Simplified for this version to focus on Paystack Redirect
+    form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        Swal.fire('Marketplace Notice', 'Please use the official Paystack gateway.', 'info');
+    });
+}
+
