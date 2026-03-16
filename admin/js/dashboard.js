@@ -18,13 +18,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Load dashboard stats
     await loadDashboardStats();
 
-    // Set up polling for dashboard data (auto-population of cards)
+    // Set up polling for dashboard data (auto-population of cards) - 5s for real-time feel
     setInterval(async () => {
         // Only refresh if the tab is visible to save resources
         if (document.visibilityState === 'visible') {
             await loadDashboardStats();
         }
-    }, 30000); // 30 seconds
+    }, 5000);
 });
 
 async function loadAdminProfile() {
@@ -125,12 +125,18 @@ function loadRecentActivities(activities) {
         const icon = getActivityIcon(activity.type);
         const color = getActivityColor(activity.type);
         
+        // Summarize common messages for cleaner display
+        let displayMessage = activity.message;
+        if (displayMessage.length > 60) {
+            displayMessage = displayMessage.substring(0, 57) + '...';
+        }
+        
         return `
-            <div class="activity-item">
-                <div class="activity-icon" style="background: ${color.bg}; color: ${color.text};">${icon}</div>
-                <div class="activity-content">
-                    <div class="activity-details">${activity.message}</div>
-                    <div class="activity-time">${timeAgo(activity.created_at)}</div>
+            <div class="activity-item" style="padding: 1rem 0; border-bottom: 1px solid #f1f5f9; display: flex; align-items: start; gap: 12px;">
+                <div class="activity-icon" style="background: ${color.bg}; color: ${color.text}; width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; flex-shrink: 0;">${icon}</div>
+                <div class="activity-content" style="flex: 1; min-width: 0;">
+                    <div class="activity-details" style="font-size: 0.9rem; font-weight: 500; color: #334155; line-height: 1.4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${activity.message}">${displayMessage}</div>
+                    <div class="activity-time" style="font-size: 0.75rem; color: #94a3b8; margin-top: 4px;">${timeAgo(activity.created_at)}</div>
                 </div>
             </div>
         `;
@@ -154,7 +160,7 @@ function loadTopUsers(users) {
                 <div style="font-size: 0.9rem; font-weight: 600;">${user.name}</div>
                 <div style="font-size: 0.75rem; color: var(--admin-text-muted);">${user.state || 'N/A'} • ${user.ticket_count || 0} tickets</div>
             </div>
-            <div class="status-badge status-${user.status || 'active'}">${user.status || 'Active'}</div>
+            <div class="status-badge status-${user.is_online == 1 ? 'ongoing' : 'concluded'}">${user.is_online == 1 ? 'Online' : 'Offline'}</div>
         </div>
     `).join('');
 }
@@ -176,7 +182,7 @@ function loadActiveClients(clients) {
                 <div style="font-size: 0.9rem; font-weight: 600;">${client.name}</div>
                 <div style="font-size: 0.75rem; color: var(--admin-text-muted);">${client.company || client.email} • ${client.event_count || 0} events</div>
             </div>
-            <div class="status-badge status-${client.status || 'active'}">${client.status || 'Active'}</div>
+            <div class="status-badge status-${client.is_online == 1 ? 'ongoing' : 'concluded'}">${client.is_online == 1 ? 'Online' : 'Offline'}</div>
         </div>
     `).join('');
 }

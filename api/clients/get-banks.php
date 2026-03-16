@@ -9,8 +9,15 @@ require_once '../../config/database.php';
 require_once '../../config/payment.php';
 require_once '../../includes/middleware/auth.php';
 
-// Must be authenticated as a client
-clientMiddleware();
+// Must be authenticated as a client or admin
+checkAuth(); 
+
+$role = $_SESSION['user_role'] ?? null;
+if ($role !== 'client' && $role !== 'admin') {
+    http_response_code(403);
+    echo json_encode(['success' => false, 'message' => 'Forbidden. Organizer or Admin access required.']);
+    exit;
+}
 
 // Check session cache (24 hour TTL)
 if (session_status() !== PHP_SESSION_ACTIVE) {

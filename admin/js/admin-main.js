@@ -169,19 +169,26 @@ function initExportModal() {
     
     // Use event delegation for naturally occurring and dynamic export buttons
     document.addEventListener('click', (e) => {
-        const exportBtn = e.target.closest('.btn-export');
+        const exportBtn = e.target.closest('.btn-export, #headerExportBtn');
         if (exportBtn && modalBackdrop) {
             // Check if there's a table on the current page
             const hasTable = document.querySelector('table tbody tr');
             
             if (!hasTable || hasTable.innerText.includes('Loading') || hasTable.innerText.includes('No data')) {
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'No Data to Export',
-                    text: 'Please wait for data to load or navigate to a page with records before exporting.',
-                    confirmButtonColor: '#1976D2'
-                });
-                return;
+                // If on dashboard, maybe we want to export something else? 
+                // For now, follow the requirement to consolidate.
+                if (window.location.pathname.includes('adminDashboard.html')) {
+                    // Dashboard might not have a main table, but maybe stats?
+                    // Let's assume the user wants to export the main view data.
+                } else {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'No Data to Export',
+                        text: 'Please wait for data to load or navigate to a page with records before exporting.',
+                        confirmButtonColor: '#1976D2'
+                    });
+                    return;
+                }
             }
             
             modalBackdrop.style.display = 'flex';
@@ -475,10 +482,12 @@ window.initPreviews = function() {
                                 <div class="profile-preview">
                                     <div class="profile-preview-header">User Profile</div>
                                     <div class="profile-preview-cover-box">
-                                        <img src="${profilePic}" alt="Cover">
+                                        <img src="${profilePic}" alt="Cover" style="filter: blur(5px); opacity: 0.5;">
                                         <div class="profile-preview-avatar-wrapper">
-                                            <img src="${profilePic}" class="profile-preview-avatar" alt="Avatar">
-                                            <div class="profile-verified-badge">✓</div>
+                                            <div class="avatar-wrapper">
+                                                <img src="${profilePic}" class="profile-preview-avatar" alt="Avatar" style="width: 100px; height: 100px; border-radius: 50%; border: 4px solid white;">
+                                                ${getVerificationBadge(user.email_verified_at ? 'verified' : '')}
+                                            </div>
                                         </div>
                                     </div>
                                     <div class="profile-preview-info">
@@ -524,120 +533,185 @@ window.initPreviews = function() {
                             const client = data.client;
                             const events = data.events;
                             const buyers = data.buyers;
+                            const isVerified = client.verification_status === 'verified';
 
                             content.innerHTML = `
-                                <div class="profile-preview">
-                                    <div class="profile-preview-header">Client Profile</div>
-                                    <div class="profile-preview-cover-box">
-                                        <img src="${getProfileImg(client.profile_pic, client.business_name)}" alt="Cover">
-                                        <div class="profile-preview-avatar-wrapper">
-                                            <img src="${getProfileImg(client.profile_pic, client.business_name)}" class="profile-preview-avatar" alt="Avatar">
-                                            ${client.verification_status === 'verified' ? '<div class="profile-verified-badge" style="background:#10b981; border:none; color:white; font-size: 0.7rem; padding: 2px 6px; border-radius: 10px; position:absolute; bottom:-10px; left:50%; transform:translateX(-50%); white-space:nowrap; z-index: 10;">✓ Verified</div>' : 
-                                              client.verification_status === 'rejected' ? '<div class="profile-verified-badge" style="background:#ef4444; border:none; color:white; font-size: 0.7rem; padding: 2px 6px; border-radius: 10px; position:absolute; bottom:-10px; left:50%; transform:translateX(-50%); white-space:nowrap; z-index: 10;">✕ Declined</div>' :
-                                              '<div class="profile-verified-badge" style="background:#f59e0b; border:none; color:white; font-size: 0.7rem; padding: 2px 6px; border-radius: 10px; position:absolute; bottom:-10px; left:50%; transform:translateX(-50%); white-space:nowrap; z-index: 10;">⚠ Pending</div>'}
+                                <div class="profile-preview modernized-preview">
+                                    <div class="profile-preview-header">
+                                        <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+                                            <span>Client Profile</span>
+                                            <span class="status-badge status-${client.verification_status === 'verified' ? 'active' : (client.verification_status === 'rejected' ? 'offline' : 'ongoing')}" style="font-size: 0.7rem; padding: 0.3rem 0.8rem;">
+                                                ${client.verification_status.toUpperCase()}
+                                            </span>
                                         </div>
                                     </div>
-                                    <div class="profile-preview-info">
-                                        <h2>${client.business_name}</h2>
-                                        <p>${row.cells[2].innerText}</p>
+                                    
+                                    <div class="profile-preview-cover-box" style="height: 160px;">
+                                        <div style="position: absolute; inset: 0; background: linear-gradient(to bottom, transparent, rgba(0,0,0,0.4)); z-index: 1;"></div>
+                                        <img src="${getProfileImg(client.profile_pic, client.business_name)}" alt="Cover" style="filter: blur(10px); opacity: 0.6; width: 100%; height: 100%; object-fit: cover;">
+                                        <div class="profile-preview-avatar-wrapper" style="bottom: -40px; left: 50%; transform: translateX(-50%); z-index: 2;">
+                                            <div class="avatar-wrapper">
+                                                <img src="${getProfileImg(client.profile_pic, client.business_name)}" class="profile-preview-avatar" alt="Avatar" style="width: 100px; height: 100px; border-radius: 20px; border: 4px solid white; box-shadow: 0 10px 25px rgba(0,0,0,0.1); background: white; object-fit: cover;">
+                                                <div style="position: absolute; bottom: 5px; right: 5px; scale: 1.2;">
+                                                    ${getVerificationBadge(client.verification_status)}
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div class="profile-preview-details">
-                                        <div class="profile-preview-detail-item"><span class="profile-detail-label">Phone</span><span class="profile-detail-val">${client.phone || 'N/A'}</span></div>
-                                        <div class="profile-preview-detail-item"><span class="profile-detail-label">State</span><span class="profile-detail-val">${client.state || 'N/A'}</span></div>
-                                        <div class="profile-preview-detail-item" style="grid-column: span 2;"><span class="profile-detail-label">Company</span><span class="profile-detail-val">${client.company || 'N/A'}</span></div>
-                                        
-                                        <div class="profile-preview-detail-item" style="grid-column: span 2; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #eee;">
-                                            <div style="font-weight: 700; color: #333; margin-bottom: 0.5rem; font-size: 0.9rem; text-transform: uppercase;">Bank & Settlement Details</div>
-                                            <div style="background: #f8fafc; padding: 1rem; border-radius: 12px; display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+
+                                    <div class="profile-preview-info" style="padding: 50px 24px 20px; text-align: center;">
+                                        <h2 style="font-size: 1.5rem; font-weight: 800; color: #1e293b; margin-bottom: 0.25rem;">${client.business_name}</h2>
+                                        <p style="color: #64748b; font-size: 0.9rem; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                                            <i data-lucide="mail" style="width: 14px;"></i> ${client.email}
+                                        </p>
+                                    </div>
+
+                                    <div class="profile-preview-details" style="padding: 0 24px 24px; display: grid; gap: 1.5rem;">
+                                        <!-- Basic Info Cards -->
+                                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                                            <div style="background: #f8fafc; padding: 1rem; border-radius: 12px; border: 1px solid #f1f5f9;">
+                                                <div style="font-size: 0.7rem; color: #94a3b8; text-transform: uppercase; font-weight: 700; margin-bottom: 0.5rem;">Contact Information</div>
+                                                <div style="font-size: 0.85rem; font-weight: 600; color: #334155; margin-bottom: 0.25rem;">${client.phone || 'No Phone'}</div>
+                                                <div style="font-size: 0.8rem; color: #64748b;">${client.state || 'N/A'}, ${client.country || 'N/A'}</div>
+                                            </div>
+                                            <div style="background: #f8fafc; padding: 1rem; border-radius: 12px; border: 1px solid #f1f5f9;">
+                                                <div style="font-size: 0.7rem; color: #94a3b8; text-transform: uppercase; font-weight: 700; margin-bottom: 0.5rem;">Company Details</div>
+                                                <div style="font-size: 0.85rem; font-weight: 600; color: #334155; margin-bottom: 0.25rem;">${client.company || 'Private Participant'}</div>
+                                                <div style="font-size: 0.8rem; color: #64748b;">${client.job_title || 'N/A'}</div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Bank Details Section -->
+                                        <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 1.25rem; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+                                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 1rem;">
+                                                <div style="background: #eff6ff; color: #3b82f6; width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+                                                    <i data-lucide="landmark" style="width: 18px;"></i>
+                                                </div>
+                                                <span style="font-weight: 700; color: #1e293b; font-size: 0.95rem;">Settlement Account</span>
+                                            </div>
+                                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem;">
                                                 <div>
-                                                    <span style="font-size: 0.75rem; color: #64748b; display: block;">Bank Name</span>
-                                                    <span style="font-weight: 600; font-size: 0.9rem;">${client.bank_name || 'N/A'}</span>
+                                                    <span style="font-size: 0.7rem; color: #94a3b8; display: block; margin-bottom: 4px;">BANK NAME</span>
+                                                    <span style="font-weight: 600; color: #334155;">${client.bank_name || 'N/A'}</span>
                                                 </div>
                                                 <div>
-                                                    <span style="font-size: 0.75rem; color: #64748b; display: block;">Account Number</span>
-                                                    <span style="font-weight: 600; font-size: 0.9rem;">${client.account_number || 'N/A'}</span>
+                                                    <span style="font-size: 0.7rem; color: #94a3b8; display: block; margin-bottom: 4px;">ACCOUNT NUMBER</span>
+                                                    <span style="font-weight: 600; font-family: 'JetBrains Mono', monospace; color: #334155;">${client.account_number || 'N/A'}</span>
                                                 </div>
-                                                <div>
-                                                    <span style="font-size: 0.75rem; color: #64748b; display: block;">Account Name</span>
-                                                    <span style="font-weight: 600; font-size: 0.9rem;">${client.account_name || 'N/A'}</span>
+                                                <div style="grid-column: span 2;">
+                                                    <span style="font-size: 0.7rem; color: #94a3b8; display: block; margin-bottom: 4px;">ACCOUNT NAME</span>
+                                                    <span style="font-weight: 600; color: #334155; display: block; padding-bottom: 8px; border-bottom: 1px dashed #e2e8f0;">${client.account_name || 'N/A'}</span>
                                                 </div>
-                                                <div>
-                                                    <span style="font-size: 0.75rem; color: #64748b; display: block;">Paystack Subaccount</span>
-                                                    <span style="font-weight: 600; font-size: 0.9rem; color: var(--admin-primary);">${client.subaccount_code || 'Not Connected'}</span>
+                                                <div style="grid-column: span 2; display: flex; align-items: center; justify-content: space-between; background: #fafafa; padding: 0.75rem; border-radius: 8px;">
+                                                    <div style="display: flex; align-items: center; gap: 8px;">
+                                                        <img src="https://checkout.paystack.com/static/media/paystack-logo.22f16870.svg" style="height: 12px;" alt="Paystack">
+                                                        <span style="font-size: 0.75rem; font-weight: 600; color: #64748b;">Subaccount</span>
+                                                    </div>
+                                                    <span style="font-family: monospace; font-weight: 700; color: ${client.subaccount_code ? 'var(--admin-primary)' : '#94a3b8'}; font-size: 0.85rem;">
+                                                        ${client.subaccount_code || 'NOT_LINKED'}
+                                                    </span>
                                                 </div>
                                             </div>
                                         </div>
 
-                                        <div class="profile-preview-detail-item" style="grid-column: span 2; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #eee;">
-                                            <div style="font-weight: 700; color: #333; margin-bottom: 0.5rem; font-size: 0.9rem; text-transform: uppercase;">Verification Status</div>
+                                        <!-- Verification Actions -->
+                                        <div style="background: #f8fafc; border-radius: 16px; padding: 1.25rem;">
+                                            <div style="font-weight: 700; color: #333; margin-bottom: 1rem; font-size: 0.95rem; display: flex; align-items: center; gap: 8px;">
+                                                <i data-lucide="shield-check" style="width: 18px; color: #10b981;"></i> Identity Verification
+                                            </div>
                                             
-                                            <div style="display: flex; gap: 10px; margin-bottom: 1rem;">
-                                                <button onclick="approveClient(${client.id}, 1, this)" style="flex:1; background: #10b981; color: white; border: none; padding: 0.6rem; border-radius: 8px; font-weight: bold; cursor: pointer; opacity: ${client.verification_status === 'verified' ? '0.5' : '1'};" ${client.verification_status === 'verified' ? 'disabled' : ''}>Approve Client</button>
-                                                <button onclick="approveClient(${client.id}, 0, this)" style="flex:1; background: #ef4444; color: white; border: none; padding: 0.6rem; border-radius: 8px; font-weight: bold; cursor: pointer; opacity: ${client.verification_status === 'rejected' ? '0.5' : '1'};" ${client.verification_status === 'rejected' ? 'disabled' : ''}>Decline Client</button>
-                                            </div>
-
-                                            <div style="display: flex; flex-direction: column; gap: 0.75rem;">
-                                                <div style="display: flex; justify-content: space-between; align-items: center; background: #fafafa; padding: 0.75rem; border-radius: 8px;">
-                                                    <div>
-                                                        <span style="font-size: 0.8rem; font-weight: 600; color: #666; display: block;">NIN: ${client.nin || 'Not Provided'}</span>
-                                                        <span style="font-size: 0.85rem; font-weight: 700; color: ${Number(client.nin_verified) === 1 ? '#10b981' : '#f59e0b'};">
-                                                            ${Number(client.nin_verified) === 1 ? '✓ Verified' : 'Pending'}
-                                                        </span>
+                                            <div style="display: flex; flex-direction: column; gap: 1rem;">
+                                                <!-- NIN/BVN Rows -->
+                                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                                                    <div style="background: white; padding: 10px; border-radius: 10px; border: 1px solid #e2e8f0;">
+                                                        <div style="font-size: 0.65rem; color: #94a3b8; font-weight: 700;">NIN NUMBER</div>
+                                                        <div style="font-weight: 600; font-size: 0.85rem; margin: 4px 0;">${client.nin || 'N/A'}</div>
+                                                        <div style="display: flex; align-items: center; justify-content: space-between;">
+                                                            <span style="font-size: 0.75rem; font-weight: 700; color: ${Number(client.nin_verified) === 1 ? '#10b981' : '#f59e0b'};">
+                                                                ${Number(client.nin_verified) === 1 ? '✓ Verified' : 'Pending'}
+                                                            </span>
+                                                            <button onclick="toggleVerification(${client.id}, 'nin', ${Number(client.nin_verified) === 1 ? 0 : 1})" style="background: ${Number(client.nin_verified) === 1 ? '#fee2e2' : '#dcfce7'}; color: ${Number(client.nin_verified) === 1 ? '#ef4444' : '#15803d'}; border: none; border-radius: 4px; padding: 2px 8px; font-size: 0.65rem; font-weight: 800; cursor: pointer;">
+                                                                ${Number(client.nin_verified) === 1 ? 'REVOKE' : 'VERIFY'}
+                                                            </button>
+                                                        </div>
                                                     </div>
-                                                    <button onclick="toggleVerification(${client.id}, 'nin', ${Number(client.nin_verified) === 1 ? 0 : 1})" style="background: ${Number(client.nin_verified) === 1 ? '#ef4444' : '#10b981'}; color: white; border: none; border-radius: 6px; padding: 0.4rem 0.8rem; font-size: 0.75rem; font-weight: bold; cursor: pointer;">
-                                                        ${Number(client.nin_verified) === 1 ? 'Revoke' : 'Verify'}
+                                                    <div style="background: white; padding: 10px; border-radius: 10px; border: 1px solid #e2e8f0;">
+                                                        <div style="font-size: 0.65rem; color: #94a3b8; font-weight: 700;">BVN NUMBER</div>
+                                                        <div style="font-weight: 600; font-size: 0.85rem; margin: 4px 0;">${client.bvn || 'N/A'}</div>
+                                                        <div style="display: flex; align-items: center; justify-content: space-between;">
+                                                            <span style="font-size: 0.75rem; font-weight: 700; color: ${Number(client.bvn_verified) === 1 ? '#10b981' : '#f59e0b'};">
+                                                                ${Number(client.bvn_verified) === 1 ? '✓ Verified' : 'Pending'}
+                                                            </span>
+                                                            <button onclick="toggleVerification(${client.id}, 'bvn', ${Number(client.bvn_verified) === 1 ? 0 : 1})" style="background: ${Number(client.bvn_verified) === 1 ? '#fee2e2' : '#dcfce7'}; color: ${Number(client.bvn_verified) === 1 ? '#ef4444' : '#15803d'}; border: none; border-radius: 4px; padding: 2px 8px; font-size: 0.65rem; font-weight: 800; cursor: pointer;">
+                                                                ${Number(client.bvn_verified) === 1 ? 'REVOKE' : 'VERIFY'}
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <!-- Main Approval Buttons -->
+                                                <div class="profile-preview-actions" style="display: flex; gap: 12px; margin-top: 2rem;">
+                                                    <button class="btn btn-primary" onclick="approveClient(${client.id}, 1, this)" style="flex: 1; background: #10b981; border: none; padding: 0.8rem; border-radius: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px; color: white; opacity: ${client.verification_status === 'verified' ? '0.5' : '1'};" ${client.verification_status === 'verified' ? 'disabled' : ''}>
+                                                        <i data-lucide="check-circle" style="width: 18px;"></i> Approve
+                                                    </button>
+                                                    <button class="btn btn-danger" onclick="approveClient(${client.id}, 0, this)" style="flex: 1; background: #ef4444; border: none; padding: 0.8rem; border-radius: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px; color: white; opacity: ${client.verification_status === 'rejected' ? '0.5' : '1'};" ${client.verification_status === 'rejected' ? 'disabled' : ''}>
+                                                        <i data-lucide="x-circle" style="width: 18px;"></i> Reject
                                                     </button>
                                                 </div>
-                                                <div style="display: flex; justify-content: space-between; align-items: center; background: #fafafa; padding: 0.75rem; border-radius: 8px;">
-                                                    <div>
-                                                        <span style="font-size: 0.8rem; font-weight: 600; color: #666; display: block;">BVN: ${client.bvn || 'Not Provided'}</span>
-                                                        <span style="font-size: 0.85rem; font-weight: 700; color: ${Number(client.bvn_verified) === 1 ? '#10b981' : '#f59e0b'};">
-                                                            ${Number(client.bvn_verified) === 1 ? '✓ Verified' : 'Pending'}
-                                                        </span>
-                                                    </div>
-                                                    <button onclick="toggleVerification(${client.id}, 'bvn', ${Number(client.bvn_verified) === 1 ? 0 : 1})" style="background: ${Number(client.bvn_verified) === 1 ? '#ef4444' : '#10b981'}; color: white; border: none; border-radius: 6px; padding: 0.4rem 0.8rem; font-size: 0.75rem; font-weight: bold; cursor: pointer;">
-                                                        ${Number(client.bvn_verified) === 1 ? 'Revoke' : 'Verify'}
-                                                    </button>
-                                                </div>
                                             </div>
                                         </div>
-                                    </div>
 
-                                    <div style="padding: 1.5rem; border-top: 1px solid #f1f5f9;">
-                                        <h3 style="font-size: 1rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 8px;">
-                                            <i data-lucide="calendar" style="width: 18px;"></i> Published Events (${events.length})
-                                        </h3>
-                                        <div style="display: flex; flex-direction: column; gap: 0.75rem; max-height: 200px; overflow-y: auto;">
-                                            ${events.length > 0 ? events.map(ev => `
-                                                <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem; background: #f8fafc; border-radius: 8px;">
-                                                    <div>
-                                                        <div style="font-weight: 600; font-size: 0.85rem;">${ev.event_name}</div>
-                                                        <div style="font-size: 0.75rem; color: #64748b;">${ev.event_date}</div>
+                                        <!-- Conditional Display Section -->
+                                        ${isVerified ? `
+                                            <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 1.5rem;">
+                                                <h3 style="font-size: 1rem; font-weight: 800; margin-bottom: 1.25rem; display: flex; align-items: center; gap: 10px; color: #1e293b;">
+                                                    <div style="background: #fff7ed; color: #f97316; width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+                                                        <i data-lucide="calendar" style="width: 18px;"></i>
                                                     </div>
-                                                    <div style="text-align: right;">
-                                                        <div style="font-size: 0.8rem; font-weight: 700; color: var(--admin-primary);">${ev.tickets_sold} sold</div>
-                                                    </div>
+                                                    Published Events (${events.length})
+                                                </h3>
+                                                <div style="display: flex; flex-direction: column; gap: 0.75rem; max-height: 250px; overflow-y: auto; padding-right: 5px;" class="custom-scrollbar">
+                                                    ${events.length > 0 ? events.map(ev => `
+                                                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 1rem; background: #f8fafc; border-radius: 12px; border: 1px solid #f1f5f9; transition: transform 0.2s;">
+                                                            <div>
+                                                                <div style="font-weight: 700; font-size: 0.9rem; color: #1e293b;">${ev.event_name}</div>
+                                                                <div style="font-size: 0.75rem; color: #64748b; margin-top: 2px;">${ev.event_date}</div>
+                                                            </div>
+                                                            <div style="text-align: right; background: white; padding: 4px 12px; border-radius: 20px; border: 1px solid #e2e8f0;">
+                                                                <div style="font-size: 0.8rem; font-weight: 800; color: var(--admin-primary);">${ev.tickets_sold} sold</div>
+                                                            </div>
+                                                        </div>
+                                                    `).join('') : '<p style="font-size: 0.9rem; color: #94a3b8; text-align: center; padding: 1rem;">No events published yet.</p>'}
                                                 </div>
-                                            `).join('') : '<p style="font-size: 0.85rem; color: #94a3b8;">No events published yet.</p>'}
-                                        </div>
-                                    </div>
+                                            </div>
 
-                                    <div style="padding: 1.5rem; border-top: 1px solid #f1f5f9;">
-                                        <h3 style="font-size: 1rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 8px;">
-                                            <i data-lucide="users" style="width: 18px;"></i> Ticket Buyers (${buyers.length})
-                                        </h3>
-                                        <div style="display: flex; flex-direction: column; gap: 0.75rem; max-height: 200px; overflow-y: auto;">
-                                            ${buyers.length > 0 ? buyers.map(b => `
-                                                <div style="display: flex; align-items: center; gap: 10px; padding: 0.5rem; background: #f8fafc; border-radius: 8px;">
-                                                    <img src="${getProfileImg(b.profile_pic, b.name)}" style="width: 32px; height: 32px; border-radius: 50%;">
-                                                    <div style="flex: 1;">
-                                                        <div style="font-weight: 600; font-size: 0.85rem;">${b.name}</div>
-                                                        <div style="font-size: 0.75rem; color: #64748b;">${b.email}</div>
+                                            <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 1.5rem;">
+                                                <h3 style="font-size: 1rem; font-weight: 800; margin-bottom: 1.25rem; display: flex; align-items: center; gap: 10px; color: #1e293b;">
+                                                    <div style="background: #f0fdf4; color: #16a34a; width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+                                                        <i data-lucide="users" style="width: 18px;"></i>
                                                     </div>
-                                                    <div style="font-size: 0.8rem; font-weight: 700; color: #10b981;">${b.tickets_bought} tix</div>
+                                                    Ticket Buyers (${buyers.length})
+                                                </h3>
+                                                <div style="display: flex; flex-direction: column; gap: 0.75rem; max-height: 250px; overflow-y: auto; padding-right: 5px;" class="custom-scrollbar">
+                                                    ${buyers.length > 0 ? buyers.map(b => `
+                                                        <div style="display: flex; align-items: center; gap: 12px; padding: 0.75rem; background: #f8fafc; border-radius: 12px; border: 1px solid #f1f5f9;">
+                                                            <img src="${getProfileImg(b.profile_pic, b.name)}" style="width: 38px; height: 38px; border-radius: 10px; object-fit: cover;">
+                                                            <div style="flex: 1;">
+                                                                <div style="font-weight: 700; font-size: 0.9rem; color: #1e293b;">${b.name}</div>
+                                                                <div style="font-size: 0.7rem; color: #64748b;">${b.email}</div>
+                                                            </div>
+                                                            <div style="font-size: 0.85rem; font-weight: 800; color: #10b981; padding: 4px 10px; background: white; border-radius: 8px;">${b.tickets_bought}</div>
+                                                        </div>
+                                                    `).join('') : '<p style="font-size: 0.9rem; color: #94a3b8; text-align: center; padding: 1rem;">No ticket buyers yet.</p>'}
                                                 </div>
-                                            `).join('') : '<p style="font-size: 0.85rem; color: #94a3b8;">No ticket buyers yet.</p>'}
-                                        </div>
+                                            </div>
+                                        ` : `
+                                            <div style="background: #fff7ed; border: 1px dashed #fdba74; border-radius: 16px; padding: 2rem; text-align: center;">
+                                                <i data-lucide="lock" style="width: 40px; height: 40px; color: #f97316; margin-bottom: 1rem;"></i>
+                                                <h4 style="font-weight: 800; color: #9a3412; margin-bottom: 0.5rem;">Verification Required</h4>
+                                                <p style="font-size: 0.85rem; color: #c2410c; max-width: 250px; margin: 0 auto;">Event listings and buyer analytics are locked until this client has been fully verified.</p>
+                                            </div>
+                                        `}
                                     </div>
                                 </div>
                             `;
@@ -782,7 +856,19 @@ window.copyToClipboard = function(text, successMsg) {
 };
 
 window.approveClient = async function(clientId, status, btnElement) {
-    if (!confirm(`Are you sure you want to ${status ? 'approve' : 'decline'} this client?`)) return;
+    const action = status ? 'approve' : 'reject';
+    const result = await Swal.fire({
+        title: action.charAt(0).toUpperCase() + action.slice(1) + ' Client?',
+        text: `Are you sure you want to ${action} this client?`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: status ? '#10b981' : '#ef4444',
+        cancelButtonColor: '#64748b',
+        confirmButtonText: `Yes, ${action}!`,
+        cancelButtonText: 'Cancel'
+    });
+
+    if (!result.isConfirmed) return;
     
     btnElement.disabled = true;
     const ogText = btnElement.innerText;

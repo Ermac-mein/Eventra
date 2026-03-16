@@ -13,44 +13,86 @@ require_once '../../includes/middleware/auth.php';
 $client_id = checkAuth('client');
 
 try {
-    // Handle file upload if present
-    $image_path = null;
-    if (isset($_FILES['event_image'])) {
-        $upload_error = $_FILES['event_image']['error'];
-        
-        if ($upload_error === UPLOAD_ERR_OK) {
-            $upload_dir = '../../uploads/events/';
-            if (!is_dir($upload_dir)) {
-                mkdir($upload_dir, 0777, true);
-            }
+    // 1. Resolve actual Client ID (PK) from Auth ID early
+    $stmt = $pdo->prepare("SELECT id, name FROM clients WHERE client_auth_id = ?");
+    $stmt->execute([$client_id]);
+    $client_data = $stmt->fetch();
 
-            $file_extension = pathinfo($_FILES['event_image']['name'], PATHINFO_EXTENSION);
-            $file_name = uniqid('event_') . '.' . $file_extension;
-            $target_path = $upload_dir . $file_name;
-
-            if (move_uploaded_file($_FILES['event_image']['tmp_name'], $target_path)) {
-                $image_path = '/uploads/events/' . $file_name;
-
-                // [NEW] Media registration logic is handled after client_id is resolved below
-            } else {
-                throw new Exception("Failed to move uploaded file. Check directory permissions.");
-            }
-        } elseif ($upload_error !== UPLOAD_ERR_NO_FILE) {
-            // Report actual upload errors (size, etc.)
-            $error_msgs = [
-                UPLOAD_ERR_INI_SIZE => "File is too large. Server limit is " . ini_get('upload_max_filesize') . ".",
-                UPLOAD_ERR_FORM_SIZE => "File is too large (exceeds form limit).",
-                UPLOAD_ERR_PARTIAL => "File was only partially uploaded.",
-                UPLOAD_ERR_NO_TMP_DIR => "Missing a temporary folder.",
-                UPLOAD_ERR_CANT_WRITE => "Failed to write file to disk.",
-                UPLOAD_ERR_EXTENSION => "A PHP extension stopped the file upload."
-            ];
-            $msg = $error_msgs[$upload_error] ?? "Unknown upload error code: $upload_error";
-            throw new Exception("Image upload failed: " . $msg);
-        }
+    if (!$client_data) {
+        throw new Exception("Client profile not found for this account.");
     }
 
-    // Get POST data
+    $real_client_id = $client_data['id'];
+    $raw_client_name = $client_data['name'] ?? 'client';
+    $client_name = strtolower(str_replace(' ', '-', preg_replace('/[^A-Za-z0-9 ]/', '', $raw_client_name)));
+
+    // 2. Handle file upload if present using standardized path
+    $image_path = null;
+    if (isset($_FILES['event_image']) && $_FILES['event_image']['error'] === UPLOAD_ERR_OK) {
+        $folder_name = 'Event Images';
+        $upload_dir = "../../uploads/media/client_{$real_client_id}/{$folder_name}/";
+        
+        if (!is_dir($upload_dir)) {
+            mkdir($upload_dir, 0777, true);
+        }
+
+        $file_extension = strtolower(pathinfo($_FILES['event_image']['name'], PATHINFO_EXTENSION));
+        $file_name = uniqid('event_') . '.' . $file_extension;
+        $target_path = $upload_dir . $file_name;
+
+        if (move_uploaded_file($_FILES['event_image']['tmp_name'], $target_path)) {
+            $image_path = "/uploads/media/client_{$real_client_id}/{$folder_name}/" . $file_name;
+            
+            // Register in media table
+            try {
+                $file_size = filesize($target_path);
+                $mime_type = mime_content_type($target_path);
+
+                $stmt = $pdo->prepare("SELECT id FROM media_folders WHERE client_id = ? AND name = ? AND is_deleted = 0 LIMIT 1");
+                $stmt->execute([$real_client_id, $folder_name]);
+                $folder_id = $stmt->fetchColumn() ?: null;
+
+                if (!$folder_id) {
+                    $stmt = $pdo->prepare("INSERT INTO media_folders (client_id, name) VALUES (?, ?)");
+                    $stmt->execute([$real_client_id, $folder_name]);
+                    $folder_id = $pdo->lastInsertId();
+                }
+
+                $media_stmt = $pdo->prepare("
+                    INSERT INTO media (client_id, folder_id, folder_name, file_name, file_extension, file_path, file_type, file_size, mime_type)
+                    VALUES (?, ?, ?, ?, ?, ?, 'image', ?, ?)
+                ");
+                $media_stmt->execute([
+                    $real_client_id,
+                    $folder_id,
+                    $folder_name,
+                    $_FILES['event_image']['name'],
+                    $file_extension,
+                    $image_path,
+                    $file_size,
+                    $mime_type
+                ]);
+            } catch (Throwable $media_err) {
+                error_log("[Create Event Media Register Error] " . $media_err->getMessage());
+            }
+        } else {
+            throw new Exception("Failed to move uploaded file. Check directory permissions.");
+        }
+    } elseif (isset($_FILES['event_image']) && $_FILES['event_image']['error'] !== UPLOAD_ERR_NO_FILE) {
+        $upload_error = $_FILES['event_image']['error'];
+        $error_msgs = [
+            UPLOAD_ERR_INI_SIZE => "File is too large. Server limit is " . ini_get('upload_max_filesize') . ".",
+            UPLOAD_ERR_FORM_SIZE => "File is too large (exceeds form limit).",
+            UPLOAD_ERR_PARTIAL => "File was only partially uploaded.",
+            UPLOAD_ERR_NO_TMP_DIR => "Missing a temporary folder.",
+            UPLOAD_ERR_CANT_WRITE => "Failed to write file to disk.",
+            UPLOAD_ERR_EXTENSION => "A PHP extension stopped the file upload."
+        ];
+        $msg = $error_msgs[$upload_error] ?? "Unknown upload error code: $upload_error";
+        throw new Exception("Image upload failed: " . $msg);
+    }
+
+    // 3. Get POST data
     $event_name = $_POST['event_name'] ?? '';
     $description = $_POST['description'] ?? '';
     $event_type = $_POST['event_type'] ?? '';
@@ -86,47 +128,6 @@ try {
 
     // Auto-generate tag from event name (lowercase, hyphenated)
     $tag = strtolower(str_replace(' ', '-', preg_replace('/[^A-Za-z0-9 ]/', '', $event_name)));
-
-    // Fetch Client ID (PK) and Name using Auth ID
-    // The events table FK references clients(id), NOT auth_accounts(id)
-    $stmt = $pdo->prepare("SELECT id, name FROM clients WHERE client_auth_id = ?");
-    $stmt->execute([$client_id]); // $client_id here is actually the auth_id from session
-    $client_data = $stmt->fetch();
-
-    if (!$client_data) {
-        throw new Exception("Client profile not found for this account.");
-    }
-
-    $real_client_id = $client_data['id']; // This is the actual PK for clients table
-
-    // Fallback if name is missing (should not happen)
-    $raw_client_name = $client_data['name'] ?? 'client';
-    $client_name = strtolower(str_replace(' ', '-', preg_replace('/[^A-Za-z0-9 ]/', '', $raw_client_name)));
-
-    // [NEW] Now that we have $real_client_id, register image if it was uploaded
-    if ($image_path) {
-        try {
-            $abs_target_path = $upload_dir . basename($image_path);
-            if (file_exists($abs_target_path)) {
-                $file_size = filesize($abs_target_path);
-                $mime_type = mime_content_type($abs_target_path);
-
-                $media_stmt = $pdo->prepare("
-                    INSERT INTO media (client_id, file_name, file_path, file_type, file_size, mime_type)
-                    VALUES (?, ?, ?, 'image', ?, ?)
-                ");
-                $media_stmt->execute([
-                    $real_client_id,
-                    basename($image_path),
-                    $image_path,
-                    $file_size,
-                    $mime_type
-                ]);
-            }
-        } catch (Throwable $media_err) {
-            error_log("[Create Event Media Register Error] " . $media_err->getMessage());
-        }
-    }
 
     $base_url = $_ENV['APP_URL'] ?? 'http://localhost:8000';
     $external_link = $base_url . '/public/pages/event-details.html?event=' . $tag . '&client=' . $client_name;

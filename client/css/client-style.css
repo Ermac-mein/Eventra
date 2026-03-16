@@ -202,12 +202,12 @@ body {
     position: relative;
 }
 
-.verification-badge-overlay {
+.verification-badge {
     position: absolute;
     bottom: -2px;
     right: -2px;
-    width: 16px;
-    height: 16px;
+    width: 20px;
+    height: 20px;
     background: white;
     border-radius: 50%;
     display: flex;
@@ -215,16 +215,33 @@ body {
     justify-content: center;
     box-shadow: 0 2px 5px rgba(0,0,0,0.2);
     z-index: 10;
-    font-size: 10px;
-    border: 1px solid #f1f5f9;
+    border: 2px solid white;
 }
 
-.verification-badge-overlay.verified {
-    color: #3b82f6;
+.verification-badge svg, 
+.verification-badge i {
+    width: 12px;
+    height: 12px;
 }
 
-.verification-badge-overlay.unverified {
-    color: #f59e0b;
+.verification-badge.verified, .badge-verified {
+    background-color: #3b82f6;
+    color: white;
+}
+
+.verification-badge.unverified, .badge-pending {
+    background-color: #f59e0b;
+    color: white;
+}
+
+.verification-badge.rejected, .badge-rejected {
+    background-color: #ef4444;
+    color: white;
+}
+
+.avatar-wrapper {
+    position: relative;
+    display: inline-block;
 }
 
 /* Page Content */
@@ -343,6 +360,28 @@ body {
     justify-content: space-between;
     align-items: center;
     margin-bottom: 2rem;
+}
+
+.event-feed-list {
+    max-height: 480px;
+    overflow-y: auto;
+    padding-right: 12px;
+}
+
+/* Custom Scrollbar */
+.event-feed-list::-webkit-scrollbar {
+    width: 6px;
+}
+.event-feed-list::-webkit-scrollbar-track {
+    background: #f8fafc;
+    border-radius: 10px;
+}
+.event-feed-list::-webkit-scrollbar-thumb {
+    background: #e2e8f0;
+    border-radius: 10px;
+}
+.event-feed-list::-webkit-scrollbar-thumb:hover {
+    background: var(--client-primary-light);
 }
 
 .event-feed-item {

@@ -81,8 +81,10 @@ try {
     $bvn_verified = null;
 
     // Recalculate verification_status after potential NIN/BVN changes
-    // IMPORTANT: As per Issue 1 requirements, any profile change resets status to pending for admin review
+    // IMPORTANT: Any profile change resets status to pending for admin review
     $new_verification_status = 'pending';
+    $account_name = null;
+    $auth_email = $existing['email'] ?? '';
 
     // ── Paystack Subaccount Automation ─────────────────────────────────────
     if (!empty($bank_code) && !empty($account_number)) {
@@ -96,7 +98,7 @@ try {
             $bank_code, 
             $account_number, 
             $resolved_account_name, 
-            $updated_client['email'] ?? '', // We'll get email in a moment or use from auth
+            $auth_email, 
             $existing['subaccount_code']
         );
 

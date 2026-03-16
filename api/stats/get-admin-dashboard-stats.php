@@ -23,15 +23,22 @@ try {
     $stmt = $pdo->query("SELECT COUNT(*) as total FROM events WHERE status = 'published' AND deleted_at IS NULL");
     $total_events = $stmt->fetch()['total'];
 
-    // 4. Total Revenue (Paid payments)
+    // 4. Total Online (Current Session)
+    $stmt = $pdo->query("SELECT COUNT(*) as total FROM auth_accounts WHERE role = 'user' AND is_online = 1 AND deleted_at IS NULL");
+    $online_users = $stmt->fetch()['total'] ?? 0;
+
+    $stmt = $pdo->query("SELECT COUNT(*) as total FROM auth_accounts WHERE role = 'client' AND is_online = 1 AND deleted_at IS NULL");
+    $online_clients = $stmt->fetch()['total'] ?? 0;
+
+    // 5. Total Revenue (Paid payments)
     $stmt = $pdo->query("SELECT COALESCE(SUM(amount), 0) as total FROM payments WHERE status = 'paid'");
     $total_revenue = $stmt->fetch()['total'];
 
-    // 5. Pending Payments
+    // 6. Pending Payments
     $stmt = $pdo->query("SELECT COUNT(*) as total FROM payments WHERE status = 'pending'");
     $pending_payments = $stmt->fetch()['total'];
 
-    // 6. Recent Activities based on auth_logs
+    // 7. Recent Activities based on auth_logs
     $stmt = $pdo->query("
         SELECT al.event_type as type, al.details as message, al.created_at 
         FROM auth_logs al 
@@ -40,9 +47,10 @@ try {
     ");
     $recent_activities = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    // 7. Top Users (by tickets)
+    // 8. Top Users (by tickets)
     $stmt = $pdo->query("
-        SELECT p.id, p.name, p.profile_pic, p.state, 'active' as status,
+        SELECT p.id, p.name, p.profile_pic, p.state, a.is_online,
+               IF(a.is_online = 1, 'active', 'offline') as status,
                (SELECT COUNT(*) FROM tickets WHERE user_id = p.id) as ticket_count
         FROM users p
         JOIN auth_accounts a ON p.user_auth_id = a.id
@@ -51,9 +59,10 @@ try {
     ");
     $top_users = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    // 8. Active Clients (by events)
+    // 9. Active Clients (by events)
     $stmt = $pdo->query("
-        SELECT p.id, p.business_name as name, p.profile_pic, p.company, p.state, p.email, 'active' as status,
+        SELECT p.id, p.business_name as name, p.profile_pic, p.company, p.state, p.email, a.is_online,
+               IF(a.is_online = 1, 'active', 'offline') as status,
                (SELECT COUNT(*) FROM events WHERE client_id = p.id) as event_count
         FROM clients p
         JOIN auth_accounts a ON p.client_auth_id = a.id
@@ -62,7 +71,7 @@ try {
     ");
     $active_clients = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    // 9. Upcoming Events
+    // 10. Upcoming Events
     $stmt = $pdo->query("
         SELECT e.id, e.event_name, e.event_date, e.image_path, c.business_name as client_name
         FROM events e
@@ -73,7 +82,7 @@ try {
     ");
     $upcoming_events = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    // 9.1 Past & Trending Events
+    // 11. Past & Trending Events
     $stmt = $pdo->query("
         SELECT e.id, e.event_name, e.event_date, e.image_path, c.business_name as client_name
         FROM events e
@@ -84,7 +93,7 @@ try {
     ");
     $past_events = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    // 10. Restored Events Count (placeholder or specific logic)
+    // 12. Restored Events Count (placeholder or specific logic)
     $stmt = $pdo->query("SELECT COUNT(*) as total FROM events WHERE status = 'restored' AND deleted_at IS NULL");
     $restored_events = $stmt->fetch()['total'] ?? 0;
 
@@ -92,7 +101,8 @@ try {
         'success' => true,
         'stats' => [
             'total_users' => (int) $total_users,
-            'active_users' => (int) $total_users, // Alias for frontend
+            'active_users' => (int) $online_users, // Now reflects online users specifically for "Active"
+            'online_clients' => (int) $online_clients,
             'total_clients' => (int) $total_clients,
             'total_events' => (int) $total_events,
             'published_events' => (int) $total_events, // Alias

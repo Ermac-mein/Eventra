@@ -12,9 +12,9 @@ function checkAuth($requiredRole = null)
     }
 
     // 2. Strict Session Validation: No session recovery across roles allowed.
-    // Also enforcing the 30-minute inactivity rule here.
-    if (isset($_SESSION['last_activity']) && (time() - $_SESSION['last_activity']) > 3600) {
-        logSecurityEvent($_SESSION['user_id'] ?? null, null, 'session_expired', 'session', 'Inactivity timeout exceeded (60 mins).');
+    // Also enforcing the 12-hour inactivity rule for admin stability.
+    if (isset($_SESSION['last_activity']) && (time() - $_SESSION['last_activity']) > 43200) {
+        logSecurityEvent($_SESSION['user_id'] ?? null, null, 'session_expired', 'session', 'Inactivity timeout exceeded (12 hours).');
         invalidateSession($_SESSION['user_id'] ?? null, $_SESSION['auth_token'] ?? null);
         exit;
     }

@@ -231,11 +231,140 @@ function renderSummary(event, qty) {
 let currentReference = 'PAY-' + Math.random().toString(36).substr(2, 9).toUpperCase();
 
 function setupLegacyFlow(form, ref, contact, eid, qty) {
-    // This is essentially parts of the old payment.js 
-    // Simplified for this version to focus on Paystack Redirect
+    // Populate summaries in select modal
+    const summaryEmail = document.getElementById('summaryEmail');
+    const summaryPhone = document.getElementById('summaryPhone');
+    if (summaryEmail) summaryEmail.textContent = contact.email || 'No email provided';
+    if (summaryPhone) summaryPhone.textContent = contact.phone || 'No phone provided';
+
     form.addEventListener('submit', (e) => {
         e.preventDefault();
-        Swal.fire('Marketplace Notice', 'Please use the official Paystack gateway.', 'info');
+        // Show Selection Modal
+        document.getElementById('otpSelectModal').style.display = 'flex';
     });
+
+    // Channel Selection
+    document.getElementById('channelEmail')?.addEventListener('click', () => triggerOTP(ref, 'email'));
+    document.getElementById('channelSms')?.addEventListener('click', () => triggerOTP(ref, 'sms'));
+
+    // OTP Input Logic
+    const otpInputs = document.querySelectorAll('.otp-input');
+    otpInputs.forEach((input, index) => {
+        input.addEventListener('input', (e) => {
+            if (e.target.value && index < otpInputs.length - 1) {
+                otpInputs[index + 1].focus();
+            }
+        });
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Backspace' && !e.target.value && index > 0) {
+                otpInputs[index - 1].focus();
+            }
+        });
+    });
+
+    document.getElementById('verifyOtpBtn')?.addEventListener('click', () => verifyOTP(ref, eid, qty));
+}
+
+async function triggerOTP(reference, channel) {
+    const btn = channel === 'email' ? document.getElementById('channelEmail') : document.getElementById('channelSms');
+    const originalContent = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = 'Sending...';
+
+    try {
+        const res = await apiFetch('../../api/otps/generate-otp.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                channel: channel,
+                payment_reference: reference
+            })
+        });
+        const result = await res.json();
+
+        if (result.success) {
+            document.getElementById('otpSelectModal').style.display = 'none';
+            document.getElementById('otpInputModal').style.display = 'flex';
+            document.getElementById('activeChannel').textContent = channel;
+            showNotification(result.message, 'success');
+        } else {
+            showNotification(result.message, 'error');
+        }
+    } catch (e) {
+        showNotification('Failed to generate OTP', 'error');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalContent;
+    }
+}
+
+async function verifyOTP(reference, eventId, quantity) {
+    const otpInputs = document.querySelectorAll('.otp-input');
+    const otp = Array.from(otpInputs).map(i => i.value).join('');
+
+    if (otp.length !== 6) {
+        showNotification('Please enter the 6-digit code', 'error');
+        return;
+    }
+
+    const verifyBtn = document.getElementById('verifyOtpBtn');
+    verifyBtn.disabled = true;
+    verifyBtn.textContent = 'Verifying...';
+
+    try {
+        const res = await apiFetch('../../api/otps/verify-otp.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                otp: otp,
+                payment_reference: reference
+            })
+        });
+        const result = await res.json();
+
+        if (result.success) {
+            showNotification('OTP Verified! Completing purchase...', 'success');
+            // Proceed to purchase
+            completePurchase(reference, eventId, quantity);
+        } else {
+            showNotification(result.message, 'error');
+            verifyBtn.disabled = false;
+            verifyBtn.textContent = 'Verify & Complete';
+        }
+    } catch (e) {
+        showNotification('Verification error', 'error');
+        verifyBtn.disabled = false;
+        verifyBtn.textContent = 'Verify & Complete';
+    }
+}
+
+async function completePurchase(reference, eventId, quantity) {
+    try {
+        const res = await apiFetch('../../api/tickets/purchase-ticket.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                event_id: eventId,
+                quantity: quantity,
+                payment_reference: reference
+            })
+        });
+        const result = await res.json();
+
+        if (result.success) {
+            document.getElementById('otpInputModal').style.display = 'none';
+            // Show status container for success
+            const paymentForm = document.getElementById('paymentForm');
+            const statusContainer = document.getElementById('paymentStatusContainer');
+            if (paymentForm) paymentForm.style.display = 'none';
+            if (statusContainer) statusContainer.style.display = 'block';
+            
+            startPolling(reference);
+        } else {
+            showNotification(result.message, 'error');
+        }
+    } catch (e) {
+        showNotification('Error completing purchase', 'error');
+    }
 }
 

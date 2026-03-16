@@ -49,38 +49,63 @@ try {
         exit;
     }
 
-    // Handle image upload if provided
+    // LOCKING: Prevent edit if there are payments/attendees
+    if ($event['attendee_count'] > 0) {
+        http_response_code(403);
+        echo json_encode(['success' => false, 'message' => 'This event is locked because tickets have already been sold. Please contact support for critical changes.']);
+        exit;
+    }
+
+    // Handle image upload if provided using standardized path
     $image_path = $event['image_path']; // Keep existing image by default
     if (isset($_FILES['event_image']) && $_FILES['event_image']['error'] === UPLOAD_ERR_OK) {
-        $upload_dir = '../../uploads/events/';
-        if (!file_exists($upload_dir)) {
+        $folder_name = 'Event Images';
+        $upload_dir = "../../uploads/media/client_{$event['client_id']}/{$folder_name}/";
+        
+        if (!is_dir($upload_dir)) {
             mkdir($upload_dir, 0777, true);
         }
 
-        $file_extension = pathinfo($_FILES['event_image']['name'], PATHINFO_EXTENSION);
+        $file_extension = strtolower(pathinfo($_FILES['event_image']['name'], PATHINFO_EXTENSION));
         $new_filename = uniqid('event_') . '.' . $file_extension;
         $upload_path = $upload_dir . $new_filename;
 
         if (move_uploaded_file($_FILES['event_image']['tmp_name'], $upload_path)) {
-            $image_path = '/uploads/events/' . $new_filename;
+            $image_path = "/uploads/media/client_{$event['client_id']}/{$folder_name}/" . $new_filename;
 
             // Delete old image if it exists
-            if ($event['image_path'] && file_exists(__DIR__ . '/../../' . ltrim($event['image_path'], '/'))) {
-                unlink(__DIR__ . '/../../' . ltrim($event['image_path'], '/'));
+            if ($event['image_path']) {
+                $old_full_path = __DIR__ . '/../../' . ltrim($event['image_path'], '/');
+                if (file_exists($old_full_path) && !is_dir($old_full_path)) {
+                    unlink($old_full_path);
+                }
             }
 
-            // [NEW] Register the image in the media table
+            // Register the image in the media table
             try {
                 $file_size = filesize($upload_path);
                 $mime_type = mime_content_type($upload_path);
 
+                $stmt = $pdo->prepare("SELECT id FROM media_folders WHERE client_id = ? AND name = ? AND is_deleted = 0 LIMIT 1");
+                $stmt->execute([$event['client_id'], $folder_name]);
+                $folder_id = $stmt->fetchColumn() ?: null;
+
+                if (!$folder_id) {
+                    $stmt = $pdo->prepare("INSERT INTO media_folders (client_id, name) VALUES (?, ?)");
+                    $stmt->execute([$event['client_id'], $folder_name]);
+                    $folder_id = $pdo->lastInsertId();
+                }
+
                 $media_stmt = $pdo->prepare("
-                    INSERT INTO media (client_id, file_name, file_path, file_type, file_size, mime_type)
-                    VALUES (?, ?, ?, 'image', ?, ?)
+                    INSERT INTO media (client_id, folder_id, folder_name, file_name, file_extension, file_path, file_type, file_size, mime_type)
+                    VALUES (?, ?, ?, ?, ?, ?, 'image', ?, ?)
                 ");
                 $media_stmt->execute([
                     $event['client_id'],
-                    $new_filename,
+                    $folder_id,
+                    $folder_name,
+                    $_FILES['event_image']['name'],
+                    $file_extension,
                     $image_path,
                     $file_size,
                     $mime_type

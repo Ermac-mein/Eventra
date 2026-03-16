@@ -43,6 +43,12 @@ async function loadGlobalProfile() {
 function updateGlobalAvatar(user) {
     const avatars = document.querySelectorAll('.user-avatar');
     avatars.forEach(avatar => {
+        // Ensure parent has avatar-wrapper class for absolute positioning of badge
+        const parent = avatar.parentElement;
+        if (parent && !parent.classList.contains('avatar-wrapper')) {
+            parent.classList.add('avatar-wrapper');
+        }
+
         if (user.profile_pic) {
             avatar.style.backgroundImage = `url(${user.profile_pic})`;
         } else {
@@ -53,6 +59,15 @@ function updateGlobalAvatar(user) {
         }
         avatar.style.backgroundSize = 'cover';
         avatar.style.backgroundPosition = 'center';
+
+        // Add/Update Verification Badge
+        if (parent && typeof getVerificationBadge === 'function') {
+            const existingBadge = parent.querySelector('.verification-badge');
+            if (existingBadge) existingBadge.remove();
+            parent.insertAdjacentHTML('beforeend', getVerificationBadge(user.verification_status));
+            // Re-init icons
+            if (window.lucide) window.lucide.createIcons();
+        }
     });
 }
 

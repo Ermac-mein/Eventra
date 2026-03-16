@@ -116,26 +116,29 @@ class AdminAuth {
             </div>
             <div class="profile-detail-item">
                 <span class="detail-label">Status</span>
-                <span class="detail-value">${this.adminData.status === 'active' ? 'Active' : 'Offline'}</span>
+                <span class="detail-value" style="color: #10b981; font-weight: 700;">${this.adminData.status === 'active' ? 'Active' : 'Offline'}</span>
             </div>
             <div class="profile-detail-item">
                 <span class="detail-label">Account Created</span>
                 <span class="detail-value">${createdDate}</span>
             </div>
             <div class="profile-detail-item">
-                <span class="detail-label">Last Updated</span>
-                <span class="detail-value">${updatedDate}</span>
+                <span class="detail-label">Last Login</span>
+                <span class="detail-value">${this.adminData.last_login_at ? new Date(this.adminData.last_login_at).toLocaleString() : 'Just now'}</span>
             </div>
-            <button class="btn btn-logout-drawer" id="profileDrawerLogout" style="margin-top: 2rem; width: 100%; justify-content: center; gap: 10px; color: white; background: #ef4444;">
+
+            <button class="btn btn-logout-drawer" id="profileDrawerLogout" style="margin-top: 2rem; width: 100%; justify-content: center; gap: 10px; color: white; background: #ef4444; border-radius: 12px; padding: 1rem;">
                 <i data-lucide="log-out"></i>
                 <span>Logout</span>
             </button>
         `;
 
+
         if (window.lucide) {
             window.lucide.createIcons();
         }
     }
+
 
     async handleLogout() {
         try {

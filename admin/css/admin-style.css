@@ -1986,3 +1986,102 @@ input:checked+.slider:before {
         grid-template-columns: 1fr !important;
     }
 }
+
+/* Verification Badge System */
+.avatar-wrapper {
+    position: relative;
+    display: inline-block;
+}
+
+.verification-badge {
+    position: absolute;
+    bottom: -2px;
+    right: -2px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: white;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    z-index: 2;
+    border: 2px solid white;
+}
+
+.verification-badge i {
+    width: 12px;
+    height: 12px;
+}
+
+.badge-verified {
+    background-color: #3b82f6;
+    color: white;
+}
+
+.badge-rejected {
+    background-color: #ef4444;
+    color: white;
+}
+
+.badge-pending {
+    background-color: #f59e0b;
+    color: white;
+}
+
+/* Scrollable Events Summary */
+.scrollable-events-container {
+    max-height: 480px;
+    overflow-y: auto;
+    padding-right: 8px;
+}
+
+.scrollable-events-container::-webkit-scrollbar {
+    width: 6px;
+}
+
+.scrollable-events-container::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 10px;
+}
+
+.compact-event-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    background: white;
+    border-radius: 12px;
+    margin-bottom: 8px;
+    border: 1px solid var(--admin-border);
+    transition: all 0.2s ease;
+}
+
+.compact-event-card:hover {
+    border-color: var(--admin-primary);
+    transform: translateX(4px);
+}
+
+.compact-event-img {
+    width: 48px;
+    height: 48px;
+    border-radius: 8px;
+    object-fit: cover;
+}
+
+.compact-event-info {
+    flex: 1;
+}
+
+.compact-event-title {
+    font-weight: 600;
+    font-size: 0.9rem;
+    margin-bottom: 2px;
+    color: var(--admin-text-main);
+}
+
+.compact-event-meta {
+    font-size: 0.75rem;
+    color: var(--admin-text-muted);
+}
+

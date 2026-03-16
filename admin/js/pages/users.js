@@ -1,6 +1,5 @@
 document.addEventListener('DOMContentLoaded', async () => {
     const usersTableBody = document.querySelector('table tbody');
-    const statsValues = document.querySelectorAll('.stat-value');
     let allUsers = [];
     let sortConfig = { key: null, direction: 'asc' };
     
@@ -12,7 +11,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (result.success) {
                 allUsers = result.users;
                 renderUsers(allUsers);
-                updateStats(allUsers);
+                updateStats(result.summary);
             } else {
                 console.error('Failed to load users:', result.message);
             }
@@ -30,17 +29,30 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         usersTableBody.innerHTML = users.map(user => `
-            <tr data-id="${user.id}" data-profile-pic="${user.profile_pic || ''}">
+            <tr data-id="${user.id}">
                 <td>${user.id}</td>
-                <td><img src="${getProfileImg(user.profile_pic, user.name)}" style="width: 24px; height: 24px; border-radius: 50%; margin-right: 8px; vertical-align: middle;"> ${user.name}</td>
-                <td style="text-transform: capitalize;">${user.gender || 'N/A'}</td>
-                <td>${user.state || user.city || 'N/A'}</td>
+                <td style="display: flex; align-items: center; gap: 12px; padding: 1.2rem 1rem;">
+                    <div class="avatar-wrapper">
+                        <img src="${getProfileImg(user.profile_pic, user.name)}" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 2px solid #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                    </div>
+                    <span style="font-weight: 600; color: var(--admin-text-main);">${user.name}</span>
+                </td>
                 <td style="font-size: 0.85rem;">${user.email}</td>
-                <td><span class="status-badge status-${user.status === 'active' ? 'ongoing' : 'concluded'}">${user.status === 'active' ? 'Active' : 'Offline'}</span></td>
-                <td>${user.last_login_at ? new Date(user.last_login_at).toLocaleDateString() : 'Never'}</td>
                 <td>${user.phone || 'N/A'}</td>
+                <td style="text-transform: capitalize;">${user.gender || 'N/A'}</td>
+                <td>${user.state || 'N/A'}</td>
+                <td>${user.country || 'N/A'}</td>
+                <td>${user.city || 'N/A'}</td>
+                <td style="max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${user.address || 'N/A'}">${user.address || 'N/A'}</td>
+                <td><span class="status-badge status-${user.is_online == 1 ? 'ongoing' : 'concluded'}">${user.is_online == 1 ? 'Online' : 'Offline'}</span></td>
+                <td>${user.last_login_at ? new Date(user.last_login_at).toLocaleDateString() : 'Never'}</td>
             </tr>
         `).join('');
+
+        // Re-initialize Lucide icons for badges
+        if (window.lucide) {
+            window.lucide.createIcons();
+        }
 
         // Re-initialize previews for new rows
         if (window.initPreviews) {
@@ -92,21 +104,25 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     });
 
-    function updateStats(users) {
-        if (statsValues.length < 4) return;
+    function updateStats(summary) {
+        console.log('Updating user stats with:', summary);
+        if (!summary) return;
 
-        statsValues[0].textContent = users.length;
-        statsValues[1].textContent = users.filter(u => u.status === 'active').length;
-        statsValues[2].textContent = users.filter(u => u.status !== 'active').length;
-        statsValues[3].textContent = users.filter(u => new Date(u.created_at) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)).length;
+        const checkedInEl = document.getElementById('usersCheckedIn');
+        const activeEl = document.getElementById('usersActive');
+        const registeredEl = document.getElementById('usersRegistered');
+
+        if (checkedInEl) checkedInEl.textContent = summary.total_checked_in || 0;
+        if (activeEl) activeEl.textContent = summary.total_active || 0;
+        if (registeredEl) registeredEl.textContent = summary.total_registered || 0;
     }
 
     await loadUsers();
 
-    // Auto-refresh every 30s
+    // Auto-refresh every 10s for real-time feel
     setInterval(() => {
         if (document.visibilityState === 'visible') {
             loadUsers();
         }
-    }, 30000);
+    }, 10000);
 });

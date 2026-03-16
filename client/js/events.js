@@ -182,10 +182,17 @@ function updateEventsTable(events) {
             <td><span style="color: ${getStatusColor(event.status)}; font-weight: 600;">${event.status.charAt(0).toUpperCase() + event.status.slice(1)}</span></td>
             <td class="text-center" onclick="event.stopPropagation()">
                 <div style="display: flex; gap: 0.5rem; justify-content: center;">
-                    <button onclick="editEvent(${event.id})" class="action-icon-btn" title="Edit Event" style="background: none; border: none; cursor: pointer; font-size: 1.2rem; padding: 0.25rem 0.5rem; transition: transform 0.2s;">
+                    <button onclick="${event.attendee_count > 0 ? "showLockedNotification('edit')" : `editEvent(${event.id})`}" 
+                            class="action-icon-btn ${event.attendee_count > 0 ? 'locked' : ''}" 
+                            title="${event.attendee_count > 0 ? 'Locked: Already has attendees' : 'Edit Event'}" 
+                            style="background: none; border: none; cursor: ${event.attendee_count > 0 ? 'not-allowed' : 'pointer'}; font-size: 1.2rem; padding: 0.25rem 0.5rem; transition: transform 0.2s; opacity: ${event.attendee_count > 0 ? '0.5' : '1'}">
                         ✏️
                     </button>
-                    <button id="deleteBtn-${event.id}" onclick="deleteEvent(${event.id})" class="action-icon-btn" title="Delete Event" style="background: none; border: none; cursor: pointer; font-size: 1.2rem; padding: 0.25rem 0.5rem; transition: transform 0.2s;">
+                    <button id="deleteBtn-${event.id}" 
+                            onclick="${event.attendee_count > 0 ? "showLockedNotification('delete')" : `deleteEvent(${event.id})`}" 
+                            class="action-icon-btn ${event.attendee_count > 0 ? 'locked' : ''}" 
+                            title="${event.attendee_count > 0 ? 'Locked: Already has attendees' : 'Delete Event'}" 
+                            style="background: none; border: none; cursor: ${event.attendee_count > 0 ? 'not-allowed' : 'pointer'}; font-size: 1.2rem; padding: 0.25rem 0.5rem; transition: transform 0.2s; opacity: ${event.attendee_count > 0 ? '0.5' : '1'}">
                         🗑️
                     </button>
                 </div>
@@ -814,3 +821,12 @@ window.editEvent = editEvent;
 window.previewEvent = previewEvent;
 window.deleteEvent = deleteEvent;
 window.publishEvent = publishEvent;
+function showLockedNotification(action) {
+    Swal.fire({
+        title: 'Event Locked',
+        text: `This event cannot be ${action === 'edit' ? 'edited' : 'deleted'} because tickets have already been sold. Please contact support for critical changes.`,
+        icon: 'info',
+        confirmButtonColor: 'var(--client-primary)'
+    });
+}
+window.showLockedNotification = showLockedNotification;

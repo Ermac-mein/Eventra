@@ -36,20 +36,20 @@ try {
 
     // 1. Search Events
     $stmt = $pdo->prepare("
-        SELECT id, event_name as name, event_type as type, state, tag
+        SELECT id, event_name as name, category as type, state, tag
         FROM events
-        WHERE event_name LIKE ? OR description LIKE ? OR state LIKE ?
+        WHERE (event_name LIKE ? OR description LIKE ? OR state LIKE ? OR category LIKE ?) AND deleted_at IS NULL
         LIMIT 5
     ");
-    $stmt->execute([$searchTerm, $searchTerm, $searchTerm]);
+    $stmt->execute([$searchTerm, $searchTerm, $searchTerm, $searchTerm]);
     $results['events'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     // 2. Search Users
     $stmt = $pdo->prepare("
-        SELECT a.id, u.display_name as name, a.email, u.profile_pic
+        SELECT a.id, u.name, a.email, u.profile_pic
         FROM auth_accounts a
-        JOIN users u ON a.id = u.auth_id
-        WHERE (u.display_name LIKE ? OR a.email LIKE ?) AND a.role = 'user'
+        JOIN users u ON a.id = u.user_auth_id
+        WHERE (u.name LIKE ? OR a.email LIKE ?) AND a.role = 'user'
         LIMIT 5
     ");
     $stmt->execute([$searchTerm, $searchTerm]);
@@ -59,7 +59,7 @@ try {
     $stmt = $pdo->prepare("
         SELECT a.id, c.business_name as name, a.email, c.profile_pic, c.company
         FROM auth_accounts a
-        JOIN clients c ON a.id = c.auth_id
+        JOIN clients c ON a.id = c.client_auth_id
         WHERE (c.business_name LIKE ? OR a.email LIKE ? OR c.company LIKE ?) AND a.role = 'client'
         LIMIT 5
     ");

@@ -39,52 +39,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     exit;
 }
 
-// ── Helper: call Paystack ────────────────────────────────────────────────────
-function paystackRequest(string $method, string $path, array $payload = []): array
-{
-    $secretKey = defined('PAYSTACK_SECRET_KEY') ? PAYSTACK_SECRET_KEY : '';
-    
-    // Masked key for logging: show first 4 and last 4
-    $maskedKey = !empty($secretKey) 
-        ? substr($secretKey, 0, 4) . '...' . substr($secretKey, -4) 
-        : 'MISSING';
-    
-    $url = 'https://api.paystack.co' . $path;
-    $ch  = curl_init($url);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_TIMEOUT, 20);
-    curl_setopt($ch, CURLOPT_HTTPHEADER, [
-        'Authorization: Bearer ' . $secretKey,
-        'Content-Type: application/json',
-        'Cache-Control: no-cache',
-    ]);
-
-    error_log("[Paystack API] [{$method}] {$path} - Key prefix: {$maskedKey}");
-
-    if ($method === 'POST') {
-        curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
-    } elseif ($method === 'PUT') {
-        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'PUT');
-        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
-    }
-
-    $response  = curl_exec($ch);
-    $httpCode  = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    $curlError = curl_error($ch);
-
-    if ($curlError || !$response) {
-        error_log("[Paystack API] [Error] Curl: " . ($curlError ?: 'Empty response'));
-        return ['ok' => false, 'code' => $httpCode, 'body' => null, 'error' => $curlError ?: 'Empty response'];
-    }
-
-    $result = json_decode($response, true);
-    if ($httpCode === 401) {
-        error_log("[Paystack API] [Error] 401 Unauthorized - Check your PAYSTACK_SECRET_KEY");
-    }
-
-    return ['ok' => ($httpCode >= 200 && $httpCode < 300), 'code' => $httpCode, 'body' => $result, 'error' => null];
-}
+// paystackRequest is now provided by config/payment.php
 
 try {
     $pdo->beginTransaction();
@@ -121,9 +76,9 @@ try {
 
     // ── Input ────────────────────────────────────────────────────────────────
     $data = json_decode(file_get_contents('php://input'), true) ?? [];
-    $bank_code      = trim($data['bank_code']      ?? $_POST['bank_code']      ?? '');
-    $account_number = trim($data['account_number'] ?? $_POST['account_number'] ?? '');
-    $bank_name      = trim($data['bank_name']      ?? $_POST['bank_name']      ?? '');
+    $bank_code      = trim($data['bank_code']      ?? $_POST['bank_code']);
+    $account_number = trim($data['account_number'] ?? $_POST['account_number']);
+    $bank_name      = trim($data['bank_name']      ?? $_POST['bank_name']);
 
     if (empty($bank_code) || empty($account_number)) {
         $pdo->rollBack();
@@ -150,8 +105,8 @@ try {
         $bank_code, 
         $account_number, 
         $account_name, 
-        $email, 
-        $existingSubCode
+        $client['email'], 
+        $client['subaccount_code']
     );
 
     if (!$subRes['success']) {

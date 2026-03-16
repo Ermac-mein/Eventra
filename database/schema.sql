@@ -371,27 +371,53 @@ CREATE TABLE IF NOT EXISTS notifications (
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
 
 -- =============================================================================
+-- MEDIA FOLDERS
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS media_folders (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    client_id BIGINT UNSIGNED NOT NULL,
+    name VARCHAR(100) NOT NULL,
+    is_deleted TINYINT(1) DEFAULT 0,
+    restoration_count INT UNSIGNED DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    KEY idx_folder_client (client_id),
+    CONSTRAINT fk_folder_client FOREIGN KEY (client_id) REFERENCES clients (id) ON DELETE CASCADE
+) ENGINE = INNODB DEFAULT CHARSET = UTF8MB4;
+
+-- =============================================================================
 -- MEDIA
 -- =============================================================================
 CREATE TABLE IF NOT EXISTS media (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     client_id BIGINT UNSIGNED NOT NULL,
+    folder_id BIGINT UNSIGNED DEFAULT NULL,
     folder_name VARCHAR(100) DEFAULT 'default',
     file_name VARCHAR(255) NOT NULL,
+    file_extension VARCHAR(20) DEFAULT NULL,
     file_path VARCHAR(500) NOT NULL,
     file_type ENUM(
         'image',
         'video',
         'document',
+        'pdf',
+        'word',
+        'excel',
+        'powerpoint',
+        'archive',
         'other'
     ) DEFAULT 'other',
     file_size BIGINT UNSIGNED NOT NULL,
     mime_type VARCHAR(100) DEFAULT NULL,
+    is_deleted TINYINT(1) DEFAULT 0,
     uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
     KEY idx_media_client (client_id),
-    CONSTRAINT fk_media_client FOREIGN KEY (client_id) REFERENCES clients (id) ON DELETE CASCADE
+    KEY idx_media_folder (folder_id),
+    CONSTRAINT fk_media_client FOREIGN KEY (client_id) REFERENCES clients (id) ON DELETE CASCADE,
+    CONSTRAINT fk_media_folder FOREIGN KEY (folder_id) REFERENCES media_folders (id) ON DELETE SET NULL
 ) ENGINE = INNODB DEFAULT CHARSET = UTF8MB4;
 
 -- =============================================================================

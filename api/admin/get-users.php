@@ -31,9 +31,11 @@ try {
     $total_records = $count_stmt->fetchColumn();
 
     // Get users
-    $sql = "SELECT a.id, p.name, a.email, p.profile_pic, p.phone, 
+    $sql = "SELECT p.id, p.name, a.email, p.profile_pic, p.phone, 
             p.gender, p.dob, p.address, p.city, p.state, p.country,
-            IF(a.is_active = 1, 'active', 'inactive') as status, a.created_at, a.last_login_at,
+            a.is_active, a.is_online,
+            IF(a.is_online = 1, 'active', 'inactive') as status, a.created_at, a.last_login_at, a.email_verified_at,
+            (SELECT COUNT(*) FROM tickets t JOIN payments py ON t.payment_id = py.id WHERE py.user_id = p.id AND t.used = 1) as checked_in_count,
             (SELECT business_name FROM clients WHERE id = (SELECT client_id FROM events WHERE id = (SELECT event_id FROM tickets WHERE user_id = p.id LIMIT 1))) as client_name
             FROM auth_accounts a
             JOIN users p ON a.id = p.user_auth_id
@@ -53,10 +55,25 @@ try {
     $stmt->execute();
     $users = $stmt->fetchAll();
 
+    // Get Global Summary Stats (for cards, ignore search/limit)
+    $registered_sql = "SELECT COUNT(*) FROM auth_accounts WHERE role = 'user' AND deleted_at IS NULL";
+    $registered_count = $pdo->query($registered_sql)->fetchColumn();
+
+    $active_sql = "SELECT COUNT(*) FROM auth_accounts WHERE role = 'user' AND is_active = 1 AND deleted_at IS NULL";
+    $active_count = $pdo->query($active_sql)->fetchColumn();
+
+    $online_sql = "SELECT COUNT(*) FROM auth_accounts WHERE role = 'user' AND is_online = 1 AND deleted_at IS NULL";
+    $online_count = $pdo->query($online_sql)->fetchColumn();
+
     echo json_encode([
         'success' => true,
         'users' => $users,
-        'total' => $total_records
+        'total' => $total_records,
+        'summary' => [
+            'total_registered' => (int) $registered_count,
+            'total_active' => (int) $active_count,
+            'total_checked_in' => (int) $online_count // Mapping online users to "Checked-In" card as per user request
+        ]
     ]);
 
 } catch (PDOException $e) {

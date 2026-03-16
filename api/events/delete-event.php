@@ -50,6 +50,17 @@ try {
         exit;
     }
 
+    // LOCKING: Prevent deletion if there are payments/attendees
+    $stmt = $pdo->prepare("SELECT attendee_count FROM events WHERE id = ?");
+    $stmt->execute([$event_id]);
+    $attendee_count = $stmt->fetchColumn();
+
+    if ($attendee_count > 0) {
+        http_response_code(403);
+        echo json_encode(['success' => false, 'message' => 'This event cannot be deleted because tickets have already been sold.']);
+        exit;
+    }
+
     // Soft delete the event (set deleted_at timestamp)
     $stmt = $pdo->prepare("UPDATE events SET deleted_at = NOW() WHERE id = ?");
     $stmt->execute([$event_id]);

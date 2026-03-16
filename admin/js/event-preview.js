@@ -123,6 +123,12 @@ async function previewEvent(eventId) {
                     </div>
                 </div>
                 ` : ''}
+
+                <div style="margin-top: 2rem; padding-top: 2rem; border-top: 1px solid #f1f5f9;">
+                    <button onclick="showTicketDesignPreview(${eventId})" style="width: 100%; padding: 1rem; background: #7c3aed; color: white; border: none; border-radius: 12px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; transition: all 0.2s;">
+                        🎟️ Preview Ticket Design
+                    </button>
+                </div>
             </div>
         </div>
     `;

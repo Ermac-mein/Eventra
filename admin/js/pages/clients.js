@@ -30,17 +30,37 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         clientsTableBody.innerHTML = clients.map(client => `
-            <tr data-id="${client.id}" data-profile-pic="${client.profile_pic || ''}">
+            <tr data-id="${client.id}">
                 <td>${client.id}</td>
-                <td><img src="${getProfileImg(client.profile_pic, client.name)}" style="width: 24px; height: 24px; border-radius: 50%; margin-right: 8px; vertical-align: middle;"> ${client.name}</td>
+                <td style="display: flex; align-items: center; gap: 12px; padding: 1.2rem 1rem;">
+                    <div class="avatar-wrapper">
+                        <img src="${getProfileImg(client.profile_pic, client.name)}" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 2px solid #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                        ${getVerificationBadge(client.verification_status)}
+                    </div>
+                    <span style="font-weight: 600; color: var(--admin-text-main);">${client.name}</span>
+                </td>
                 <td>${client.email}</td>
-                <td>${client.company || 'N/A'}</td>
+                <td>${client.nin || 'N/A'}</td>
+                <td>${client.dob || 'N/A'}</td>
+                <td style="text-transform: capitalize;">${client.gender || 'N/A'}</td>
+                <td style="max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${client.address || 'N/A'}">${client.address || 'N/A'}</td>
+                <td>${client.city || 'N/A'}</td>
+                <td>${client.country || 'N/A'}</td>
                 <td>${client.state || 'N/A'}</td>
+                <td>${client.job_title || 'N/A'}</td>
+                <td><code>${client.account_number || 'N/A'}</code></td>
+                <td>${client.account_name || 'N/A'}</td>
+                <td>${client.bank_name || 'N/A'}</td>
                 <td>${client.phone || 'N/A'}</td>
                 <td><span class="status-badge status-${client.verification_status === 'verified' ? 'active' : client.verification_status === 'rejected' ? 'offline' : 'ongoing'}">${client.verification_status || 'Pending'}</span></td>
-                <td><span class="status-badge status-${client.status === 'active' ? 'ongoing' : 'concluded'}">${client.status === 'active' ? 'Active' : 'Offline'}</span></td>
+                <td><span class="status-badge status-${client.status === 'active' ? 'active' : 'offline'}">${client.status === 'active' ? 'Active' : 'Offline'}</span></td>
             </tr>
         `).join('');
+
+        // Re-initialize Lucide icons for badges
+        if (window.lucide) {
+            window.lucide.createIcons();
+        }
 
         // Re-initialize previews for new rows
         if (window.initPreviews) {
@@ -93,12 +113,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     function updateStats(clients) {
-        if (statsValues.length < 4) return;
+        if (statsValues.length === 0) return;
 
-        statsValues[0].textContent = clients.length;
-        statsValues[1].textContent = clients.filter(c => c.status === 'active').length;
-        statsValues[2].textContent = clients.filter(c => c.status !== 'active').length;
-        statsValues[3].textContent = clients.reduce((acc, c) => acc + parseInt(c.event_count || 0), 0);
+        if (statsValues[0]) statsValues[0].textContent = clients.length;
+        if (statsValues[1]) statsValues[1].textContent = clients.filter(c => c.status === 'active').length;
+        if (statsValues[2]) statsValues[2].textContent = clients.reduce((acc, c) => acc + parseInt(c.event_count || 0), 0);
     }
 
     await loadClients();

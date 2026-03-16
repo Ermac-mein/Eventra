@@ -1,10 +1,10 @@
 <?php
 header('Content-Type: application/json');
 require_once '../../config/database.php';
-require_once '../../includes/middleware/admin-auth.php';
+require_once '../../includes/middleware/auth.php';
 
 // Check authentication
-$admin_id = adminMiddleware();
+$admin_id = checkAuth('admin');
 
 $client_id = $_GET['id'] ?? null;
 if (!$client_id) {
@@ -15,7 +15,7 @@ if (!$client_id) {
 try {
     // 1. Get Client Info
     $stmt = $pdo->prepare("
-        SELECT c.*, a.email
+        SELECT c.*, a.email, c.id as id
         FROM clients c
         JOIN auth_accounts a ON c.client_auth_id = a.id
         WHERE c.id = ? AND c.deleted_at IS NULL

@@ -122,22 +122,23 @@ async function loadUpcomingEvents(events) {
     }
 
     eventsList.innerHTML = events.map(event => `
-        <div class="event-feed-item" style="cursor: pointer; display: flex; gap: 15px; align-items: center;" onclick="window.location.href='events.html'">
-            <div style="width: 60px; height: 60px; border-radius: 8px; flex-shrink: 0; background: #f3f4f6; overflow: hidden; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; color: #9ca3af;">
+        <div class="event-feed-item summarized" style="cursor: pointer; display: flex; gap: 15px; align-items: center; padding: 1rem;" onclick="window.location.href='events.html?highlight=${event.id}'">
+            <div style="width: 50px; height: 50px; border-radius: 8px; flex-shrink: 0; background: #f3f4f6; overflow: hidden; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; color: #9ca3af;">
                 ${event.image_path ? `<img src="${event.image_path.startsWith('/') ? '../..' + event.image_path : '../../' + event.image_path}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.parentElement.innerHTML='📷'">` : '📷'}
             </div>
             <div class="event-feed-info" style="flex: 1;">
-                <div class="event-feed-title">${event.event_name} | 
-                    <span style="font-weight: 500; font-size: 0.9rem; color: var(--client-text-muted);">
+                <div class="event-feed-title" style="font-size: 0.95rem; margin-bottom: 2px;">${event.event_name}</div>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div style="font-weight: 500; font-size: 0.8rem; color: var(--client-text-muted);">
                         ${formatDate(event.event_date)}
-                    </span>
-                </div>
-                <div style="display: flex; gap: 10px; margin-top: 10px; font-size: 0.75rem;">
-                    <span class="status-badge status-${event.status.toLowerCase()}">
-                        ● ${event.status}
-                    </span>
-                    <span style="color: var(--client-text-muted);">${event.tickets_sold || 0} Tickets Sold</span>
-                    <span style="color: var(--card-green); font-weight: 600;">₦${parseFloat(event.revenue || 0).toLocaleString()} Revenue</span>
+                    </div>
+                    <div style="display: flex; gap: 8px; font-size: 0.7rem; align-items: center;">
+                        <span class="status-badge status-${event.status.toLowerCase()}" style="padding: 2px 6px; font-size: 0.65rem;">
+                            ${event.status}
+                        </span>
+                        <span style="color: var(--client-text-muted); font-weight: 600;">${event.tickets_sold || 0} Sold</span>
+                        ${event.tickets_sold > 0 ? '<span title="Event Locked" style="cursor:help;">🔒</span>' : ''}
+                    </div>
                 </div>
             </div>
         </div>

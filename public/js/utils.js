@@ -65,6 +65,36 @@ function getProfileImg(path, name = '') {
   return `${finalPath}${separator}t=${timestamp}`;
 }
 
+/**
+ * Get verification badge HTML
+ * @param {string} status - 'verified', 'pending', 'rejected'
+ * @returns {string} - Badge HTML
+ */
+function getVerificationBadge(status) {
+    if (!status) return '';
+    
+    let icon = 'clock';
+    let badgeClass = 'badge-pending';
+    let title = 'Pending Verification';
+
+    if (status === 'verified') {
+        icon = 'check';
+        badgeClass = 'badge-verified';
+        title = 'Verified';
+    } else if (status === 'rejected') {
+        icon = 'x';
+        badgeClass = 'badge-rejected';
+        title = 'Rejected';
+    }
+
+    return `
+        <div class="verification-badge ${badgeClass}" title="${title}">
+            <i data-lucide="${icon}"></i>
+        </div>
+    `;
+}
+
+
 // Global listener for profile updates to refresh all avatars on the page
 document.addEventListener('EventraProfileUpdated', (e) => {
     const { profile_pic, name } = e.detail;
