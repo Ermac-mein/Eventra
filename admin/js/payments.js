@@ -1,7 +1,6 @@
 /**
  * Payments Dashboard — Admin JS
- * Admin sees ALL payments across all users/events.
- * Reuses same rendering helpers as client, but with admin scope.
+ * Supports two views: Transactions and Refund Requests.
  */
 
 let _paymentsState = {
@@ -12,9 +11,25 @@ let _paymentsState = {
     status: '',
     search: '',
     totalPages: 1,
+    view: 'transactions', // 'transactions' | 'refunds'
 };
 
 document.addEventListener('DOMContentLoaded', async () => {
+    // Wire VIEW tabs
+    document.querySelectorAll('[data-view]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('[data-view]').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            _paymentsState.view = btn.dataset.view;
+            _paymentsState.page = 1;
+            _paymentsState.status = '';
+            document.querySelectorAll('[data-status]').forEach(b => b.classList.remove('active'));
+            const allStatus = document.querySelector('[data-status=""]');
+            if (allStatus) allStatus.classList.add('active');
+            loadPayments();
+        });
+    });
+
     // Wire search
     const search = document.getElementById('paymentSearch');
     if (search) {
@@ -64,7 +79,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 async function loadPayments() {
     const tbody = document.getElementById('paymentsTableBody');
-    if (tbody) tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:2rem;color:#94a3b8;">Loading...</td></tr>';
+    const colCount = 7;
+    if (tbody) tbody.innerHTML = `<tr><td colspan="${colCount}" style="text-align:center;padding:2.5rem;color:#94a3b8;">Loading...</td></tr>`;
+
+    if (_paymentsState.view === 'refunds') {
+        await loadRefundRequests();
+        return;
+    }
 
     const { page, limit, sort, dateRange, status, search } = _paymentsState;
     const params = new URLSearchParams({
@@ -79,49 +100,119 @@ async function loadPayments() {
         const data = await res.json();
 
         if (!data.success) {
-            if (tbody) tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:2rem;color:#ef4444;">${data.message}</td></tr>`;
+            if (tbody) tbody.innerHTML = `<tr><td colspan="${colCount}" style="text-align:center;padding:2rem;color:#ef4444;">${data.message}</td></tr>`;
             return;
         }
 
         _paymentsState.totalPages = data.pages || 1;
-        renderPaymentsTable(data.payments, true);
+        renderTransactionsTable(data.payments);
         renderPagination(data.total, data.page, data.limit, data.pages);
         computeStats(data.payments, data.total);
     } catch (err) {
         console.error('Payments load error', err);
-        if (tbody) tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:2rem;color:#ef4444;">Error loading payments.</td></tr>';
+        if (tbody) tbody.innerHTML = `<tr><td colspan="${colCount}" style="text-align:center;padding:2rem;color:#ef4444;">Error loading payments.</td></tr>`;
     }
 }
 
-function renderPaymentsTable(payments, isAdmin = false) {
+async function loadRefundRequests() {
+    const tbody = document.getElementById('paymentsTableBody');
+    const thead = document.getElementById('paymentsTableHead');
+
+    if (thead) thead.innerHTML = `<tr>
+        <th>DATE</th>
+        <th>EVENT</th>
+        <th>BUYER</th>
+        <th>AMOUNT</th>
+        <th>REASON</th>
+        <th>NOTE</th>
+        <th class="sortable">STATUS</th>
+    </tr>`;
+
+    try {
+        const res = await apiFetch(`../../api/payments/get-refund-requests.php`);
+        const data = await res.json();
+
+        if (!data.success || !data.requests.length) {
+            if (tbody) tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:2.5rem;color:#94a3b8;">No refund requests found.</td></tr>`;
+            return;
+        }
+
+        tbody.innerHTML = data.requests.map(r => {
+            const statusClass = r.status === 'approved' ? 'status-paid' : r.status === 'declined' ? 'status-failed' : 'status-pending';
+            const statusLabel = r.status === 'approved' ? '✓ Approved' : r.status === 'declined' ? '✗ Declined' : '⏳ Pending';
+            return `<tr>
+                <td>
+                    <div style="font-weight:600;font-size:.88rem;">${formatDate(r.created_at)}</div>
+                    <div style="font-size:.74rem;color:#94a3b8;">${new Date(r.created_at).toLocaleTimeString()}</div>
+                </td>
+                <td style="font-weight:600;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(r.event_name || '—')}</td>
+                <td>
+                    <div style="font-weight:600;font-size:.88rem;">${escapeHtml(r.user_name || '—')}</div>
+                    <div style="font-size:.74rem;color:#94a3b8;">${escapeHtml(r.user_email || '')}</div>
+                </td>
+                <td style="font-weight:700;">₦${parseFloat(r.amount || 0).toLocaleString()}</td>
+                <td style="font-size:.83rem;color:#475569;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escapeHtml(r.reason || '')}">${escapeHtml(r.reason || '—')}</td>
+                <td style="font-size:.83rem;color:#64748b;">${escapeHtml(r.organizer_note || '—')}</td>
+                <td><span class="status-badge ${statusClass}">${statusLabel}</span></td>
+            </tr>`;
+        }).join('');
+
+        const info = document.getElementById('paginationInfo');
+        if (info) info.textContent = `Showing ${data.total} refund request${data.total !== 1 ? 's' : ''}`;
+        const btns = document.getElementById('paginationBtns');
+        if (btns) btns.innerHTML = '';
+
+    } catch (err) {
+        console.error('Refunds load error', err);
+        if (tbody) tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:2rem;color:#ef4444;">Error loading refund requests.</td></tr>`;
+    }
+}
+
+function restoreTransactionHeaders() {
+    const thead = document.getElementById('paymentsTableHead');
+    if (thead) thead.innerHTML = `<tr>
+        <th class="sortable" onclick="changeSort('date_desc','date_asc')">DATE ↕</th>
+        <th>EVENT</th>
+        <th>ORGANIZER</th>
+        <th class="sortable" onclick="changeSort('amount_desc','amount_asc')">AMOUNT ↕</th>
+        <th>TICKETS</th>
+        <th>USER EMAIL</th>
+        <th class="sortable" onclick="changeSort('status','status')">STATUS ↕</th>
+    </tr>`;
+}
+
+function renderTransactionsTable(payments) {
+    restoreTransactionHeaders();
     const tbody = document.getElementById('paymentsTableBody');
     if (!tbody) return;
 
     if (!payments.length) {
-        tbody.innerHTML = `<tr><td colspan="${isAdmin ? 8 : 7}" style="text-align:center;padding:2rem;color:#94a3b8;">No payments found.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:2.5rem;color:#94a3b8;">No payments found.</td></tr>`;
         return;
     }
 
+    const statusIcons = { paid: '✓', pending: '⏳', failed: '✗', refunded: '↩' };
+
     tbody.innerHTML = payments.map(p => {
         const badgeClass = `status-${p.status}`;
+        const icon = statusIcons[p.status] || '';
         const amountDisplay = parseFloat(p.amount) === 0
             ? '<span style="color:#10b981;font-weight:700">Free</span>'
-            : `₦${parseFloat(p.amount).toLocaleString()}`;
+            : `<strong>₦${parseFloat(p.amount).toLocaleString()}</strong>`;
         const encoded = JSON.stringify(p).replace(/"/g, '&quot;');
 
         return `
-        <tr class="table-row-clickable" onclick="openDetailModal(${encoded})">
+        <tr onclick="openDetailModal(${encoded})">
             <td>
-                <div style="font-weight:600;font-size:.9rem;">${p.relative_time}</div>
-                <div style="font-size:.75rem;color:#94a3b8;">${new Date(p.created_at).toLocaleString()}</div>
+                <div style="font-weight:600;font-size:.88rem;">${p.relative_time}</div>
+                <div style="font-size:.74rem;color:#94a3b8;">${new Date(p.created_at).toLocaleString()}</div>
             </td>
             <td style="font-weight:600;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escapeHtml(p.event_name || '')}">${escapeHtml(p.event_name || '—')}</td>
-            <td><span style="font-size:0.85rem;color:#475569;font-weight:500;">${escapeHtml(p.client_name || '—')}</span></td>
-            <td>${escapeHtml(p.buyer_name || '—')}</td>
-            <td style="font-weight:700;">${amountDisplay}</td>
-            <td style="text-align:center;"><span style="background:#e0f2fe;color:#0369a1;padding:2px 10px;border-radius:20px;font-size:.8rem;font-weight:700;">${p.ticket_count || 0}</span></td>
-            <td><span style="font-size:0.85rem;color:#64748b;">${escapeHtml(p.buyer_email || '—')}</span></td>
-            <td><span class="status-badge ${badgeClass}">${ucfirst(p.status)}</span></td>
+            <td><span style="font-size:.85rem;color:#475569;font-weight:500;">${escapeHtml(p.client_name || '—')}</span></td>
+            <td>${amountDisplay}</td>
+            <td style="text-align:center;"><span class="ticket-badge">${p.ticket_count || 0}</span></td>
+            <td><span style="font-size:.83rem;color:#64748b;">${escapeHtml(p.buyer_email || '—')}</span></td>
+            <td><span class="status-badge ${badgeClass}">${icon} ${ucfirst(p.status)}</span></td>
         </tr>`;
     }).join('');
 }
@@ -173,6 +264,8 @@ function openDetailModal(payment) {
     if (!modal || !content) return;
 
     const badgeClass = `status-${payment.status}`;
+    const statusIcons = { paid: '✓', pending: '⏳', failed: '✗', refunded: '↩' };
+    const icon = statusIcons[payment.status] || '';
     const amountDisplay = parseFloat(payment.amount) === 0
         ? '<span style="color:#10b981;font-weight:700">Free</span>'
         : `<strong>₦${parseFloat(payment.amount).toLocaleString()}</strong>`;
@@ -182,19 +275,19 @@ function openDetailModal(payment) {
 
     content.innerHTML = `
         <div style="text-align:center;margin-bottom:1.5rem;">
-            <div style="width: 100px; height: 100px; border-radius: 16px; background: ${backgroundImage}; background-size: cover; background-position: center; margin: 0 auto 1rem; box-shadow: 0 4px 12px rgba(0,0,0,0.1);"></div>
-            <h3 style="font-size:1.25rem;font-weight:700;color:#1e293b;margin:0 0 0.5rem;">${escapeHtml(payment.event_name || '—')}</h3>
-            <p style="font-size:0.9rem;color:#64748b;margin:0 0 1rem;">Organized by: <span style="font-weight:600;color:#1e293b;">${escapeHtml(payment.client_name || '—')}</span></p>
-            <span class="status-badge ${badgeClass}" style="font-size:1rem;padding:.4rem 1.2rem;">${ucfirst(payment.status)}</span>
+            <div style="width:100px;height:100px;border-radius:16px;background:${backgroundImage};background-size:cover;background-position:center;margin:0 auto 1rem;box-shadow:0 4px 12px rgba(0,0,0,0.1);"></div>
+            <h3 style="font-size:1.2rem;font-weight:700;color:#1e293b;margin:0 0 .4rem;">${escapeHtml(payment.event_name || '—')}</h3>
+            <p style="font-size:.875rem;color:#64748b;margin:0 0 1rem;">by <strong style="color:#1e293b;">${escapeHtml(payment.client_name || '—')}</strong></p>
+            <span class="status-badge ${badgeClass}" style="font-size:.9rem;padding:.35rem 1.2rem;">${icon} ${ucfirst(payment.status)}</span>
         </div>
-        <div class="detail-row"><span class="detail-label">Reference</span><span class="detail-value" style="font-family:monospace;font-size:.85rem">${payment.reference || '—'}</span></div>
+        <div class="detail-row"><span class="detail-label">Reference</span><span class="detail-value" style="font-family:monospace;font-size:.83rem">${payment.reference || '—'}</span></div>
         <div class="detail-row"><span class="detail-label">Amount</span><span class="detail-value">${amountDisplay}</span></div>
         <div class="detail-row"><span class="detail-label">Tickets</span><span class="detail-value">${payment.ticket_count || 0} ticket(s)</span></div>
         <div class="detail-row"><span class="detail-label">Buyer</span><span class="detail-value">${escapeHtml(payment.buyer_name || '—')}</span></div>
         <div class="detail-row"><span class="detail-label">Email</span><span class="detail-value">${escapeHtml(payment.buyer_email || '—')}</span></div>
         <div class="detail-row"><span class="detail-label">Created</span><span class="detail-value">${new Date(payment.created_at).toLocaleString()}</span></div>
         ${payment.paid_at ? `<div class="detail-row"><span class="detail-label">Paid At</span><span class="detail-value">${new Date(payment.paid_at).toLocaleString()}</span></div>` : ''}
-        ${payment.ticket_barcodes ? `<div class="detail-row"><span class="detail-label">Barcodes</span><span class="detail-value" style="font-family:monospace;font-size:.8rem;word-break:break-all">${payment.ticket_barcodes}</span></div>` : ''}
+        ${payment.ticket_barcodes ? `<div class="detail-row"><span class="detail-label">Barcodes</span><span class="detail-value" style="font-family:monospace;font-size:.78rem;word-break:break-all">${payment.ticket_barcodes}</span></div>` : ''}
     `;
 
     modal.classList.add('open');
@@ -218,7 +311,7 @@ function changeSort(desc, asc) {
     loadPayments();
 }
 
-function toggleExportMenu(btn) {
+function toggleExportMenu() {
     const menu = document.getElementById('exportMenu');
     if (menu) menu.classList.toggle('open');
     document.addEventListener('click', function close(e) {
@@ -232,6 +325,10 @@ function exportPayments(format) {
     const { sort, dateRange, status, search } = _paymentsState;
     const params = new URLSearchParams({ format, sort, date_range: dateRange, ...(status && { status }), ...(search && { search }) });
     window.open(`../../api/payments/export-payments.php?${params}`, '_blank');
+}
+
+function formatDate(dateStr) {
+    return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' });
 }
 
 function escapeHtml(str) {

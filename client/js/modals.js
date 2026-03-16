@@ -881,52 +881,53 @@ async function handleEventUpdate(e) {
 
 // Ticket Preview Modal
 function showTicketPreviewModal(ticket) {
+    const imgSrc = ticket.event_image
+        ? (ticket.event_image.startsWith('http') ? ticket.event_image : '../../' + ticket.event_image)
+        : null;
+    const heroBg = imgSrc ? `url(${imgSrc})` : 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)';
+    const price = parseFloat(ticket.price || ticket.total_price || 0) === 0
+        ? 'Free'
+        : `₦${parseFloat(ticket.price || ticket.total_price || 0).toLocaleString()}`;
+    const statusColor = (ticket.status === 'confirmed' || ticket.status === 'paid' || ticket.status === 'active') ? '#10b981' : '#ef4444';
+
     const modalContent = `
         <div id="ticketPreviewModal" class="modal-backdrop active" role="dialog" aria-modal="true" aria-hidden="false">
-            <div class="modal-content" style="max-width: 600px;">
-                <div class="modal-header">
-                    <h2>Ticket Details</h2>
-                    <button class="modal-close" onclick="closeTicketPreviewModal()">×</button>
+            <div class="modal-content" style="max-width: 520px; padding:0; border-radius:20px; overflow:hidden;">
+                <!-- Event Image Hero -->
+                <div style="height:180px; background:${heroBg}; background-size:cover; background-position:center; position:relative;">
+                    <button class="modal-close" onclick="closeTicketPreviewModal()" style="position:absolute;top:1rem;right:1rem;background:rgba(0,0,0,.4);border:none;color:white;width:34px;height:34px;border-radius:50%;font-size:1.3rem;cursor:pointer;display:flex;align-items:center;justify-content:center;">&times;</button>
+                    <div style="position:absolute;bottom:1rem;left:1.5rem;">
+                        <div style="font-size:.68rem;font-weight:700;color:rgba(255,255,255,.7);text-transform:uppercase;letter-spacing:.07em;margin-bottom:3px;">Event</div>
+                        <div style="font-size:1.2rem;font-weight:800;color:white;text-shadow:0 2px 8px rgba(0,0,0,.45);">${ticket.event_name || 'N/A'}</div>
+                    </div>
                 </div>
-                <div class="modal-body" style="padding: 0;">
-                    <!-- User Profile Image for Ticket Preview -->
-                    <div style="width: 100%; height: 200px; overflow: hidden; border-radius: 12px 12px 0 0;">
-                        <img src="${(storage.get('client_user') || storage.get('user') || {}).profile_pic || 'https://ui-avatars.com/api/?name=' + encodeURIComponent((storage.get('client_user') || storage.get('user') || {}).name || 'User')}" 
-                             style="width: 100%; height: 100%; object-fit: cover;">
-                    </div>
-                    <div style="display: grid; gap: 1.5rem; padding: 1.5rem;">
+                <!-- Details -->
+                <div style="padding:1.5rem; display:grid; gap:1rem;">
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
                         <div>
-                            <div style="font-size: 0.85rem; color: #666; margin-bottom: 0.25rem;">🎫 Ticket ID</div>
-                            <div style="font-weight: 600;">${ticket.id}</div>
+                            <div style="font-size:.78rem; color:#666; margin-bottom:.2rem;">🎫 Ticket ID</div>
+                            <div style="font-weight:600;">${ticket.id}</div>
                         </div>
                         <div>
-                            <div style="font-size: 0.85rem; color: #666; margin-bottom: 0.25rem;">📅 Event Name</div>
-                            <div style="font-weight: 600;">${ticket.event_name || 'N/A'}</div>
+                            <div style="font-size:.78rem; color:#666; margin-bottom:.2rem;">👤 Buyer</div>
+                            <div style="font-weight:600;">${ticket.buyer_name || ticket.user_name || 'N/A'}</div>
                         </div>
                         <div>
-                            <div style="font-size: 0.85rem; color: #666; margin-bottom: 0.25rem;">👤 Buyer</div>
-                            <div style="font-weight: 600;">${ticket.buyer_name || 'N/A'}</div>
+                            <div style="font-size:.78rem; color:#666; margin-bottom:.2rem;">💰 Price</div>
+                            <div style="font-weight:600;">${price}</div>
                         </div>
                         <div>
-                            <div style="font-size: 0.85rem; color: #666; margin-bottom: 0.25rem;">💰 Price</div>
-                            <div style="font-weight: 600;">${parseFloat(ticket.price || 0) === 0 ? 'Free' : '₦' + parseFloat(ticket.price || 0).toLocaleString()}</div>
+                            <div style="font-size:.78rem; color:#666; margin-bottom:.2rem;">📆 Purchase Date</div>
+                            <div style="font-weight:600;">${ticket.purchase_date || ticket.created_at || 'N/A'}</div>
                         </div>
-                        <div>
-                            <div style="font-size: 0.85rem; color: #666; margin-bottom: 0.25rem;">📆 Purchase Date</div>
-                            <div style="font-weight: 600;">${ticket.purchase_date || 'N/A'}</div>
-                        </div>
-                        <div>
-                            <div style="font-size: 0.85rem; color: #666; margin-bottom: 0.25rem;">📊 Status</div>
-                            <div style="font-weight: 600; color: ${ticket.status === 'confirmed' ? '#10b981' : '#ef4444'};">
-                                ${ticket.status ? ticket.status.toUpperCase() : 'N/A'}
-                            </div>
+                        <div style="grid-column:1/-1;">
+                            <div style="font-size:.78rem; color:#666; margin-bottom:.2rem;">📊 Status</div>
+                            <div style="font-weight:700; color:${statusColor};">${ticket.status ? ticket.status.toUpperCase() : 'N/A'}</div>
                         </div>
                     </div>
-                    <div style="margin-top: 2rem;">
-                        <button onclick="closeTicketPreviewModal()" class="btn btn-secondary" style="width: 100%;">
-                            Close
-                        </button>
-                    </div>
+                    <button onclick="closeTicketPreviewModal()" class="btn btn-secondary" style="width:100%; margin-top:.5rem;">
+                        Close
+                    </button>
                 </div>
             </div>
         </div>

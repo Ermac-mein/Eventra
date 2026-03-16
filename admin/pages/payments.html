@@ -15,40 +15,65 @@
     <link rel="icon" type="image/x-icon" href="/public/favicon.ico">
 
     <style>
-        .payments-toolbar { display:flex; align-items:center; gap:.8rem; flex-wrap:wrap; margin-bottom:1.25rem; }
+        /* ── Filter Bar ─────────────────────────────────── */
+        .pmt-filter-block { background:#fff; border:1px solid #e8edf3; border-radius:14px; padding:1rem 1.25rem; margin-bottom:1rem; display:flex; align-items:center; gap:.6rem; flex-wrap:wrap; }
+        .pmt-filter-label { font-size:.72rem; font-weight:700; color:#94a3b8; text-transform:uppercase; letter-spacing:.07em; margin-right:.25rem; white-space:nowrap; }
+        .pmt-tab { padding:.32rem .9rem; border-radius:20px; font-size:.8rem; font-weight:600; border:1.5px solid #e2e8f0; background:white; cursor:pointer; transition:all .18s; color:#64748b; display:inline-flex; align-items:center; gap:.4rem; }
+        .pmt-tab.active { background:#6366f1; color:#fff; border-color:#6366f1; }
+        .pmt-tab:not(.active):hover { border-color:#6366f1; color:#6366f1; }
+
+        /* ── Search & Sort ──────────────────────────────── */
         .search-box { flex:1; min-width:200px; position:relative; }
-        .search-box input { width:100%; padding:.65rem 1rem .65rem 2.5rem; border:1.5px solid #e2e8f0; border-radius:10px; font-size:.9rem; background:white; outline:none; transition:border-color .2s; }
+        .search-box input { width:100%; padding:.62rem 1rem .62rem 2.4rem; border:1.5px solid #e2e8f0; border-radius:10px; font-size:.88rem; background:white; outline:none; transition:border-color .2s; }
         .search-box input:focus { border-color:#6366f1; }
-        .search-box i { position:absolute; left:.75rem; top:50%; transform:translateY(-50%); color:#94a3b8; width:16px; height:16px; }
-        .filter-tab { padding:.4rem .9rem; border-radius:20px; font-size:.82rem; font-weight:600; border:1.5px solid #e2e8f0; background:white; cursor:pointer; transition:all .2s; color:#64748b; }
-        .filter-tab.active, .filter-tab:hover { background:#6366f1; color:white; border-color:#6366f1; }
-        .sort-select { padding:.6rem .85rem; border:1.5px solid #e2e8f0; border-radius:10px; font-size:.85rem; cursor:pointer; outline:none; background:white; color:#374151; }
-        .status-badge { display:inline-flex; align-items:center; padding:.25rem .75rem; border-radius:20px; font-size:.78rem; font-weight:700; text-transform:capitalize; }
-        .status-paid { background:#dcfce7; color:#16a34a; }
+        .search-box i { position:absolute; left:.75rem; top:50%; transform:translateY(-50%); color:#94a3b8; width:15px; height:15px; }
+        .sort-select { padding:.58rem .85rem; border:1.5px solid #e2e8f0; border-radius:10px; font-size:.84rem; cursor:pointer; outline:none; background:white; color:#374151; }
+
+        /* ── Status badges ─────────────────────────────── */
+        .status-badge { display:inline-flex; align-items:center; gap:.3rem; padding:.25rem .75rem; border-radius:20px; font-size:.76rem; font-weight:700; text-transform:capitalize; }
+        .status-paid    { background:#dcfce7; color:#16a34a; }
         .status-pending { background:#fef9c3; color:#a16207; }
-        .status-failed { background:#fee2e2; color:#dc2626; }
-        .status-refunded { background:#e0f2fe; color:#0369a1; }
+        .status-failed  { background:#fee2e2; color:#dc2626; }
+        .status-refunded{ background:#e0f2fe; color:#0369a1; }
+
+        /* ── Table ─────────────────────────────────────── */
+        .pmt-table-wrap { overflow-x:auto; }
+        .pmt-table { width:100%; border-collapse:collapse; min-width:820px; }
+        .pmt-table thead th { padding:.7rem 1rem; font-size:.72rem; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:#94a3b8; text-align:left; border-bottom:1.5px solid #f1f5f9; white-space:nowrap; }
+        .pmt-table thead th.sortable { cursor:pointer; user-select:none; }
+        .pmt-table thead th.sortable:hover { color:#6366f1; }
+        .pmt-table tbody tr { border-bottom:1px solid #f8fafc; transition:background .15s; cursor:pointer; }
+        .pmt-table tbody tr:last-child { border-bottom:none; }
+        .pmt-table tbody tr:hover td { background:#fafbff; }
+        .pmt-table tbody td { padding:.85rem 1rem; vertical-align:middle; }
+
+        /* ── Ticket badge ───────────────────────────────── */
+        .ticket-badge { display:inline-flex; align-items:center; justify-content:center; width:26px; height:26px; border-radius:50%; background:#e0f2fe; color:#0369a1; font-size:.78rem; font-weight:700; }
+
+        /* ── Pagination ─────────────────────────────────── */
+        .pagination-bar { display:flex; align-items:center; justify-content:space-between; margin-top:1.2rem; flex-wrap:wrap; gap:.75rem; }
+        .pagination-info { font-size:.82rem; color:#64748b; }
+        .pagination-btns { display:flex; gap:.35rem; align-items:center; }
+        .page-btn { padding:.38rem .8rem; border-radius:8px; border:1.5px solid #e2e8f0; background:white; cursor:pointer; font-weight:600; font-size:.82rem; transition:all .18s; }
+        .page-btn:hover, .page-btn.active { background:#6366f1; color:white; border-color:#6366f1; }
+        .page-btn:disabled { opacity:.35; cursor:not-allowed; }
+
+        /* ── Detail Modal ─────────────────────────────── */
+        .payment-detail-modal { position:fixed; inset:0; background:rgba(0,0,0,.45); display:none; align-items:center; justify-content:center; z-index:9000; backdrop-filter:blur(4px); padding:1rem; }
+        .payment-detail-modal.open { display:flex; }
+        .detail-card { background:white; border-radius:20px; padding:2rem; max-width:560px; width:100%; max-height:90vh; overflow-y:auto; box-shadow:0 25px 50px rgba(0,0,0,.2); animation:slideUp .3s ease-out; }
+        @keyframes slideUp { from{opacity:0;transform:translateY(30px)} to{opacity:1;transform:translateY(0)} }
+        .detail-row { display:flex; justify-content:space-between; align-items:flex-start; padding:.72rem 0; border-bottom:1px solid #f1f5f9; gap:1rem; }
+        .detail-row:last-child { border-bottom:none; }
+        .detail-label { font-size:.8rem; color:#94a3b8; font-weight:600; text-transform:uppercase; letter-spacing:.04em; }
+        .detail-value { font-size:.93rem; color:#1e293b; font-weight:600; text-align:right; }
+
+        /* ── Export ─────────────────────────────────────── */
         .export-dropdown { position:relative; }
         .export-menu { display:none; position:absolute; right:0; top:110%; background:white; border:1.5px solid #e2e8f0; border-radius:12px; padding:.5rem; min-width:160px; box-shadow:0 8px 20px rgba(0,0,0,.1); z-index:200; }
         .export-menu.open { display:block; }
         .export-menu button { display:flex; align-items:center; gap:.5rem; width:100%; padding:.6rem 1rem; border:none; background:none; cursor:pointer; font-size:.875rem; color:#374151; border-radius:8px; font-weight:500; transition:background .15s; }
         .export-menu button:hover { background:#f1f5f9; }
-        .table-row-clickable { cursor:pointer; }
-        .table-row-clickable:hover td { background:#f8fafc; }
-        .payment-detail-modal { position:fixed; inset:0; background:rgba(0,0,0,.5); display:none; align-items:center; justify-content:center; z-index:9000; backdrop-filter:blur(4px); padding:1rem; }
-        .payment-detail-modal.open { display:flex; }
-        .detail-card { background:white; border-radius:20px; padding:2rem; max-width:560px; width:100%; max-height:90vh; overflow-y:auto; box-shadow:0 25px 50px rgba(0,0,0,.2); animation:slideUp .3s ease-out; }
-        @keyframes slideUp { from{opacity:0;transform:translateY(30px)} to{opacity:1;transform:translateY(0)} }
-        .detail-row { display:flex; justify-content:space-between; align-items:flex-start; padding:.75rem 0; border-bottom:1px solid #f1f5f9; gap:1rem; }
-        .detail-row:last-child { border-bottom:none; }
-        .detail-label { font-size:.82rem; color:#94a3b8; font-weight:600; text-transform:uppercase; letter-spacing:.04em; }
-        .detail-value { font-size:.95rem; color:#1e293b; font-weight:600; text-align:right; }
-        .pagination-bar { display:flex; align-items:center; justify-content:space-between; margin-top:1.5rem; flex-wrap:wrap; gap:.75rem; }
-        .pagination-info { font-size:.85rem; color:#64748b; }
-        .pagination-btns { display:flex; gap:.4rem; }
-        .page-btn { padding:.45rem .875rem; border-radius:8px; border:1.5px solid #e2e8f0; background:white; cursor:pointer; font-weight:600; font-size:.85rem; transition:all .2s; }
-        .page-btn:hover, .page-btn.active { background:#6366f1; color:white; border-color:#6366f1; }
-        .page-btn:disabled { opacity:.4; cursor:not-allowed; }
     </style>
 </head>
 <body>
@@ -100,60 +125,53 @@
                 <div class="stat-card"><div class="stat-label">Failed</div><div class="stat-value" style="color:#ef4444" id="statFailed">—</div></div>
             </div>
 
-            <div class="table-container">
-                <!-- Toolbar -->
-                <div class="payments-toolbar">
-                    <div class="search-box">
-                        <i data-lucide="search"></i>
-                        <input type="text" id="paymentSearch" placeholder="Reference, event, status...">
-                    </div>
-                    <div style="display:flex;gap:.4rem;flex-wrap:wrap;">
-                        <button class="filter-tab active" data-range="all">All Time</button>
-                        <button class="filter-tab" data-range="today">Today</button>
-                        <button class="filter-tab" data-range="7days">7 Days</button>
-                        <button class="filter-tab" data-range="30days">30 Days</button>
-                    </div>
-                    <select class="sort-select" id="sortSelect">
-                        <option value="date_desc">Newest First</option>
-                        <option value="date_asc">Oldest First</option>
-                        <option value="amount_desc">Amount ↑</option>
-                        <option value="amount_asc">Amount ↓</option>
-                        <option value="status">Status</option>
-                    </select>
-                    <div class="export-dropdown">
-                        <div class="export-menu" id="exportMenu">
-                            <button onclick="exportPayments('csv')">📄 Export CSV</button>
-                            <button onclick="exportPayments('excel')">📊 Export Excel</button>
-                            <button onclick="exportPayments('pdf')">🖨️ Export PDF</button>
-                        </div>
-                    </div>
+            <div class="table-container" style="padding:1.5rem;">
+                <!-- Row 1: VIEW -->
+                <div class="pmt-filter-block">
+                    <span class="pmt-filter-label">VIEW</span>
+                    <button class="pmt-tab active" data-view="transactions" id="viewTransactions">
+                        <i data-lucide="credit-card" style="width:13px;height:13px;"></i> Transactions
+                    </button>
+                    <button class="pmt-tab" data-view="refunds" id="viewRefunds">
+                        <i data-lucide="refresh-ccw" style="width:13px;height:13px;"></i> Refund Requests
+                    </button>
                 </div>
 
-                <!-- Status filters -->
-                <div style="margin-bottom:1rem;display:flex;gap:.4rem;flex-wrap:wrap;">
-                    <button class="filter-tab active" data-status="">All Status</button>
-                    <button class="filter-tab" data-status="paid">✓ Paid</button>
-                    <button class="filter-tab" data-status="pending">⏳ Pending</button>
-                    <button class="filter-tab" data-status="failed">✗ Failed</button>
-                    <button class="filter-tab" data-status="refunded">↩ Refunded</button>
+                <!-- Row 2: TIME PERIOD -->
+                <div class="pmt-filter-block">
+                    <span class="pmt-filter-label">TIME PERIOD</span>
+                    <button class="pmt-tab active" data-range="all">All Time</button>
+                    <button class="pmt-tab" data-range="today">Today</button>
+                    <button class="pmt-tab" data-range="7days">7 Days</button>
+                    <button class="pmt-tab" data-range="30days">30 Days</button>
                 </div>
 
-                <div style="overflow-x:auto;">
-                    <table class="data-table" style="min-width:800px;">
-                        <thead>
+                <!-- Row 3: STATUS -->
+                <div class="pmt-filter-block" style="margin-bottom:1.25rem;">
+                    <span class="pmt-filter-label">STATUS</span>
+                    <button class="pmt-tab active" data-status="">All Status</button>
+                    <button class="pmt-tab" data-status="paid">✓ Paid</button>
+                    <button class="pmt-tab" data-status="pending">⏳ Pending</button>
+                    <button class="pmt-tab" data-status="failed">✗ Failed</button>
+                    <button class="pmt-tab" data-status="refunded">↩ Refunded</button>
+                </div>
+
+                <!-- Table -->
+                <div class="pmt-table-wrap">
+                    <table class="pmt-table" id="paymentsTable">
+                        <thead id="paymentsTableHead">
                             <tr>
-                                <th style="cursor:pointer;" onclick="changeSort('date_desc','date_asc')">Date ↕</th>
-                                <th>Event</th>
-                                <th>Organizer</th>
-                                <th>Buyer</th>
-                                <th style="cursor:pointer;" onclick="changeSort('amount_desc','amount_asc')">Amount ↕</th>
-                                <th>Tickets</th>
-                                <th>User Email</th>
-                                <th style="cursor:pointer;" onclick="changeSort('status','status')">Status ↕</th>
+                                <th class="sortable" onclick="changeSort('date_desc','date_asc')">DATE ↕</th>
+                                <th>EVENT</th>
+                                <th>ORGANIZER</th>
+                                <th class="sortable" onclick="changeSort('amount_desc','amount_asc')">AMOUNT ↕</th>
+                                <th>TICKETS</th>
+                                <th>USER EMAIL</th>
+                                <th class="sortable" onclick="changeSort('status','status')">STATUS ↕</th>
                             </tr>
                         </thead>
                         <tbody id="paymentsTableBody">
-                            <tr><td colspan="8" style="text-align:center;padding:2rem;color:#94a3b8;">Loading payments...</td></tr>
+                            <tr><td colspan="7" style="text-align:center;padding:2.5rem;color:#94a3b8;">Loading payments...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -165,6 +183,7 @@
             </div>
         </main>
     </div>
+
 
     <!-- Payment Detail Modal -->
     <div class="payment-detail-modal" id="paymentDetailModal">

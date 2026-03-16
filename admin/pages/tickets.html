@@ -88,6 +88,46 @@
         </header>
 
         <main class="content-area">
+
+            <style>
+                /* ── Ticket Filter ──────────────────────────── */
+                .tkt-filter-block { background:#fff; border:1px solid #e8edf3; border-radius:14px; padding:.85rem 1.25rem; margin-bottom:.85rem; display:flex; align-items:center; gap:.6rem; flex-wrap:wrap; }
+                .tkt-filter-label { font-size:.72rem; font-weight:700; color:#94a3b8; text-transform:uppercase; letter-spacing:.07em; margin-right:.3rem; white-space:nowrap; }
+                .tkt-tab { padding:.3rem .85rem; border-radius:20px; font-size:.8rem; font-weight:600; border:1.5px solid #e2e8f0; background:white; cursor:pointer; transition:all .18s; color:#64748b; }
+                .tkt-tab.active { background:#6366f1; color:#fff; border-color:#6366f1; }
+                .tkt-tab:not(.active):hover { border-color:#6366f1; color:#6366f1; }
+                .tkt-search { flex:1; max-width:280px; min-width:140px; position:relative; }
+                .tkt-search input { width:100%; padding:.58rem 1rem .58rem 2.3rem; border:1.5px solid #e2e8f0; border-radius:10px; font-size:.87rem; background:white; outline:none; transition:border-color .2s; }
+                .tkt-search input:focus { border-color:#6366f1; }
+                .tkt-search i { position:absolute; left:.7rem; top:50%; transform:translateY(-50%); color:#94a3b8; width:14px; height:14px; }
+
+                /* ── Tickets Table ──────────────────────────── */
+                .tkt-table-wrap { overflow-x:auto; }
+                .tkt-table { width:100%; border-collapse:collapse; min-width:860px; }
+                .tkt-table thead th { padding:.65rem 1rem; font-size:.72rem; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:#94a3b8; text-align:left; border-bottom:1.5px solid #f1f5f9; white-space:nowrap; cursor:pointer; }
+                .tkt-table thead th:hover { color:#6366f1; }
+                .tkt-table tbody tr { border-bottom:1px solid #f8fafc; transition:background .15s; cursor:pointer; }
+                .tkt-table tbody tr:last-child { border-bottom:none; }
+                .tkt-table tbody tr:hover td { background:#fafbff; }
+                .tkt-table tbody td { padding:.85rem 1rem; vertical-align:middle; font-size:.88rem; }
+                .tkt-event-img { width:38px; height:38px; border-radius:8px; object-fit:cover; border:1.5px solid #e2e8f0; background:#f1f5f9; display:inline-block; vertical-align:middle; }
+                .tkt-event-name { font-weight:600; color:#1e293b; max-width:150px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; display:inline-block; vertical-align:middle; margin-left:.5rem; }
+
+                /* ── Status badges ──────────────────────────── */
+                .tkt-badge { display:inline-flex; align-items:center; gap:.3rem; padding:.25rem .75rem; border-radius:20px; font-size:.76rem; font-weight:700; }
+                .tkt-active   { background:#dcfce7; color:#16a34a; }
+                .tkt-used     { background:#e0f2fe; color:#0369a1; }
+                .tkt-cancelled{ background:#fee2e2; color:#dc2626; }
+
+                /* ── Pagination ─────────────────────────────── */
+                .tkt-pag-bar { display:flex; align-items:center; justify-content:space-between; margin-top:1.2rem; flex-wrap:wrap; gap:.75rem; }
+                .tkt-pag-info { font-size:.82rem; color:#64748b; }
+                .tkt-pag-btns { display:flex; gap:.35rem; }
+                .tkt-page-btn { padding:.38rem .8rem; border-radius:8px; border:1.5px solid #e2e8f0; background:white; cursor:pointer; font-weight:600; font-size:.82rem; transition:all .18s; }
+                .tkt-page-btn:hover, .tkt-page-btn.active { background:#6366f1; color:white; border-color:#6366f1; }
+                .tkt-page-btn:disabled { opacity:.35; cursor:not-allowed; }
+            </style>
+
             <div class="page-header">
                 <div class="page-title">
                     <h1 style="font-size: 1.75rem; font-weight: 800;">Tickets Management</h1>
@@ -96,67 +136,52 @@
 
             <div class="stats-grid">
                 <div class="stat-card">
-                    <div class="stat-header">
-                        <span class="stat-label">Ticket Issues</span>
-                        <i data-lucide="ticket" class="stat-icon"></i>
-                    </div>
+                    <div class="stat-header"><span class="stat-label">Tickets Sold</span><i data-lucide="ticket" class="stat-icon"></i></div>
                     <span class="stat-value" id="ticketsIssued">0</span>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-header">
-                        <span class="stat-label">Ticket Scanned</span>
-                        <i data-lucide="scan" class="stat-icon"></i>
-                    </div>
+                    <div class="stat-header"><span class="stat-label">Tickets Scanned</span><i data-lucide="scan" class="stat-icon"></i></div>
                     <span class="stat-value" id="ticketsScanned">0</span>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-header">
-                        <span class="stat-label">Ticket Remaining</span>
-                        <i data-lucide="clock" class="stat-icon"></i>
-                    </div>
+                    <div class="stat-header"><span class="stat-label">Tickets Remaining</span><i data-lucide="clock" class="stat-icon"></i></div>
                     <span class="stat-value" id="ticketsRemaining">0</span>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-header">
-                        <span class="stat-label">Ticket Cancelled</span>
-                        <i data-lucide="x-circle" class="stat-icon"></i>
-                    </div>
+                    <div class="stat-header"><span class="stat-label">Tickets Cancelled</span><i data-lucide="x-circle" class="stat-icon"></i></div>
                     <span class="stat-value" id="ticketsCancelled">0</span>
                 </div>
             </div>
 
-            <div class="table-container" style="padding: 2rem; border-radius: 16px;">
-                <div class="table-header" style="margin-bottom: 1.5rem; padding: 0; border: none; display: flex; justify-content: space-between; align-items: center;">
-                    <h3 style="font-size: 1.25rem; font-weight: 700;">All Tickets</h3>
+            <div class="table-container" style="padding:1.5rem;margin-top:1.5rem;">
+                <!-- Row 1: FILTER BY STATUS + SEARCH -->
+                <!-- Table -->
+                <div class="tkt-table-wrap">
+                    <table class="tkt-table" id="ticketsTable">
+                        <thead>
+                            <tr>
+                                <th onclick="sortTicketsTable('ticket_code')">TICKET CODE ↕</th>
+                                <th onclick="sortTicketsTable('event_name')">EVENT</th>
+                                <th onclick="sortTicketsTable('user_name')">BUYER</th>
+                                <th onclick="sortTicketsTable('total_price')">PRICE ↕</th>
+                                <th onclick="sortTicketsTable('category')">CATEGORY</th>
+                                <th onclick="sortTicketsTable('created_at')">DATE ↕</th>
+                                <th onclick="sortTicketsTable('status')">STATUS ↕</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ticketsTableBody">
+                            <tr><td colspan="7" style="text-align:center;padding:2.5rem;color:#94a3b8;">Loading tickets...</td></tr>
+                        </tbody>
+                    </table>
                 </div>
-                <table style="width: 100%; border-collapse: separate; border-spacing: 0 10px;">
-                    <thead>
-                        <tr>
-                            <th class="sortable" data-sort="ticket_code" style="border-bottom: 2px solid #f1f5f9;">Serial.NO</th>
-                            <th class="sortable" data-sort="event_name" style="border-bottom: 2px solid #f1f5f9;">Event Name</th>
-                            <th class="sortable" data-sort="total_price" style="border-bottom: 2px solid #f1f5f9;">Price</th>
-                            <th class="sortable" data-sort="user_name" style="border-bottom: 2px solid #f1f5f9;">Attendees</th>
-                            <th class="sortable" data-sort="category" style="border-bottom: 2px solid #f1f5f9;">Category</th>
-                            <th class="sortable" data-sort="status" style="border-bottom: 2px solid #f1f5f9;">Status</th>
-                        </tr>
-                    </thead>
-                    <tbody id="ticketsTableBody">
-                        <tr>
-                            <td colspan="6" style="text-align: center; padding: 3rem; color: var(--admin-text-muted);">Loading tickets...</td>
-                        </tr>
-                    </tbody>
-                </table>
-                <div class="pagination" style="margin-top: 2rem; border-top: 1px solid #f1f5f9; padding-top: 1.5rem;">
-                    <span>Rows per page:</span>
-                    <select style="padding: 0.4rem; border-radius: 8px; border: 1px solid var(--admin-border);"><option>10</option></select>
-                    <span id="paginationInfo">1 - 10 of 0</span>
-                    <div style="display: flex; gap: 10px;">
-                        <button class="btn btn-secondary" style="background: #f1f5f9; padding: 0.5rem;"><i data-lucide="chevron-left"></i></button>
-                        <button class="btn btn-secondary" style="background: #f1f5f9; padding: 0.5rem;"><i data-lucide="chevron-right"></i></button>
-                    </div>
+
+                <div class="tkt-pag-bar">
+                    <span class="tkt-pag-info" id="tktPagInfo">Showing 0 tickets</span>
+                    <div class="tkt-pag-btns" id="tktPagBtns"></div>
                 </div>
             </div>
         </main>
+
 
         <footer style="padding: 3rem; border-top: 1px solid var(--admin-border); background: #fff; margin-top: auto;">
             <div style="max-width: 1400px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; font-size: 0.9rem; color: var(--admin-text-muted);">

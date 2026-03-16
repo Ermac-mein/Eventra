@@ -29,6 +29,7 @@ try {
             t.used, 
             t.created_at as purchase_date,
             e.event_name,
+            e.image_path as event_image,
             u.name as buyer_name,
             p.amount as price,
             p.status,
