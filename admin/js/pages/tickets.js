@@ -31,53 +31,47 @@ document.addEventListener('DOMContentLoaded', async () => {
             debounce = setTimeout(() => { _tktPage = 1; applyFilters(); }, 350);
         });
     }
+    
+    // Auto-refresh every 30s
+    setInterval(() => {
+        if (document.visibilityState === 'visible') {
+            loadTickets();
+        }
+    }, 30000);
 });
 
 async function loadTickets() {
     const tbody = document.getElementById('ticketsTableBody');
-    if (tbody) tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:2.5rem;color:#94a3b8;">Loading...</td></tr>`;
+    if (tbody && _allTickets.length === 0) tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:2.5rem;color:#94a3b8;">Loading...</td></tr>`;
+
+    const statusFilter = (document.querySelector('[data-status].active') || {}).dataset?.status ?? '';
+    const search = (document.getElementById('ticketSearchInput') || {}).value ?? '';
+    const offset = (_tktPage - 1) * TKT_PER_PAGE;
 
     try {
-        const res = await apiFetch('../../api/admin/get-tickets.php?limit=1000');
+        const url = `../../api/admin/get-tickets.php?limit=${TKT_PER_PAGE}&offset=${offset}&search=${encodeURIComponent(search)}&status=${statusFilter}`;
+        const res = await apiFetch(url);
         const data = await res.json();
+        
         if (!data.success) throw new Error(data.message || 'Failed');
+        
         _allTickets = data.tickets || [];
-        applyFilters();
-        updateStats(_allTickets);
+        // We still use _filteredTickets for local UI logic but the source is now paginated/filtered by server
+        _filteredTickets = _allTickets; 
+        
+        renderTicketsTable();
+        // Updated pagination renders based on data.total
+        renderTktPagination(data.total || 0);
+        updateStats(data);
     } catch (err) {
         console.error('Tickets load error', err);
-        const tbody = document.getElementById('ticketsTableBody');
-        if (tbody) tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:2rem;color:#ef4444;">Error loading tickets.</td></tr>`;
+        if (tbody) tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:2rem;color:#ef4444;">Error loading tickets.</td></tr>`;
     }
 }
 
 function applyFilters() {
-    const statusFilter = (document.querySelector('[data-status].active') || {}).dataset?.status ?? '';
-    const search = (document.getElementById('ticketSearchInput') || {}).value?.toLowerCase() ?? '';
-
-    _filteredTickets = _allTickets.filter(t => {
-        const matchStatus = !statusFilter || t.status === statusFilter;
-        const matchSearch = !search ||
-            (t.ticket_code || '').toLowerCase().includes(search) ||
-            (t.event_name || '').toLowerCase().includes(search) ||
-            (t.user_name || '').toLowerCase().includes(search) ||
-            (t.category || '').toLowerCase().includes(search);
-        return matchStatus && matchSearch;
-    });
-
-    // Apply sort
-    _filteredTickets.sort((a, b) => {
-        let va = a[_tktSort.key] ?? '';
-        let vb = b[_tktSort.key] ?? '';
-        if (_tktSort.key === 'total_price') { va = parseFloat(va) || 0; vb = parseFloat(vb) || 0; }
-        else { va = va.toString().toLowerCase(); vb = vb.toString().toLowerCase(); }
-        if (va < vb) return _tktSort.dir === 'asc' ? -1 : 1;
-        if (va > vb) return _tktSort.dir === 'asc' ? 1 : -1;
-        return 0;
-    });
-
-    renderTicketsTable();
-    renderTktPagination();
+    // Now just triggers loadTickets for server-side filtering
+    loadTickets();
 }
 
 function sortTicketsTable(key) {
@@ -95,31 +89,36 @@ function renderTicketsTable() {
     const tbody = document.getElementById('ticketsTableBody');
     if (!tbody) return;
 
-    const start = (_tktPage - 1) * TKT_PER_PAGE;
-    const page = _filteredTickets.slice(start, start + TKT_PER_PAGE);
-
-    if (!page.length) {
-        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:2.5rem;color:#94a3b8;">No tickets found.</td></tr>`;
+    if (!_filteredTickets.length) {
+        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:2.5rem;color:#94a3b8;">No tickets found.</td></tr>`;
         return;
     }
 
-    tbody.innerHTML = page.map(t => {
-        const statusClass = t.status === 'active' ? 'tkt-active' : t.status === 'used' ? 'tkt-used' : 'tkt-cancelled';
-        const statusLabel = { active: '✓ Active', used: '👁 Used', cancelled: '✕ Cancelled' }[t.status] || t.status;
-        const price = parseFloat(t.total_price) === 0
+    tbody.innerHTML = _filteredTickets.map(t => {
+        const statusClass = t.status === 'valid' ? 'tkt-active' : t.status === 'used' ? 'tkt-used' : 'tkt-cancelled';
+        const statusLabel = { valid: '✓ Valid', used: '👁 Used', cancelled: '✕ Cancelled' }[t.status] || t.status;
+        
+        const price = t.price_display === 'Free'
             ? '<span style="color:#10b981;font-weight:700">Free</span>'
-            : `<strong>₦${parseFloat(t.total_price).toLocaleString()}</strong>`;
+            : `<strong>${t.price_display}</strong>`;
+
         const imgSrc = t.event_image
             ? (t.event_image.startsWith('http') ? t.event_image : '../../' + t.event_image)
             : '';
         const imgEl = imgSrc
             ? `<img src="${imgSrc}" class="tkt-event-img" onerror="this.style.display='none'">`
             : `<span class="tkt-event-img" style="display:inline-flex;align-items:center;justify-content:center;font-size:1.1rem;">🎟</span>`;
-        const date = t.created_at ? new Date(t.created_at).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }) : '—';
+        
+        const date = t.created_at ? new Date(t.created_at).toLocaleDateString() : '—';
         const encoded = JSON.stringify(t).replace(/"/g, '&quot;');
 
+        const customId = t.custom_id ? `<div style="font-size:.7rem;color:#94a3b8;font-family:monospace;">${t.custom_id}</div>` : '';
+
         return `<tr onclick="openAdminTicketModal(${encoded})">
-            <td style="font-family:monospace;font-size:.8rem;color:#475569;">${t.ticket_code || t.id}</td>
+            <td style="padding-left: 1.5rem;"><input type="checkbox" class="ticket-checkbox" data-id="${t.id}"></td>
+            <td>
+                <div style="font-size:.7rem;color:var(--admin-primary);font-family:monospace;font-weight:700;">${t.custom_id || 'N/A'}</div>
+            </td>
             <td>
                 ${imgEl}
                 <span class="tkt-event-name" title="${escapeHtml(t.event_name || '')}">${escapeHtml(t.event_name || '—')}</span>
@@ -132,15 +131,29 @@ function renderTicketsTable() {
         </tr>`;
     }).join('');
 
+    // Handle Select All
+    const selectAll = document.getElementById('selectAll');
+    if (selectAll) {
+        selectAll.onchange = (e) => {
+            const checkboxes = document.querySelectorAll('.ticket-checkbox');
+            checkboxes.forEach(cb => cb.checked = e.target.checked);
+        };
+    }
+
+    // Prevent modal open on checkbox click
+    document.querySelectorAll('.ticket-checkbox, #selectAll').forEach(cb => {
+        cb.onclick = (e) => e.stopPropagation();
+    });
+
     if (window.lucide) lucide.createIcons();
 }
 
-function renderTktPagination() {
+function renderTktPagination(totalOverride) {
     const info = document.getElementById('tktPagInfo');
     const btns = document.getElementById('tktPagBtns');
     if (!info || !btns) return;
 
-    const total = _filteredTickets.length;
+    const total = totalOverride !== undefined ? totalOverride : _filteredTickets.length;
     const pages = Math.max(1, Math.ceil(total / TKT_PER_PAGE));
     const from = total === 0 ? 0 : (_tktPage - 1) * TKT_PER_PAGE + 1;
     const to = Math.min(_tktPage * TKT_PER_PAGE, total);
@@ -149,7 +162,7 @@ function renderTktPagination() {
 
     const prev = document.createElement('button');
     prev.className = 'tkt-page-btn'; prev.textContent = '← Prev'; prev.disabled = _tktPage <= 1;
-    prev.onclick = () => { _tktPage--; renderTicketsTable(); renderTktPagination(); };
+    prev.onclick = () => { _tktPage--; loadTickets(); };
     btns.appendChild(prev);
 
     for (let i = Math.max(1, _tktPage - 2); i <= Math.min(pages, _tktPage + 2); i++) {
@@ -157,22 +170,28 @@ function renderTktPagination() {
         b.className = `tkt-page-btn${i === _tktPage ? ' active' : ''}`;
         b.textContent = i;
         const pg = i;
-        b.onclick = () => { _tktPage = pg; renderTicketsTable(); renderTktPagination(); };
+        b.onclick = () => { _tktPage = pg; loadTickets(); };
         btns.appendChild(b);
     }
 
     const next = document.createElement('button');
     next.className = 'tkt-page-btn'; next.textContent = 'Next →'; next.disabled = _tktPage >= pages;
-    next.onclick = () => { _tktPage++; renderTicketsTable(); renderTktPagination(); };
+    next.onclick = () => { _tktPage++; loadTickets(); };
     btns.appendChild(next);
 }
 
-function updateStats(tickets) {
+function updateStats(data) {
+    const stats = data.stats || {};
     const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
-    set('ticketsIssued',   tickets.length);
-    set('ticketsScanned',  tickets.filter(t => t.status === 'used').length);
-    set('ticketsRemaining',tickets.filter(t => t.status === 'active').length);
-    set('ticketsCancelled',tickets.filter(t => t.status === 'cancelled').length);
+    set('ticketsIssued',    stats.total_tickets || 0);
+    set('ticketsScanned',   stats.used_tickets || 0);
+    set('ticketsRemaining', stats.remaining_tickets || 0);
+    set('ticketsCancelled', stats.cancelled_tickets || 0);
+    
+    const revenueEl = document.getElementById('totalRevenue');
+    if (revenueEl) {
+        revenueEl.textContent = '₦' + (stats.total_revenue || 0).toLocaleString();
+    }
 }
 
 function openAdminTicketModal(ticket) {

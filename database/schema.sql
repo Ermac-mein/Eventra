@@ -580,3 +580,110 @@ SELECT * FROM events;
 SELECT * FROM users;
 
 delete from users where id = 1;
+
+ALTER TABLE users
+ADD COLUMN IF NOT EXISTS custom_id VARCHAR(20) DEFAULT NULL AFTER id,
+ADD UNIQUE KEY IF NOT EXISTS uq_user_custom_id (custom_id);
+
+-- Clients
+ALTER TABLE clients
+ADD COLUMN IF NOT EXISTS custom_id VARCHAR(20) DEFAULT NULL AFTER id,
+ADD UNIQUE KEY IF NOT EXISTS uq_client_custom_id (custom_id);
+
+-- Events
+ALTER TABLE events
+ADD COLUMN IF NOT EXISTS custom_id VARCHAR(30) DEFAULT NULL AFTER id,
+ADD UNIQUE KEY IF NOT EXISTS uq_event_custom_id (custom_id);
+
+-- Payments
+ALTER TABLE payments
+ADD COLUMN IF NOT EXISTS custom_id VARCHAR(30) DEFAULT NULL AFTER id,
+ADD UNIQUE KEY IF NOT EXISTS uq_payment_custom_id (custom_id);
+
+-- Tickets custom_id: TIC-YYYYMMDD-####
+ALTER TABLE tickets
+ADD COLUMN IF NOT EXISTS custom_id VARCHAR(30) DEFAULT NULL AFTER id,
+ADD UNIQUE KEY IF NOT EXISTS uq_ticket_custom_id (custom_id);
+
+-- ─── 2. TICKET DAILY SEQUENCE TABLE ─────────────────────────────────────────
+-- Used to generate TIC-YYYYMMDD-#### sequential numbers
+CREATE TABLE IF NOT EXISTS ticket_daily_sequence (
+    seq_date DATE NOT NULL,
+    seq_value INT UNSIGNED NOT NULL DEFAULT 0,
+    PRIMARY KEY (seq_date)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
+
+-- ─── 3. ONLINE STATUS INDEX ──────────────────────────────────────────────────
+-- Speed up "who is online in the last 5 min" queries
+ALTER TABLE auth_accounts
+ADD INDEX IF NOT EXISTS idx_auth_last_seen (last_seen);
+
+-- ─── 4. BACKFILL EXISTING ROWS  ──────────────────────────────────────────────
+-- Generate placeholder custom_ids for existing users (USR-XXXXXX)
+UPDATE users
+SET
+    custom_id = CONCAT(
+        'USR-',
+        UPPER(SUBSTRING(MD5(id), 1, 6))
+    )
+WHERE
+    custom_id IS NULL;
+
+-- Generate placeholder custom_ids for existing clients
+UPDATE clients
+SET
+    custom_id = CONCAT('CLI-', LPAD(id, 6, '0'))
+WHERE
+    custom_id IS NULL;
+
+-- Generate placeholder custom_ids for existing events (ULID-like using timestamp+id)
+UPDATE events
+SET
+    custom_id = CONCAT(
+        DATE_FORMAT(created_at, '%Y%m%d%H%i%s'),
+        LPAD(id, 6, '0')
+    )
+WHERE
+    custom_id IS NULL;
+
+-- Generate placeholder custom_ids for existing payments
+UPDATE payments
+SET
+    custom_id = CONCAT(
+        'txn_',
+        LOWER(
+            SUBSTRING(
+                MD5(CONCAT(id, reference)),
+                1,
+                12
+            )
+        )
+    )
+WHERE
+    custom_id IS NULL;
+
+-- Generate placeholder custom_ids for existing tickets
+UPDATE tickets
+SET
+    custom_id = CONCAT(
+        'TIC-',
+        DATE_FORMAT(created_at, '%Y%m%d'),
+        '-',
+        LPAD(id, 4, '0')
+    )
+WHERE
+    custom_id IS NULL;
+
+-- ─── 5. RESET STALE is_online FLAGS ─────────────────────────────────────────
+-- Mark users offline if last_seen was more than 5 minutes ago (or never)
+UPDATE auth_accounts
+SET
+    is_online = 0
+WHERE
+    is_online = 1
+    AND (
+        last_seen IS NULL
+        OR last_seen < DATE_SUB(NOW(), INTERVAL 5 MINUTE)
+    );
+
+SELECT 'Migration complete.' AS status;

@@ -119,6 +119,8 @@ function updateEventsTable(events) {
     const thead = document.querySelector('.table-card table thead tr');
     if (thead) {
         thead.innerHTML = `
+            <th style="width: 40px;"><input type="checkbox" id="selectAll"></th>
+            <th>Event ID</th>
             <th style="cursor: pointer;" onclick="sortEvents('event_name')">Event Name ${getSortIcon('event_name')}</th>
             <th style="cursor: pointer;" onclick="sortEvents('event_date')">Date ${getSortIcon('event_date')}</th>
             <th>Category</th>
@@ -159,7 +161,11 @@ function updateEventsTable(events) {
             data-category="${event.event_type}"
             data-price="${parseFloat(event.price) === 0 ? 'Free' : `₦${parseFloat(event.price).toLocaleString()}`}"
             data-attendees="${event.attendee_count || 0}">
-            <td style="font-weight: 600;">${event.event_name}</td>
+            <td><input type="checkbox" class="event-checkbox" data-id="${event.id}"></td>
+            <td style="font-family:monospace;font-size:0.8rem;color:#635bff;font-weight:600;">${event.custom_id || '—'}</td>
+            <td>
+                <div style="font-weight: 600;">${event.event_name}</div>
+            </td>
             <td>${new Date(event.event_date).toLocaleDateString()}</td>
             <td>${event.event_type}</td>
             <td>
@@ -200,6 +206,20 @@ function updateEventsTable(events) {
         </tr>
     `;
     }).join('');
+
+    // Handle Select All
+    const selectAll = document.getElementById('selectAll');
+    if (selectAll) {
+        selectAll.onchange = (e) => {
+            const checkboxes = document.querySelectorAll('.event-checkbox');
+            checkboxes.forEach(cb => cb.checked = e.target.checked);
+        };
+    }
+
+    // Prevent preview modal open on checkbox click
+    document.querySelectorAll('.event-checkbox, #selectAll').forEach(cb => {
+        cb.onclick = (e) => e.stopPropagation();
+    });
 }
 
 function getSortIcon(key) {
@@ -449,6 +469,8 @@ async function loadTrashEvents() {
     const thead = document.querySelector('.table-card table thead tr');
     if (thead) {
         thead.innerHTML = `
+            <th style="width: 40px;"><input type="checkbox" id="selectAll"></th>
+            <th>Event ID</th>
             <th>Event Name</th>
             <th>Category</th>
             <th>Date</th>
@@ -472,7 +494,11 @@ async function loadTrashEvents() {
 
             tbody.innerHTML = result.events.map(event => `
                 <tr data-id="${event.id}" style="transition: opacity 0.3s, transform 0.3s;">
-                    <td style="font-weight: 600;">${event.event_name}</td>
+                    <td><input type="checkbox" class="event-checkbox" data-id="${event.id}"></td>
+                    <td style="font-family:monospace;font-size:0.8rem;color:#635bff;font-weight:600;">${event.custom_id || '—'}</td>
+                    <td>
+                        <div style="font-weight: 600;">${event.event_name}</div>
+                    </td>
                     <td>${event.event_type || '—'}</td>
                     <td>${new Date(event.event_date).toLocaleDateString()}</td>
                     <td>${parseFloat(event.price) === 0 

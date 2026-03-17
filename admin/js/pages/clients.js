@@ -31,7 +31,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         clientsTableBody.innerHTML = clients.map(client => `
             <tr data-id="${client.id}">
-                <td>${client.id}</td>
+                <td style="padding-left: 1.5rem;"><input type="checkbox" class="client-checkbox" data-id="${client.id}"></td>
+                <td>
+                    <div style="font-weight: 700; color: var(--admin-primary);">${client.custom_id || 'N/A'}</div>
+                </td>
                 <td style="display: flex; align-items: center; gap: 12px; padding: 1.2rem 1rem;">
                     <div class="avatar-wrapper">
                         <img src="${getProfileImg(client.profile_pic, client.name)}" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 2px solid #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
@@ -56,6 +59,20 @@ document.addEventListener('DOMContentLoaded', async () => {
                 <td><span class="status-badge status-${client.status === 'active' ? 'active' : 'offline'}">${client.status === 'active' ? 'Active' : 'Offline'}</span></td>
             </tr>
         `).join('');
+
+        // Handle Select All
+        const selectAll = document.getElementById('selectAll');
+        if (selectAll) {
+            selectAll.onchange = (e) => {
+                const checkboxes = document.querySelectorAll('.client-checkbox');
+                checkboxes.forEach(cb => cb.checked = e.target.checked);
+            };
+        }
+
+        // Prevent preview open on checkbox click
+        document.querySelectorAll('.client-checkbox, #selectAll').forEach(cb => {
+            cb.onclick = (e) => e.stopPropagation();
+        });
 
         // Re-initialize Lucide icons for badges
         if (window.lucide) {

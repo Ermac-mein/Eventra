@@ -56,31 +56,18 @@ async function loadDashboardStats() {
 
         const stats = result.stats;
 
-        // Update stat cards with specific labels to avoid nth-child issues
-        const findStatValue = (label) => {
-            const cards = document.querySelectorAll('.stat-card');
-            for (const card of cards) {
-                if (card.querySelector('.stat-label').textContent.includes(label)) {
-                    return card.querySelector('.stat-value');
-                }
-            }
-            return null;
-        };
+        // Update stat cards using direct IDs for reliability
+        const totalEventsEl = document.getElementById('totalEventsCount');
+        if (totalEventsEl) totalEventsEl.textContent = stats.total_events || 0;
 
-        const totalEventsVal = findStatValue('Total Events');
-        if (totalEventsVal) totalEventsVal.textContent = stats.total_events;
+        const activeUsersEl = document.getElementById('activeUsersCount');
+        if (activeUsersEl) activeUsersEl.textContent = stats.total_users || 0;
 
-        const activeUsersVal = findStatValue('Active Users');
-        if (activeUsersVal) activeUsersVal.textContent = stats.active_users;
+        const totalClientsEl = document.getElementById('totalClientsCount');
+        if (totalClientsEl) totalClientsEl.textContent = stats.total_clients || 0;
 
-        const totalClientsVal = findStatValue('Total Clients');
-        if (totalClientsVal) totalClientsVal.textContent = stats.total_clients;
-
-        const restoredEventsVal = findStatValue('Restored Events');
-        if (restoredEventsVal) restoredEventsVal.textContent = stats.restored_events || 0;
-
-        const revenueVal = findStatValue('Revenue');
-        if (revenueVal) revenueVal.textContent = '₦' + parseFloat(stats.total_revenue).toLocaleString();
+        const totalRevenueEl = document.getElementById('totalRevenue');
+        if (totalRevenueEl) totalRevenueEl.textContent = '₦' + parseFloat(stats.total_revenue || 0).toLocaleString();
 
         // Update Events Showcase badges
         const upcomingBadge = document.getElementById('upcomingEventsBadge');

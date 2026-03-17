@@ -93,6 +93,9 @@ try {
     }
 
     // 3. Get POST data
+    require_once '../../api/utils/id-generator.php';
+    $custom_id = generateEventUlid();
+
     $event_name = $_POST['event_name'] ?? '';
     $description = $_POST['description'] ?? '';
     $event_type = $_POST['event_type'] ?? '';
@@ -135,14 +138,15 @@ try {
     // Insert event
     $stmt = $pdo->prepare("
         INSERT INTO events (
-            client_id, event_name, description, event_type, event_date, event_time,
+            client_id, custom_id, event_name, description, event_type, event_date, event_time,
             phone_contact_1, phone_contact_2, state, address, visibility, tag,
             external_link, price, image_path, priority, status, scheduled_publish_time, category
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ");
 
     $stmt->execute([
         $real_client_id, // Use the correct foreign key
+        $custom_id,
         $event_name,
         $description,
         $event_type,

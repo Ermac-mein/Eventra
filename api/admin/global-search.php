@@ -36,34 +36,34 @@ try {
 
     // 1. Search Events
     $stmt = $pdo->prepare("
-        SELECT id, event_name as name, category as type, state, tag
+        SELECT id, custom_id, event_name as name, category as type, state, tag
         FROM events
-        WHERE (event_name LIKE ? OR description LIKE ? OR state LIKE ? OR category LIKE ?) AND deleted_at IS NULL
+        WHERE (event_name LIKE ? OR description LIKE ? OR state LIKE ? OR category LIKE ? OR custom_id LIKE ?) AND deleted_at IS NULL
         LIMIT 5
     ");
-    $stmt->execute([$searchTerm, $searchTerm, $searchTerm, $searchTerm]);
+    $stmt->execute([$searchTerm, $searchTerm, $searchTerm, $searchTerm, $searchTerm]);
     $results['events'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     // 2. Search Users
     $stmt = $pdo->prepare("
-        SELECT a.id, u.name, a.email, u.profile_pic
+        SELECT a.id, u.custom_id, u.name, a.email, u.profile_pic
         FROM auth_accounts a
         JOIN users u ON a.id = u.user_auth_id
-        WHERE (u.name LIKE ? OR a.email LIKE ?) AND a.role = 'user'
+        WHERE (u.name LIKE ? OR a.email LIKE ? OR u.custom_id LIKE ?) AND a.role = 'user'
         LIMIT 5
     ");
-    $stmt->execute([$searchTerm, $searchTerm]);
+    $stmt->execute([$searchTerm, $searchTerm, $searchTerm]);
     $results['users'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     // 3. Search Clients
     $stmt = $pdo->prepare("
-        SELECT a.id, c.business_name as name, a.email, c.profile_pic, c.company
+        SELECT a.id, c.custom_id, c.business_name as name, a.email, c.profile_pic, c.company
         FROM auth_accounts a
         JOIN clients c ON a.id = c.client_auth_id
-        WHERE (c.business_name LIKE ? OR a.email LIKE ? OR c.company LIKE ?) AND a.role = 'client'
+        WHERE (c.business_name LIKE ? OR a.email LIKE ? OR c.company LIKE ? OR c.custom_id LIKE ?) AND a.role = 'client'
         LIMIT 5
     ");
-    $stmt->execute([$searchTerm, $searchTerm, $searchTerm]);
+    $stmt->execute([$searchTerm, $searchTerm, $searchTerm, $searchTerm]);
     $results['clients'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     echo json_encode([

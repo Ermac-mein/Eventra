@@ -80,9 +80,9 @@ if ($status && in_array($status, ['pending', 'paid', 'failed', 'refunded'])) {
 $searchWhere = '';
 $searchParams = [];
 if ($search) {
-    $searchWhere = ' AND (p.reference LIKE ? OR e.event_name LIKE ? OR p.status LIKE ?)';
+    $searchWhere = ' AND (p.reference LIKE ? OR p.custom_id LIKE ? OR e.event_name LIKE ? OR p.status LIKE ?)';
     $like = "%$search%";
-    $searchParams = [$like, $like, $like];
+    $searchParams = [$like, $like, $like, $like];
 }
 
 // ─── Scope: user vs admin ──────────────────────────────────────────────────
@@ -110,6 +110,7 @@ $params = array_merge($scopeParams, $dateParams, $statusParams, $searchParams);
 $sql = "
     SELECT
         p.id,
+        p.custom_id,
         p.reference,
         p.amount,
         p.status,
@@ -122,7 +123,9 @@ $sql = "
         GROUP_CONCAT(t.barcode SEPARATOR ', ') AS ticket_barcodes,
         COUNT(t.id) AS ticket_count,
         c.name AS client_name,
-        e.image_path AS event_image
+        e.image_path AS event_image,
+        u.custom_id AS user_custom_id,
+        c.custom_id AS client_custom_id
     FROM payments p
     LEFT JOIN events e ON p.event_id = e.id
     LEFT JOIN users u ON p.user_id = u.id

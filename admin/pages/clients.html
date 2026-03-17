@@ -125,23 +125,24 @@
                 <table style="width: 100%; border-collapse: separate; border-spacing: 0 10px;">
                     <thead>
                         <tr>
-                            <th class="sortable" data-sort="id" style="border-bottom: 2px solid #f1f5f9;">ID</th>
-                            <th class="sortable" data-sort="name" style="border-bottom: 2px solid #f1f5f9;">Client Name</th>
-                            <th class="sortable" data-sort="email" style="border-bottom: 2px solid #f1f5f9;">Email</th>
+                            <th style="width: 40px; padding-left: 1.5rem;"><input type="checkbox" id="selectAll"></th>
+                            <th class="sortable" data-sort="id" style="border-bottom: 2px solid #f1f5f9;">Clients ID</th>
+                            <th class="sortable" data-sort="name" style="border-bottom: 2px solid #f1f5f9;">Clients Name</th>
+                            <th class="sortable" data-sort="email" style="border-bottom: 2px solid #f1f5f9;">EMAIl</th>
                             <th class="sortable" data-sort="nin" style="border-bottom: 2px solid #f1f5f9;">NIN</th>
-                            <th class="sortable" data-sort="dob" style="border-bottom: 2px solid #f1f5f9;">Date of Birth</th>
-                            <th class="sortable" data-sort="gender" style="border-bottom: 2px solid #f1f5f9;">Gender</th>
-                            <th class="sortable" data-sort="address" style="border-bottom: 2px solid #f1f5f9;">Address</th>
-                            <th class="sortable" data-sort="city" style="border-bottom: 2px solid #f1f5f9;">City</th>
-                            <th class="sortable" data-sort="country" style="border-bottom: 2px solid #f1f5f9;">Country</th>
-                            <th class="sortable" data-sort="state" style="border-bottom: 2px solid #f1f5f9;">State</th>
-                            <th class="sortable" data-sort="job_title" style="border-bottom: 2px solid #f1f5f9;">Job Title</th>
-                            <th class="sortable" data-sort="account_number" style="border-bottom: 2px solid #f1f5f9;">Account Number</th>
-                            <th class="sortable" data-sort="account_name" style="border-bottom: 2px solid #f1f5f9;">Account Name</th>
-                            <th class="sortable" data-sort="bank_name" style="border-bottom: 2px solid #f1f5f9;">Bank Name</th>
-                            <th class="sortable" data-sort="phone" style="border-bottom: 2px solid #f1f5f9;">Phone Contact</th>
-                            <th class="sortable" data-sort="verification_status" style="border-bottom: 2px solid #f1f5f9;">Verification</th>
-                            <th class="sortable" data-sort="status" style="border-bottom: 2px solid #f1f5f9;">Status</th>
+                            <th class="sortable" data-sort="dob" style="border-bottom: 2px solid #f1f5f9;">DATE OF BIRTH</th>
+                            <th class="sortable" data-sort="gender" style="border-bottom: 2px solid #f1f5f9;">GENDER</th>
+                            <th class="sortable" data-sort="address" style="border-bottom: 2px solid #f1f5f9;">ADDRESS</th>
+                            <th class="sortable" data-sort="city" style="border-bottom: 2px solid #f1f5f9;">CITY</th>
+                            <th class="sortable" data-sort="country" style="border-bottom: 2px solid #f1f5f9;">COUNTRY</th>
+                            <th class="sortable" data-sort="state" style="border-bottom: 2px solid #f1f5f9;">STATE</th>
+                            <th class="sortable" data-sort="job_title" style="border-bottom: 2px solid #f1f5f9;">JOB TITLE</th>
+                            <th class="sortable" data-sort="account_number" style="border-bottom: 2px solid #f1f5f9;">ACCOUNT NUMBER</th>
+                            <th class="sortable" data-sort="account_name" style="border-bottom: 2px solid #f1f5f9;">ACCOUNT NAME</th>
+                            <th class="sortable" data-sort="bank_name" style="border-bottom: 2px solid #f1f5f9;">BANK NAME</th>
+                            <th class="sortable" data-sort="phone" style="border-bottom: 2px solid #f1f5f9;">PHONE CONTACT</th>
+                            <th class="sortable" data-sort="verification_status" style="border-bottom: 2px solid #f1f5f9;">VERIFICATION</th>
+                            <th class="sortable" data-sort="status" style="border-bottom: 2px solid #f1f5f9;">STATUS</th>
                         </tr>
                     </thead>
                     <tbody id="clientsTableBody">
@@ -204,6 +205,7 @@
     <script src="../js/profile-pic-upload.js"></script>
     <script src="../js/search-manager.js"></script>
     <script src="../js/pages/clients.js"></script>
+    <script src="../../public/js/heartbeat.js"></script>
     <script src="../js/admin-main.js"></script>
     <script>lucide.createIcons();</script>
 </body>

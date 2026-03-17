@@ -31,7 +31,7 @@ try {
     $total_records = $count_stmt->fetchColumn();
 
     // Get users
-    $sql = "SELECT p.id, p.name, a.email, p.profile_pic, p.phone, 
+    $sql = "SELECT p.id, p.custom_id, p.name, a.email, p.profile_pic, p.phone, 
             p.gender, p.dob, p.address, p.city, p.state, p.country,
             a.is_active, a.is_online,
             IF(a.is_online = 1, 'active', 'inactive') as status, a.created_at, a.last_login_at, a.email_verified_at,

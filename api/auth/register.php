@@ -24,28 +24,33 @@ try {
         exit;
     }
 
-    // 2. Hash Password
+    // 2. Load ID Generator
+    require_once '../../api/utils/id-generator.php';
+
+    // 3. Hash Password
     $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
 
     $pdo->beginTransaction();
 
-    // 3. Insert into auth_accounts
+    // 4. Insert into auth_accounts
     // Using email prefix + random hex as username
     $username = explode('@', $email)[0] . '_' . substr(bin2hex(random_bytes(2)), 0, 4);
     $stmt = $pdo->prepare("INSERT INTO auth_accounts (email, password_hash, role, auth_provider, is_active, username) VALUES (?, ?, ?, 'local', 1, ?)");
     $stmt->execute([$email, $hashedPassword, $role, $username]);
     $auth_id = $pdo->lastInsertId();
 
-    // 4. Insert into role-specific table (e.g., clients or admins)
+    // 5. Insert into role-specific table with custom_id
     if ($role === 'client') {
-        $stmt = $pdo->prepare("INSERT INTO clients (client_auth_id, business_name, name, email, password) VALUES (?, ?, ?, ?, ?)");
-        $stmt->execute([$auth_id, $name, $name, $email, $hashedPassword]);
+        $customId = generateClientId($pdo);
+        $stmt = $pdo->prepare("INSERT INTO clients (client_auth_id, custom_id, business_name, name, email, password) VALUES (?, ?, ?, ?, ?, ?)");
+        $stmt->execute([$auth_id, $customId, $name, $name, $email, $hashedPassword]);
     } elseif ($role === 'admin') {
         $stmt = $pdo->prepare("INSERT INTO admins (admin_auth_id, name, password) VALUES (?, ?, ?)");
         $stmt->execute([$auth_id, $name, $hashedPassword]);
     } elseif ($role === 'user') {
-        $stmt = $pdo->prepare("INSERT INTO users (user_auth_id, name) VALUES (?, ?)");
-        $stmt->execute([$auth_id, $name]);
+        $customId = generateUserId($pdo);
+        $stmt = $pdo->prepare("INSERT INTO users (user_auth_id, custom_id, name) VALUES (?, ?, ?)");
+        $stmt->execute([$auth_id, $customId, $name]);
     }
 
     $pdo->commit();

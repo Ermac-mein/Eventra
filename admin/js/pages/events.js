@@ -47,9 +47,28 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
 
             const dateStr = window.formatDateLong ? formatDateLong(event.event_date) : new Date(event.event_date).toLocaleDateString();
+            const clientCustomId = event.client_custom_id ? `<div style="font-size:.7rem;color:#94a3b8;font-family:monospace;">${event.client_custom_id}</div>` : '';
+
             return `
-                <tr data-id="${event.id}">
-                    <td>${event.event_name}</td>
+                <tr data-id="${event.id}" 
+                    data-image="${event.image_path || ''}" 
+                    data-description="${(event.description || '').replace(/"/g, '&quot;')}" 
+                    data-address="${(event.address || '').replace(/"/g, '&quot;')}" 
+                    data-state="${event.state || ''}" 
+                    data-date="${event.event_date}" 
+                    data-time="${event.event_time}" 
+                    data-priority="${event.priority || 'low'}"
+                    data-client-name="${event.client_name || 'Eventra'}"
+                    data-tag="${event.tag || ''}">
+                    <td style="padding-left: 1.5rem;"><input type="checkbox" class="event-checkbox" data-id="${event.id}"></td>
+                    <td>
+                        <div style="font-size:.7rem;color:var(--admin-primary);font-family:monospace;font-weight:700;">${event.custom_id || 'N/A'}</div>
+                    </td>
+                    <td>
+                        <div style="font-weight:600;">${event.event_name}</div>
+                        <div style="font-size:.75rem;color:#64748b;">by ${event.client_name || 'N/A'}</div>
+                        ${clientCustomId}
+                    </td>
                     <td><span class="priority-badge ${event.priority || 'low'}">${(event.priority || 'Low').toUpperCase()}</span></td>
                     <td>${dateStr}</td>
                     <td>${event.event_time.substring(0, 5)}</td>
@@ -63,6 +82,20 @@ document.addEventListener('DOMContentLoaded', async () => {
                 </tr>
             `;
         }).join('');
+
+        // Handle Select All
+        const selectAll = document.getElementById('selectAll');
+        if (selectAll) {
+            selectAll.onchange = (e) => {
+                const checkboxes = document.querySelectorAll('.event-checkbox');
+                checkboxes.forEach(cb => cb.checked = e.target.checked);
+            };
+        }
+
+        // Prevent preview open on checkbox click
+        document.querySelectorAll('.event-checkbox, #selectAll').forEach(cb => {
+            cb.onclick = (e) => e.stopPropagation();
+        });
 
         // Re-initialize previews for new rows
         if (window.initPreviews) {

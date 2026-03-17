@@ -303,7 +303,7 @@
                 </div>
                 <div class="client-stat-card orange">
                     <div class="stat-header">
-                        <span class="stat-title">Revenue</span>
+                        <span class="stat-title">Total Revenue</span>
                         <i data-lucide="banknote" class="stat-icon icon-orange"></i>
                     </div>
                     <div class="stat-main-value" id="statRevenue">—</div>
@@ -356,7 +356,10 @@
                     <table>
                         <thead>
                             <tr>
+                                <th style="width: 40px;"><input type="checkbox" id="selectAll"></th>
+                                <th>Payment ID</th>
                                 <th style="cursor:pointer;" onclick="changeSort('date_desc','date_asc')">Date <i data-lucide="chevron-down" style="width:14px;display:inline-block;vertical-align:middle;margin-left:4px;"></i></th>
+                                <th>Transaction ID</th>
                                 <th style="cursor:pointer;" onclick="changeSort('event','event')">Event</th>
                                 <th>Organizer</th>
                                 <th style="cursor:pointer;" onclick="changeSort('amount_desc','amount_asc')">Amount</th>
@@ -394,6 +397,28 @@
             <div style="margin-top:2rem;padding-top:1.5rem;border-top:1px solid #f1f5f9;text-align:center;">
                 <p style="font-size:0.85rem;color:#94a3b8;font-weight:500;">Read-only · Official Transaction Record</p>
             </div>
+        </div>
+    </div>
+
+    <!-- Export Modal -->
+    <div class="modal-backdrop" id="exportModal">
+        <div class="modal-content">
+            <h2 style="font-size: 1.5rem; margin-bottom: 0.5rem;">Export Options</h2>
+            <p style="color: var(--client-text-muted); margin-bottom: 2rem;">Choose your preferred file format for data export.</p>
+            <ul class="export-options">
+                <li class="export-option" data-format="CSV">
+                    <i data-lucide="file-text"></i> CSV Spreadsheet
+                </li>
+                <li class="export-option" data-format="Excel">
+                    <i data-lucide="file-spreadsheet"></i> Excel Workbook
+                </li>
+                <li class="export-option" data-format="PDF">
+                    <i data-lucide="file"></i> PDF Document
+                </li>
+                <li class="export-option" data-format="Selection">
+                    <i data-lucide="check-square"></i> Select Rows
+                </li>
+            </ul>
         </div>
     </div>
 

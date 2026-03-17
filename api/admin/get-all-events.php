@@ -42,7 +42,7 @@ try {
     $stats = $stats_stmt->fetch();
 
     // Get events (including soft-deleted for admin to monitor)
-    $sql = "SELECT e.*, u.business_name as client_name 
+    $sql = "SELECT e.*, u.business_name as client_name, u.custom_id as client_custom_id 
             FROM events e 
             LEFT JOIN clients u ON e.client_id = u.id 
             $where_clause 

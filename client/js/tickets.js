@@ -88,7 +88,7 @@ function sortTickets(index) {
         let cellB = rowB.children[index].textContent.trim();
         
         // Special handling for Price (₦1,234.56)
-        if (index === 3) { // Price column
+        if (index === 4) { // Price column (was 3)
             cellA = cellA.replace('₦', '').replace(/,/g, '');
             cellB = cellB.replace('₦', '').replace(/,/g, '');
             return isAsc ? Number(cellB) - Number(cellA) : Number(cellA) - Number(cellB);
@@ -167,19 +167,50 @@ function updateTicketsTable(tickets) {
     if (!tbody) return;
 
     if (tickets.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 2rem; color: var(--client-text-muted);">No tickets sold yet.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 2rem; color: var(--client-text-muted);">No tickets sold yet.</td></tr>';
         return;
     }
 
-    tbody.innerHTML = tickets.map(ticket => `
+    tbody.innerHTML = tickets.map(ticket => {
+        // Price: use server-computed display value ("Free" or formatted ₦)
+        const priceDisplay = ticket.price_display === 'Free'
+            ? '<span style="color:#10b981;font-weight:700;">Free</span>'
+            : `<strong>₦${parseFloat(ticket.event_price || ticket.amount || 0).toLocaleString()}</strong>`;
+
+        const statusColor = (ticket.status === 'valid' || ticket.payment_status === 'paid')
+            ? '#10b981' : (ticket.status === 'cancelled' ? '#ef4444' : '#f59e0b');
+
+        const customId = ticket.custom_id
+            ? `<div style="font-size:.7rem;color:#94a3b8;font-family:monospace;">${ticket.custom_id}</div>`
+            : '';
+
+        return `
         <tr style="cursor: pointer;" onclick='showTicketPreviewModal(${JSON.stringify(ticket).replace(/'/g, "&#39;")})'>
-            <td>${ticket.id}</td>
+            <td><input type="checkbox" class="ticket-checkbox" data-id="${ticket.id}"></td>
+            <td style="font-family:monospace;font-size:0.8rem;color:#635bff;font-weight:600;">
+                ${ticket.custom_id || '—'}
+            </td>
             <td>${ticket.event_name || 'N/A'}</td>
             <td>${ticket.buyer_name || ticket.user_name || 'N/A'}</td>
-            <td>₦${parseFloat(ticket.total_price || ticket.price || 0).toLocaleString()}</td>
+            <td>${priceDisplay}</td>
             <td>${ticket.organiser_name || 'Direct'}</td>
             <td>${ticket.purchase_date || ticket.created_at || 'N/A'}</td>
-            <td><span style="color: ${ticket.status === 'confirmed' || ticket.status === 'paid' ? '#10b981' : '#ef4444'}; font-weight: 600;">${ticket.status ? ticket.status.toUpperCase() : 'N/A'}</span></td>
-        </tr>
-    `).join('');
+            <td><span style="color: ${statusColor}; font-weight: 600;">${ticket.status ? ticket.status.toUpperCase() : 'N/A'}</span></td>
+        </tr>`;
+    }).join('');
+
+    // Handle Select All
+    const selectAll = document.getElementById('selectAll');
+    if (selectAll) {
+        selectAll.onchange = (e) => {
+            const checkboxes = document.querySelectorAll('.ticket-checkbox');
+            checkboxes.forEach(cb => cb.checked = e.target.checked);
+        };
+    }
+
+    // Prevent modal open on checkbox click
+    document.querySelectorAll('.ticket-checkbox, #selectAll').forEach(cb => {
+        cb.onclick = (e) => e.stopPropagation();
+    });
 }
+

@@ -15,6 +15,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Enable 15s polling for real-time updates
     setInterval(loadDashboardStats, 15000);
+
+    // Initialize heartbeat
+    if (typeof initHeartbeat === 'function') initHeartbeat();
 });
 
 async function loadClientProfile() {
@@ -174,11 +177,11 @@ async function loadRecentTickets(attendees) {
                 </div>
             </div>
             <div style="text-align: right;">
-                <div style="font-size: 0.85rem; font-weight: 700; color: #10b981;">
-                    ₦${parseFloat(attendee.amount || 0).toLocaleString()}
+                <div style="font-size: 0.85rem; font-weight: 700; color: ${attendee.event_price == 0 ? '#10b981' : '#10b981'};">
+                    ${attendee.price_display}
                 </div>
                 <div style="font-size: 0.7rem; color: var(--client-text-muted);">
-                    ${paymentMethod} • ${new Date(attendee.created_at).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })}
+                    ${paymentMethod} • ${new Date(attendee.created_at).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                 </div>
             </div>
         </div>

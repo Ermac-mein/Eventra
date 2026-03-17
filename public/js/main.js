@@ -10,6 +10,12 @@ let eventsData = {
 };
 
 let allEvents = [];  // Store all events for filtering
+let swiperInstances = {}; // Store Swiper instances
+
+// Pagination state
+let currentPage = 1;
+const itemsPerPage = 12;
+let filteredDiscoveryEvents = [];
 
 // Load events from API
 async function loadEvents() {
@@ -19,9 +25,11 @@ async function loadEvents() {
   try {
     const response = await apiFetch('../../api/events/get-events.php');
     const result = await response.json();
-    
     if (result.success && result.events) {
-      const publishedEvents = result.events.filter(event => event.status === 'published');
+      // Deduplicate events by ID and filter for published status
+      const allFetchedEvents = result.events || [];
+      const uniqueEvents = Array.from(new Map(allFetchedEvents.map(item => [item.id, item])).values());
+      const publishedEvents = uniqueEvents.filter(event => event.status === 'published');
       
       // Store all events for search functionality
       allEvents = publishedEvents;
@@ -48,18 +56,17 @@ async function loadEvents() {
       const upcomingEvents = publishedEvents.filter(event => new Date(event.event_date) >= now);
       
       // Priority-based filtering
-      eventsData.featured = sortByCreation([...publishedEvents.filter(e => e.priority === 'featured')]).slice(0, 12);
-      eventsData.hot = sortByCreation([...publishedEvents.filter(e => e.priority === 'hot')]).slice(0, 12);
-      eventsData.trending = sortByCreation([...publishedEvents.filter(e => e.priority === 'trending')]).slice(0, 12);
+      eventsData.featured = sortByCreation([...publishedEvents.filter(e => e.priority === 'featured')]);
+      eventsData.hot = sortByCreation([...publishedEvents.filter(e => e.priority === 'hot')]);
+      eventsData.trending = sortByCreation([...publishedEvents.filter(e => e.priority === 'trending')]);
       
       // Upcoming: strictly use priority 'upcoming' if available, otherwise fallback to future events
       const priorityUpcoming = publishedEvents.filter(e => e.priority === 'upcoming');
       if (priorityUpcoming.length > 0) {
-        eventsData.upcoming = sortByCreation([...priorityUpcoming]).slice(0, 12);
+        eventsData.upcoming = sortByCreation([...priorityUpcoming]);
       } else {
         eventsData.upcoming = upcomingEvents
-          .sort((a, b) => new Date(a.event_date) - new Date(b.event_date))
-          .slice(0, 12);
+          .sort((a, b) => new Date(a.event_date) - new Date(b.event_date));
       }
       
       // All Events: sorted by creation date
@@ -82,9 +89,9 @@ async function loadEvents() {
         locationNearby.forEach(le => {
           if (!combined.find(pe => pe.id === le.id)) combined.push(le);
         });
-        eventsData.nearby = sortByCreation(combined).slice(0, 12);
+        eventsData.nearby = sortByCreation(combined);
       } else {
-        eventsData.nearby = sortByCreation([...priorityNearby]).slice(0, 12);
+        eventsData.nearby = sortByCreation([...priorityNearby]);
       }
       
       // Favorites: events where is_favorite is 1
@@ -92,6 +99,11 @@ async function loadEvents() {
       
       // Discovery logic
       initDiscoveryFilters();
+      
+      // Categorized Rendering with Cross-Category Deduplication
+      renderAllCategories();
+
+      // Finally apply filters for the "All Discovery Results" grid
       applyFilters();
     } else {
       console.error('Failed to load events:', result.message);
@@ -102,6 +114,68 @@ async function loadEvents() {
     renderDiscovery([]);
   }
 }
+
+// Swiper Initialization Helper
+function initSwiper(selector, uniqueId) {
+    if (swiperInstances[uniqueId]) {
+        swiperInstances[uniqueId].destroy(true, true);
+    }
+    
+    swiperInstances[uniqueId] = new Swiper(selector, {
+        slidesPerView: 1,
+        spaceBetween: 20,
+        navigation: {
+            nextEl: `${selector} .swiper-button-next`,
+            prevEl: `${selector} .swiper-button-prev`,
+        },
+        pagination: {
+            el: `${selector} .swiper-pagination`,
+            clickable: true,
+            dynamicBullets: true
+        },
+        breakpoints: {
+            640: { slidesPerView: 2, spaceBetween: 20 },
+            1024: { slidesPerView: 3, spaceBetween: 25 },
+            1280: { slidesPerView: 4, spaceBetween: 30 }
+        },
+        observer: true,
+        observeParents: true,
+        grabCursor: true
+    });
+}
+
+function renderAllCategories(data = eventsData) {
+    window.homepageSeenIds = new Set();
+    
+    const renderCategory = (events, gridId, sectionId, swiperSelector) => {
+        const container = document.getElementById(gridId);
+        const section = document.getElementById(sectionId);
+        if (!container || !section) return;
+        
+        const uniqueToCategory = events.filter(e => !window.homepageSeenIds.has(e.id));
+        
+        if (uniqueToCategory.length > 0) {
+            section.style.display = 'block';
+            container.innerHTML = uniqueToCategory.map(event => `
+                <div class="swiper-slide">
+                    ${createEventCard(event)}
+                </div>
+            `).join('');
+            
+            uniqueToCategory.forEach(e => window.homepageSeenIds.add(e.id));
+            initSwiper(swiperSelector, gridId);
+        } else {
+            section.style.display = 'none';
+        }
+    };
+
+    renderCategory(data.featured, 'featured-events-grid', 'featuredSection', '.featured-swiper');
+    renderCategory(data.trending, 'trending-events-grid', 'trendingSection', '.trending-swiper');
+    renderCategory(data.hot, 'hot-events-grid', 'hotSection', '.hot-swiper');
+    renderCategory(data.nearby, 'nearby-events-grid', 'nearbySection', '.nearby-swiper');
+}
+
+// Manual Grid Scroll removed in favor of Swiper
 
 // Mobile menu toggle
 function initMobileMenu() {
@@ -532,7 +606,8 @@ function escapeHTML(str) {
 
 // Create event card
 function createEventCard(event, index) {
-  const price = !event.price || parseFloat(event.price) === 0 ? 'Free' : `₦${parseFloat(event.price).toLocaleString()}`;
+  const pVal = parseFloat(event.price || 0);
+  const price = pVal === 0 ? 'Free' : `₦${pVal.toLocaleString()}`;
   
   // Security: Sanitize and Path Priority
   const relPath = event.image_path ? event.image_path.replace(/^\/+/, '') : null;
@@ -577,26 +652,24 @@ function createEventCard(event, index) {
   const priorityBadge = event.priority ? `<div class="card-priority-badge priority-${event.priority.toLowerCase()}">${getPriorityIcon(event.priority)} ${event.priority}</div>` : '';
 
   return `
-    <div class="event-card modern-card" data-id="${event.id}" data-status="${status}" onclick="showEventModal(${event.id})">
-      <div class="card-image-wrapper">
-        <img src="${eventImage}" alt="${eventName}" loading="lazy" class="card-main-img" onerror="this.src='${fallback}'">
+    <div class="event-card" data-id="${event.id}" data-status="${status}" onclick="showEventModal(${event.id})">
+      <div class="event-image-container">
+        <img src="${eventImage}" alt="${eventName}" loading="lazy" class="event-image" onerror="this.src='${fallback}'">
+        <div class="event-badges">
+          <span class="event-category-badge">${category}</span>
+          <div class="event-status-badge" style="color: ${statusColor};">
+            <span class="status-dot" style="background-color: ${statusColor};"></span>
+            ${statusLabel}
+          </div>
+        </div>
         ${priorityBadge}
-        <div class="card-badge-top" style="background: ${statusColor};">${statusLabel}</div>
-        <div class="card-category-tag">${category}</div>
       </div>
       
-      <div class="card-body">
-        <div class="card-meta-top">
-          <span class="card-date">${new Date(event.event_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
-          <span class="card-dot"></span>
-          <span class="card-time">${eventTime}</span>
-        </div>
+      <div class="event-content">
+        <div class="event-date-time">${eventDate} • ${eventTime.substring(0, 5)}</div>
+        <h3 class="event-title">${eventName}</h3>
         
-        <h3 class="card-title">${eventName}</h3>
-        
-        <div class="event-card-description">${desc}</div>
-        
-        <div class="card-location">
+        <div class="event-location">
           <a href="${mapUrl}" target="_blank" class="address-link" onclick="event.stopPropagation();">
             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/>
@@ -604,32 +677,27 @@ function createEventCard(event, index) {
             <span class="location-truncate">${escapeHTML(full_address)}</span>
           </a>
         </div>
+        
+        <div class="event-card-description">${desc}</div>
+        <div class="event-organizer">By ${organizer} ${event.is_verified == 1 ? '<span class="verified-check" title="Verified">✓</span>' : ''}</div>
+      </div>
 
-        <div class="card-footer-modern">
-          <div class="card-organizer-info">
-            <span class="organizer-name-tiny">By ${organizer}</span>
-            ${event.is_verified == 1 ? '<span class="verified-check" title="Verified">✓</span>' : ''}
-          </div>
-          
-          <div class="card-price-display">
-             ${price.toLowerCase() === 'free' ? '<span class="price-free">Free</span>' : `<span class="price-amount">${price}</span>`}
-          </div>
-        </div>
-
-        ${!isPassed ? `
-        <div class="card-hover-actions">
-          <button class="action-btn-circle fav-btn ${isFavorite}" onclick="toggleFavorite(event, ${event.id}); event.stopPropagation();" title="Favorite">
+      <div class="event-footer" style="padding: 0 1.5rem 1.5rem 1.5rem;">
+        <div class="event-price">${price}</div>
+        <div class="event-card-actions">
+           ${!isPassed ? `
+          <button class="card-action-btn fav-btn ${isFavorite}" onclick="toggleFavorite(event, ${event.id}); event.stopPropagation();" title="Favorite">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="${isFavorite ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2">
               <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
             </svg>
           </button>
-          <button class="action-btn-circle share-btn" onclick="shareEvent(event, ${event.id}, '${escapeHTML(shareTitle)}', '${escapeHTML(shareText)}'); event.stopPropagation();" title="Share">
+          <button class="card-action-btn share-btn" onclick="shareEvent(event, ${event.id}, '${escapeHTML(shareTitle)}', '${escapeHTML(shareText)}'); event.stopPropagation();" title="Share">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><polyline points="16 6 12 2 8 6"></polyline><line x1="12" y1="2" x2="12" y2="15"></line>
             </svg>
           </button>
+          ` : ''}
         </div>
-        ` : ''}
       </div>
     </div>
   `;
@@ -661,29 +729,137 @@ const EVENT_CATEGORIES = [
 
 const PRIORITY_TAGS = ['nearby', 'hot', 'upcoming', 'trending', 'featured'];
 
-// Redesigned discovery rendering
+// Redesigned discovery rendering with Grid and Pagination
 function renderDiscovery(events = eventsData.all) {
   const container = document.getElementById('all-events-grid');
   const countEl = document.getElementById('resultsCount');
+  const wrapper = document.getElementById('events-grid-wrapper');
+  const noResultsEl = document.getElementById('noResultsMessage');
+  const paginationContainer = document.getElementById('paginationContainer');
   
   if (!container) return;
+
+  // 1. Deduplicate against categorized sections (Featured/Hot/etc.)
+  // If search is active, we don't deduplicate to show all results
+  const searchQuery = document.getElementById('globalSearch')?.value.trim();
+  const eventsToShow = (searchQuery) 
+    ? events 
+    : events.filter(e => !window.homepageSeenIds.has(e.id));
   
-  if (events.length === 0) {
-    container.innerHTML = `
-      <div class="empty-state" style="grid-column: 1/-1; padding: 4rem; text-align: center; color: var(--text-muted); width: 100%;">
-        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin-bottom: var(--space-md);">
-          <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
-        </svg>
-        <h3>No matching events found</h3>
-        <p>Try adjusting your filters or search terms.</p>
-      </div>
-    `;
+  filteredDiscoveryEvents = eventsToShow;
+  
+  // 2. Handle empty state
+  if (eventsToShow.length === 0) {
+    container.style.display = 'none';
+    if (paginationContainer) paginationContainer.style.display = 'none';
+    if (noResultsEl) noResultsEl.style.display = 'block';
     if (countEl) countEl.textContent = '0 events found';
     return;
   }
 
-  container.innerHTML = events.map(event => createEventCard(event)).join('');
-  if (countEl) countEl.textContent = `${events.length} events found`;
+  // 3. Show content, hide "No Results"
+  container.style.display = 'grid';
+  if (noResultsEl) noResultsEl.style.display = 'none';
+  if (countEl) countEl.textContent = `${eventsToShow.length} events found`;
+
+  // 4. Pagination Logic
+  const totalPages = Math.ceil(eventsToShow.length / itemsPerPage);
+  
+  // Ensure currentPage is valid
+  if (currentPage > totalPages) currentPage = totalPages || 1;
+  if (currentPage < 1) currentPage = 1;
+
+  const start = (currentPage - 1) * itemsPerPage;
+  const end = start + itemsPerPage;
+  const paginatedEvents = eventsToShow.slice(start, end);
+
+  // 5. Render Grid
+  container.innerHTML = paginatedEvents.map(event => `
+    <div class="grid-item">
+        ${createEventCard(event)}
+    </div>
+  `).join('');
+  
+  // 6. Update Pagination UI
+  renderPaginationUI(totalPages);
+}
+
+function renderPaginationUI(totalPages) {
+    const paginationContainer = document.getElementById('paginationContainer');
+    const pageNumbers = document.getElementById('pageNumbers');
+    const prevBtn = document.getElementById('prevPage');
+    const nextBtn = document.getElementById('nextPage');
+
+    if (!paginationContainer || !pageNumbers) return;
+
+    if (totalPages <= 1) {
+        paginationContainer.style.display = 'none';
+        return;
+    }
+
+    paginationContainer.style.display = 'flex';
+    pageNumbers.innerHTML = '';
+
+    // Prev Button
+    if (prevBtn) prevBtn.disabled = currentPage === 1;
+
+    // Page Numbers
+    // For simplicity, showing all pages if few, or a window. 
+    // Here we'll show all or use a simple logic.
+    for (let i = 1; i <= totalPages; i++) {
+        if (totalPages > 7) {
+            // Simple window logic (Current, 1, last, and neighbors)
+            if (i !== 1 && i !== totalPages && Math.abs(i - currentPage) > 1) {
+                if (i === 2 || i === totalPages - 1) {
+                    const dots = document.createElement('span');
+                    dots.textContent = '...';
+                    dots.className = 'dots';
+                    pageNumbers.appendChild(dots);
+                }
+                continue;
+            }
+        }
+
+        const btn = document.createElement('button');
+        btn.textContent = i;
+        btn.className = `page-num ${i === currentPage ? 'active' : ''}`;
+        btn.onclick = () => {
+            currentPage = i;
+            renderDiscovery(allEvents); // Re-render with same data
+            const wrapper = document.getElementById('events-grid-wrapper');
+            if (wrapper) wrapper.scrollIntoView({ behavior: 'smooth' });
+        };
+        pageNumbers.appendChild(btn);
+    }
+
+    // Next Button
+    if (nextBtn) nextBtn.disabled = currentPage === totalPages;
+}
+
+function initPaginationListeners() {
+    const prevBtn = document.getElementById('prevPage');
+    const nextBtn = document.getElementById('nextPage');
+
+    if (prevBtn) {
+        prevBtn.onclick = () => {
+            if (currentPage > 1) {
+                currentPage--;
+                renderDiscovery(allEvents);
+                document.getElementById('events-grid-wrapper')?.scrollIntoView({ behavior: 'smooth' });
+            }
+        };
+    }
+
+    if (nextBtn) {
+        nextBtn.onclick = () => {
+            const totalPages = Math.ceil(filteredDiscoveryEvents.length / itemsPerPage);
+            if (currentPage < totalPages) {
+                currentPage++;
+                renderDiscovery(allEvents);
+                document.getElementById('events-grid-wrapper')?.scrollIntoView({ behavior: 'smooth' });
+            }
+        };
+    }
 }
 
 // Filter Initialization
@@ -732,58 +908,96 @@ function toggleSidebarSection(sectionId) {
     }
 }
 
+function getFilteredEvents(events, filters) {
+    const { searchQuery, selectedStates, selectedCategories, selectedPriorities, selectedStatuses, freeOnly, now } = filters;
+    
+    return events.filter(event => {
+        const matchesSearch = !searchQuery || 
+            event.event_name.toLowerCase().includes(searchQuery) ||
+            (event.description && event.description.toLowerCase().includes(searchQuery));
+
+        const matchesState = selectedStates.length === 0 || (event.state && selectedStates.includes(event.state.toLowerCase()));
+        
+        const matchesCategory = selectedCategories.length === 0 || 
+            selectedCategories.includes((event.category || event.event_type || 'General').toLowerCase());
+        
+        const matchesPriority = selectedPriorities.length === 0 || (event.priority && selectedPriorities.includes(event.priority.toLowerCase()));
+        
+        const eventDate = new Date(event.event_date);
+        const isPassed = eventDate < now;
+        const matchesStatus = selectedStatuses.length === 0 || 
+            (selectedStatuses.includes('passed') && isPassed) || 
+            (selectedStatuses.includes('recent') && !isPassed);
+
+        const isFree = !event.price || parseFloat(event.price.toString().replace(/[^0.00-9.99]/g, '')) === 0;
+        const matchesPrice = !freeOnly || isFree;
+
+        return matchesSearch && matchesState && matchesCategory && matchesPriority && matchesStatus && matchesPrice;
+    });
+}
+
 function applyFilters() {
-  const searchQuery = document.getElementById('globalSearch')?.value.toLowerCase() || '';
+  // Reset pagination to first page on filter change
+  currentPage = 1;
+
+  const filters = {
+      searchQuery: document.getElementById('globalSearch')?.value.toLowerCase() || '',
+      selectedStates: Array.from(document.querySelectorAll('#stateFiltersWrapper input:checked')).map(i => i.value),
+      selectedCategories: Array.from(document.querySelectorAll('#categoryFiltersWrapper input:checked')).map(i => i.value),
+      selectedPriorities: Array.from(document.querySelectorAll('#priorityFiltersWrapper input:checked')).map(i => i.value),
+      selectedStatuses: Array.from(document.querySelectorAll('#statusFiltersWrapper input:checked')).map(i => i.value),
+      freeOnly: document.getElementById('freeOnlyToggle')?.checked,
+      now: new Date()
+  };
+
+  // 1. Get filtered discovery list
+  const discoveryFiltered = getFilteredEvents(allEvents, filters);
   
-  const selectedStates = Array.from(document.querySelectorAll('#stateFiltersWrapper input:checked')).map(i => i.value);
-  const selectedCategories = Array.from(document.querySelectorAll('#categoryFiltersWrapper input:checked')).map(i => i.value);
-  const selectedPriorities = Array.from(document.querySelectorAll('#priorityFiltersWrapper input:checked')).map(i => i.value);
-  
-  const freeOnly = document.getElementById('freeOnlyToggle')?.checked;
-
-  const filtered = allEvents.filter(event => {
-    // 1. Global Search
-    const matchesSearch = !searchQuery || 
-      event.event_name.toLowerCase().includes(searchQuery) ||
-      (event.description && event.description.toLowerCase().includes(searchQuery));
-
-    // 2. State Filter (OR within group)
-    const matchesState = selectedStates.length === 0 || (event.state && selectedStates.includes(event.state.toLowerCase()));
-    
-    // 3. Category Filter (OR within group)
-    const matchesCategory = selectedCategories.length === 0 || 
-      selectedCategories.includes((event.category || event.event_type || 'General').toLowerCase());
-    
-    // 4. Priority Filter (OR within group - requirement: show events matching any selected priority)
-    const matchesPriority = selectedPriorities.length === 0 || (event.priority && selectedPriorities.includes(event.priority.toLowerCase()));
-    
-    // 5. Price Filter
-    const isFree = !event.price || parseFloat(event.price.toString().replace(/[^0.00-9.99]/g, '')) === 0;
-    const matchesPrice = !freeOnly || isFree;
-
-    // Logic: AND across different groups
-    return matchesSearch && matchesState && matchesCategory && matchesPriority && matchesPrice;
-  });
-
   // Sorting logic
   const sortBy = document.getElementById('sortBy')?.value;
-  
   const getPrice = (p) => {
     if (!p || p.toString().toLowerCase() === 'free') return 0;
     return parseFloat(p.toString().replace(/[^0-9.]/g, '')) || 0;
   };
 
   if (sortBy === 'price-low') {
-    filtered.sort((a, b) => getPrice(a.price) - getPrice(b.price));
+      discoveryFiltered.sort((a, b) => getPrice(a.price) - getPrice(b.price));
   } else if (sortBy === 'price-high') {
-    filtered.sort((a, b) => getPrice(b.price) - getPrice(a.price));
+      discoveryFiltered.sort((a, b) => getPrice(b.price) - getPrice(a.price));
   } else if (sortBy === 'newest') {
-    filtered.sort((a, b) => new Date(b.event_date) - new Date(a.event_date));
+      discoveryFiltered.sort((a, b) => new Date(b.event_date) - new Date(a.event_date));
   } else if (sortBy === 'oldest') {
-    filtered.sort((a, b) => new Date(a.event_date) - new Date(b.event_date));
+      discoveryFiltered.sort((a, b) => new Date(a.event_date) - new Date(b.event_date));
   }
 
-  renderDiscovery(filtered);
+  // 2. Prepare categorized data (Filtered)
+  const categorizedFiltered = {
+      featured: getFilteredEvents(allEvents.filter(e => e.priority === 'featured'), filters),
+      trending: getFilteredEvents(allEvents.filter(e => e.priority === 'trending'), filters),
+      hot: getFilteredEvents(allEvents.filter(e => e.priority === 'hot'), filters),
+      nearby: getFilteredEvents(allEvents.filter(e => {
+          // Re-use nearby logic if user location is available
+          const keys = typeof getRoleKeys === 'function' ? getRoleKeys() : { user: 'user' };
+          const user = window.storage ? (window.storage.get(keys.user) || window.storage.get('user')) : null;
+          const userState = user?.state?.toLowerCase();
+          const userCity = user?.city?.toLowerCase();
+          
+          if (e.priority === 'nearby') return true;
+          if (userState || userCity) {
+              const eventState = e.state?.toLowerCase();
+              const eventCity = e.city?.toLowerCase();
+              return (userState && eventState && (eventState.includes(userState) || userState.includes(eventState))) ||
+                     (userCity && eventCity && (eventCity.includes(userCity) || userCity.includes(eventCity)));
+          }
+          return false;
+      }), filters)
+  };
+
+  // 3. Render categories first (sets window.homepageSeenIds for discovery)
+  renderAllCategories(categorizedFiltered);
+
+  // 4. Render main discovery grid (respects window.homepageSeenIds)
+  renderDiscovery(discoveryFiltered);
 }
 
 // Share event function
@@ -942,12 +1156,12 @@ async function init() {
     // Initialize dynamic components
     loadEvents().then(() => {
         initializeSlider('hot-events-grid');
-        initializeSlider('all-events-grid');
     });
     initMobileMenu();
     initUserIcon();
     initEnhancedSearch();
     initEventModal();
+    initPaginationListeners();
     initSmoothScroll();
     initHeaderScroll();
     if (typeof initGoogleAuth === 'function') initGoogleAuth();

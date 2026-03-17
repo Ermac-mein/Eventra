@@ -240,8 +240,12 @@ function invalidateSession($user_id, $token)
     global $pdo;
 
     if ($user_id && $token) {
-        $stmt = $pdo->prepare("DELETE FROM auth_tokens WHERE token = ?");
-        $stmt->execute([$token]);
+        $pdo->prepare("DELETE FROM auth_tokens WHERE token = ?")
+            ->execute([$token]);
+
+        // ── Reset online status so dashboard doesn't show stale "active" ──
+        $pdo->prepare("UPDATE auth_accounts SET is_online = 0, last_seen = NOW() WHERE id = ?")
+            ->execute([$user_id]);
     }
 
     if (session_status() === PHP_SESSION_ACTIVE) {

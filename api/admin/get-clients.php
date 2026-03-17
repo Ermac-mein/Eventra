@@ -31,7 +31,7 @@ try {
     $total_records = $count_stmt->fetchColumn();
 
     // Get clients with event count
-    $sql = "SELECT p.id, p.business_name as name, a.email, p.profile_pic, p.company, p.state, p.phone, 
+    $sql = "SELECT p.id, p.custom_id, p.business_name as name, a.email, p.profile_pic, p.company, p.state, p.phone, 
             p.account_name, p.account_number, p.bank_name, p.subaccount_code, p.verification_status,
             p.dob, p.gender, p.address, p.city, p.country,
             a.is_active, a.is_online,

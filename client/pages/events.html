@@ -155,6 +155,8 @@
                 <table>
                     <thead>
                         <tr>
+                            <th style="width: 40px;"><input type="checkbox" id="selectAll"></th>
+                            <th>Event ID</th>
                             <th style="cursor: pointer;" onclick="sortEvents('event_name')">Event Name <i data-lucide="arrow-up-down" style="width: 14px; height: 14px; display: inline-block; vertical-align: middle;"></i></th>
                             <th style="cursor: pointer;" onclick="sortEvents('event_date')">Date <i data-lucide="arrow-up-down" style="width: 14px; height: 14px; display: inline-block; vertical-align: middle;"></i></th>
                             <th>Category</th>
@@ -182,8 +184,6 @@
     <div class="modal-backdrop" id="exportModal">
         <div class="modal-content">
             <h2 style="font-size: 1.5rem; margin-bottom: 0.5rem;">Export Options</h2>
-            <p style="color: var(--client-text-muted); margin-bottom: 2rem;">Choose your preferred file format for data
-                export.</p>
             <ul class="export-options">
                 <li class="export-option" data-format="CSV">
                     <i data-lucide="file-text"></i> CSV Spreadsheet
@@ -193,6 +193,9 @@
                 </li>
                 <li class="export-option" data-format="PDF">
                     <i data-lucide="file"></i> PDF Document
+                </li>
+                <li class="export-option" data-format="Selection">
+                    <i data-lucide="check-square"></i> Select Rows
                 </li>
             </ul>
         </div>

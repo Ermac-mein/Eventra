@@ -22,11 +22,13 @@ try {
     }
     $real_client_id = $client_row['id'];
 
-    // 2. Client Revenue (Paid)
+    // 2. Client Revenue — correctly calculated as SUM(event_price × tickets_sold)
+    //    Revenue = Σ(e.price * ticket_count) per event, then summed across all events.
     $stmt = $pdo->prepare("
-        SELECT COALESCE(SUM(p.amount), 0) as total 
-        FROM payments p
-        JOIN events e ON p.event_id = e.id
+        SELECT COALESCE(SUM(e.price), 0) AS total
+        FROM tickets t
+        JOIN payments p ON t.payment_id = p.id
+        JOIN events e   ON p.event_id   = e.id
         WHERE e.client_id = ? AND p.status = 'paid'
     ");
     $stmt->execute([$real_client_id]);
@@ -65,7 +67,9 @@ try {
 
     // 6. Detailed Attendee List (With profile pics)
     $stmt = $pdo->prepare("
-        SELECT u.name, a.email, u.profile_pic, e.event_name, p.paid_at, t.barcode, t.used, p.amount, t.created_at, p.paystack_response
+        SELECT u.name, a.email, u.profile_pic, e.event_name, p.paid_at, t.barcode, t.used, p.amount, t.created_at, p.paystack_response,
+               e.price as event_price,
+               CASE WHEN e.price = 0 OR e.price IS NULL THEN 'Free' ELSE CONCAT('₦', FORMAT(e.price, 0)) END as price_display
         FROM tickets t
         JOIN payments p ON t.payment_id = p.id
         JOIN users u ON p.user_id = u.id
@@ -80,9 +84,10 @@ try {
 
     // 7. Event Performance Breakdown
     $stmt = $pdo->prepare("
-        SELECT e.id, e.event_name, e.event_date, e.status, e.image_path,
+        SELECT e.id, e.event_name, e.event_date, e.status, e.image_path, e.price,
                COUNT(t.id) as tickets_sold, 
-               COALESCE(SUM(p.amount), 0) as revenue
+               COALESCE(SUM(e.price), 0) as revenue,
+               CASE WHEN e.price = 0 OR e.price IS NULL THEN 'Free' ELSE CONCAT('₦', FORMAT(e.price, 0)) END as price_display
         FROM events e
         LEFT JOIN payments p ON e.id = p.event_id AND p.status = 'paid'
         LEFT JOIN tickets t ON p.id = t.payment_id

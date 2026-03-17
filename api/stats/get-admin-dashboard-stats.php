@@ -23,15 +23,21 @@ try {
     $stmt = $pdo->query("SELECT COUNT(*) as total FROM events WHERE status = 'published' AND deleted_at IS NULL");
     $total_events = $stmt->fetch()['total'];
 
-    // 4. Total Online (Current Session)
-    $stmt = $pdo->query("SELECT COUNT(*) as total FROM auth_accounts WHERE role = 'user' AND is_online = 1 AND deleted_at IS NULL");
+    // 4. Total Online — users active in the last 5 minutes (prevents stale is_online)
+    $stmt = $pdo->query("SELECT COUNT(*) as total FROM auth_accounts WHERE role = 'user' AND is_online = 1 AND last_seen >= DATE_SUB(NOW(), INTERVAL 5 MINUTE) AND deleted_at IS NULL");
     $online_users = $stmt->fetch()['total'] ?? 0;
 
-    $stmt = $pdo->query("SELECT COUNT(*) as total FROM auth_accounts WHERE role = 'client' AND is_online = 1 AND deleted_at IS NULL");
+    $stmt = $pdo->query("SELECT COUNT(*) as total FROM auth_accounts WHERE role = 'client' AND is_online = 1 AND last_seen >= DATE_SUB(NOW(), INTERVAL 5 MINUTE) AND deleted_at IS NULL");
     $online_clients = $stmt->fetch()['total'] ?? 0;
 
-    // 5. Total Revenue (Paid payments)
-    $stmt = $pdo->query("SELECT COALESCE(SUM(amount), 0) as total FROM payments WHERE status = 'paid'");
+    // 5. Total Revenue — correctly as SUM(e.price) for all paid tickets
+    $stmt = $pdo->query("
+        SELECT COALESCE(SUM(e.price), 0) AS total
+        FROM tickets t
+        JOIN events e   ON t.event_id   = e.id
+        JOIN payments p ON t.payment_id = p.id
+        WHERE p.status = 'paid'
+    ");
     $total_revenue = $stmt->fetch()['total'];
 
     // 6. Pending Payments

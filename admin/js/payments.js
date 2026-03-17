@@ -119,6 +119,7 @@ async function loadRefundRequests() {
     const thead = document.getElementById('paymentsTableHead');
 
     if (thead) thead.innerHTML = `<tr>
+        <th style="width: 40px;"><input type="checkbox" id="selectAll"></th>
         <th>DATE</th>
         <th>EVENT</th>
         <th>BUYER</th>
@@ -133,7 +134,7 @@ async function loadRefundRequests() {
         const data = await res.json();
 
         if (!data.success || !data.requests.length) {
-            if (tbody) tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:2.5rem;color:#94a3b8;">No refund requests found.</td></tr>`;
+            if (tbody) tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:2.5rem;color:#94a3b8;">No refund requests found.</td></tr>`;
             return;
         }
 
@@ -141,6 +142,7 @@ async function loadRefundRequests() {
             const statusClass = r.status === 'approved' ? 'status-paid' : r.status === 'declined' ? 'status-failed' : 'status-pending';
             const statusLabel = r.status === 'approved' ? '✓ Approved' : r.status === 'declined' ? '✗ Declined' : '⏳ Pending';
             return `<tr>
+                <td><input type="checkbox" class="payment-checkbox" data-id="${r.id}"></td>
                 <td>
                     <div style="font-weight:600;font-size:.88rem;">${formatDate(r.created_at)}</div>
                     <div style="font-size:.74rem;color:#94a3b8;">${new Date(r.created_at).toLocaleTimeString()}</div>
@@ -171,11 +173,14 @@ async function loadRefundRequests() {
 function restoreTransactionHeaders() {
     const thead = document.getElementById('paymentsTableHead');
     if (thead) thead.innerHTML = `<tr>
+        <th style="width: 40px; padding-left: 1.5rem;"><input type="checkbox" id="selectAll"></th>
+        <th class="sortable" onclick="changeSort('custom_id','custom_id')">ID ↕</th>
         <th class="sortable" onclick="changeSort('date_desc','date_asc')">DATE ↕</th>
         <th>EVENT</th>
         <th>ORGANIZER</th>
         <th class="sortable" onclick="changeSort('amount_desc','amount_asc')">AMOUNT ↕</th>
         <th>TICKETS</th>
+        <th>TRANSACTION ID</th>
         <th>USER EMAIL</th>
         <th class="sortable" onclick="changeSort('status','status')">STATUS ↕</th>
     </tr>`;
@@ -201,20 +206,50 @@ function renderTransactionsTable(payments) {
             : `<strong>₦${parseFloat(p.amount).toLocaleString()}</strong>`;
         const encoded = JSON.stringify(p).replace(/"/g, '&quot;');
 
+        const userCustomId = p.user_custom_id ? `<div style="font-size:.7rem;color:#94a3b8;font-family:monospace;">${p.user_custom_id}</div>` : '';
+        const clientCustomId = p.client_custom_id ? `<div style="font-size:.7rem;color:#94a3b8;font-family:monospace;">${p.client_custom_id}</div>` : '';
+
         return `
         <tr onclick="openDetailModal(${encoded})">
+            <td style="padding-left: 1.5rem;"><input type="checkbox" class="payment-checkbox" data-id="${p.id}"></td>
             <td>
-                <div style="font-weight:600;font-size:.88rem;">${p.relative_time}</div>
-                <div style="font-size:.74rem;color:#94a3b8;">${new Date(p.created_at).toLocaleString()}</div>
+                <div style="font-size:.7rem;color:var(--admin-primary);font-family:monospace;font-weight:700;">${p.custom_id || 'N/A'}</div>
+            </td>
+            <td>
+                <div style="font-weight:600;font-size:.88rem;">${new Date(p.created_at).toLocaleDateString()}</div>
+                <div style="font-size:.74rem;color:#94a3b8;">${new Date(p.created_at).toLocaleTimeString()}</div>
             </td>
             <td style="font-weight:600;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escapeHtml(p.event_name || '')}">${escapeHtml(p.event_name || '—')}</td>
-            <td><span style="font-size:.85rem;color:#475569;font-weight:500;">${escapeHtml(p.client_name || '—')}</span></td>
+            <td>
+                <span style="font-size:.85rem;color:#475569;font-weight:500;">${escapeHtml(p.client_name || '—')}</span>
+                ${clientCustomId}
+            </td>
             <td>${amountDisplay}</td>
             <td style="text-align:center;"><span class="ticket-badge">${p.ticket_count || 0}</span></td>
-            <td><span style="font-size:.83rem;color:#64748b;">${escapeHtml(p.buyer_email || '—')}</span></td>
+            <td>
+                <div style="font-size:.75rem;color:#475569;font-family:monospace;">${p.reference || '—'}</div>
+            </td>
+            <td>
+                <span style="font-size:.83rem;color:#64748b;">${escapeHtml(p.buyer_email || '—')}</span>
+                ${userCustomId}
+            </td>
             <td><span class="status-badge ${badgeClass}">${icon} ${ucfirst(p.status)}</span></td>
         </tr>`;
     }).join('');
+
+    // Handle Select All
+    const selectAll = document.getElementById('selectAll');
+    if (selectAll) {
+        selectAll.onchange = (e) => {
+            const checkboxes = document.querySelectorAll('.payment-checkbox');
+            checkboxes.forEach(cb => cb.checked = e.target.checked);
+        };
+    }
+
+    // Prevent detail modal open on checkbox click
+    document.querySelectorAll('.payment-checkbox, #selectAll').forEach(cb => {
+        cb.onclick = (e) => e.stopPropagation();
+    });
 }
 
 function computeStats(payments, total) {
@@ -281,6 +316,7 @@ function openDetailModal(payment) {
             <span class="status-badge ${badgeClass}" style="font-size:.9rem;padding:.35rem 1.2rem;">${icon} ${ucfirst(payment.status)}</span>
         </div>
         <div class="detail-row"><span class="detail-label">Reference</span><span class="detail-value" style="font-family:monospace;font-size:.83rem">${payment.reference || '—'}</span></div>
+        ${payment.custom_id ? `<div class="detail-row"><span class="detail-label">Transaction ID</span><span class="detail-value" style="font-family:monospace;font-size:.83rem;color:var(--admin-primary);font-weight:700;">${payment.custom_id}</span></div>` : ''}
         <div class="detail-row"><span class="detail-label">Amount</span><span class="detail-value">${amountDisplay}</span></div>
         <div class="detail-row"><span class="detail-label">Tickets</span><span class="detail-value">${payment.ticket_count || 0} ticket(s)</span></div>
         <div class="detail-row"><span class="detail-label">Buyer</span><span class="detail-value">${escapeHtml(payment.buyer_name || '—')}</span></div>

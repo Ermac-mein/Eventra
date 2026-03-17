@@ -136,19 +136,34 @@
 
             <div class="stats-grid">
                 <div class="stat-card">
-                    <div class="stat-header"><span class="stat-label">Tickets Sold</span><i data-lucide="ticket" class="stat-icon"></i></div>
+                    <div class="stat-header">
+                        <span class="stat-label">Total Issued</span>
+                        <i data-lucide="ticket" class="stat-icon" style="color: #6366f1;"></i>
+                    </div>
                     <span class="stat-value" id="ticketsIssued">0</span>
                 </div>
+                
                 <div class="stat-card">
-                    <div class="stat-header"><span class="stat-label">Tickets Scanned</span><i data-lucide="scan" class="stat-icon"></i></div>
+                    <div class="stat-header">
+                        <span class="stat-label">Total Revenue</span>
+                        <i data-lucide="banknote" class="stat-icon" style="color: #10b981;"></i>
+                    </div>
+                    <span class="stat-value" id="totalRevenue">₦0</span>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <span class="stat-label">Scanned</span>
+                        <i data-lucide="scan" class="stat-icon" style="color: #f59e0b;"></i>
+                    </div>
                     <span class="stat-value" id="ticketsScanned">0</span>
                 </div>
+
                 <div class="stat-card">
-                    <div class="stat-header"><span class="stat-label">Tickets Remaining</span><i data-lucide="clock" class="stat-icon"></i></div>
-                    <span class="stat-value" id="ticketsRemaining">0</span>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-header"><span class="stat-label">Tickets Cancelled</span><i data-lucide="x-circle" class="stat-icon"></i></div>
+                    <div class="stat-header">
+                        <span class="stat-label">Cancelled</span>
+                        <i data-lucide="ban" class="stat-icon" style="color: #ef4444;"></i>
+                    </div>
                     <span class="stat-value" id="ticketsCancelled">0</span>
                 </div>
             </div>
@@ -160,7 +175,8 @@
                     <table class="tkt-table" id="ticketsTable">
                         <thead>
                             <tr>
-                                <th onclick="sortTicketsTable('ticket_code')">TICKET CODE ↕</th>
+                                <th style="width: 40px; padding-left: 1.5rem;"><input type="checkbox" id="selectAll"></th>
+                                <th onclick="sortTicketsTable('custom_id')">Tickets ID↕</th>
                                 <th onclick="sortTicketsTable('event_name')">EVENT</th>
                                 <th onclick="sortTicketsTable('user_name')">BUYER</th>
                                 <th onclick="sortTicketsTable('total_price')">PRICE ↕</th>
@@ -238,6 +254,7 @@
     <script src="../js/profile-pic-upload.js"></script>
     <script src="../js/search-manager.js"></script>
     <script src="../js/pages/tickets.js"></script>
+    <script src="../../public/js/heartbeat.js"></script>
     <script src="../js/admin-main.js"></script>
     <script>lucide.createIcons();</script>
 </body>

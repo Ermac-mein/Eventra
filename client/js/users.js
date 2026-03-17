@@ -50,6 +50,9 @@ function initializeTableSorting() {
             
             const rows = Array.from(tbody.querySelectorAll('tr'));
             if (rows.length === 0 || rows[0].children.length === 1) return; // Empty fallback row
+
+            // If this is the checkbox column, don't sort
+            if (index === 0) return;
             
             // Toggle sorting direction
             const isAsc = header.classList.contains('sort-asc');
@@ -144,9 +147,11 @@ function updateUsersTable(users) {
 
         return `
         <tr style="cursor: pointer;" onclick='showUserPreviewModal(${JSON.stringify(user).replace(/'/g, "&#39;")})'>
+            <td><input type="checkbox" class="user-checkbox" data-id="${user.id}"></td>
+            <td style="font-family:monospace;font-size:0.8rem;color:#635bff;font-weight:600;">${user.custom_id || '—'}</td>
             <td style="display: flex; align-items: center; gap: 12px;">
                 <img src="${profileImage}" alt="${user.name}" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover; border: 1px solid #e2e8f0;">
-                <span style="font-weight: 500;">${user.name || 'N/A'}</span>
+                <div style="font-weight: 500;">${user.name || 'N/A'}</div>
             </td>
             <td>${user.email || 'N/A'}</td>
             <td>${user.phone || 'N/A'}</td>
@@ -161,6 +166,20 @@ function updateUsersTable(users) {
         </tr>
     `;
     }).join('');
+
+    // Handle Select All
+    const selectAll = document.getElementById('selectAll');
+    if (selectAll) {
+        selectAll.onchange = (e) => {
+            const checkboxes = document.querySelectorAll('.user-checkbox');
+            checkboxes.forEach(cb => cb.checked = e.target.checked);
+        };
+    }
+
+    // Prevent modal open on checkbox click
+    document.querySelectorAll('.user-checkbox, #selectAll').forEach(cb => {
+        cb.onclick = (e) => e.stopPropagation();
+    });
 }
 
 function formatDate(dateString) {

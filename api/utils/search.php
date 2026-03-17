@@ -37,10 +37,9 @@ try {
     if ($type === 'all' || $type === 'events') {
         $sql = "SELECT e.id, e.event_name as title, e.event_type as subtitle, e.category, e.price, e.state, e.status, e.event_date, e.event_time, e.image_path, e.priority 
                 FROM events e
-                LEFT JOIN clients c ON e.client_id = c.id
-                WHERE e.deleted_at IS NULL AND (e.event_name LIKE ? OR e.description LIKE ? OR e.state LIKE ? OR e.category LIKE ? OR e.event_type LIKE ? OR c.business_name LIKE ? OR e.price LIKE ? OR e.event_date LIKE ?)";
+                WHERE e.deleted_at IS NULL AND (e.event_name LIKE ? OR e.description LIKE ? OR e.state LIKE ? OR e.category LIKE ? OR e.event_type LIKE ? OR c.business_name LIKE ? OR e.price LIKE ? OR e.event_date LIKE ? OR e.custom_id LIKE ?)";
 
-        $params = [$searchTerm, $searchTerm, $searchTerm, $searchTerm, $searchTerm, $searchTerm, $searchTerm, $searchTerm];
+        $params = [$searchTerm, $searchTerm, $searchTerm, $searchTerm, $searchTerm, $searchTerm, $searchTerm, $searchTerm, $searchTerm];
 
         // Add filters
         if ($category) {
@@ -93,9 +92,9 @@ try {
                 INNER JOIN events e ON p.event_id = e.id
                 LEFT JOIN users u ON p.user_id = u.user_auth_id
                 LEFT JOIN auth_accounts a ON p.user_id = a.id
-                WHERE (t.barcode LIKE ? OR u.name LIKE ? OR a.email LIKE ? OR e.event_name LIKE ?)";
+                WHERE (t.barcode LIKE ? OR u.name LIKE ? OR a.email LIKE ? OR e.event_name LIKE ? OR t.custom_id LIKE ? OR p.reference LIKE ? OR p.custom_id LIKE ?)";
 
-        $params = [$searchTerm, $searchTerm, $searchTerm, $searchTerm];
+        $params = [$searchTerm, $searchTerm, $searchTerm, $searchTerm, $searchTerm, $searchTerm, $searchTerm];
 
         if ($userRole === 'client') {
             // Resolve real client_id from auth_id
@@ -130,9 +129,9 @@ try {
             $sql = "SELECT a.id, a.email as title, a.role as subtitle, u.name as display_name, u.profile_pic as profile_image, a.created_at 
                     FROM auth_accounts a
                     LEFT JOIN users u ON a.id = u.user_auth_id
-                    WHERE a.email LIKE ? OR u.name LIKE ? 
+                    WHERE a.email LIKE ? OR u.name LIKE ? OR u.custom_id LIKE ?
                     LIMIT 20";
-            $params = [$searchTerm, $searchTerm];
+            $params = [$searchTerm, $searchTerm, $searchTerm];
         } else {
             // Client: search users who bought tickets for their events
             $c_stmt = $pdo->prepare("SELECT id FROM clients WHERE client_auth_id = ?");
@@ -145,9 +144,9 @@ try {
                     INNER JOIN tickets t ON p.id = t.payment_id
                     INNER JOIN events e ON p.event_id = e.id
                     INNER JOIN auth_accounts a ON u.user_auth_id = a.id
-                    WHERE e.client_id = ? AND (u.name LIKE ? OR a.email LIKE ?)
+                    WHERE e.client_id = ? AND (u.name LIKE ? OR a.email LIKE ? OR u.custom_id LIKE ?)
                     LIMIT 20";
-            $params = [$realClientId, $searchTerm, $searchTerm];
+            $params = [$realClientId, $searchTerm, $searchTerm, $searchTerm];
         }
 
         $stmt = $pdo->prepare($sql);

@@ -25,6 +25,7 @@ try {
     $stmt = $pdo->prepare("
         SELECT DISTINCT 
             u.id,
+            u.custom_id,
             u.name,
             a.email,
             u.phone,

@@ -15,6 +15,11 @@ document.addEventListener('DOMContentLoaded', () => {
     if (window.notificationManager) {
         window.notificationManager.startPolling();
     }
+
+    // Initialize heartbeat
+    if (typeof initHeartbeat === 'function') {
+        initHeartbeat();
+    }
 });
 
 function initDrawers() {
@@ -246,19 +251,27 @@ function exportCurrentTableToPDF() {
         // Extract table data
         const headers = [];
         const rows = [];
+        const hasCheckboxes = table.querySelector('thead th input[type="checkbox"]');
         
-        // Get headers
+        // Get headers (skip first column if it's a checkbox)
         const headerCells = table.querySelectorAll('thead th');
-        headerCells.forEach(cell => {
-            headers.push(cell.innerText.trim());
+        headerCells.forEach((cell, index) => {
+            if (index === 0 && hasCheckboxes) return;
+            headers.push(cell.innerText.replace(/↕/g, '').trim());
         });
         
         // Get rows
         const bodyRows = table.querySelectorAll('tbody tr');
-        bodyRows.forEach(row => {
+        const checkedRows = table.querySelectorAll('tbody tr input[type="checkbox"]:checked');
+        const rowsToExport = checkedRows.length > 0 
+            ? Array.from(checkedRows).map(cb => cb.closest('tr'))
+            : Array.from(bodyRows);
+
+        rowsToExport.forEach(row => {
             const rowData = [];
             const cells = row.querySelectorAll('td');
-            cells.forEach(cell => {
+            cells.forEach((cell, index) => {
+                if (index === 0 && hasCheckboxes) return;
                 // Clean up text content
                 let text = cell.innerText.trim().replace(/\n/g, ' ');
                 rowData.push(text);
@@ -310,21 +323,29 @@ function exportCurrentTableToExcel() {
         // Extract table data
         const workbook = XLSX.utils.book_new();
         const worksheet_data = [];
+        const hasCheckboxes = table.querySelector('thead th input[type="checkbox"]');
         
         // Get headers
         const headers = [];
         const headerCells = table.querySelectorAll('thead th');
-        headerCells.forEach(cell => {
-            headers.push(cell.innerText.trim());
+        headerCells.forEach((cell, index) => {
+            if (index === 0 && hasCheckboxes) return;
+            headers.push(cell.innerText.replace(/↕/g, '').trim());
         });
         worksheet_data.push(headers);
         
         // Get rows
         const bodyRows = table.querySelectorAll('tbody tr');
-        bodyRows.forEach(row => {
+        const checkedRows = table.querySelectorAll('tbody tr input[type="checkbox"]:checked');
+        const rowsToExport = checkedRows.length > 0 
+            ? Array.from(checkedRows).map(cb => cb.closest('tr'))
+            : Array.from(bodyRows);
+
+        rowsToExport.forEach(row => {
             const rowData = [];
             const cells = row.querySelectorAll('td');
-            cells.forEach(cell => {
+            cells.forEach((cell, index) => {
+                if (index === 0 && hasCheckboxes) return;
                 let text = cell.innerText.trim().replace(/\n/g, ' ');
                 rowData.push(text);
             });
@@ -361,18 +382,29 @@ function exportCurrentTableToCSV() {
 
     if (window.showToast) window.showToast('Generating CSV...', 'info');
 
-    const rows = Array.from(table.querySelectorAll('tr'));
-    const csvContent = rows.map(row => {
+    const hasCheckboxes = table.querySelector('thead th input[type="checkbox"]');
+    const headerRow = table.querySelector('thead tr');
+    const bodyRows = table.querySelectorAll('tbody tr');
+    const checkedRows = table.querySelectorAll('tbody tr input[type="checkbox"]:checked');
+    const rowsToExport = checkedRows.length > 0 
+        ? Array.from(checkedRows).map(cb => cb.closest('tr'))
+        : Array.from(bodyRows);
+
+    const exportRows = [headerRow, ...rowsToExport];
+
+    const csvContent = exportRows.map(row => {
         const cells = Array.from(row.querySelectorAll('th, td'));
-        return cells.map(cell => {
+        return cells.filter((_, index) => !(index === 0 && hasCheckboxes))
+        .map(cell => {
             // Clean up the text: remove extra whitespace, handle quotes
-            let text = cell.innerText.trim().replace(/\n/g, ' ');
+            let text = cell.innerText.trim().replace(/\n/g, ' ').replace(/↕/g, '');
             if (text.includes(',') || text.includes('"')) {
                 text = `"${text.replace(/"/g, '""')}"`;
             }
+            if (text === 'Loading...' || text === 'No data found') return null;
             return text;
-        }).join(',');
-    }).join('\n');
+        }).filter(t => t !== null).join(',');
+    }).filter(row => row.length > 0).join('\n');
 
     const filename = `eventra-export-${new Date().toISOString().split('T')[0]}.csv`;
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -761,14 +793,25 @@ window.initPreviews = function() {
                     </div>
                 `;
             } else if (path.includes('events.html')) {
+                // Use the specialized previewEvent function if available
+                if (typeof window.previewEvent === 'function') {
+                    window.previewEvent(row.dataset.id);
+                    return;
+                }
+
                 const cells = row.querySelectorAll('td');
                 if (cells.length < 6) return;
-                const event = cells[0].innerText;
-                const location = cells[1].innerText;
-                const price = cells[2].innerText;
-                const attendees = cells[3].innerText;
-                const category = cells[4].innerText;
-                const status = cells[5].innerText;
+                
+                // Adjust indices for events table: [0:cb, 1:ID, 2:Name, 3:Priority, 4:Date, 5:Time, 6:Category, ...]
+                const eventId = cells[1].innerText;
+                const eventName = cells[2].querySelector('div:first-child')?.innerText || cells[2].innerText;
+                const priority = cells[3].innerText;
+                const date = cells[4].innerText;
+                const time = cells[5].innerText;
+                const category = cells[6].innerText;
+                const phone = cells[7].innerText;
+                const price = cells[8].innerText;
+                const attendees = cells[9].innerText;
                 
                 const eventImage = row.dataset.image || 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=1200&fit=crop';
                 
@@ -776,48 +819,32 @@ window.initPreviews = function() {
                     <div class="event-preview">
                         <div class="event-preview-image-box">
                             <img src="${eventImage}" class="event-preview-image" alt="Event">
-                            <div class="priority-badge" style="position: absolute; top: 1rem; right: 1rem; padding: 0.4rem 0.8rem; border-radius: 20px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: white; background: ${row.dataset.priority === 'hot' ? '#ff4757' : row.dataset.priority === 'trending' ? '#3742fa' : '#2ed573'};">
-                                ${row.dataset.priority || 'Standard'}
+                            <div class="priority-badge" style="position: absolute; top: 1rem; right: 1rem; padding: 0.4rem 0.8rem; border-radius: 20px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: white; background: ${priority.toLowerCase() === 'hot' ? '#ff4757' : priority.toLowerCase() === 'trending' ? '#3742fa' : '#2ed573'};">
+                                ${priority || 'Standard'}
                             </div>
                         </div>
                         <div class="event-preview-content">
                             <div class="event-preview-main-info" style="margin-bottom: 1rem;">
-                                <h1 class="event-preview-title" style="font-size: 1.5rem; margin-bottom: 0.25rem;">${event}</h1>
+                                <h1 class="event-preview-title" style="font-size: 1.5rem; margin-bottom: 0.25rem;">${eventName}</h1>
                                 <p style="color: #6b7280; font-size: 0.85rem;">Organized by: ${row.dataset.clientName || 'Eventra'}</p>
                             </div>
                             
                             <div style="margin-bottom: 1.5rem;">
                                 <label style="display: block; font-size: 0.75rem; color: #6b7280; margin-bottom: 0.5rem; text-transform: uppercase; font-weight: 600;">Attendees</label>
                                 <div style="display: flex; align-items: center; gap: 10px;">
-                                    <div style="display: flex;">
-                                        ${[...Array(Math.min(parseInt(attendees), 5))].map((_, i) => `
-                                            <img src="https://ui-avatars.com/api/?name=User+${i}&background=random" 
-                                                 style="width: 25px; height: 25px; border-radius: 50%; border: 2px solid white; margin-left: ${i === 0 ? '0' : '-10px'};">
-                                        `).join('')}
-                                    </div>
                                     <span style="font-size: 0.85rem; color: #4b5563; font-weight: 600;">${attendees} people attending</span>
                                 </div>
                             </div>
 
                             <div class="event-preview-grid-details" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 1rem;">
                                 <div class="event-grid-item" style="background: #f8fafc; padding: 0.6rem; border-radius: 6px; font-size: 0.85rem;">📂 ${category}</div>
-                                <div class="event-grid-item" style="background: #f8fafc; padding: 0.6rem; border-radius: 6px; font-size: 0.85rem;">📍 ${location}</div>
+                                <div class="event-grid-item" style="background: #f8fafc; padding: 0.6rem; border-radius: 6px; font-size: 0.85rem;">📅 ${date}</div>
                             </div>
                             
                             <div class="event-preview-footer" style="padding-top: 1rem; border-top: 1px solid #f1f5f9;">
                                 <div class="event-price-final">
                                     <label style="font-size: 0.8rem; color: #64748b;">Ticket Price:</label>
-                                    <span style="font-size: 1.25rem; font-weight: 700; color: var(--primary-color);">${price}</span>
-                                </div>
-                            </div>
-                            <div class="event-preview-sharing" style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid #f1f5f9;">
-                                <div style="margin-bottom: 0.75rem;">
-                                    <label style="display: block; font-size: 0.7rem; color: #94a3b8; margin-bottom: 0.25rem; text-transform: uppercase; font-weight: 600;">Shareable Link</label>
-                                    <div style="display: flex; gap: 0.5rem; align-items: center;">
-                                        <input type="text" readonly value="${window.location.origin}/public/pages/event-details.html?event=${row.dataset.tag}&client=${row.dataset.clientName}" 
-                                               style="background: #f8fafc; padding: 0.4rem 0.6rem; border-radius: 4px; border: 1px solid #e2e8f0; font-family: monospace; font-size: 0.75rem; flex: 1; color: #475569;">
-                                        <button onclick="copyToClipboard('${window.location.origin}/public/pages/event-details.html?event=${row.dataset.tag}&client=${row.dataset.clientName}', 'Link copied!')" style="background: #ef4444; color: white; border: none; padding: 0.4rem 0.6rem; border-radius: 4px; cursor: pointer; font-size: 0.75rem; font-weight: 600;">Copy</button>
-                                    </div>
+                                    <span style="font-size: 1.25rem; font-weight: 700; color: var(--admin-primary);">${price}</span>
                                 </div>
                             </div>
                         </div>
