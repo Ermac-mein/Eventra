@@ -9,7 +9,7 @@ header('Content-Type: application/json');
 require_once '../../config/database.php';
 require_once '../../config/payment.php';
 require_once '../../includes/middleware/auth.php';
-require 'vendor/autoload.php';
+require_once '../../vendor/autoload.php';
 
 $client_auth_id = clientMiddleware();
 

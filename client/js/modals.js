@@ -135,8 +135,13 @@ function showProfileEditModal() {
                                 <input type="text" id="accountNumberInput" name="account_number" value="${(user.account_number && !/^[0]*$/.test(user.account_number)) ? user.account_number : ''}" maxlength="10" placeholder="10-digit Account Number" style="width: 100%; padding: 0.75rem; border: 1px solid #ccc; border-radius: 8px;" oninput="this.value = this.value.replace(/[^0-9]/g, '');" onblur="resolveAccount()">
                             </div>
                             <div class="form-group" style="grid-column: span 2;">
-                                <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">BVN (11 Digits)</label>
-                                <input type="text" name="bvn" value="${user.bvn || ''}" maxlength="11" placeholder="11-digit BVN" style="width: 100%; padding: 0.75rem; border: 1px solid #ccc; border-radius: 8px;" oninput="this.value = this.value.replace(/[^0-9]/g, '');">
+                                <label style="font-weight: 600; margin-bottom: 0.5rem; display: flex; align-items: center; justify-content: space-between; width: 100%;">
+                                    <span>BVN (11 Digits)</span>
+                                    <div id="bvnStatus" class="verification-status-indicator" style="display: flex; align-items: center; gap: 0.5rem;">
+                                        <!-- Will be populated dynamically -->
+                                    </div>
+                                </label>
+                                <input type="text" id="bvnInput" name="bvn" value="${user.bvn || ''}" maxlength="11" placeholder="11-digit BVN" style="width: 100%; padding: 0.75rem; border: 1px solid #ccc; border-radius: 8px;" oninput="this.value = this.value.replace(/[^0-9]/g, '');" onblur="validateAndVerifyField('bvn')">
                                 <small style="display: block; margin-top: 0.4rem; color: #64748b; font-size: 0.8rem; font-style: italic;">Note: Your BVN is for identity verification only and is not shared with Paystack for subaccount creation.</small>
                             </div>
                             <div class="form-group" style="grid-column: span 2;">
@@ -145,6 +150,9 @@ function showProfileEditModal() {
                             </div>
                         </div>
 
+                        <!-- Hidden Verification Status -->
+                        <input type="hidden" id="ninVerifiedInput" name="nin_verified" value="${user.nin_verified || 0}">
+                        <input type="hidden" id="bvnVerifiedInput" name="bvn_verified" value="${user.bvn_verified || 0}">
 
                         <!-- Submit Button -->
                         <div style="display: flex; gap: 1rem; margin-top: 2rem;">
@@ -176,6 +184,10 @@ function showProfileEditModal() {
 
     // Add form submit handler
     document.getElementById('profileEditForm').addEventListener('submit', handleProfileUpdate);
+
+    // Initialize verification statuses
+    if (user.nin_verified == 1) updateFieldStatus('nin', 'success');
+    if (user.bvn_verified == 1) updateFieldStatus('bvn', 'success');
 }
 
 function closeProfileEditModal() {
@@ -314,6 +326,10 @@ async function validateAndVerifyField(type) {
                 storage.set('client_user', user);
                 updateVerificationBadge();
             }
+            
+            // Sync hidden form input
+            const hiddenStatus = document.getElementById(`${type}VerifiedInput`);
+            if (hiddenStatus) hiddenStatus.value = 1;
         } else {
             const errorMsg = result.data?.message || `Invalid ${type.toUpperCase()}`;
             updateFieldStatus(type, 'error', errorMsg);
@@ -325,6 +341,10 @@ async function validateAndVerifyField(type) {
                 storage.set('client_user', user);
                 updateVerificationBadge();
             }
+
+            // Sync hidden form input
+            const hiddenStatus = document.getElementById(`${type}VerifiedInput`);
+            if (hiddenStatus) hiddenStatus.value = 0;
         }
     } catch (error) {
         console.error(`Error verifying ${type}:`, error);

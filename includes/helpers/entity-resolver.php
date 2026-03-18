@@ -14,14 +14,22 @@
  * Handles unified identity resolution and security policies for different entity types.
  */
 
-function resolveEntity($identity)
+function resolveEntity($identity, $role = null)
 {
     global $pdo;
 
     // First check the auth_accounts table
     // Support resolution by either email or username
-    $stmt = $pdo->prepare("SELECT * FROM auth_accounts WHERE email = ? OR username = ?");
-    $stmt->execute([$identity, $identity]);
+    $query = "SELECT * FROM auth_accounts WHERE (email = ? OR username = ?)";
+    $params = [$identity, $identity];
+    
+    if ($role) {
+        $query .= " AND role = ?";
+        $params[] = $role;
+    }
+    
+    $stmt = $pdo->prepare($query);
+    $stmt->execute($params);
     $auth = $stmt->fetch(PDO::FETCH_ASSOC);
 
     if (!$auth) {
@@ -121,8 +129,8 @@ function generateInternalId()
 function canRegisterAs($email, $targetRole)
 {
     global $pdo;
-    $stmt = $pdo->prepare("SELECT role FROM auth_accounts WHERE email = ?");
-    $stmt->execute([$email]);
+    $stmt = $pdo->prepare("SELECT role FROM auth_accounts WHERE email = ? AND role = ?");
+    $stmt->execute([$email, $targetRole]);
     $existing = $stmt->fetch(PDO::FETCH_ASSOC);
 
     if (!$existing) {
@@ -131,7 +139,7 @@ function canRegisterAs($email, $targetRole)
 
     return [
         'success' => false,
-        'message' => "This identity is already bound to the " . ucfirst($existing['role']) . " role and cannot be reused for other roles."
+        'message' => "You already have a " . ucfirst($existing['role']) . " account with this email. Please log in."
     ];
 }
 

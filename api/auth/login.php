@@ -29,7 +29,7 @@ if (!in_array($intent, ['admin', 'client', 'user'])) {
 
 try {
     // 1. Resolve Entity (Centralized Backend Decision)
-    $user = resolveEntity($identity);
+    $user = resolveEntity($identity, $intent);
 
     if (!$user) {
         logSecurityEvent(null, $identity, 'login_failure', 'password', "Identity not found.");

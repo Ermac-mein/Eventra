@@ -65,7 +65,7 @@ if (!in_array($intent, ['client', 'user', 'admin'])) {
 
 try {
     // 1. Resolve Entity by email
-    $user = resolveEntity($email);
+    $user = resolveEntity($email, $intent);
 
     if ($user) {
         $userRole = strtolower($user['role']);
@@ -124,7 +124,7 @@ try {
         $pdo->commit();
 
         // Reload user entity to reflect changes
-        $user = resolveEntity($email);
+        $user = resolveEntity($email, $intent);
 
         // Consistent URL formatting for the response
         if (isset($user['profile_pic']) && $user['profile_pic']) {
@@ -168,7 +168,7 @@ try {
         }
 
         $pdo->commit();
-        $user = resolveEntity($email);
+        $user = resolveEntity($email, $intent);
     }
 
     $userRole = strtolower($user['role']);

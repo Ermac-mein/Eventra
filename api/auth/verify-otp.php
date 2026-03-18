@@ -16,8 +16,8 @@ try {
     require_once '../../includes/helpers/entity-resolver.php';
     
     // Resolve user by identity (email or phone)
-    $user = resolveEntity($identity);
-    $auth_id = (isset($user['role']) && $user['role'] === 'client') ? ($user['id'] ?? null) : null;
+    $user = resolveEntity($identity, 'client');
+    $auth_id = $user['id'] ?? null;
 
     if (!$auth_id) {
         echo json_encode(['success' => false, 'message' => 'Invalid request.']);

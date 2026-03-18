@@ -15,7 +15,7 @@ try {
     require_once '../../includes/helpers/entity-resolver.php';
     
     // Resolve user by identity (email or phone)
-    $user = resolveEntity($identity);
+    $user = resolveEntity($identity, 'client');
 
     if ($user && isset($user['id']) && $user['role'] === 'client') {
         $auth_id = $user['id'];

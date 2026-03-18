@@ -111,9 +111,15 @@ try {
     }
 
     // Prepare Update Query
-    $query = "UPDATE clients SET name = ?, business_name = ?, phone = ?, address = ?, city = ?, state = ?, country = ?, job_title = ?, company = ?, dob = ?, gender = ?, nin = ?, bvn = ?, account_name = ?, account_number = ?, bank_name = ?, bank_code = ?, verification_status = ?, updated_at = NOW()";
+    $query = "UPDATE clients SET name = ?, business_name = ?, phone = ?, address = ?, city = ?, state = ?, country = ?, job_title = ?, company = ?, dob = ?, gender = ?, nin = ?, bvn = ?, nin_verified = ?, bvn_verified = ?, account_name = ?, account_number = ?, bank_name = ?, bank_code = ?, verification_status = ?, updated_at = NOW()";
     // Use existing business_name if not provided so we don't null it out accidentally if it's required in some places
-    $params = [$name, $business_name, $phone, $address, $city, $state, $country, $job_title, $company, $dob, $gender, $nin, $bvn, $account_name, $account_number, $bank_name, $bank_code, $new_verification_status];
+    $params = [
+        $name, $business_name, $phone, $address, $city, $state, $country, $job_title, $company, $dob, $gender, 
+        $nin, $bvn, 
+        $_POST['nin_verified'] ?? ($existing['nin_verified'] ?? 0), 
+        $_POST['bvn_verified'] ?? ($existing['bvn_verified'] ?? 0),
+        $account_name, $account_number, $bank_name, $bank_code, $new_verification_status
+    ];
 
     if ($profile_pic) {
         $query .= ", profile_pic = ?";
