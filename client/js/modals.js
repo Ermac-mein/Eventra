@@ -38,6 +38,11 @@ function showProfileEditModal() {
                         
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
                             <div class="form-group" style="grid-column: span 2;">
+                                <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Client ID</label>
+                                <input type="text" value="${user.custom_id || 'Generating...'}" readonly style="width: 100%; padding: 0.75rem; border: 1px solid #e0e0e0; border-radius: 8px; background: #f8fafc; color: #7c3aed; font-weight: 700; font-family: monospace; letter-spacing: 1px;">
+                            </div>
+
+                            <div class="form-group" style="grid-column: span 2;">
                                 <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Full Name *</label>
                                 <input type="text" name="name" value="${user.name}" required style="width: 100%; padding: 0.75rem; border: 1px solid #ccc; border-radius: 8px;">
                             </div>
@@ -130,8 +135,13 @@ function showProfileEditModal() {
                                 <input type="text" id="accountNumberInput" name="account_number" value="${(user.account_number && !/^[0]*$/.test(user.account_number)) ? user.account_number : ''}" maxlength="10" placeholder="10-digit Account Number" style="width: 100%; padding: 0.75rem; border: 1px solid #ccc; border-radius: 8px;" oninput="this.value = this.value.replace(/[^0-9]/g, '');" onblur="resolveAccount()">
                             </div>
                             <div class="form-group" style="grid-column: span 2;">
+                                <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">BVN (11 Digits)</label>
+                                <input type="text" name="bvn" value="${user.bvn || ''}" maxlength="11" placeholder="11-digit BVN" style="width: 100%; padding: 0.75rem; border: 1px solid #ccc; border-radius: 8px;" oninput="this.value = this.value.replace(/[^0-9]/g, '');">
+                                <small style="display: block; margin-top: 0.4rem; color: #64748b; font-size: 0.8rem; font-style: italic;">Note: Your BVN is for identity verification only and is not shared with Paystack for subaccount creation.</small>
+                            </div>
+                            <div class="form-group" style="grid-column: span 2;">
                                 <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Account Holder Name (Auto-resolved)</label>
-                                <input type="text" id="accountNameInput" name="account_name" value="${user.account_name || ''}" readonly style="width: 100%; padding: 0.75rem; border: 1px solid #e0e0e0; border-radius: 8px; background: #f1f5f9; color: #475569; font-weight: 500;">
+                                <input type="text" id="accountNameInput" name="account_name" value="${user.account_name || ''}" style="width: 100%; padding: 0.75rem; border: 1px solid #ccc; border-radius: 8px; background: white; color: #334155; font-weight: 500;">
                             </div>
                         </div>
 

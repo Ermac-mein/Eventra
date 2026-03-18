@@ -24,11 +24,20 @@ try {
         exit;
     }
 
-    // 2. Load ID Generator
-    require_once '../../api/utils/id-generator.php';
+// 2. Load ID Generator
+require_once '../../api/utils/id-generator.php';
 
-    // 3. Hash Password
-    $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
+// 3. Validate Password Strength (Uppercase, Digit, Special Character, Min 8 chars)
+if (!preg_match('/^(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%^&*(),.?":{}|<>]).{8,}$/', $password)) {
+    echo json_encode([
+        'success' => false, 
+        'message' => 'Password must be at least 8 characters long and include one uppercase letter, one digit, and one special character.'
+    ]);
+    exit;
+}
+
+// 4. Hash Password
+$hashedPassword = password_hash($password, PASSWORD_DEFAULT);
 
     $pdo->beginTransaction();
 
@@ -58,7 +67,7 @@ try {
     logSecurityEvent($auth_id, $email, 'registration_success', 'password', "New client registered: $name");
 
     // 5. Notify Admin and User using helper
-    require_once '../../includes/helpers/notification-helper.php'; // Adjusted path
+    require_once '../../api/utils/notification-helper.php'; // Adjusted path
 
     $admin_id = getAdminUserId();
     if ($admin_id) {

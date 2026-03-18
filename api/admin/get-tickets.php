@@ -32,7 +32,7 @@ try {
     // Count
     $countSql = "SELECT COUNT(*) FROM tickets t
                  JOIN events e ON t.event_id = e.id
-                 JOIN users u  ON t.user_id  = u.id
+                 LEFT JOIN users u  ON t.user_id  = u.id
                  WHERE $where";
     $cStmt = $pdo->prepare($countSql);
     $cStmt->execute($params);
@@ -62,8 +62,8 @@ try {
         FROM tickets t
         JOIN events e   ON t.event_id  = e.id
         JOIN payments p ON t.payment_id= p.id
-        JOIN users u    ON t.user_id   = u.id
-        JOIN clients c  ON e.client_id = c.id
+        LEFT JOIN users u    ON t.user_id   = u.id
+        LEFT JOIN clients c  ON e.client_id = c.id
         WHERE $where
         ORDER BY t.created_at DESC
         LIMIT $limit OFFSET $offset

@@ -92,7 +92,7 @@ try {
 
             // Fetch tickets + event details
             $stmt = $pdo->prepare("
-                SELECT t.*, e.event_name, e.event_date, e.event_time, e.location, e.address,
+                SELECT t.*, e.event_name, e.event_date, e.event_time, e.location, e.address, e.image_path AS event_image,
                        u.name as user_name, a.email as user_email
                 FROM tickets t
                 JOIN payments p ON t.payment_id = p.id

@@ -290,3 +290,105 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Event Image Slider Logic removed to stop showing client details
 });
+
+// Password Recovery Flow
+async function handleForgotPassword() {
+    const { value: email } = await Swal.fire({
+        title: 'Forgot Password?',
+        text: 'Enter your registered email to receive an OTP.',
+        input: 'email',
+        inputPlaceholder: 'admin@eventra.com',
+        showCancelButton: true,
+        confirmButtonText: 'Send OTP',
+        background: '#1e293b',
+        color: '#fff',
+        confirmButtonColor: '#7c3aed'
+    });
+
+    if (!email) return;
+
+    Swal.showLoading();
+
+    try {
+        const response = await apiFetch('../../api/auth/forgot-password.php', {
+            method: 'POST',
+            body: JSON.stringify({ email })
+        });
+        const result = await response.json();
+
+        if (result.success) {
+            // Step 2: Prompt for OTP
+            const { value: otp } = await Swal.fire({
+                title: 'Verify OTP',
+                text: result.message,
+                input: 'text',
+                inputPlaceholder: 'Enter 6-digit OTP',
+                showCancelButton: true,
+                confirmButtonText: 'Verify',
+                background: '#1e293b',
+                color: '#fff',
+                confirmButtonColor: '#7c3aed',
+                inputAttributes: {
+                    maxlength: 6,
+                    autocapitalize: 'off',
+                    autocorrect: 'off'
+                }
+            });
+
+            if (!otp) return;
+
+            Swal.showLoading();
+            const verifyRes = await apiFetch('../../api/auth/verify-otp.php', {
+                method: 'POST',
+                body: JSON.stringify({ email, otp })
+            });
+            const verifyResult = await verifyRes.json();
+
+            if (verifyResult.success) {
+                // Step 3: Prompt for New Password
+                const { value: password } = await Swal.fire({
+                    title: 'Reset Password',
+                    text: 'Enter your new password (min. 6 characters).',
+                    input: 'password',
+                    inputPlaceholder: 'New Password',
+                    showCancelButton: true,
+                    confirmButtonText: 'Reset Password',
+                    background: '#1e293b',
+                    color: '#fff',
+                    confirmButtonColor: '#7c3aed'
+                });
+
+                if (!password) return;
+
+                Swal.showLoading();
+                const resetRes = await apiFetch('../../api/auth/reset-password.php', {
+                    method: 'POST',
+                    body: JSON.stringify({ 
+                        reset_token: verifyResult.reset_token, 
+                        new_password: password 
+                    })
+                });
+                const resetResult = await resetRes.json();
+
+                if (resetResult.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Success!',
+                        text: resetResult.message,
+                        background: '#1e293b',
+                        color: '#fff'
+                    });
+                } else {
+                    Swal.fire('Error', resetResult.message, 'error');
+                }
+            } else {
+                Swal.fire('Error', verifyResult.message, 'error');
+            }
+        } else {
+            Swal.fire('Error', result.message, 'error');
+        }
+    } catch (error) {
+        console.error('Password recovery error:', error);
+        Swal.fire('Error', 'An unexpected error occurred.', 'error');
+    }
+}

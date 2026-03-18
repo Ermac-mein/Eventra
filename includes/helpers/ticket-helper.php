@@ -143,6 +143,17 @@ function generateTicketPDF(array $ticketData): string
     $eventName = htmlspecialchars($ticketData['event_name'] ?? 'Event');
     $generatedAt = date('d M Y, H:i');
 
+    // Handle Event Image
+    $eventImgSrc = "";
+    if (!empty($ticketData['event_image'])) {
+        $imgPath = __DIR__ . '/../../' . ltrim($ticketData['event_image'], '/');
+        if (file_exists($imgPath)) {
+            $imgData = base64_encode(file_get_contents($imgPath));
+            $mime = mime_content_type($imgPath);
+            $eventImgSrc = "data:$mime;base64,$imgData";
+        }
+    }
+
     $html = "
     <html>
     <head>
@@ -173,6 +184,13 @@ function generateTicketPDF(array $ticketData): string
                 border-radius: 20px;
                 font-size: 11px;
                 letter-spacing: 1px;
+            }
+            .ticket-hero {
+                height: 120px;
+                background: " . ($eventImgSrc ? "url($eventImgSrc)" : "#7c3aed") . ";
+                background-size: cover;
+                background-position: center;
+                border-bottom: 2px solid #7c3aed;
             }
             .ticket-body { display: flex; padding: 25px; gap: 20px; }
             .ticket-info { flex: 1; }
@@ -209,6 +227,7 @@ function generateTicketPDF(array $ticketData): string
                     <h1>EVENTRA</h1>
                     <span class='ticket-badge'>OFFICIAL TICKET</span>
                 </div>
+                " . ($eventImgSrc ? "<div class='ticket-hero'></div>" : "") . "
                 <div class='ticket-body'>
                     <div class='ticket-info'>
                         <h2>{$eventName}</h2>

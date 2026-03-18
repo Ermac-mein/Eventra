@@ -129,6 +129,15 @@ try {
         throw new Exception($error_message);
     }
 
+    // Validation
+    $required_fields = ['event_name', 'event_type', 'event_date', 'event_time', 'price', 'status', 'address', 'phone_contact_1', 'category'];
+    foreach ($required_fields as $field) {
+        if (!isset($_POST[$field]) || trim($_POST[$field]) === '') {
+            echo json_encode(['success' => false, 'message' => "Field '$field' is required"]);
+            exit;
+        }
+    }
+
     // Update event
     $sql = "UPDATE events SET 
             event_name = ?,
@@ -165,7 +174,7 @@ try {
         $_POST['phone_contact_1'],
         $_POST['phone_contact_2'] ?? null,
         $image_path,
-        $_POST['event_type'],
+        $_POST['category'],
         $event_id
     ]);
 

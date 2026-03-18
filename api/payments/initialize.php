@@ -163,7 +163,15 @@ try {
     if (!($psResult['status'] ?? false)) {
         $pdo->rollBack();
         $errMsg = $psResult['message'] ?? 'Paystack initialization failed.';
-        echo json_encode(['success' => false, 'message' => $errMsg]);
+        $psCode = $psResult['code'] ?? 'N/A';
+        error_log("[initialize.php] Paystack Error: {$errMsg} (Code: {$psCode})");
+        
+        // Provide more helpful messages for common errors
+        if (str_contains($errMsg, 'subaccount')) {
+            $errMsg = "Organizer payment setup issue: " . $errMsg;
+        }
+        
+        echo json_encode(['success' => false, 'message' => $errMsg, 'error_code' => $psCode]);
         exit;
     }
 

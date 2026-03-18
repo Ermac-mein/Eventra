@@ -31,40 +31,65 @@ try {
     $results = [
         'events' => [],
         'users' => [],
-        'clients' => []
+        'clients' => [],
+        'tickets' => [],
+        'payments' => []
     ];
 
     // 1. Search Events
     $stmt = $pdo->prepare("
-        SELECT id, custom_id, event_name as name, category as type, state, tag
+        SELECT id, custom_id, event_name as name, event_type as type, state, status, address
         FROM events
-        WHERE (event_name LIKE ? OR description LIKE ? OR state LIKE ? OR category LIKE ? OR custom_id LIKE ?) AND deleted_at IS NULL
+        WHERE (event_name LIKE ? OR description LIKE ? OR state LIKE ? OR event_type LIKE ? OR custom_id LIKE ? OR address LIKE ? OR location LIKE ?) AND deleted_at IS NULL
         LIMIT 5
     ");
-    $stmt->execute([$searchTerm, $searchTerm, $searchTerm, $searchTerm, $searchTerm]);
+    $stmt->execute([$searchTerm, $searchTerm, $searchTerm, $searchTerm, $searchTerm, $searchTerm, $searchTerm]);
     $results['events'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     // 2. Search Users
     $stmt = $pdo->prepare("
-        SELECT a.id, u.custom_id, u.name, a.email, u.profile_pic
+        SELECT a.id, u.custom_id, u.name, a.email, u.profile_pic, u.phone
         FROM auth_accounts a
         JOIN users u ON a.id = u.user_auth_id
-        WHERE (u.name LIKE ? OR a.email LIKE ? OR u.custom_id LIKE ?) AND a.role = 'user'
+        WHERE (u.name LIKE ? OR a.email LIKE ? OR u.custom_id LIKE ? OR u.phone LIKE ?) AND a.role = 'user'
         LIMIT 5
     ");
-    $stmt->execute([$searchTerm, $searchTerm, $searchTerm]);
+    $stmt->execute([$searchTerm, $searchTerm, $searchTerm, $searchTerm]);
     $results['users'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     // 3. Search Clients
     $stmt = $pdo->prepare("
-        SELECT a.id, c.custom_id, c.business_name as name, a.email, c.profile_pic, c.company
+        SELECT a.id, c.custom_id, c.business_name as name, a.email, c.profile_pic, c.company, c.phone, c.subaccount_code
         FROM auth_accounts a
         JOIN clients c ON a.id = c.client_auth_id
-        WHERE (c.business_name LIKE ? OR a.email LIKE ? OR c.company LIKE ? OR c.custom_id LIKE ?) AND a.role = 'client'
+        WHERE (c.business_name LIKE ? OR a.email LIKE ? OR c.company LIKE ? OR c.custom_id LIKE ? OR c.phone LIKE ? OR c.subaccount_code LIKE ?) AND a.role = 'client'
         LIMIT 5
     ");
-    $stmt->execute([$searchTerm, $searchTerm, $searchTerm, $searchTerm]);
+    $stmt->execute([$searchTerm, $searchTerm, $searchTerm, $searchTerm, $searchTerm, $searchTerm]);
     $results['clients'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    // 4. Search Tickets
+    $stmt = $pdo->prepare("
+        SELECT t.id, t.custom_id, t.barcode, u.name as user_name, e.event_name, t.status
+        FROM tickets t
+        JOIN users u ON t.user_id = u.id
+        JOIN events e ON t.event_id = e.id
+        WHERE t.custom_id LIKE ? OR t.barcode LIKE ?
+        LIMIT 5
+    ");
+    $stmt->execute([$searchTerm, $searchTerm]);
+    $results['tickets'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    // 5. Search Payments
+    $stmt = $pdo->prepare("
+        SELECT p.id, p.custom_id, p.reference, u.name as user_name, p.amount, p.status
+        FROM payments p
+        JOIN users u ON p.user_id = u.id
+        WHERE p.custom_id LIKE ? OR p.reference LIKE ? OR p.transaction_id LIKE ?
+        LIMIT 5
+    ");
+    $stmt->execute([$searchTerm, $searchTerm, $searchTerm]);
+    $results['payments'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     echo json_encode([
         'success' => true,

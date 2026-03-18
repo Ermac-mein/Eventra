@@ -94,7 +94,7 @@ try {
 
     // 3. Get POST data
     require_once '../../api/utils/id-generator.php';
-    $custom_id = generateEventUlid();
+    $custom_id = generateEventId($pdo);
 
     $event_name = $_POST['event_name'] ?? '';
     $description = $_POST['description'] ?? '';

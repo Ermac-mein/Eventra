@@ -162,6 +162,8 @@ try {
                 'name' => $user['name'],
                 'email' => $user['email'],
                 'role' => $userRole,
+                'custom_id' => $user['custom_id'] ?? null,
+                'bvn' => $user['bvn'] ?? null,
                 'profile_image' => (function ($pic) {
                     if (!$pic)
                         return null;

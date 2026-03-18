@@ -32,7 +32,7 @@ function fetchOrder(PDO $pdo, string $reference): ?array
 {
     $stmt = $pdo->prepare("
         SELECT o.*,
-               e.event_name, e.event_date, e.event_time, e.address, e.location,
+               e.event_name, e.event_date, e.event_time, e.address, e.location, e.image_path,
                u.id AS user_id, u.name AS user_name,
                a.email AS user_email, u.phone AS user_phone,
                c.client_auth_id AS organizer_auth_id,
@@ -139,6 +139,7 @@ function processSuccessfulPayment(PDO $pdo, array $order, array $psData): void
                 'address'        => $order['address'],
                 'user_name'      => $order['user_name'],
                 'payment_status' => 'paid',
+                'event_image'    => $order['image_path'] ?? null,
             ];
 
             $pdfPath    = generateTicketPDF($ticketData);
@@ -168,6 +169,7 @@ function processSuccessfulPayment(PDO $pdo, array $order, array $psData): void
                     'address'        => $order['address'],
                     'user_name'      => $order['user_name'],
                     'payment_status' => 'paid',
+                    'event_image'    => $order['image_path'] ?? null,
                 ];
                 $pdfPath = generateTicketPDF($ticketData);
             }

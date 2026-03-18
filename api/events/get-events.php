@@ -77,6 +77,29 @@ try {
         $favoriteSubquery = "(SELECT COUNT(*) FROM favorites WHERE user_id = ? AND event_id = e.id) as is_favorite";
     }
 
+    // Dynamic Sorting
+    $sort_by = $_GET['sort_by'] ?? 'newest';
+    $order_sql = "e.created_at DESC"; // default
+
+    switch ($sort_by) {
+        case 'popular':
+            $order_sql = "e.attendee_count DESC";
+            break;
+        case 'date':
+            $order_sql = "e.event_date ASC, e.event_time ASC";
+            break;
+        case 'price_low':
+            $order_sql = "e.price ASC";
+            break;
+        case 'price_high':
+            $order_sql = "e.price DESC";
+            break;
+        case 'newest':
+        default:
+            $order_sql = "e.created_at DESC";
+            break;
+    }
+
     $sql = "
         SELECT 
             e.*, 
@@ -88,7 +111,7 @@ try {
         FROM events e
         LEFT JOIN clients u ON e.client_id = u.id
         $where_sql
-        ORDER BY e.created_at DESC
+        ORDER BY $order_sql
         LIMIT ? OFFSET ?
     ";
 

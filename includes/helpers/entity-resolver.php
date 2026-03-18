@@ -30,8 +30,15 @@ function resolveEntity($identity)
         $stmt->execute([$identity]);
         $client_auth_id = $stmt->fetchColumn();
 
+        if (!$client_auth_id) {
+            // Fallback: Check if the identity exists in the clients table as a phone
+            $stmt = $pdo->prepare("SELECT client_auth_id FROM clients WHERE phone = ?");
+            $stmt->execute([$identity]);
+            $client_auth_id = $stmt->fetchColumn();
+        }
+
         if ($client_auth_id) {
-            // Found in clients table, now fetch the auth account using the retrieved auth_id
+            // Found in profile table, now fetch the auth account using the retrieved auth_id
             $stmt = $pdo->prepare("SELECT * FROM auth_accounts WHERE id = ?");
             $stmt->execute([$client_auth_id]);
             $auth = $stmt->fetch(PDO::FETCH_ASSOC);

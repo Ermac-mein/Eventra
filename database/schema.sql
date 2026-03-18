@@ -289,6 +289,7 @@ CREATE TABLE IF NOT EXISTS payment_otps (
 -- =============================================================================
 CREATE TABLE IF NOT EXISTS payment_transactions (
     id INT AUTO_INCREMENT PRIMARY KEY,
+    custom_id VARCHAR(30) DEFAULT NULL,
     user_id INT NOT NULL,
     event_id INT NOT NULL,
     payment_reference VARCHAR(100) NOT NULL UNIQUE,
@@ -300,6 +301,7 @@ CREATE TABLE IF NOT EXISTS payment_transactions (
     ) DEFAULT 'pending',
     provider_response TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_payment_trx_custom_id (custom_id),
     INDEX (user_id),
     INDEX (event_id)
 );
@@ -318,6 +320,7 @@ CREATE TABLE IF NOT EXISTS tickets (
     status ENUM('valid', 'used', 'cancelled') DEFAULT 'valid',
     used TINYINT(1) DEFAULT 0,
     used_at DATETIME DEFAULT NULL,
+    reminder_sent TINYINT(1) DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE KEY uq_ticket_barcode (barcode),
     UNIQUE KEY uq_ticket_code (ticket_code),
@@ -600,6 +603,11 @@ ALTER TABLE payments
 ADD COLUMN IF NOT EXISTS custom_id VARCHAR(30) DEFAULT NULL AFTER id,
 ADD UNIQUE KEY IF NOT EXISTS uq_payment_custom_id (custom_id);
 
+-- Payment Transactions
+ALTER TABLE payment_transactions
+ADD COLUMN IF NOT EXISTS custom_id VARCHAR(30) DEFAULT NULL AFTER id,
+ADD UNIQUE KEY IF NOT EXISTS uq_payment_trx_custom_id (custom_id);
+
 -- Tickets custom_id: TIC-YYYYMMDD-####
 ALTER TABLE tickets
 ADD COLUMN IF NOT EXISTS custom_id VARCHAR(30) DEFAULT NULL AFTER id,
@@ -619,60 +627,65 @@ ALTER TABLE auth_accounts
 ADD INDEX IF NOT EXISTS idx_auth_last_seen (last_seen);
 
 -- ─── 4. BACKFILL EXISTING ROWS  ──────────────────────────────────────────────
--- Generate placeholder custom_ids for existing users (USR-XXXXXX)
+-- Generate random custom_ids for existing users (USR-XXXXXX)
 UPDATE users
 SET
     custom_id = CONCAT(
         'USR-',
-        UPPER(SUBSTRING(MD5(id), 1, 6))
+        UPPER(SUBSTRING(MD5(CONCAT(id, RAND(), NOW())), 1, 8))
     )
 WHERE
-    custom_id IS NULL;
+    custom_id IS NULL OR custom_id LIKE 'USR-%' AND LENGTH(custom_id) <= 10;
 
--- Generate placeholder custom_ids for existing clients
+-- Generate random custom_ids for existing clients
 UPDATE clients
 SET
-    custom_id = CONCAT('CLI-', LPAD(id, 6, '0'))
+    custom_id = CONCAT(
+        'CLI-',
+        UPPER(SUBSTRING(MD5(CONCAT(id, RAND(), NOW())), 1, 8))
+    )
 WHERE
-    custom_id IS NULL;
+    custom_id IS NULL OR custom_id NOT LIKE 'CLI-%' OR LENGTH(custom_id) <= 10;
 
--- Generate placeholder custom_ids for existing events (ULID-like using timestamp+id)
+-- Generate random custom_ids for existing events
 UPDATE events
 SET
     custom_id = CONCAT(
-        DATE_FORMAT(created_at, '%Y%m%d%H%i%s'),
-        LPAD(id, 6, '0')
+        'EVT-',
+        UPPER(SUBSTRING(MD5(CONCAT(id, RAND(), NOW())), 1, 10))
     )
 WHERE
-    custom_id IS NULL;
+    custom_id IS NULL OR LENGTH(custom_id) <= 14;
 
--- Generate placeholder custom_ids for existing payments
+-- Generate random custom_ids for existing payments
 UPDATE payments
 SET
     custom_id = CONCAT(
         'txn_',
-        LOWER(
-            SUBSTRING(
-                MD5(CONCAT(id, reference)),
-                1,
-                12
-            )
-        )
+        LOWER(SUBSTRING(MD5(CONCAT(id, reference, RAND())), 1, 12))
+    )
+WHERE
+    custom_id IS NULL OR custom_id NOT LIKE 'txn_%' OR LENGTH(custom_id) <= 12;
+
+-- Generate random custom_ids for existing payment_transactions
+UPDATE payment_transactions
+SET
+    custom_id = CONCAT(
+        'TRX-',
+        UPPER(SUBSTRING(MD5(CONCAT(id, payment_reference, RAND())), 1, 8))
     )
 WHERE
     custom_id IS NULL;
 
--- Generate placeholder custom_ids for existing tickets
+-- Generate random custom_ids for existing tickets
 UPDATE tickets
 SET
     custom_id = CONCAT(
         'TIC-',
-        DATE_FORMAT(created_at, '%Y%m%d'),
-        '-',
-        LPAD(id, 4, '0')
+        UPPER(SUBSTRING(MD5(CONCAT(id, barcode, RAND())), 1, 8))
     )
 WHERE
-    custom_id IS NULL;
+    custom_id IS NULL OR custom_id LIKE 'TIC-%-%';
 
 -- ─── 5. RESET STALE is_online FLAGS ─────────────────────────────────────────
 -- Mark users offline if last_seen was more than 5 minutes ago (or never)
@@ -685,5 +698,13 @@ WHERE
         last_seen IS NULL
         OR last_seen < DATE_SUB(NOW(), INTERVAL 5 MINUTE)
     );
+
+-- ─── 6. PERFORMANCE INDEXES & ALTERATIONS ──────────────────────────────────────
+ALTER TABLE tickets ADD COLUMN referred_by_id BIGINT UNSIGNED DEFAULT NULL;
+ALTER TABLE tickets ADD CONSTRAINT fk_ticket_referred FOREIGN KEY (referred_by_id) REFERENCES clients (id) ON DELETE SET NULL;
+
+ALTER TABLE events ADD INDEX idx_events_status_date (status, event_date);
+ALTER TABLE payments ADD INDEX idx_payments_status_date (status, paid_at);
+ALTER TABLE auth_accounts ADD INDEX idx_auth_role_online (role, is_online, last_seen);
 
 SELECT 'Migration complete.' AS status;

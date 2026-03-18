@@ -44,7 +44,7 @@ try {
     // ── Check existing order ─────────────────────────────────────────────────
     $oStmt = $pdo->prepare("
         SELECT o.id, o.payment_status, o.amount, o.event_id, o.user_id, o.organizer_id,
-               e.event_name, e.event_date, e.event_time, e.address, e.location,
+               e.event_name, e.event_date, e.event_time, e.address, e.location, e.image_path,
                u.name AS user_name, u.phone AS user_phone,
                a.email AS user_email,
                c.client_auth_id AS organizer_auth_id
@@ -189,6 +189,7 @@ try {
             'user_name'      => $order['user_name'],
             'payment_status' => 'paid',
             'custom_id'      => $ticketCustomId,
+            'event_image'    => $order['image_path'] ?? null,
         ];
         $pdfPath    = generateTicketPDF($ticketData);
         $qrCodePath = generateTicketQRCode($ticketData);

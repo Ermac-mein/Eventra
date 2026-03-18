@@ -39,6 +39,9 @@ try {
             createNotification($client['client_auth_id'], "Your " . strtoupper($type) . " has been marked as $status_text by an administrator.", 'verification_update', $admin_id);
         }
 
+        require_once '../../includes/helpers/entity-resolver.php';
+        logSecurityEvent($admin_id, 'admin@eventra.local', 'admin_action', 'local', "Client ID $client_id: $type verification set to $status");
+
         echo json_encode([
             'success' => true,
             'message' => strtoupper($type) . " verification status updated successfully."

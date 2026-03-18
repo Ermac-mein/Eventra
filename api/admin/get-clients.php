@@ -37,9 +37,8 @@ try {
             a.is_active, a.is_online,
             IF(a.is_online = 1, 'active', 'inactive') as status, a.created_at,
             (SELECT COUNT(*) FROM events WHERE client_id = p.id) as event_count
-            -- referral tracking disabled until column is added
-            -- (SELECT COUNT(*) FROM tickets WHERE referred_by_id = p.id) as referred_tickets_count,
-            -- (SELECT COUNT(DISTINCT user_id) FROM tickets WHERE referred_by_id = p.id) as referred_users_count
+            (SELECT COUNT(*) FROM tickets WHERE referred_by_id = p.id) as referred_tickets_count,
+            (SELECT COUNT(DISTINCT user_id) FROM tickets WHERE referred_by_id = p.id) as referred_users_count
             FROM auth_accounts a
             JOIN clients p ON a.id = p.client_auth_id
             $where_clause 

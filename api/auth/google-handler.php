@@ -4,6 +4,7 @@ header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
 header('Pragma: no-cache');
 require_once '../../config/database.php';
 require_once '../../includes/helpers/entity-resolver.php';
+require_once '../../api/utils/id-generator.php';
 
 $data = json_decode(file_get_contents("php://input"), true);
 
@@ -101,18 +102,24 @@ try {
         $pdo->beginTransaction();
         if ($userRole === 'client') {
             $stmt = $pdo->prepare("
-                INSERT INTO clients (client_auth_id, business_name, email, name, profile_pic, password) 
-                VALUES (?, ?, ?, ?, ?, 'GOOGLE_AUTH')
+                INSERT INTO clients (client_auth_id, custom_id, business_name, email, name, profile_pic, password) 
+                VALUES (?, ?, ?, ?, ?, ?, 'GOOGLE_AUTH')
                 ON DUPLICATE KEY UPDATE name = VALUES(name), profile_pic = VALUES(profile_pic)
             ");
-            $stmt->execute([$user['id'], $name, $email, $name, $profile_pic]);
+            // Check if custom_id already exists for this client (UPSERT case)
+            $existingCustomId = $pdo->query("SELECT custom_id FROM clients WHERE client_auth_id = " . (int)$user['id'])->fetchColumn();
+            $customId = $existingCustomId ?: generateClientId($pdo);
+            $stmt->execute([$user['id'], $customId, $name, $email, $name, $profile_pic]);
         } else {
             $stmt = $pdo->prepare("
-                INSERT INTO users (user_auth_id, name, profile_pic) 
-                VALUES (?, ?, ?)
+                INSERT INTO users (user_auth_id, custom_id, name, profile_pic) 
+                VALUES (?, ?, ?, ?)
                 ON DUPLICATE KEY UPDATE name = VALUES(name), profile_pic = VALUES(profile_pic)
             ");
-            $stmt->execute([$user['id'], $name, $profile_pic]);
+            // Check if custom_id already exists for this user (UPSERT case)
+            $existingCustomId = $pdo->query("SELECT custom_id FROM users WHERE user_auth_id = " . (int)$user['id'])->fetchColumn();
+            $customId = $existingCustomId ?: generateUserId($pdo);
+            $stmt->execute([$user['id'], $customId, $name, $profile_pic]);
         }
         $pdo->commit();
 
@@ -150,12 +157,14 @@ try {
         $auth_id = $pdo->lastInsertId();
 
         if ($intent === 'client') {
-            $stmt = $pdo->prepare("INSERT INTO clients (client_auth_id, business_name, email, name, profile_pic, password) VALUES (?, ?, ?, ?, ?, 'GOOGLE_AUTH')");
-            $stmt->execute([$auth_id, $name, $email, $name, $profile_pic]);
+            $customId = generateClientId($pdo);
+            $stmt = $pdo->prepare("INSERT INTO clients (client_auth_id, custom_id, business_name, email, name, profile_pic, password) VALUES (?, ?, ?, ?, ?, ?, 'GOOGLE_AUTH')");
+            $stmt->execute([$auth_id, $customId, $name, $email, $name, $profile_pic]);
         } else {
             // Default to 'user' role
-            $stmt = $pdo->prepare("INSERT INTO users (user_auth_id, name, profile_pic) VALUES (?, ?, ?)");
-            $stmt->execute([$auth_id, $name, $profile_pic]);
+            $customId = generateUserId($pdo);
+            $stmt = $pdo->prepare("INSERT INTO users (user_auth_id, custom_id, name, profile_pic) VALUES (?, ?, ?, ?)");
+            $stmt->execute([$auth_id, $customId, $name, $profile_pic]);
         }
 
         $pdo->commit();
@@ -246,6 +255,8 @@ try {
             'email' => $user['email'],
             'phone' => $user['phone'] ?? null,
             'role' => $userRole,
+            'custom_id' => $user['custom_id'] ?? null,
+            'bvn' => $user['bvn'] ?? null,
             'profile_pic' => (function ($pic) {
                 if (!$pic)
                     return null;

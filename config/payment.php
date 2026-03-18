@@ -95,7 +95,8 @@ function ensureSubaccount($pdo, $client_id, $bank_code, $account_number, $busine
 
 function verifyPaystackSignature($payload, $signature_header)
 {
-    if (empty(PAYSTACK_WEBHOOK_SECRET))
+    $secret = !empty(PAYSTACK_WEBHOOK_SECRET) ? PAYSTACK_WEBHOOK_SECRET : PAYSTACK_SECRET_KEY;
+    if (empty($secret))
         return false;
-    return hash_equals(hash_hmac('sha512', $payload, PAYSTACK_WEBHOOK_SECRET), $signature_header);
+    return hash_equals(hash_hmac('sha512', $payload, $secret), $signature_header);
 }

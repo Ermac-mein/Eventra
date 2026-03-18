@@ -37,12 +37,13 @@ try {
         $stmt->execute([$start_date]);
         $events_data = $stmt->fetchAll();
 
-        // Tickets sold per day
+        // Tickets sold per day (must join with payments to check 'paid' status)
         $stmt = $pdo->prepare("
-            SELECT DATE(created_at) as date, COUNT(id) as count
-            FROM tickets
-            WHERE created_at >= ? AND status = 'paid'
-            GROUP BY DATE(created_at)
+            SELECT DATE(t.created_at) as date, COUNT(t.id) as count
+            FROM tickets t
+            JOIN payments p ON t.payment_id = p.id
+            WHERE t.created_at >= ? AND p.status = 'paid'
+            GROUP BY DATE(t.created_at)
             ORDER BY date ASC
         ");
         $stmt->execute([$start_date]);

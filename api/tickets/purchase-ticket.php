@@ -7,6 +7,7 @@ header('Content-Type: application/json');
 require_once '../../config/database.php';
 require_once '../../config/payment.php';
 require_once '../../includes/middleware/auth.php';
+require_once '../../api/utils/id-generator.php';
 
 // Check authentication via standardized middleware
 $auth_id = checkAuth('user');
@@ -138,27 +139,30 @@ try {
         // --- Save Payment Record ---
         $paystack_id = isset($paystackResult->data->id) ? (string)$paystackResult->data->id : 'sim_' . bin2hex(random_bytes(8));
         $transaction_id = isset($paystackResult->data->gateway_response) ? (string)$paystackResult->data->gateway_response : $payment_reference;
+        $customId = generatePaymentId($pdo);
 
-        $stmt = $pdo->prepare("INSERT INTO payments (event_id, user_id, reference, amount, status, paystack_response, payment_id, transaction_id, paid_at) VALUES (?, ?, ?, ?, 'paid', ?, ?, ?, NOW())");
-        $stmt->execute([$event_id, $user_id, $payment_reference, $total_price, $gatewayResponse, $paystack_id, $transaction_id]);
+        $stmt = $pdo->prepare("INSERT INTO payments (event_id, user_id, custom_id, reference, amount, status, paystack_response, payment_id, transaction_id, paid_at) VALUES (?, ?, ?, ?, ?, 'paid', ?, ?, ?, NOW())");
+        $stmt->execute([$event_id, $user_id, $customId, $payment_reference, $total_price, $gatewayResponse, $paystack_id, $transaction_id]);
         $payment_id = $pdo->lastInsertId();
     } else {
         // Free ticket
         $ref = 'FREE-' . strtoupper(bin2hex(random_bytes(8)));
-        $stmt = $pdo->prepare("INSERT INTO payments (event_id, user_id, reference, amount, status, paystack_response, payment_id, transaction_id, paid_at) VALUES (?, ?, ?, ?, 'paid', '{\"status\": \"free\"}', ?, ?, NOW())");
-        $stmt->execute([$event_id, $user_id, $ref, 0, 'free_' . uniqid(), 'free_' . uniqid()]);
+        $customId = generatePaymentId($pdo);
+        $stmt = $pdo->prepare("INSERT INTO payments (event_id, user_id, custom_id, reference, amount, status, paystack_response, payment_id, transaction_id, paid_at) VALUES (?, ?, ?, ?, ?, 'paid', '{\"status\": \"free\"}', ?, ?, NOW())");
+        $stmt->execute([$event_id, $user_id, $customId, $ref, 0, 'free_' . uniqid(), 'free_' . uniqid()]);
         $payment_id = $pdo->lastInsertId();
     }
 
     // 5. Insert tickets with full identity binding
-    $stmt = $pdo->prepare("INSERT INTO tickets (user_id, event_id, payment_id, barcode, ticket_code, status, used, created_at) VALUES (?, ?, ?, ?, ?, 'valid', 0, NOW())");
+    $stmt = $pdo->prepare("INSERT INTO tickets (user_id, event_id, payment_id, custom_id, barcode, ticket_code, status, used, created_at) VALUES (?, ?, ?, ?, ?, ?, 'valid', 0, NOW())");
     $tickets_generated = [];
 
     for ($i = 0; $i < $quantity; $i++) {
         // Requirement 10: Generate cryptographically secure UUID-based barcode
         $barcode = 'EVT-' . strtoupper(bin2hex(random_bytes(12)));
         $ticket_code = strtoupper(bin2hex(random_bytes(4))); // Short human-readable code
-        $stmt->execute([$user_id, $event_id, $payment_id, $barcode, $ticket_code]);
+        $customId = generateTicketId($pdo);
+        $stmt->execute([$user_id, $event_id, $payment_id, $customId, $barcode, $ticket_code]);
         $tickets_generated[] = $barcode;
     }
 
