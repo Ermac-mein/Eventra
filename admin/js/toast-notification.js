@@ -29,13 +29,15 @@ class ToastNotification {
             info: 'ℹ'
         };
         
+        const safeMessage = (typeof escapeHTML === 'function') ? escapeHTML(message) : this.escape(message);
+        
         toast.innerHTML = `
             <div class="toast-content">
                 <div class="toast-header">
                     <span class="toast-icon">${icons[type] || icons.info}</span>
                     <span class="toast-title">${type.charAt(0).toUpperCase() + type.slice(1)}</span>
                 </div>
-                <span class="toast-message">${message || 'Notification'}</span>
+                <span class="toast-message">${safeMessage || 'Notification'}</span>
             </div>
             <span class="toast-close" onclick="this.parentElement.remove()">×</span>
         `;
@@ -54,6 +56,16 @@ class ToastNotification {
         }, duration);
 
         return toast;
+    }
+
+    escape(str) {
+        if (!str) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
     }
 
     success(message, duration) {

@@ -43,7 +43,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             } else {
                 console.error('Failed to load clients:', result.message);
                 if (clientsTableBody) {
-                    clientsTableBody.innerHTML = `<tr><td colspan="18" style="text-align:center;padding:2rem;color:#ef4444;">Failed to load clients: ${result.message}</td></tr>`;
+                    clientsTableBody.innerHTML = `<tr><td colspan="18" style="text-align:center;padding:2rem;color:#ef4444;">Failed to load clients: ${escapeHTML(result.message || 'Unknown error')}</td></tr>`;
                 }
             }
         } catch (error) {
@@ -69,30 +69,30 @@ document.addEventListener('DOMContentLoaded', async () => {
             <tr data-id="${client.id}" data-profile-pic="${client.profile_pic || ''}">
                 <td style="padding-left: 1.5rem;"><input type="checkbox" class="client-checkbox" data-id="${client.id}"></td>
                 <td>
-                    <div style="font-weight: 700; color: var(--admin-primary);">${client.custom_id || 'N/A'}</div>
+                    <div style="font-weight: 700; color: var(--admin-primary);">${escapeHTML(client.custom_id) || 'N/A'}</div>
                 </td>
                 <td style="display: flex; align-items: center; gap: 12px; padding: 1.2rem 1rem;">
                     <div class="avatar-wrapper">
                         <img src="${getProfileImg(client.profile_pic, client.name)}" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 2px solid #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
                         ${getVerificationBadge(client.verification_status)}
                     </div>
-                    <span style="font-weight: 600; color: var(--admin-text-main);">${client.name}</span>
+                    <span style="font-weight: 600; color: var(--admin-text-main);">${escapeHTML(client.name)}</span>
                 </td>
-                <td>${client.email}</td>
-                <td>${client.nin || 'N/A'}</td>
-                <td>${client.dob || 'N/A'}</td>
-                <td style="text-transform: capitalize;">${client.gender || 'N/A'}</td>
-                <td style="max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${client.address || ''}">${client.address || 'N/A'}</td>
-                <td>${client.city || 'N/A'}</td>
-                <td>${client.country || 'N/A'}</td>
-                <td>${client.state || 'N/A'}</td>
-                <td>${client.job_title || 'N/A'}</td>
-                <td><code>${client.account_number || 'N/A'}</code></td>
-                <td>${client.account_name || 'N/A'}</td>
-                <td>${client.bank_name || 'N/A'}</td>
-                <td>${client.phone || 'N/A'}</td>
-                <td><span class="status-badge status-${client.verification_status === 'verified' ? 'active' : client.verification_status === 'rejected' ? 'offline' : 'ongoing'}">${client.verification_status || 'Pending'}</span></td>
-                <td><span class="status-badge status-${client.status === 'active' ? 'active' : 'offline'}">${client.status === 'active' ? 'Active' : 'Offline'}</span></td>
+                <td>${escapeHTML(client.email)}</td>
+                <td>${escapeHTML(client.nin) || 'N/A'}</td>
+                <td>${escapeHTML(client.dob) || 'N/A'}</td>
+                <td style="text-transform: capitalize;">${escapeHTML(client.gender) || 'N/A'}</td>
+                <td style="max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${escapeHTML(client.address) || ''}">${escapeHTML(client.address) || 'N/A'}</td>
+                <td>${escapeHTML(client.city) || 'N/A'}</td>
+                <td>${escapeHTML(client.country) || 'N/A'}</td>
+                <td>${escapeHTML(client.state) || 'N/A'}</td>
+                <td>${escapeHTML(client.job_title) || 'N/A'}</td>
+                <td><code>${escapeHTML(client.account_number) || 'N/A'}</code></td>
+                <td>${escapeHTML(client.account_name) || 'N/A'}</td>
+                <td>${escapeHTML(client.bank_name) || 'N/A'}</td>
+                <td>${escapeHTML(client.phone) || 'N/A'}</td>
+                <td><span class="status-badge status-${client.verification_status === 'verified' ? 'active' : client.verification_status === 'rejected' ? 'offline' : 'ongoing'}">${escapeHTML(client.verification_status) || 'Pending'}</span></td>
+                <td><span class="status-badge status-${client.status === 'active' ? 'active' : 'offline'}">${escapeHTML(client.status) || 'Active'}</span></td>
             </tr>
         `).join('');
 

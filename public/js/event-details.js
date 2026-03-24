@@ -28,7 +28,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 async function loadEventDetailsById(id) {
     try {
-        const response = await apiFetch('/api/events/get-event-details.php?event_id=${id}`);
+        const response = await apiFetch(`/api/events/get-event-details.php?event_id=${id}`);
         const result = await response.json();
 
         if (result.success) {
@@ -45,7 +45,7 @@ async function loadEventDetailsById(id) {
 
 async function loadEventDetailsByTag(tag) {
     try {
-        const response = await apiFetch('/api/events/get-event-by-tag.php?tag=${tag}`);
+        const response = await apiFetch(`/api/events/get-event-by-tag.php?tag=${tag}`);
         const result = await response.json();
 
         if (result.success) {
@@ -73,13 +73,16 @@ function renderEvent(event) {
     document.getElementById('eventDate').textContent = formatDate(event.event_date);
     document.getElementById('eventTime').textContent = event.event_time;
     
-    // Client Verification Badge
+    // Client Verification Badge - Sanitize name first
+    const verificationBadge = (Number(event.client_is_verified) === 1) 
+        ? ' <span style="display: inline-flex; align-items: center; justify-content: center; background: #10b981; color: white; width: 16px; height: 16px; border-radius: 50%; font-size: 10px; margin-left: 4px; border: 1.5px solid white; box-shadow: 0 0 0 1px #10b981;" title="Verified Event Planner">✓</span>'
+        : '';
+    
     const clientNameContainer = document.getElementById('clientName');
-    let clientHTML = event.client_name || 'Eventra Organizer';
-    if (Number(event.client_is_verified) === 1) {
-        clientHTML += ' <span style="display: inline-flex; align-items: center; justify-content: center; background: #10b981; color: white; width: 16px; height: 16px; border-radius: 50%; font-size: 10px; margin-left: 4px; border: 1.5px solid white; box-shadow: 0 0 0 1px #10b981;" title="Verified Event Planner">✓</span>';
+    clientNameContainer.textContent = event.client_name || 'Eventra Organizer';
+    if (verificationBadge) {
+        clientNameContainer.insertAdjacentHTML('beforeend', verificationBadge);
     }
-    clientNameContainer.innerHTML = clientHTML;
     
     const priceValue = parseFloat(event.price);
     const isFree = !event.price || priceValue === 0;
@@ -107,11 +110,11 @@ function renderEvent(event) {
     const count = event.attendee_count || 0;
     const iconsCount = Math.min(count, 5);
     
-    stack.innerHTML = '';
+    stack.textContent = '';
     for (let i = 0; i < iconsCount; i++) {
         const icon = document.createElement('img');
         icon.className = 'attendee-icon';
-        icon.src = `https://ui-avatars.c/api/?name=User+${i}&background=random`;
+        icon.src = `https://ui-avatars.com/api/?name=User+${i}&background=random`;
         stack.appendChild(icon);
     }
     

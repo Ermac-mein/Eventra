@@ -109,12 +109,12 @@ async function previewEvent(eventId) {
                 </div>
 
                 <div style="position: absolute; bottom: 2rem; left: 2rem; right: 2rem;">
-                    <h1 style="font-size: 2.25rem; font-weight: 800; color: white; margin-bottom: 0.5rem; text-shadow: 0 2px 10px rgba(0,0,0,0.5);">${eventName}</h1>
+                    <h1 style="font-size: 2.25rem; font-weight: 800; color: white; margin-bottom: 0.5rem; text-shadow: 0 2px 10px rgba(0,0,0,0.5);">${escapeHTML(eventName)}</h1>
                     <div style="display: flex; align-items: center; gap: 12px;">
                         <div style="width: 32px; height: 32px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; color: var(--admin-primary); font-size: 0.8rem;">
-                            ${clientName.charAt(0)}
+                            ${escapeHTML(clientName.charAt(0))}
                         </div>
-                        <span style="color: rgba(255,255,255,0.9); font-weight: 600; font-size: 1rem;">Hosted by <span style="color: white; font-weight: 700;">${clientName}</span></span>
+                        <span style="color: rgba(255,255,255,0.9); font-weight: 600; font-size: 1rem;">Hosted by <span style="color: white; font-weight: 700;">${escapeHTML(clientName)}</span></span>
                     </div>
                 </div>
             </div>
@@ -136,12 +136,12 @@ async function previewEvent(eventId) {
                     <div style="background: #f8fafc; padding: 1.25rem; border-radius: 20px; border: 1px solid #e2e8f0;">
                         <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">💎</div>
                         <div style="font-size: 0.65rem; color: #94a3b8; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em;">Tickets</div>
-                        <div style="font-weight: 700; color: #1e293b; font-size: 0.9rem;">${price}</div>
+                        <div style="font-weight: 700; color: #1e293b; font-size: 0.9rem;">${escapeHTML(price)}</div>
                     </div>
                     <div style="background: #f8fafc; padding: 1.25rem; border-radius: 20px; border: 1px solid #e2e8f0;">
                         <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">✨</div>
                         <div style="font-size: 0.65rem; color: #94a3b8; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em;">Category</div>
-                        <div style="font-weight: 700; color: #1e293b; font-size: 0.9rem;">${category}</div>
+                        <div style="font-weight: 700; color: #1e293b; font-size: 0.9rem;">${escapeHTML(category)}</div>
                     </div>
                 </div>
 
@@ -153,7 +153,7 @@ async function previewEvent(eventId) {
                             About this Event
                         </h3>
                         <div style="color: #475569; line-height: 1.8; font-size: 0.95rem; white-space: pre-wrap; margin-bottom: 2rem;">
-                            ${description || "The organizer hasn't provided a detailed description for this event yet."}
+                            ${escapeHTML(description) || "The organizer hasn't provided a detailed description for this event yet."}
                         </div>
 
                         <h3 style="font-size: 1rem; font-weight: 800; color: #1e293b; margin-bottom: 1.25rem; display: flex; align-items: center; gap: 10px;">
@@ -163,8 +163,8 @@ async function previewEvent(eventId) {
                         <div style="display: flex; align-items: flex-start; gap: 15px; background: #f1f5f9; padding: 1.5rem; border-radius: 20px;">
                             <div style="font-size: 1.5rem;">📍</div>
                             <div>
-                                <div style="font-weight: 700; color: #1e293b; margin-bottom: 0.25rem;">${state || 'Location'}</div>
-                                <div style="color: #64748b; font-size: 0.875rem;">${address || 'No specific address available'}</div>
+                                <div style="font-weight: 700; color: #1e293b; margin-bottom: 0.25rem;">${escapeHTML(state) || 'Location'}</div>
+                                <div style="color: #64748b; font-size: 0.875rem;">${escapeHTML(address) || 'No specific address available'}</div>
                             </div>
                         </div>
                     </div>
@@ -183,15 +183,15 @@ async function previewEvent(eventId) {
                             <div style="display: flex; flex-direction: column; gap: 12px;">
                                 <div style="display: flex; justify-content: space-between; font-size: 0.875rem;">
                                     <span style="color: #64748b; font-weight: 600;">Priority</span>
-                                    <span style="color: #1e293b; font-weight: 700; text-transform: uppercase;">${priority || 'Normal'}</span>
+                                    <span style="color: #1e293b; font-weight: 700; text-transform: uppercase;">${escapeHTML(priority) || 'Normal'}</span>
                                 </div>
                                 <div style="display: flex; justify-content: space-between; font-size: 0.875rem;">
                                     <span style="color: #64748b; font-weight: 600;">Type</span>
-                                    <span style="color: #1e293b; font-weight: 700;">${tag || 'Standard'}</span>
+                                    <span style="color: #1e293b; font-weight: 700;">${escapeHTML(tag) || 'Standard'}</span>
                                 </div>
                                 <div style="display: flex; justify-content: space-between; font-size: 0.875rem;">
                                     <span style="color: #64748b; font-weight: 600;">Contact</span>
-                                    <span style="color: #1e293b; font-weight: 700;">${phone || '—'}</span>
+                                    <span style="color: #1e293b; font-weight: 700;">${escapeHTML(phone) || '—'}</span>
                                 </div>
                             </div>
                         </div>

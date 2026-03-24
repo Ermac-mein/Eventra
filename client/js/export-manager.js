@@ -318,6 +318,13 @@ function showExportModal(dataType) {
     }
 }
 
+function hideExportModal() {
+    const modal = document.getElementById('exportModal');
+    if (modal) {
+        modal.classList.remove('active');
+    }
+}
+
 async function handleExport(dataType, format) {
     // Legacy data-fetch export — update to also support selection if we wanted, 
     // but typically used when table isn't present.
@@ -350,4 +357,5 @@ window.exportTableToExcel = exportTableToExcel;
 window.showExportModal = showExportModal;
 window.toggleSelectionMode = toggleSelectionMode;
 window.toggleAllRows = toggleAllRows;
+window.hideExportModal = hideExportModal;
 

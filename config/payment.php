@@ -12,14 +12,14 @@ define('PAYSTACK_WEBHOOK_SECRET', $_ENV['PAYSTACK_WEBHOOK_SECRET'] ?? '');
 function paystackRequest(string $method, string $path, array $payload = []): array
 {
     $secretKey = defined('PAYSTACK_SECRET_KEY') ? PAYSTACK_SECRET_KEY : '';
-    
+
     // Masked key for logging
-    $maskedKey = !empty($secretKey) 
-        ? substr($secretKey, 0, 4) . '...' . substr($secretKey, -4) 
+    $maskedKey = !empty($secretKey)
+        ? substr($secretKey, 0, 4) . '...' . substr($secretKey, -4)
         : 'MISSING';
-    
+
     $url = 'https://api.paystack.co' . $path;
-    $ch  = curl_init($url);
+    $ch = curl_init($url);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_TIMEOUT, 20);
     curl_setopt($ch, CURLOPT_HTTPHEADER, [
@@ -31,13 +31,14 @@ function paystackRequest(string $method, string $path, array $payload = []): arr
     if ($method === 'POST') {
         curl_setopt($ch, CURLOPT_POST, true);
         curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
-    } elseif ($method === 'PUT') {
+    }
+    elseif ($method === 'PUT') {
         curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'PUT');
         curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
     }
 
-    $response  = curl_exec($ch);
-    $httpCode  = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $response = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     $curlError = curl_error($ch);
 
     if ($curlError || !$response) {
@@ -51,9 +52,9 @@ function paystackRequest(string $method, string $path, array $payload = []): arr
     }
 
     return [
-        'ok' => ($httpCode >= 200 && $httpCode < 300), 
-        'code' => $httpCode, 
-        'body' => $result, 
+        'ok' => ($httpCode >= 200 && $httpCode < 300),
+        'code' => $httpCode,
+        'body' => $result,
         'error' => null
     ];
 }
@@ -65,15 +66,16 @@ function paystackRequest(string $method, string $path, array $payload = []): arr
 function ensureSubaccount($pdo, $client_id, $bank_code, $account_number, $business_name, $email, $existing_subaccount_code = null)
 {
     $subPayload = [
-        'business_name'     => $business_name,
-        'settlement_bank'   => $bank_code,
-        'account_number'    => $account_number,
-        // 'percentage_charge' => 0.0, // Platform commission as per requirements
+        'business_name' => $business_name,
+        'settlement_bank' => $bank_code,
+        'account_number' => $account_number,
+        'percentage_charge' => 0.0,
     ];
 
     if ($existing_subaccount_code) {
         $res = paystackRequest('PUT', "/subaccount/{$existing_subaccount_code}", $subPayload);
-    } else {
+    }
+    else {
         $subPayload['primary_contact_email'] = $email;
         $res = paystackRequest('POST', '/subaccount', $subPayload);
     }
@@ -84,7 +86,7 @@ function ensureSubaccount($pdo, $client_id, $bank_code, $account_number, $busine
     }
 
     $code = $res['body']['data']['subaccount_code'] ?? $existing_subaccount_code;
-    $id   = $res['body']['data']['id'] ?? null;
+    $id = $res['body']['data']['id'] ?? null;
 
     // Update local database with subaccount info
     $stmt = $pdo->prepare("UPDATE clients SET subaccount_code = ?, subaccount_id = ? WHERE id = ?");

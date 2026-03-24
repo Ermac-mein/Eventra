@@ -118,7 +118,7 @@ window.sortTickets = sortTickets;
 
 async function loadTickets(clientId) {
     try {
-        const response = await apiFetch('/api/tickets/get-tickets.php?client_id=${clientId}`);
+        const response = await apiFetch(`/api/tickets/get-tickets.php?client_id=${clientId}`);
         
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);

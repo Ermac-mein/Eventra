@@ -156,7 +156,7 @@ document.addEventListener('DOMContentLoaded', () => {
         loginButton.innerHTML = '<span class="spinner"></span> Logging in...';
 
         try {
-            const response = await apiFetch('/api/client/login.php', {
+            const response = await apiFetch('/api/clients/login.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -204,6 +204,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     window.location.href = redirectUrl;
                 }, 1600);
             } else {
+                // Clear any stale state on failure
+                if (window.authController) window.authController.clearLocalState();
+                
                 // If the message contains "Email", show it there, otherwise show at password
                 const errorElement = result.message?.toLowerCase().includes('email') ? 'emailError' : 'passwordError';
                 showError(errorElement, result.message || 'Invalid email or password');

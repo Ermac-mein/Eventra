@@ -41,7 +41,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // 4. Fallback: Load Event Details for summary / Legacy OTP Flow / Free Events
     try {
-        const res = await apiFetch('/api/events/get-event-details.php?event_id=${eventId}`);
+        const res = await apiFetch(`/api/events/get-event-details.php?event_id=${eventId}`);
         const result = await res.json();
         
         if (result.success && result.event) {
@@ -84,7 +84,7 @@ async function startPolling(reference) {
     const poll = async () => {
         pollCount++;
         try {
-            const res = await apiFetch('/api/payments/get-order.php?reference=${reference}`);
+            const res = await apiFetch(`/api/payments/get-order.php?reference=${reference}`);
             const result = await res.json();
 
             if (result.success && result.order) {
@@ -94,11 +94,11 @@ async function startPolling(reference) {
                     // SUCCESS!
                     icon.textContent = '🎉';
                     title.textContent = 'Payment Successful!';
-                    msg.innerHTML = `Your tickets for <strong>${order.event_name}</strong> are ready.<br>Reference: ${reference}`;
+                    msg.innerHTML = `Your tickets for <strong>${escapeHTML(order.event_name)}</strong> are ready.<br>Reference: ${escapeHTML(reference)}`;
                     
                     if (order.tickets && order.tickets.length > 0) {
                         const barcode = order.tickets[0].barcode;
-                        downloadBtn.href =/api/tickets/download-ticket.php?barcode=${barcode}`;
+                        downloadBtn.href = `/api/tickets/download-ticket.php?barcode=${barcode}`;
                         downloadBtn.target = '_blank';
                         actions.style.display = 'flex';
                     }

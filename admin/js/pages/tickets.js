@@ -42,14 +42,16 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 async function loadTickets() {
     const tbody = document.getElementById('ticketsTableBody');
-    if (tbody && _allTickets.length === 0) tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:2.5rem;color:#94a3b8;">Loading...</td></tr>`;
+    if (tbody && _allTickets.length === 0) {
+        setTableStatusRow(tbody, 'Loading...');
+    }
 
     const statusFilter = (document.querySelector('[data-status].active') || {}).dataset?.status ?? '';
     const search = (document.getElementById('ticketSearchInput') || {}).value ?? '';
     const offset = (_tktPage - 1) * TKT_PER_PAGE;
 
     try {
-        const url =/api/admin/get-tickets.php?limit=${TKT_PER_PAGE}&offset=${offset}&search=${encodeURIComponent(search)}&status=${statusFilter}`;
+        const url = `/api/admin/get-tickets.php?limit=${TKT_PER_PAGE}&offset=${offset}&search=${encodeURIComponent(search)}&status=${statusFilter}`;
         const res = await apiFetch(url);
         const data = await res.json();
         
@@ -65,7 +67,9 @@ async function loadTickets() {
         updateStats(data);
     } catch (err) {
         console.error('Tickets load error', err);
-        if (tbody) tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:2rem;color:#ef4444;">Error loading tickets.</td></tr>`;
+        if (tbody) {
+            setTableStatusRow(tbody, 'Error loading tickets.', '#ef4444');
+        }
     }
 }
 
@@ -90,46 +94,15 @@ function renderTicketsTable() {
     if (!tbody) return;
 
     if (!_filteredTickets.length) {
-        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:2.5rem;color:#94a3b8;">No tickets found.</td></tr>`;
+        setTableStatusRow(tbody, 'No tickets found.');
         return;
     }
 
-    tbody.innerHTML = _filteredTickets.map(t => {
-        const statusClass = t.status === 'valid' ? 'tkt-active' : t.status === 'used' ? 'tkt-used' : 'tkt-cancelled';
-        const statusLabel = { valid: '✓ Valid', used: '👁 Used', cancelled: '✕ Cancelled' }[t.status] || t.status;
-        
-        const price = t.price_display === 'Free'
-            ? '<span style="color:#10b981;font-weight:700">Free</span>'
-            : `<strong>${t.price_display}</strong>`;
-
-        const imgSrc = t.event_image
-            ? (t.event_image.startsWith('http') ? t.event_image : '../../' + t.event_image)
-            : '';
-        const imgEl = imgSrc
-            ? `<img src="${imgSrc}" class="tkt-event-img" onerror="this.style.display='none'">`
-            : `<span class="tkt-event-img" style="display:inline-flex;align-items:center;justify-content:center;font-size:1.1rem;">🎟</span>`;
-        
-        const date = t.created_at ? new Date(t.created_at).toLocaleDateString() : '—';
-        const encoded = JSON.stringify(t).replace(/"/g, '&quot;');
-
-        const customId = t.custom_id ? `<div style="font-size:.7rem;color:#94a3b8;font-family:monospace;">${t.custom_id}</div>` : '';
-
-        return `<tr onclick="openAdminTicketModal(${encoded})">
-            <td style="padding-left: 1.5rem;"><input type="checkbox" class="ticket-checkbox" data-id="${t.id}"></td>
-            <td>
-                <div style="font-size:.7rem;color:var(--admin-primary);font-family:monospace;font-weight:700;">${t.custom_id || 'N/A'}</div>
-            </td>
-            <td>
-                ${imgEl}
-                <span class="tkt-event-name" title="${escapeHtml(t.event_name || '')}">${escapeHtml(t.event_name || '—')}</span>
-            </td>
-            <td style="font-weight:500;color:#374151;">${escapeHtml(t.user_name || '—')}</td>
-            <td>${price}</td>
-            <td><span style="font-size:.82rem;color:#64748b;">${escapeHtml(t.category || 'General')}</span></td>
-            <td style="font-size:.83rem;color:#64748b;">${date}</td>
-            <td><span class="tkt-badge ${statusClass}">${statusLabel}</span></td>
-        </tr>`;
-    }).join('');
+    tbody.textContent = '';
+    _filteredTickets.forEach(t => {
+        const row = createTicketRow(t);
+        tbody.appendChild(row);
+    });
 
     // Handle Select All
     const selectAll = document.getElementById('selectAll');
@@ -157,8 +130,9 @@ function renderTktPagination(totalOverride) {
     const pages = Math.max(1, Math.ceil(total / TKT_PER_PAGE));
     const from = total === 0 ? 0 : (_tktPage - 1) * TKT_PER_PAGE + 1;
     const to = Math.min(_tktPage * TKT_PER_PAGE, total);
-    info.textContent = total === 0 ? 'No tickets' : `Showing ${from}–${to} of ${total} tickets`;
-    btns.innerHTML = '';
+    const statusMsg = total === 0 ? 'No tickets' : `Showing ${from}–${to} of ${total} tickets`;
+    info.textContent = statusMsg;
+    btns.textContent = '';
 
     const prev = document.createElement('button');
     prev.className = 'tkt-page-btn'; prev.textContent = '← Prev'; prev.disabled = _tktPage <= 1;
@@ -201,7 +175,7 @@ function openAdminTicketModal(ticket) {
     const imgSrc = ticket.event_image
         ? (ticket.event_image.startsWith('http') ? ticket.event_image : '../../' + ticket.event_image)
         : null;
-    const heroBg = imgSrc ? `url(${imgSrc})` : 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)';
+    const heroBg = imgSrc ? `url("${imgSrc.replace(/"/g, '%22')}")` : 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)';
     const price = parseFloat(ticket.total_price) === 0 ? 'Free' : `₦${parseFloat(ticket.total_price).toLocaleString()}`;
     const statusClass = ticket.status === 'active' ? 'tkt-active' : ticket.status === 'used' ? 'tkt-used' : 'tkt-cancelled';
     const statusLabel = { active: '✓ Active', used: '👁 Used', cancelled: '✕ Cancelled' }[ticket.status] || ticket.status;
@@ -220,28 +194,152 @@ function openAdminTicketModal(ticket) {
             <!-- Details -->
             <div style="padding:1.5rem;">
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem;">
-                    <span class="tkt-badge ${statusClass}" style="font-size:.82rem;">${statusLabel}</span>
-                    <span style="font-family:monospace;font-size:.8rem;color:#64748b;">${ticket.ticket_code || '#' + ticket.id}</span>
+                    <span class="tkt-badge ${statusClass}" style="font-size:.82rem;">${escapeHtml(statusLabel)}</span>
+                    <span style="font-family:monospace;font-size:.8rem;color:#64748b;">${escapeHtml(ticket.ticket_code || '#' + ticket.id)}</span>
                 </div>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:.85rem;">
                     <div><div style="font-size:.7rem;color:#94a3b8;font-weight:700;text-transform:uppercase;margin-bottom:2px;">Buyer</div><div style="font-weight:600;">${escapeHtml(ticket.user_name || '—')}</div></div>
                     <div><div style="font-size:.7rem;color:#94a3b8;font-weight:700;text-transform:uppercase;margin-bottom:2px;">Price</div><div style="font-weight:700;">${price}</div></div>
                     <div><div style="font-size:.7rem;color:#94a3b8;font-weight:700;text-transform:uppercase;margin-bottom:2px;">Category</div><div style="font-weight:600;">${escapeHtml(ticket.category || 'General')}</div></div>
                     <div><div style="font-size:.7rem;color:#94a3b8;font-weight:700;text-transform:uppercase;margin-bottom:2px;">Date Purchased</div><div style="font-weight:600;">${ticket.created_at ? new Date(ticket.created_at).toLocaleDateString() : '—'}</div></div>
-                    <div style="grid-column:1/-1;"><div style="font-size:.7rem;color:#94a3b8;font-weight:700;text-transform:uppercase;margin-bottom:2px;">Barcode</div><div style="font-family:monospace;font-size:.82rem;color:#475569;">${ticket.barcode || '—'}</div></div>
+                    <div style="grid-column:1/-1;"><div style="font-size:.7rem;color:#94a3b8;font-weight:700;text-transform:uppercase;margin-bottom:2px;">Barcode</div><div style="font-family:monospace;font-size:.82rem;color:#475569;">${escapeHtml(ticket.barcode || '—')}</div></div>
                 </div>
                 <button onclick="document.getElementById('adminTicketModal').remove()" style="margin-top:1.5rem;width:100%;padding:.75rem;background:#6366f1;color:white;border:none;border-radius:10px;font-weight:700;cursor:pointer;font-size:.9rem;">Close</button>
             </div>
         </div>
     </div>`;
 
-    document.body.insertAdjacentHTML('beforeend', html);
-    document.addEventListener('keydown', function esc(e) { if (e.key === 'Escape') { document.getElementById('adminTicketModal')?.remove(); document.removeEventListener('keydown', esc); } });
+    const template = document.createElement('template');
+    template.innerHTML = html.trim();
+    const modalEl = template.content.firstElementChild;
+    document.body.appendChild(modalEl);
+    document.addEventListener('keydown', function esc(e) { if (e.key === 'Escape') { modalEl?.remove(); document.removeEventListener('keydown', esc); } });
 }
 
 function escapeHtml(str) {
     if (!str) return '';
-    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+function setTableStatusRow(tbody, message, color = '#94a3b8') {
+    tbody.textContent = '';
+    const tr = document.createElement('tr');
+    const td = document.createElement('td');
+    td.colSpan = 8;
+    td.style.textAlign = 'center';
+    td.style.padding = '2.5rem';
+    td.style.color = color;
+    td.textContent = message;
+    tr.appendChild(td);
+    tbody.appendChild(tr);
+}
+
+function createTicketRow(t) {
+    const tr = document.createElement('tr');
+    tr.onclick = () => openAdminTicketModal(t);
+
+    const statusClass = t.status === 'valid' ? 'tkt-active' : t.status === 'used' ? 'tkt-used' : 'tkt-cancelled';
+    const statusLabel = { valid: '✓ Valid', used: '👁 Used', cancelled: '✕ Cancelled' }[t.status] || t.status;
+
+    // Checkbox Cell
+    const tdCheck = document.createElement('td');
+    tdCheck.style.paddingLeft = '1.5rem';
+    const input = document.createElement('input');
+    input.type = 'checkbox';
+    input.className = 'ticket-checkbox';
+    input.dataset.id = t.id;
+    input.onclick = (e) => e.stopPropagation();
+    tdCheck.appendChild(input);
+    tr.appendChild(tdCheck);
+
+    // ID Cell
+    const tdId = document.createElement('td');
+    const divId = document.createElement('div');
+    divId.style.fontSize = '.7rem';
+    divId.style.color = 'var(--admin-primary)';
+    divId.style.fontFamily = 'monospace';
+    divId.style.fontWeight = '700';
+    divId.textContent = t.custom_id || 'N/A';
+    tdId.appendChild(divId);
+    tr.appendChild(tdId);
+
+    // Event Cell
+    const tdEvent = document.createElement('td');
+    if (t.event_image) {
+        const img = document.createElement('img');
+        img.src = t.event_image.startsWith('http') ? t.event_image : '../../' + t.event_image;
+        img.className = 'tkt-event-img';
+        img.onerror = () => img.style.display = 'none';
+        tdEvent.appendChild(img);
+    } else {
+        const spanIcon = document.createElement('span');
+        spanIcon.className = 'tkt-event-img';
+        spanIcon.style.display = 'inline-flex';
+        spanIcon.style.alignItems = 'center';
+        spanIcon.style.justifyContent = 'center';
+        spanIcon.style.fontSize = '1.1rem';
+        spanIcon.textContent = '🎟';
+        tdEvent.appendChild(spanIcon);
+    }
+    const spanName = document.createElement('span');
+    spanName.className = 'tkt-event-name';
+    spanName.title = t.event_name || '';
+    spanName.textContent = t.event_name || '—';
+    tdEvent.appendChild(spanName);
+    tr.appendChild(tdEvent);
+
+    // User Cell
+    const tdUser = document.createElement('td');
+    tdUser.style.fontWeight = '500';
+    tdUser.style.color = '#374151';
+    tdUser.textContent = t.user_name || '—';
+    tr.appendChild(tdUser);
+
+    // Price Cell
+    const tdPrice = document.createElement('td');
+    if (t.price_display === 'Free') {
+        const spanFree = document.createElement('span');
+        spanFree.style.color = '#10b981';
+        spanFree.style.fontWeight = '700';
+        spanFree.textContent = 'Free';
+        tdPrice.appendChild(spanFree);
+    } else {
+        const strongPrice = document.createElement('strong');
+        strongPrice.textContent = t.price_display;
+        tdPrice.appendChild(strongPrice);
+    }
+    tr.appendChild(tdPrice);
+
+    // Category Cell
+    const tdCat = document.createElement('td');
+    const spanCat = document.createElement('span');
+    spanCat.style.fontSize = '.82rem';
+    spanCat.style.color = '#64748b';
+    spanCat.textContent = t.category || 'General';
+    tdCat.appendChild(spanCat);
+    tr.appendChild(tdCat);
+
+    // Date Cell
+    const tdDate = document.createElement('td');
+    tdDate.style.fontSize = '.83rem';
+    tdDate.style.color = '#64748b';
+    tdDate.textContent = t.created_at ? new Date(t.created_at).toLocaleDateString() : '—';
+    tr.appendChild(tdDate);
+
+    // Status Cell
+    const tdStatus = document.createElement('td');
+    const spanBadge = document.createElement('span');
+    spanBadge.className = `tkt-badge ${statusClass}`;
+    spanBadge.textContent = statusLabel;
+    tdStatus.appendChild(spanBadge);
+    tr.appendChild(tdStatus);
+
+    return tr;
 }
 
 window.sortTicketsTable = sortTicketsTable;

@@ -108,7 +108,7 @@ function createLoginNotification($user_id, $user_name, $user_email)
  */
 function createLogoutNotification($user_auth_id, $user_name)
 {
-    $message = "{$user_name} logged out";
+    $message = (string)($user_name) . " logged out";
     return createNotification($user_auth_id, $message, 'logout', $user_auth_id);
 }
 
@@ -340,5 +340,5 @@ function createRefundProcessedNotification($user_id, $event_name, $amount)
 function createClientProfileUpdatedNotification($admin_id, $client_id, $client_name)
 {
     $message = "Client '{$client_name}' has updated their profile details and is awaiting verification review.";
-    return createNotification($admin_id, $message, 'client_profile_updated', $client_id, ['client_id' => $client_id]);
+    return createNotification($admin_id, $message, 'client_profile_updated', $client_id, 'admin', 'client', ['client_id' => $client_id]);
 }

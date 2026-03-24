@@ -51,34 +51,34 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             return `
                 <tr data-id="${event.id}" 
-                    data-image="${event.image_path || ''}" 
-                    data-description="${(event.description || '').replace(/"/g, '&quot;')}" 
-                    data-address="${(event.address || '').replace(/"/g, '&quot;')}" 
-                    data-state="${event.state || ''}" 
-                    data-date="${event.event_date}" 
-                    data-time="${event.event_time}" 
-                    data-priority="${event.priority || 'low'}"
-                    data-client-name="${event.client_name || 'Eventra'}"
-                    data-tag="${event.tag || ''}">
+                    data-image="${escapeHTML(event.image_path || '')}" 
+                    data-description="${escapeHTML(event.description || '')}" 
+                    data-address="${escapeHTML(event.address || '')}" 
+                    data-state="${escapeHTML(event.state || '')}" 
+                    data-date="${escapeHTML(event.event_date)}" 
+                    data-time="${escapeHTML(event.event_time)}" 
+                    data-priority="${escapeHTML(event.priority || 'low')}"
+                    data-client-name="${escapeHTML(event.client_name || 'Eventra')}"
+                    data-tag="${escapeHTML(event.tag || '')}">
                     <td style="padding-left: 1.5rem;"><input type="checkbox" class="event-checkbox" data-id="${event.id}"></td>
                     <td>
-                        <div style="font-size:.7rem;color:var(--admin-primary);font-family:monospace;font-weight:700;">${event.custom_id || 'N/A'}</div>
+                        <div style="font-size:.7rem;color:var(--admin-primary);font-family:monospace;font-weight:700;">${escapeHTML(event.custom_id || 'N/A')}</div>
                     </td>
                     <td>
-                        <div style="font-weight:600;">${event.event_name}</div>
-                        <div style="font-size:.75rem;color:#64748b;">by ${event.client_name || 'N/A'}</div>
-                        ${clientCustomId}
+                        <div style="font-weight:600;">${escapeHTML(event.event_name)}</div>
+                        <div style="font-size:.75rem;color:#64748b;">by ${escapeHTML(event.client_name || 'N/A')}</div>
+                        ${p.client_custom_id ? `<div style="font-size:.7rem;color:#94a3b8;font-family:monospace;">${escapeHTML(p.client_custom_id)}</div>` : ''}
                     </td>
-                    <td><span class="priority-badge ${event.priority || 'low'}">${(event.priority || 'Low').toUpperCase()}</span></td>
-                    <td>${dateStr}</td>
-                    <td>${event.event_time.substring(0, 5)}</td>
-                    <td>${event.event_type}</td>
-                    <td>${event.phone || 'N/A'}</td>
+                    <td><span class="priority-badge ${escapeHTML(event.priority || 'low')}">${escapeHTML((event.priority || 'Low').toUpperCase())}</span></td>
+                    <td>${escapeHTML(dateStr)}</td>
+                    <td>${escapeHTML(event.event_time.substring(0, 5))}</td>
+                    <td>${escapeHTML(event.event_type)}</td>
+                    <td>${escapeHTML(event.phone || 'N/A')}</td>
                     <td>${event.price > 0 ? '₦' + parseFloat(event.price).toLocaleString() : 'Free'}</td>
-                    <td class="text-center">${event.attendee_count || 0}</td>
-                    <td><span class="tag-badge">${event.tag || 'None'}</span></td>
-                    <td><a href="${event.link || '#'}" target="_blank" class="link-btn"><i data-lucide="external-link"></i></a></td>
-                    <td><span class="status-badge status-${statusClass}">${displayStatus.charAt(0).toUpperCase() + displayStatus.slice(1)}</span></td>
+                    <td class="text-center">${parseInt(event.attendee_count) || 0}</td>
+                    <td><span class="tag-badge">${escapeHTML(event.tag || 'None')}</span></td>
+                    <td><a href="${escapeHTML(event.link || '#')}" target="_blank" class="link-btn"><i data-lucide="external-link"></i></a></td>
+                    <td><span class="status-badge status-${escapeHTML(statusClass)}">${escapeHTML(displayStatus.charAt(0).toUpperCase() + displayStatus.slice(1))}</span></td>
                 </tr>
             `;
         }).join('');

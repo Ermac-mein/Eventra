@@ -15,8 +15,9 @@ if (!$client_id) {
 try {
     // 1. Get Client Info
     $stmt = $pdo->prepare("
-        SELECT c.*, c.email, c.id as id
+        SELECT c.*, a.email
         FROM clients c
+        JOIN auth_accounts a ON c.client_auth_id = a.id
         WHERE c.id = ? AND c.deleted_at IS NULL
     ");
     $stmt->execute([$client_id]);

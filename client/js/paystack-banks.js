@@ -55,7 +55,7 @@ const PaystackBanks = {
             return;
         }
         selectElement.innerHTML = '<option value="">Select Bank</option>' + 
-            banks.map(b => `<option value="${b.code}" ${String(b.code) === String(currentValue) ? 'selected' : ''}>${b.name}</option>`).join('');
+            banks.map(b => `<option value="${escapeHTML(b.code)}" ${String(b.code) === String(currentValue) ? 'selected' : ''}>${escapeHTML(b.name)}</option>`).join('');
     }
 };
 

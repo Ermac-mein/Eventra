@@ -46,8 +46,10 @@ try {
 
     // ── Fetch existing client data ───────────────────────────────────────────
     $stmt = $pdo->prepare("
-        SELECT id, business_name, email, nin_verified, bvn_verified, subaccount_code, verification_status
-        FROM clients WHERE client_auth_id = ?
+        SELECT c.id, c.business_name, a.email, c.nin_verified, c.bvn_verified, c.subaccount_code, c.verification_status
+        FROM clients c
+        JOIN auth_accounts a ON c.client_auth_id = a.id
+        WHERE c.client_auth_id = ?
     ");
     $stmt->execute([$client_auth_id]);
     $client = $stmt->fetch(PDO::FETCH_ASSOC);

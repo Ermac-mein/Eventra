@@ -7,6 +7,19 @@ class AdminAuth {
 
     async loadAdminProfile() {
         try {
+            // Check if we already have modern admin data in storage
+            const storedUser = typeof storage !== 'undefined' ? storage.getUser() : null;
+            if (storedUser && storedUser.role === 'admin') {
+                this.adminData = storedUser;
+                this.updateProfileUI();
+            }
+
+            // If auth controller is already synced, we can skip the dedicated fetch
+            if (window.authController && window.authController.settled && window.authController.state === 'authenticated') {
+                console.log('[AdminAuth] Using settled auth state');
+                return this.adminData;
+            }
+
             const response = await apiFetch('/api/admin/get-profile.php', {
                 method: 'GET',
                 headers: {
@@ -17,7 +30,8 @@ class AdminAuth {
             const result = await response.json();
             
             if (result.success) {
-                this.adminData = result.admin;
+                this.adminData = result.admin || result.user; // Support both keys
+                if (typeof storage !== 'undefined') storage.setUser(this.adminData);
                 this.updateProfileUI();
                 return this.adminData;
             } else {
@@ -94,8 +108,8 @@ class AdminAuth {
         }
 
         profileMainInfo.innerHTML = `
-            <h3 class="profile-name">${this.adminData.name}</h3>
-            <p class="profile-email">${this.adminData.email}</p>
+            <h3 class="profile-name">${escapeHTML(this.adminData.name)}</h3>
+            <p class="profile-email">${escapeHTML(this.adminData.email)}</p>
         `;
 
         // Update or create profile details
@@ -116,7 +130,7 @@ class AdminAuth {
             </div>
             <div class="profile-detail-item">
                 <span class="detail-label">Status</span>
-                <span class="detail-value" style="color: #10b981; font-weight: 700;">${this.adminData.status === 'active' ? 'Active' : 'Offline'}</span>
+                <span class="detail-value" style="color: #10b981; font-weight: 700;">${escapeHTML(this.adminData.status === 'active' ? 'Active' : 'Offline')}</span>
             </div>
             <div class="profile-detail-item">
                 <span class="detail-label">Account Created</span>
@@ -183,3 +197,12 @@ class AdminAuth {
 
 // Create global instance
 window.adminAuth = new AdminAuth();
+
+// Listen for unified auth sync
+document.addEventListener('auth:sync', (e) => {
+    if (e.detail.success && e.detail.user && e.detail.user.role === 'admin') {
+        console.log('[AdminAuth] Updating UI from auth:sync');
+        window.adminAuth.adminData = e.detail.user;
+        window.adminAuth.updateProfileUI();
+    }
+});

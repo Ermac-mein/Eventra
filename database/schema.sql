@@ -35,7 +35,48 @@ CREATE TABLE IF NOT EXISTS auth_accounts (
     KEY idx_auth_last_seen (last_seen)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
 
--- ... (auth_tokens and auth_logs omitted for brevity in replace_file_content call)
+-- =============================================================================
+-- AUTH TOKENS
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS auth_tokens (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    auth_id BIGINT UNSIGNED NOT NULL,
+    token VARCHAR(255) NOT NULL,
+    type ENUM(
+        'access',
+        'refresh',
+        'reset_password',
+        'email_verification',
+        'otp'
+    ) NOT NULL,
+    expires_at DATETIME NOT NULL,
+    revoked TINYINT(1) DEFAULT 0,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_token (token),
+    KEY idx_token_auth (auth_id),
+    CONSTRAINT fk_token_auth FOREIGN KEY (auth_id) REFERENCES auth_accounts (id) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE = INNODB DEFAULT CHARSET = UTF8MB4 COLLATE = UTF8MB4_UNICODE_CI;
+
+-- =============================================================================
+-- AUTH LOGS
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS auth_logs (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    auth_id BIGINT UNSIGNED DEFAULT NULL,
+    email VARCHAR(191) DEFAULT NULL,
+    username VARCHAR(200) NOT NULL,
+    event_type VARCHAR(100) NOT NULL,
+    ip_address VARCHAR(45) DEFAULT NULL,
+    user_agent TEXT DEFAULT NULL,
+    details TEXT DEFAULT NULL,
+    auth_method VARCHAR(50) DEFAULT NULL,
+    metadata JSON DEFAULT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    KEY idx_auth_logs_auth (auth_id),
+    CONSTRAINT fk_auth_logs_auth FOREIGN KEY (auth_id) REFERENCES auth_accounts (id) ON DELETE SET NULL ON UPDATE CASCADE
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
 
 -- =============================================================================
 -- ADMINS PROFILE
@@ -267,6 +308,8 @@ CREATE TABLE IF NOT EXISTS notifications (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     recipient_auth_id BIGINT UNSIGNED NOT NULL,
     sender_auth_id BIGINT UNSIGNED DEFAULT NULL,
+    sender_role VARCHAR(50) DEFAULT NULL,
+    recipient_role VARCHAR(50) DEFAULT 'user',
     message TEXT NOT NULL,
     type VARCHAR(50) NOT NULL,
     metadata JSON DEFAULT NULL,
@@ -278,6 +321,7 @@ CREATE TABLE IF NOT EXISTS notifications (
     CONSTRAINT fk_notif_recipient FOREIGN KEY (recipient_auth_id) REFERENCES auth_accounts (id) ON DELETE CASCADE,
     CONSTRAINT fk_notif_sender FOREIGN KEY (sender_auth_id) REFERENCES auth_accounts (id) ON DELETE SET NULL
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
+
 
 -- =============================================================================
 -- MEDIA FOLDERS
@@ -401,16 +445,16 @@ CREATE TABLE IF NOT EXISTS ticket_daily_sequence (
 -- SEED DEFAULT SYSTEM ADMIN
 -- =============================================================================
 INSERT IGNORE INTO auth_accounts (
-    email, username, password_hash, auth_provider, role, role_locked, is_active, email_verified_at
+    email, username, password, auth_provider, role, role_locked, is_active, email_verified_at
 ) VALUES (
     'admin@eventra.com', 'admin', '$2y$10$iPiJGuc.fOdzO109eUDsvefK44TZwvQlCICiVxbD1KHYRx1lxwrVS', 'local', 'admin', 1, 1, NOW()
 );
 
 INSERT IGNORE INTO admins (
-    admin_auth_id, name, username, password, profile_pic, metadata
+    admin_auth_id, name, profile_pic, metadata
 ) VALUES (
     (SELECT id FROM auth_accounts WHERE email = 'admin@eventra.com'),
-    'System Administrator', 'admin', '$2y$10$iPiJGuc.fOdzO109eUDsvefK44TZwvQlCICiVxbD1KHYRx1lxwrVS', '/public/assets/imgs/admin.png',
+    'System Administrator', '/public/assets/imgs/admin.png',
     JSON_OBJECT('created_by', 'system', 'immutable', true, 'note', 'Default system administrator account')
 );
 

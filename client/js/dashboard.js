@@ -1,12 +1,4 @@
 document.addEventListener('DOMContentLoaded', async () => {
-    // Try namespaced key first, fall back to generic if necessary
-    const user = storage.getUser();
-    
-    if (!user || user.role !== 'client') {
-        window.location.href = '../../client/pages/clientLogin.html';
-        return;
-    }
-
     // Load client profile
     await loadClientProfile();
 
@@ -22,7 +14,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 async function loadClientProfile() {
     try {
-        const response = await apiFetch('/api/users/get-profile.php`);
+        const response = await apiFetch('/api/users/get-profile.php');
         const result = await response.json();
 
         if (result.success) {
@@ -32,7 +24,7 @@ async function loadClientProfile() {
             const profileAvatars = document.querySelectorAll('.user-avatar');
             
             profileAvatars.forEach(avatar => {
-                const avatarUrl = user.profile_pic || `https://ui-avatars.c/api/?name=${encodeURIComponent(user.name || user.business_name || 'User')}&background=random&color=fff`;
+                const avatarUrl = user.profile_pic || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || user.business_name || 'User')}&background=random&color=fff`;
                 avatar.style.backgroundImage = `url(${avatarUrl})`;
                 avatar.style.backgroundSize = 'cover';
                 avatar.style.backgroundPosition = 'center';
@@ -169,7 +161,7 @@ async function loadRecentTickets(attendees) {
         return `
         <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #f1f4f8;">
             <div style="display: flex; gap: 12px; align-items: center;">
-                <img src="${attendee.profile_pic || `https://ui-avatars.c/api/?name=${encodeURIComponent(attendee.name)}&background=random`}" 
+                <img src="${attendee.profile_pic || `https://ui-avatars.com/api/?name=${encodeURIComponent(attendee.name)}&background=random`}" 
                      style="width: 35px; height: 35px; border-radius: 50%;">
                 <div>
                     <div style="font-size: 0.85rem; font-weight: 600;">${attendee.name}</div>

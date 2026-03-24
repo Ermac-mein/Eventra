@@ -2,6 +2,7 @@
 // Enable strict error reporting for debugging
 error_reporting(E_ALL);
 ini_set('display_errors', 0);
+date_default_timezone_set('Africa/Lagos'); 
 
 // Prevent multiple session starts
 if (session_status() === PHP_SESSION_ACTIVE) {
@@ -13,6 +14,7 @@ ini_set('session.use_cookies', '1');
 ini_set('session.use_only_cookies', '1');
 ini_set('session.cookie_httponly', '1');
 ini_set('session.cookie_samesite', 'Lax');
+ini_set('session.cookie_path', '/');
 
 // Set session save path to a project-local directory for reliability
 $session_path = __DIR__ . '/../sessions';
@@ -32,7 +34,7 @@ if (session_status() === PHP_SESSION_NONE) {
     // Session name should be set by the caller (Router or LoginController)
     // If not set, use a fallback that detects the portal context
     if (!session_name() || session_name() === 'PHPSESSID' || session_name() === 'EVENTRA_GUEST_SESS') {
-        $headers = getallheaders();
+        $headers = function_exists('getallheaders') ? getallheaders() : [];
         $portal = $_SERVER['HTTP_X_EVENTRA_PORTAL'] ?? $headers['X-Eventra-Portal'] ?? $headers['x-eventra-portal'] ?? null;
         
         // If no header, try to detect from URI
@@ -60,4 +62,15 @@ if (!isset($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
 
+if (isset($_SESSION['last_activity']) && (time() - $_SESSION['last_activity'] > $timeout_duration)) {
+    // Session expired due to inactivity
+    if (session_status() === PHP_SESSION_ACTIVE) {
+        session_unset();
+        session_destroy();
+    }
+    // Restart as guest/fresh if needed, or caller will handle 401
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
+}
 $_SESSION['last_activity'] = time();

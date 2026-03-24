@@ -30,7 +30,7 @@ class AuthController {
      */
     async init() {
         if (this.settled || this.isSyncing) return this.ready;
-        console.log('[AuthController] Initializing...');
+        // console.log('[AuthController] Initializing...');
         
         // 1. Initial State from Storage (Optimistic)
         let storedUser = window.storage ? window.storage.getUser() : null;
@@ -103,15 +103,18 @@ class AuthController {
                 this.setState(this.states.AUTHENTICATED);
                 window.dispatchEvent(new CustomEvent('auth:sync', { detail: { success: true, user: updatedUser } }));
             } else {
-                // Only clear if the server explicitly says the session is invalid
+                console.warn('[AuthController] Session invalid according to server:', result.message);
                 this.clearLocalState();
             }
         } catch (error) {
             console.error('[AuthController] Session sync failed:', error);
-            // If we have local data but sync failed (network error?), keep current state but log error
-            if (this.state === this.states.INITIALIZING) {
-                this.setState(this.states.UNAUTHENTICATED);
-            }
+            
+            // CRITICAL: If sync failed, we cannot trust the optimistic state.
+            // Only keep 'authenticated' if there was a network-level abort and we already had data, 
+            // but for a "full fix", any sync failure should probably drop us to unauthenticated 
+            // to be safe, especially if the error is a parsing error (invalid JSON from server).
+            
+            this.clearLocalState();
         }
     }
 
@@ -337,7 +340,7 @@ class AuthController {
     async logout(shouldRedirect = true) {
         try {
             const role = this.getPortalIntent();
-            await apiFetch('/api/auth/logout.php`, { method: 'POST' });
+            await apiFetch('/api/auth/logout.php', { method: 'POST' });
         } catch (e) {}
 
         this.clearSession();
@@ -359,3 +362,7 @@ class AuthController {
 
 // Global Singleton
 window.authController = new AuthController();
+
+// Auto-initialize: begin server-side session handshake immediately.
+// auth-guard.js awaits authController.ready — this ensures it always resolves.
+window.authController.init();

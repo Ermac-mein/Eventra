@@ -32,7 +32,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Load client profile for avatar consistency
     const userProfileAvatars = document.querySelectorAll('.user-avatar');
     if (userProfileAvatars.length > 0) {
-        const avatarUrl = user.profile_pic || `https://ui-avatars.c/api/?name=${encodeURIComponent(user.name || user.business_name || 'User')}&background=random&color=fff`;
+        const avatarUrl = user.profile_pic || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || user.business_name || 'User')}&background=random&color=fff`;
         userProfileAvatars.forEach(avatar => {
             avatar.style.backgroundImage = `url(${avatarUrl})`;
             avatar.style.backgroundSize = 'cover';
@@ -145,11 +145,11 @@ async function loadPayments() {
         });
 
         try {
-            const res = await apiFetch('/api/payments/get-payments.php?${params}`);
+            const res = await apiFetch('/api/payments/get-payments.php?${params}');
             const data = await res.json();
 
             if (!data.success) {
-                if (tbody) tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:2rem;color:#ef4444;">Failed to load payments: ${data.message}</td></tr>`;
+                if (tbody) tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:2rem;color:#ef4444;">Failed to load payments: ${escapeHtml(data.message)}</td></tr>`;
                 return;
             }
 
@@ -169,11 +169,11 @@ async function loadPayments() {
             ...(status && { status }),
         });
         try {
-            const res = await apiFetch('/api/payments/get-refund-requests.php?${params}`);
+            const res = await apiFetch('/api/payments/get-refund-requests.php?${params}');
             const data = await res.json();
 
             if (!data.success) {
-                if (tbody) tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:2rem;color:#ef4444;">Failed to load refunds: ${data.message}</td></tr>`;
+                if (tbody) tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:2rem;color:#ef4444;">Failed to load refunds: ${escapeHtml(data.message)}</td></tr>`;
                 return;
             }
 
@@ -444,7 +444,7 @@ function openDetailModal(payment) {
                 </div>
                 <div>
                     <h2 style="margin: 0; font-size: 1.25rem; font-weight: 700; color: #1e293b;">Transaction Details</h2>
-                    <div style="font-size: 0.85rem; color: #64748b; font-family: monospace;">${payment.custom_id || 'N/A'}</div>
+                    <div style="font-size: 0.85rem; color: #64748b; font-family: monospace;">${escapeHtml(payment.custom_id || 'N/A')}</div>
                 </div>
             </div>
             <button class="modal-close-trigger" style="background: #f1f5f9; border: none; width: 32px; height: 32px; border-radius: 50%; color: #64748b; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; transition: background 0.2s;">&times;</button>
@@ -459,7 +459,7 @@ function openDetailModal(payment) {
                     
                     <div style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 16px; border-radius: 20px; background: ${s.bg}; color: ${s.color}; font-weight: 700; font-size: 0.85rem; text-transform: capitalize;">
                         <i data-lucide="${s.icon}" style="width: 14px; height: 14px;"></i>
-                        ${payment.status}
+                        ${escapeHtml(payment.status)}
                     </div>
                     
                     <div style="margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid #e2e8f0; text-align: left;">
@@ -477,22 +477,22 @@ function openDetailModal(payment) {
                 <div style="flex: 1; min-width: 300px; display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
                     <div>
                         <div style="font-size: 0.75rem; text-transform: uppercase; color: #94a3b8; font-weight: 700; margin-bottom: 0.5rem; letter-spacing: 0.5px;">Customer Name</div>
-                        <div style="font-weight: 700; color: #1e293b; font-size: 1.05rem;">${payment.buyer_name || 'Guest'}</div>
+                        <div style="font-weight: 700; color: #1e293b; font-size: 1.05rem;">${escapeHtml(payment.buyer_name || 'Guest')}</div>
                     </div>
                     
                     <div>
                         <div style="font-size: 0.75rem; text-transform: uppercase; color: #94a3b8; font-weight: 700; margin-bottom: 0.5rem; letter-spacing: 0.5px;">Customer Email</div>
-                        <div style="font-weight: 600; color: #334155; font-size: 1rem;">${payment.buyer_email || 'N/A'}</div>
+                        <div style="font-weight: 600; color: #334155; font-size: 1rem;">${escapeHtml(payment.buyer_email || 'N/A')}</div>
                     </div>
 
                     <div>
                         <div style="font-size: 0.75rem; text-transform: uppercase; color: #94a3b8; font-weight: 700; margin-bottom: 0.5rem; letter-spacing: 0.5px;">Event Name</div>
-                        <div style="font-weight: 700; color: #1e293b; font-size: 1.05rem;">${payment.event_name || 'N/A'}</div>
+                        <div style="font-weight: 700; color: #1e293b; font-size: 1.05rem;">${escapeHtml(payment.event_name || 'N/A')}</div>
                     </div>
 
                     <div>
                         <div style="font-size: 0.75rem; text-transform: uppercase; color: #94a3b8; font-weight: 700; margin-bottom: 0.5rem; letter-spacing: 0.5px;">Payment Reference</div>
-                        <div style="font-weight: 600; color: #6366f1; font-size: 1rem; font-family: monospace; word-break: break-all;">${payment.reference || 'N/A'}</div>
+                        <div style="font-weight: 600; color: #6366f1; font-size: 1rem; font-family: monospace; word-break: break-all;">${escapeHtml(payment.reference || 'N/A')}</div>
                     </div>
 
                     <div>
@@ -507,7 +507,7 @@ function openDetailModal(payment) {
 
                     <div style="grid-column: 1 / -1; background: #f1f5f9; padding: 1.25rem; border-radius: 12px; border-left: 4px solid #6366f1;">
                         <div style="font-size: 0.7rem; text-transform: uppercase; color: #64748b; font-weight: 800; margin-bottom: 0.5rem; letter-spacing: 1px;">Organizer</div>
-                        <div style="font-weight: 600; color: #475569; font-size: 0.9rem;">${payment.client_name || '—'}</div>
+                        <div style="font-weight: 600; color: #475569; font-size: 0.9rem;">${escapeHtml(payment.client_name || '—')}</div>
                     </div>
                 </div>
             </div>
@@ -602,7 +602,7 @@ function exportPayments(format) {
         ...(status && { status }),
         ...(search && { search }),
     });
-    window.open/api/payments/export-payments.php?${params}`, '_blank');
+    window.open('/api/payments/export-payments.php?${params}', '_blank');
 }
 
 // ─── Helpers ───────────────────────────────────────────────────────────────

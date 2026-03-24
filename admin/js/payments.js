@@ -100,7 +100,7 @@ async function loadPayments() {
         const data = await res.json();
 
         if (!data.success) {
-            if (tbody) tbody.innerHTML = `<tr><td colspan="${colCount}" style="text-align:center;padding:2rem;color:#ef4444;">${data.message}</td></tr>`;
+            if (tbody) tbody.innerHTML = `<tr><td colspan="${colCount}" style="text-align:center;padding:2rem;color:#ef4444;">${escapeHtml(data.message || 'Unknown error')}</td></tr>`;
             return;
         }
 
@@ -211,29 +211,29 @@ function renderTransactionsTable(payments) {
 
         return `
         <tr onclick="openDetailModal(${encoded})">
-            <td style="padding-left: 1.5rem;"><input type="checkbox" class="payment-checkbox" data-id="${p.id}"></td>
+            <td style="padding-left: 1.5rem;"><input type="checkbox" class="payment-checkbox" data-id="${escapeHtml(p.id)}"></td>
             <td>
-                <div style="font-size:.7rem;color:var(--admin-primary);font-family:monospace;font-weight:700;">${p.custom_id || 'N/A'}</div>
+                <div style="font-size:.7rem;color:var(--admin-primary);font-family:monospace;font-weight:700;">${escapeHtml(p.custom_id || 'N/A')}</div>
             </td>
             <td>
-                <div style="font-weight:600;font-size:.88rem;">${new Date(p.created_at).toLocaleDateString()}</div>
-                <div style="font-size:.74rem;color:#94a3b8;">${new Date(p.created_at).toLocaleTimeString()}</div>
+                <div style="font-weight:600;font-size:.88rem;">${escapeHtml(new Date(p.created_at).toLocaleDateString())}</div>
+                <div style="font-size:.74rem;color:#94a3b8;">${escapeHtml(new Date(p.created_at).toLocaleTimeString())}</div>
             </td>
             <td style="font-weight:600;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escapeHtml(p.event_name || '')}">${escapeHtml(p.event_name || '—')}</td>
             <td>
                 <span style="font-size:.85rem;color:#475569;font-weight:500;">${escapeHtml(p.client_name || '—')}</span>
-                ${clientCustomId}
+                ${p.client_custom_id ? `<div style="font-size:.7rem;color:#94a3b8;font-family:monospace;">${escapeHtml(p.client_custom_id)}</div>` : ''}
             </td>
             <td>${amountDisplay}</td>
-            <td style="text-align:center;"><span class="ticket-badge">${p.ticket_count || 0}</span></td>
+            <td style="text-align:center;"><span class="ticket-badge">${parseInt(p.ticket_count) || 0}</span></td>
             <td>
-                <div style="font-size:.75rem;color:#475569;font-family:monospace;">${p.reference || '—'}</div>
+                <div style="font-size:.75rem;color:#475569;font-family:monospace;">${escapeHtml(p.reference || '—')}</div>
             </td>
             <td>
                 <span style="font-size:.83rem;color:#64748b;">${escapeHtml(p.buyer_email || '—')}</span>
-                ${userCustomId}
+                ${p.user_custom_id ? `<div style="font-size:.7rem;color:#94a3b8;font-family:monospace;">${escapeHtml(p.user_custom_id)}</div>` : ''}
             </td>
-            <td><span class="status-badge ${badgeClass}">${icon} ${ucfirst(p.status)}</span></td>
+            <td><span class="status-badge ${badgeClass}">${icon} ${escapeHtml(ucfirst(p.status))}</span></td>
         </tr>`;
     }).join('');
 
@@ -313,17 +313,17 @@ function openDetailModal(payment) {
             <div style="width:100px;height:100px;border-radius:16px;background:${backgroundImage};background-size:cover;background-position:center;margin:0 auto 1rem;box-shadow:0 4px 12px rgba(0,0,0,0.1);"></div>
             <h3 style="font-size:1.2rem;font-weight:700;color:#1e293b;margin:0 0 .4rem;">${escapeHtml(payment.event_name || '—')}</h3>
             <p style="font-size:.875rem;color:#64748b;margin:0 0 1rem;">by <strong style="color:#1e293b;">${escapeHtml(payment.client_name || '—')}</strong></p>
-            <span class="status-badge ${badgeClass}" style="font-size:.9rem;padding:.35rem 1.2rem;">${icon} ${ucfirst(payment.status)}</span>
+            <span class="status-badge ${badgeClass}" style="font-size:.9rem;padding:.35rem 1.2rem;">${icon} ${escapeHtml(ucfirst(payment.status))}</span>
         </div>
-        <div class="detail-row"><span class="detail-label">Reference</span><span class="detail-value" style="font-family:monospace;font-size:.83rem">${payment.reference || '—'}</span></div>
-        ${payment.custom_id ? `<div class="detail-row"><span class="detail-label">Transaction ID</span><span class="detail-value" style="font-family:monospace;font-size:.83rem;color:var(--admin-primary);font-weight:700;">${payment.custom_id}</span></div>` : ''}
+        <div class="detail-row"><span class="detail-label">Reference</span><span class="detail-value" style="font-family:monospace;font-size:.83rem">${escapeHtml(payment.reference || '—')}</span></div>
+        ${payment.custom_id ? `<div class="detail-row"><span class="detail-label">Transaction ID</span><span class="detail-value" style="font-family:monospace;font-size:.83rem;color:var(--admin-primary);font-weight:700;">${escapeHtml(payment.custom_id)}</span></div>` : ''}
         <div class="detail-row"><span class="detail-label">Amount</span><span class="detail-value">${amountDisplay}</span></div>
-        <div class="detail-row"><span class="detail-label">Tickets</span><span class="detail-value">${payment.ticket_count || 0} ticket(s)</span></div>
+        <div class="detail-row"><span class="detail-label">Tickets</span><span class="detail-value">${parseInt(payment.ticket_count) || 0} ticket(s)</span></div>
         <div class="detail-row"><span class="detail-label">Buyer</span><span class="detail-value">${escapeHtml(payment.buyer_name || '—')}</span></div>
         <div class="detail-row"><span class="detail-label">Email</span><span class="detail-value">${escapeHtml(payment.buyer_email || '—')}</span></div>
-        <div class="detail-row"><span class="detail-label">Created</span><span class="detail-value">${new Date(payment.created_at).toLocaleString()}</span></div>
-        ${payment.paid_at ? `<div class="detail-row"><span class="detail-label">Paid At</span><span class="detail-value">${new Date(payment.paid_at).toLocaleString()}</span></div>` : ''}
-        ${payment.ticket_barcodes ? `<div class="detail-row"><span class="detail-label">Barcodes</span><span class="detail-value" style="font-family:monospace;font-size:.78rem;word-break:break-all">${payment.ticket_barcodes}</span></div>` : ''}
+        <div class="detail-row"><span class="detail-label">Created</span><span class="detail-value">${escapeHtml(new Date(payment.created_at).toLocaleString())}</span></div>
+        ${payment.paid_at ? `<div class="detail-row"><span class="detail-label">Paid At</span><span class="detail-value">${escapeHtml(new Date(payment.paid_at).toLocaleString())}</span></div>` : ''}
+        ${payment.ticket_barcodes ? `<div class="detail-row"><span class="detail-label">Barcodes</span><span class="detail-value" style="font-family:monospace;font-size:.78rem;word-break:break-all">${escapeHtml(payment.ticket_barcodes)}</span></div>` : ''}
     `;
 
     modal.classList.add('open');
@@ -369,7 +369,12 @@ function formatDate(dateStr) {
 
 function escapeHtml(str) {
     if (!str) return '';
-    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    return str.toString()
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
 }
 function ucfirst(str) {
     return str ? str.charAt(0).toUpperCase() + str.slice(1) : '';

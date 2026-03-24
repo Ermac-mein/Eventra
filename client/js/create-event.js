@@ -520,7 +520,7 @@ async function autoExtractFromFlyer() {
                 ? `<span style="color:#16a34a">&#10003; ${filledCount} field(s) filled! Review and adjust as needed.</span>`
                 : `<span style="color:#d97706">Flyer analyzed but no clear event data was found. Please fill in the form manually.</span>`;
         } else {
-            if (statusEl) statusEl.innerHTML = `<span style="color:#dc2626">Could not extract data: ${result.message || 'Unknown error'}. Please fill in the form manually.</span>`;
+            if (statusEl) statusEl.innerHTML = `<span style="color:#dc2626">Could not extract data: ${escapeHTML(result.message || 'Unknown error')}. Please fill in the form manually.</span>`;
         }
     } catch (err) {
         console.error('Flyer extraction error:', err);

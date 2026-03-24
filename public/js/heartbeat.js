@@ -15,8 +15,8 @@
 
     // ── Determine correct paths regardless of page depth ──────────────────────
     // Use root-relative paths so admin, client, and user pages all resolve correctly
-    const HEARTBEAT_URL =/api/heartbeat.php';
-    const LOGOUT_URL =/api/auth/logout.php';
+    const HEARTBEAT_URL = '/api/heartbeat.php';
+    const LOGOUT_URL = '/api/auth/logout.php';
 
     // ── Determine login page URL by role ──────────────────────────────────────
     function getLoginUrl() {

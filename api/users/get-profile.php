@@ -8,12 +8,11 @@ require_once '../../config/database.php';
 require_once '../../includes/middleware/auth.php';
 
 // Check authentication
-$current_user_id = checkAuth();
-
-$user_id = $_GET['user_id'] ?? $current_user_id;
+$auth_id = getAuthId();
+$user_id = $_GET['user_id'] ?? $auth_id;
 
 // Check if requesting own profile or admin
-if ($user_id != $current_user_id && $_SESSION['role'] !== 'admin') {
+if ($user_id != $auth_id && $_SESSION['role'] !== 'admin') {
     http_response_code(403);
     echo json_encode(['success' => false, 'message' => 'Access denied']);
     exit;
@@ -25,8 +24,8 @@ try {
     // Use the robust entity resolver
     $user = resolveEntity($user_id, $_SESSION['role']);
 
-    if (!$user) {
-        $user = resolveEntity($user_id); // Fallback if role is not in session
+    if (!$user && isset($_SESSION['role'])) {
+        $user = resolveEntity($user_id); // Fallback if role is not in session or mismatch exists
     }
 
     if (!$user) {

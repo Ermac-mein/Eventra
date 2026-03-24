@@ -69,7 +69,12 @@ try {
     }
 
     // Fetch existing data for comparison and filling missing fields
-    $stmt_existing = $pdo->prepare("SELECT business_name, email, nin, bvn, nin_verified, bvn_verified, subaccount_code, account_number, bank_code, verification_status FROM clients WHERE client_auth_id = ?");
+    $stmt_existing = $pdo->prepare("
+        SELECT c.business_name, a.email, c.nin, c.bvn, c.nin_verified, c.bvn_verified, c.subaccount_code, c.account_number, c.bank_code, c.verification_status 
+        FROM clients c
+        JOIN auth_accounts a ON c.client_auth_id = a.id
+        WHERE c.client_auth_id = ?
+    ");
     $stmt_existing->execute([$auth_id]);
     $existing = $stmt_existing->fetch();
 

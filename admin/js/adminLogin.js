@@ -151,6 +151,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     window.location.href = redirectUrl;
                 }, 1600);
             } else {
+                // Clear any stale state on failure
+                if (window.authController) window.authController.clearLocalState();
+                
                 const errorElement = result.message?.toLowerCase().includes('username') ? 'usernameError' : 'passwordError';
                 showError(errorElement, result.message || 'Invalid username or password');
                 loginButton.disabled = false;

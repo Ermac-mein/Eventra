@@ -170,16 +170,28 @@
     </div>
 
     <!-- Hero Section -->
-    <section class="hero" id="home">
-        <img src="https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=1920&h=1080&fit=crop"
-            alt="Cultural Event" class="hero-background">
-        <div class="hero-overlay"></div>
-        <div class="hero-gradient"></div>
+    <section class="hero swiper" id="home">
+        <div class="swiper-wrapper" id="heroCarouselWrapper">
+            <!-- Dynamic slides will be injected here -->
+            <div class="swiper-slide hero-slide">
+                <img src="https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=1920&h=1080&fit=crop"
+                    alt="Cultural Event" class="hero-background">
+                <div class="hero-overlay"></div>
+                <div class="hero-gradient"></div>
+                <div class="hero-content">
+                    <h1 class="hero-title">Discover & Live Your Next Experience</h1>
+                    <p class="hero-subtitle">Find amazing events happening around you</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Add Pagination & Navigation -->
+        <div class="swiper-pagination"></div>
+        <div class="swiper-button-next"></div>
+        <div class="swiper-button-prev"></div>
 
-        <div class="hero-content">
-            <h1 class="hero-title">Discover & Live Your Next Experience</h1>
-            <p class="hero-subtitle">Find amazing events happening around you</p>
-
+        <!-- Static Search Overlay -->
+        <div class="hero-search-overlay">
             <div class="search-container">
                 <div class="search-wrapper-enhanced">
                     <div class="search-input-group">
@@ -435,6 +447,7 @@
     <script src="../js/utils.js"></script>
     <script src="../js/auth-controller.js"></script>
     <script src="../js/heartbeat.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
     <script src="../js/main.js"></script>
 </body>
 

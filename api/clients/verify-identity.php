@@ -40,7 +40,7 @@ try {
     // Call Mock service (simulating real verification)
     $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http';
     $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
-    $mockUrl = "$protocol://$ho/api/admin/dojah-mock.php";
+    $mockUrl = "$protocol://$host/api/admin/dojah-mock.php";
 
     $ch = curl_init($mockUrl);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);

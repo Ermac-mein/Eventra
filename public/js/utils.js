@@ -1,5 +1,20 @@
 // Utility functions
 
+/**
+ * Escape HTML special characters to prevent XSS
+ * @param {string} str - String to escape
+ * @returns {string} - Escaped string
+ */
+function escapeHTML(str) {
+    if (!str) return '';
+    return str.toString()
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
 // Format currency
 function formatCurrency(amount, currency = '₦') {
   return `${currency} ${amount.toLocaleString()}`;
@@ -31,11 +46,9 @@ function debounce(func, wait) {
  * @returns {string} - Final URL
  */
 function getProfileImg(path, name = '') {
-  if (!path || path.trim() === '') {
-    if (name) {
-      return `https://ui-avatars.c/api/?name=${encodeURIComponent(name)}&background=random&color=fff`;
-    }
-    return '/public/assets/imgs/admin.png'; // Default admin fallback
+  if (!path || path.trim() === '' || path === 'null' || path === 'undefined') {
+    const fallbackName = name || 'User';
+    return `https://ui-avatars.com/api/?name=${encodeURIComponent(fallbackName)}&background=6366f1&color=fff&size=128&bold=true`;
   }
 
   // Handle external URLs (like Google profile pics)
@@ -345,6 +358,59 @@ async function apiFetch(url, options = {}) {
     window.addEventListener(event, refreshSession, { passive: true });
   });
 })();
+
+/**
+ * Global Modal Click-Outside-to-Close
+ * Closes any modal when clicking on the backdrop
+ */
+document.addEventListener('click', (e) => {
+    if (e.target.classList && e.target.classList.contains('modal-backdrop')) {
+        const modalId = e.target.id;
+        if (!modalId) {
+            // Fallback for modals without specific IDs
+            e.target.classList.remove('active');
+            setTimeout(() => { if (e.target.parentNode) e.target.remove(); }, 300);
+            return;
+        }
+        
+        const closeFnName = 'close' + modalId.charAt(0).toUpperCase() + modalId.slice(1);
+        if (typeof window[closeFnName] === 'function') {
+            window[closeFnName]();
+        } else {
+            e.target.classList.remove('active');
+            setTimeout(() => { if (e.target.parentNode) e.target.remove(); }, 300);
+        }
+    }
+});
+
+/**
+ * Animate numbers (Count Up effect)
+ */
+function animateNumbers() {
+    const elements = document.querySelectorAll('.count-up:not(.animated)');
+    elements.forEach(el => {
+        const text = el.innerText.replace(/[^0-9.]/g, '');
+        const target = parseFloat(el.getAttribute('data-target') || text);
+        if (isNaN(target)) return;
+        
+        el.classList.add('animated');
+        let current = 0;
+        const duration = 1500; // ms
+        const steps = 60;
+        const increment = target / steps;
+        const stepTime = duration / steps;
+        
+        const timer = setInterval(() => {
+            current += increment;
+            if (current >= target) {
+                el.innerText = (el.innerText.includes('₦') ? '₦' : '') + target.toLocaleString();
+                clearInterval(timer);
+            } else {
+                el.innerText = (el.innerText.includes('₦') ? '₦' : '') + Math.floor(current).toLocaleString();
+            }
+        }, stepTime);
+    });
+}
 
 // Export utilities
 if (typeof module !== 'undefined' && module.exports) {

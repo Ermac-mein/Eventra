@@ -504,7 +504,7 @@ window.initPreviews = function() {
                 backdrop.style.display = 'flex';
                 setTimeout(() => backdrop.classList.add('active'), 10);
 
-                apiFetch('/api/admin/get-users.php`) // We search in the cached allUsers or just refetch? Let's use the data we already have in the row if possible or fetch.
+                apiFetch(`/api/admin/get-users.php`) // We search in the cached allUsers or just refetch? Let's use the data we already have in the row if possible or fetch.
                     .then(res => res.json())
                     .then(data => {
                         const user = data.users.find(u => u.id == row.dataset.id);
@@ -523,16 +523,16 @@ window.initPreviews = function() {
                                         </div>
                                     </div>
                                     <div class="profile-preview-info">
-                                        <h2>${user.name}</h2>
-                                        <p>${user.email}</p>
+                                        <h2>${escapeHTML(user.name)}</h2>
+                                        <p>${escapeHTML(user.email)}</p>
                                     </div>
                                     <div class="profile-preview-details">
-                                        <div class="profile-preview-detail-item"><span class="profile-detail-label">Phone</span><span class="profile-detail-val">${user.phone || 'N/A'}</span></div>
-                                        <div class="profile-preview-detail-item"><span class="profile-detail-label">Gender</span><span class="profile-detail-val" style="text-transform: capitalize;">${user.gender || 'N/A'}</span></div>
-                                        <div class="profile-preview-detail-item"><span class="profile-detail-label">DOB</span><span class="profile-detail-val">${user.dob || 'N/A'}</span></div>
+                                        <div class="profile-preview-detail-item"><span class="profile-detail-label">Phone</span><span class="profile-detail-val">${escapeHTML(user.phone) || 'N/A'}</span></div>
+                                        <div class="profile-preview-detail-item"><span class="profile-detail-label">Gender</span><span class="profile-detail-val" style="text-transform: capitalize;">${escapeHTML(user.gender) || 'N/A'}</span></div>
+                                        <div class="profile-preview-detail-item"><span class="profile-detail-label">DOB</span><span class="profile-detail-val">${escapeHTML(user.dob) || 'N/A'}</span></div>
                                         <div class="profile-preview-detail-item"><span class="profile-detail-label">Last Login</span><span class="profile-detail-val">${user.last_login_at ? new Date(user.last_login_at).toLocaleString() : 'Never'}</span></div>
-                                        <div class="profile-preview-detail-item" style="grid-column: span 2;"><span class="profile-detail-label">Address</span><span class="profile-detail-val">${user.address || 'N/A'}, ${user.city || ''}, ${user.state || ''}, ${user.country || ''}</span></div>
-                                        <div class="profile-preview-detail-item"><span class="profile-detail-label">Status</span><span class="profile-detail-val" style="text-transform: capitalize;">${user.status}</span></div>
+                                        <div class="profile-preview-detail-item" style="grid-column: span 2;"><span class="profile-detail-label">Address</span><span class="profile-detail-val">${escapeHTML(user.address) || 'N/A'}, ${escapeHTML(user.city) || ''}, ${escapeHTML(user.state) || ''}, ${escapeHTML(user.country) || ''}</span></div>
+                                        <div class="profile-preview-detail-item"><span class="profile-detail-label">Status</span><span class="profile-detail-val" style="text-transform: capitalize;">${escapeHTML(user.status)}</span></div>
                                     </div>
                                 </div>
                             `;
@@ -558,7 +558,7 @@ window.initPreviews = function() {
                 setTimeout(() => backdrop.classList.add('active'), 10);
 
                 // Fetch details
-                apiFetch('/api/admin/get-client-details.php?id=${clientId}`)
+                apiFetch(`/api/admin/get-client-details.php?id=${clientId}`)
                     .then(res => res.json())
                     .then(data => {
                         if (data.success) {
@@ -573,7 +573,7 @@ window.initPreviews = function() {
                                         <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
                                             <span>Client Profile</span>
                                             <span class="status-badge status-${client.verification_status === 'verified' ? 'active' : (client.verification_status === 'rejected' ? 'offline' : 'ongoing')}" style="font-size: 0.7rem; padding: 0.3rem 0.8rem;">
-                                                ${client.verification_status.toUpperCase()}
+                                                ${escapeHTML(client.verification_status.toUpperCase())}
                                             </span>
                                         </div>
                                     </div>
@@ -592,9 +592,9 @@ window.initPreviews = function() {
                                     </div>
 
                                     <div class="profile-preview-info" style="padding: 50px 24px 20px; text-align: center;">
-                                        <h2 style="font-size: 1.5rem; font-weight: 800; color: #1e293b; margin-bottom: 0.25rem;">${client.business_name}</h2>
+                                        <h2 style="font-size: 1.5rem; font-weight: 800; color: #1e293b; margin-bottom: 0.25rem;">${escapeHTML(client.business_name)}</h2>
                                         <p style="color: #64748b; font-size: 0.9rem; display: flex; align-items: center; justify-content: center; gap: 6px;">
-                                            <i data-lucide="mail" style="width: 14px;"></i> ${client.email}
+                                            <i data-lucide="mail" style="width: 14px;"></i> ${escapeHTML(client.email)}
                                         </p>
                                     </div>
                                     <div id="previewLucideInit"></div>
@@ -604,13 +604,13 @@ window.initPreviews = function() {
                                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
                                             <div style="background: #f8fafc; padding: 1rem; border-radius: 12px; border: 1px solid #f1f5f9;">
                                                 <div style="font-size: 0.7rem; color: #94a3b8; text-transform: uppercase; font-weight: 700; margin-bottom: 0.5rem;">Contact Information</div>
-                                                <div style="font-size: 0.85rem; font-weight: 600; color: #334155; margin-bottom: 0.25rem;">${client.phone || 'No Phone'}</div>
-                                                <div style="font-size: 0.8rem; color: #64748b;">${client.state || 'N/A'}, ${client.country || 'N/A'}</div>
+                                                <div style="font-size: 0.85rem; font-weight: 600; color: #334155; margin-bottom: 0.25rem;">${escapeHTML(client.phone) || 'No Phone'}</div>
+                                                <div style="font-size: 0.8rem; color: #64748b;">${escapeHTML(client.state) || 'N/A'}, ${escapeHTML(client.country) || 'N/A'}</div>
                                             </div>
                                             <div style="background: #f8fafc; padding: 1rem; border-radius: 12px; border: 1px solid #f1f5f9;">
                                                 <div style="font-size: 0.7rem; color: #94a3b8; text-transform: uppercase; font-weight: 700; margin-bottom: 0.5rem;">Company Details</div>
-                                                <div style="font-size: 0.85rem; font-weight: 600; color: #334155; margin-bottom: 0.25rem;">${client.company || 'Private Participant'}</div>
-                                                <div style="font-size: 0.8rem; color: #64748b;">${client.job_title || 'N/A'}</div>
+                                                <div style="font-size: 0.85rem; font-weight: 600; color: #334155; margin-bottom: 0.25rem;">${escapeHTML(client.company) || 'Private Participant'}</div>
+                                                <div style="font-size: 0.8rem; color: #64748b;">${escapeHTML(client.job_title) || 'N/A'}</div>
                                             </div>
                                         </div>
 
@@ -625,15 +625,15 @@ window.initPreviews = function() {
                                             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem;">
                                                 <div>
                                                     <span style="font-size: 0.7rem; color: #94a3b8; display: block; margin-bottom: 4px;">BANK NAME</span>
-                                                    <span style="font-weight: 600; color: #334155;">${client.bank_name || 'N/A'}</span>
+                                                    <span style="font-weight: 600; color: #334155;">${escapeHTML(client.bank_name) || 'N/A'}</span>
                                                 </div>
                                                 <div>
                                                     <span style="font-size: 0.7rem; color: #94a3b8; display: block; margin-bottom: 4px;">ACCOUNT NUMBER</span>
-                                                    <span style="font-weight: 600; font-family: 'JetBrains Mono', monospace; color: #334155;">${client.account_number || 'N/A'}</span>
+                                                    <span style="font-weight: 600; font-family: 'JetBrains Mono', monospace; color: #334155;">${escapeHTML(client.account_number) || 'N/A'}</span>
                                                 </div>
                                                 <div style="grid-column: span 2;">
                                                     <span style="font-size: 0.7rem; color: #94a3b8; display: block; margin-bottom: 4px;">ACCOUNT NAME</span>
-                                                    <span style="font-weight: 600; color: #334155; display: block; padding-bottom: 8px; border-bottom: 1px dashed #e2e8f0;">${client.account_name || 'N/A'}</span>
+                                                    <span style="font-weight: 600; color: #334155; display: block; padding-bottom: 8px; border-bottom: 1px dashed #e2e8f0;">${escapeHTML(client.account_name) || 'N/A'}</span>
                                                 </div>
                                                 <div style="grid-column: span 2; display: flex; align-items: center; justify-content: space-between; background: #fafafa; padding: 0.75rem; border-radius: 8px;">
                                                     <div style="display: flex; align-items: center; gap: 8px;">
@@ -641,7 +641,7 @@ window.initPreviews = function() {
                                                         <span style="font-size: 0.75rem; font-weight: 600; color: #64748b;">Subaccount</span>
                                                     </div>
                                                     <span style="font-family: monospace; font-weight: 700; color: ${client.subaccount_code ? 'var(--admin-primary)' : '#94a3b8'}; font-size: 0.85rem;">
-                                                        ${client.subaccount_code || 'NOT_LINKED'}
+                                                        ${escapeHTML(client.subaccount_code) || 'NOT_LINKED'}
                                                     </span>
                                                 </div>
                                             </div>
@@ -658,7 +658,7 @@ window.initPreviews = function() {
                                                 <div style="font-size: 0.7rem; color: #b7791f; text-transform: uppercase; font-weight: 700; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 6px;">
                                                     <i data-lucide="sticky-note" style="width: 14px;"></i> Latest Admin Notes
                                                 </div>
-                                                <div style="font-size: 0.85rem; color: #744210; font-style: italic; line-height: 1.5;">"${client.admin_notes}"</div>
+                                                <div style="font-size: 0.85rem; color: #744210; font-style: italic; line-height: 1.5;">"${escapeHTML(client.admin_notes)}"</div>
                                             </div>
                                             ` : ''}
                                             
@@ -667,7 +667,7 @@ window.initPreviews = function() {
                                                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
                                                     <div style="background: white; padding: 10px; border-radius: 10px; border: 1px solid #e2e8f0;">
                                                         <div style="font-size: 0.65rem; color: #94a3b8; font-weight: 700;">NIN NUMBER</div>
-                                                        <div style="font-weight: 600; font-size: 0.85rem; margin: 4px 0;">${client.nin || 'N/A'}</div>
+                                                        <div style="font-weight: 600; font-size: 0.85rem; margin: 4px 0;">${escapeHTML(client.nin) || 'N/A'}</div>
                                                         <div style="display: flex; align-items: center; justify-content: space-between;">
                                                             <span style="font-size: 0.75rem; font-weight: 700; color: ${Number(client.nin_verified) === 1 ? '#10b981' : '#f59e0b'};">
                                                                 ${Number(client.nin_verified) === 1 ? '✓ Verified' : 'Pending'}
@@ -679,7 +679,7 @@ window.initPreviews = function() {
                                                     </div>
                                                     <div style="background: white; padding: 10px; border-radius: 10px; border: 1px solid #e2e8f0;">
                                                         <div style="font-size: 0.65rem; color: #94a3b8; font-weight: 700;">BVN NUMBER</div>
-                                                        <div style="font-weight: 600; font-size: 0.85rem; margin: 4px 0;">${client.bvn || 'N/A'}</div>
+                                                        <div style="font-weight: 600; font-size: 0.85rem; margin: 4px 0;">${escapeHTML(client.bvn) || 'N/A'}</div>
                                                         <div style="display: flex; align-items: center; justify-content: space-between;">
                                                             <span style="font-size: 0.75rem; font-weight: 700; color: ${Number(client.bvn_verified) === 1 ? '#10b981' : '#f59e0b'};">
                                                                 ${Number(client.bvn_verified) === 1 ? '✓ Verified' : 'Pending'}
@@ -716,11 +716,11 @@ window.initPreviews = function() {
                                                     ${events.length > 0 ? events.map(ev => `
                                                         <div style="display: flex; justify-content: space-between; align-items: center; padding: 1rem; background: #f8fafc; border-radius: 12px; border: 1px solid #f1f5f9; transition: transform 0.2s;">
                                                             <div>
-                                                                <div style="font-weight: 700; font-size: 0.9rem; color: #1e293b;">${ev.event_name}</div>
-                                                                <div style="font-size: 0.75rem; color: #64748b; margin-top: 2px;">${ev.event_date}</div>
+                                                                <div style="font-weight: 700; font-size: 0.9rem; color: #1e293b;">${escapeHTML(ev.event_name)}</div>
+                                                                <div style="font-size: 0.75rem; color: #64748b; margin-top: 2px;">${escapeHTML(ev.event_date)}</div>
                                                             </div>
                                                             <div style="text-align: right; background: white; padding: 4px 12px; border-radius: 20px; border: 1px solid #e2e8f0;">
-                                                                <div style="font-size: 0.8rem; font-weight: 800; color: var(--admin-primary);">${ev.tickets_sold} sold</div>
+                                                                <div style="font-size: 0.8rem; font-weight: 800; color: var(--admin-primary);">${parseInt(ev.tickets_sold)} sold</div>
                                                             </div>
                                                         </div>
                                                     `).join('') : '<p style="font-size: 0.9rem; color: #94a3b8; text-align: center; padding: 1rem;">No events published yet.</p>'}
@@ -739,10 +739,10 @@ window.initPreviews = function() {
                                                         <div style="display: flex; align-items: center; gap: 12px; padding: 0.75rem; background: #f8fafc; border-radius: 12px; border: 1px solid #f1f5f9;">
                                                             <img src="${getProfileImg(b.profile_pic, b.name)}" style="width: 38px; height: 38px; border-radius: 10px; object-fit: cover;">
                                                             <div style="flex: 1;">
-                                                                <div style="font-weight: 700; font-size: 0.9rem; color: #1e293b;">${b.name}</div>
-                                                                <div style="font-size: 0.7rem; color: #64748b;">${b.email}</div>
+                                                                <div style="font-weight: 700; font-size: 0.9rem; color: #1e293b;">${escapeHTML(b.name)}</div>
+                                                                <div style="font-size: 0.7rem; color: #64748b;">${escapeHTML(b.email)}</div>
                                                             </div>
-                                                            <div style="font-size: 0.85rem; font-weight: 800; color: #10b981; padding: 4px 10px; background: white; border-radius: 8px;">${b.tickets_bought}</div>
+                                                            <div style="font-size: 0.85rem; font-weight: 800; color: #10b981; padding: 4px 10px; background: white; border-radius: 8px;">${parseInt(b.tickets_bought)}</div>
                                                         </div>
                                                     `).join('') : '<p style="font-size: 0.9rem; color: #94a3b8; text-align: center; padding: 1rem;">No ticket buyers yet.</p>'}
                                                 </div>
@@ -759,7 +759,7 @@ window.initPreviews = function() {
                             `;
                             lucide.createIcons();
                         } else {
-                            content.innerHTML = `<div style="padding: 2rem; text-align: center; color: #ef4444;">Failed to load details: ${data.message}</div>`;
+                            content.innerHTML = `<div style="padding: 2rem; text-align: center; color: #ef4444;">Failed to load details: ${escapeHTML(data.message)}</div>`;
                         }
                     });
                 return; // Prevent default row click behavior which shows old static modal
@@ -781,18 +781,18 @@ window.initPreviews = function() {
                             <div class="ticket-main" style="position: relative; z-index: 1;">
                                 <div class="ticket-top">EVENTRA</div>
                                 <div class="ticket-info">
-                                    <div class="ticket-event-name">${event} Ticket</div>
+                                    <div class="ticket-event-name">${escapeHTML(event)} Ticket</div>
                                     <div class="ticket-meta-info">
                                         <div class="ticket-meta-line">📍 Venue: Nigeria</div>
-                                        <div class="ticket-meta-line">👥 Attendees: ${attendees}</div>
-                                        <div class="ticket-meta-line">🔖 Serial: ${serial}</div>
+                                        <div class="ticket-meta-line">👥 Attendees: ${escapeHTML(attendees)}</div>
+                                        <div class="ticket-meta-line">🔖 Serial: ${escapeHTML(serial)}</div>
                                     </div>
                                 </div>
                                 <div class="ticket-bottom-info">
-                                    <div class="ticket-type">${category}</div>
+                                    <div class="ticket-type">${escapeHTML(category)}</div>
                                     <div class="ticket-price-box">
                                         <div class="ticket-price-label">Ticket Price</div>
-                                        <div class="ticket-price-val">${price}</div>
+                                        <div class="ticket-price-val">${escapeHTML(price)}</div>
                                     </div>
                                 </div>
                             </div>
@@ -830,31 +830,31 @@ window.initPreviews = function() {
                         <div class="event-preview-image-box">
                             <img src="${eventImage}" class="event-preview-image" alt="Event">
                             <div class="priority-badge" style="position: absolute; top: 1rem; right: 1rem; padding: 0.4rem 0.8rem; border-radius: 20px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: white; background: ${priority.toLowerCase() === 'hot' ? '#ff4757' : priority.toLowerCase() === 'trending' ? '#3742fa' : '#2ed573'};">
-                                ${priority || 'Standard'}
+                                ${escapeHTML(priority) || 'Standard'}
                             </div>
                         </div>
                         <div class="event-preview-content">
                             <div class="event-preview-main-info" style="margin-bottom: 1rem;">
-                                <h1 class="event-preview-title" style="font-size: 1.5rem; margin-bottom: 0.25rem;">${eventName}</h1>
-                                <p style="color: #6b7280; font-size: 0.85rem;">Organized by: ${row.dataset.clientName || 'Eventra'}</p>
+                                <h1 class="event-preview-title" style="font-size: 1.5rem; margin-bottom: 0.25rem;">${escapeHTML(eventName)}</h1>
+                                <p style="color: #6b7280; font-size: 0.85rem;">Organized by: ${escapeHTML(row.dataset.clientName || 'Eventra')}</p>
                             </div>
                             
                             <div style="margin-bottom: 1.5rem;">
                                 <label style="display: block; font-size: 0.75rem; color: #6b7280; margin-bottom: 0.5rem; text-transform: uppercase; font-weight: 600;">Attendees</label>
                                 <div style="display: flex; align-items: center; gap: 10px;">
-                                    <span style="font-size: 0.85rem; color: #4b5563; font-weight: 600;">${attendees} people attending</span>
+                                    <span style="font-size: 0.85rem; color: #4b5563; font-weight: 600;">${escapeHTML(attendees)} people attending</span>
                                 </div>
                             </div>
 
                             <div class="event-preview-grid-details" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 1rem;">
-                                <div class="event-grid-item" style="background: #f8fafc; padding: 0.6rem; border-radius: 6px; font-size: 0.85rem;">📂 ${category}</div>
-                                <div class="event-grid-item" style="background: #f8fafc; padding: 0.6rem; border-radius: 6px; font-size: 0.85rem;">📅 ${date}</div>
+                                <div class="event-grid-item" style="background: #f8fafc; padding: 0.6rem; border-radius: 6px; font-size: 0.85rem;">📂 ${escapeHTML(category)}</div>
+                                <div class="event-grid-item" style="background: #f8fafc; padding: 0.6rem; border-radius: 6px; font-size: 0.85rem;">📅 ${escapeHTML(date)}</div>
                             </div>
                             
                             <div class="event-preview-footer" style="padding-top: 1rem; border-top: 1px solid #f1f5f9;">
                                 <div class="event-price-final">
                                     <label style="font-size: 0.8rem; color: #64748b;">Ticket Price:</label>
-                                    <span style="font-size: 1.25rem; font-weight: 700; color: var(--admin-primary);">${price}</span>
+                                    <span style="font-size: 1.25rem; font-weight: 700; color: var(--admin-primary);">${escapeHTML(price)}</span>
                                 </div>
                             </div>
                         </div>

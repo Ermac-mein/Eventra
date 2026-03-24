@@ -86,7 +86,8 @@ class Router
 
         if (strpos($mw, 'auth:') === 0) {
             $role = substr($mw, 5);
-            return $this->authMiddleware($role);
+            $this->authMiddleware($role);
+            return;
         }
 
         // Future: resolve from a middleware map

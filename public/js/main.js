@@ -103,6 +103,9 @@ async function loadEvents() {
       // Categorized Rendering with Cross-Category Deduplication
       renderAllCategories();
 
+      // Initialize Hero Carousel with Featured Events
+      initHeroCarousel();
+
       // Finally apply filters for the "All Discovery Results" grid
       applyFilters();
     } else {
@@ -113,6 +116,47 @@ async function loadEvents() {
     console.error('Error loading events:', error);
     renderDiscovery([]);
   }
+}
+
+function initHeroCarousel() {
+    const wrapper = document.getElementById('heroCarouselWrapper');
+    if (!wrapper) return;
+
+    // Filter for trending/featured events to show in hero
+    const heroEvents = allEvents.filter(e => e.priority === 'featured' || e.priority === 'trending').slice(0, 5);
+    
+    if (heroEvents.length > 0) {
+        wrapper.innerHTML = heroEvents.map(event => {
+            const relPath = event.image_path ? event.image_path.replace(/^\/+/, '') : null;
+            const fallback = 'https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=1920&h=1080&fit=crop';
+            const basePath = typeof getBasePath === 'function' ? getBasePath() : '/';
+            const eventImage = relPath ? (relPath.startsWith('http') ? relPath : basePath + relPath) : fallback;
+
+            return `
+                <div class="swiper-slide hero-slide">
+                    <img src="${eventImage}" alt="${event.event_name}" class="hero-background" onerror="this.src='${fallback}'">
+                    <div class="hero-overlay"></div>
+                    <div class="hero-gradient"></div>
+                    <div class="hero-content">
+                        <div class="hero-category-tag" style="background: var(--primary-color); display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 700; margin-bottom: 1rem;">${event.category || 'Trending'}</div>
+                        <h1 class="hero-title">${event.event_name}</h1>
+                        <p class="hero-subtitle">${event.description ? event.description.substring(0, 100) + '...' : 'An exclusive experience on Eventra.'}</p>
+                        <button class="hero-action-btn" onclick="showEventModal(${event.id})" style="background: white; color: black; border: none; padding: 12px 30px; border-radius: 30px; font-weight: 700; cursor: pointer; transition: all 0.3s ease;">Explore Event</button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        // Initialize Swiper
+        new Swiper('.hero.swiper', {
+            effect: 'fade',
+            fadeEffect: { crossFade: true },
+            loop: true,
+            autoplay: { delay: 5000, disableOnInteraction: false },
+            pagination: { el: '.hero .swiper-pagination', clickable: true },
+            navigation: { nextEl: '.hero .swiper-button-next', prevEl: '.hero .swiper-button-prev' },
+        });
+    }
 }
 
 // Swiper Initialization Helper
@@ -238,7 +282,7 @@ function initUserIcon() {
     if (authController.state === authController.states.AUTHENTICATED && user) {
       // Update icon
       if (userProfileImg) {
-          userProfileImg.src = user.profile_image || `https://ui-avatars.c/api/?name=${encodeURIComponent(user.name || 'User')}&background=FF5A5F&color=fff&size=128`;
+          userProfileImg.src = user.profile_image || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || 'User')}&background=FF5A5F&color=fff&size=128`;
           userProfileImg.title = `Logged in as ${user.name}`;
           userProfileImg.style.display = 'block';
       }
@@ -343,7 +387,7 @@ function initUserIcon() {
         return;
       }
       const modalPic = document.getElementById('modalProfilePic');
-      if (modalPic) modalPic.src = user.profile_image || `https://ui-avatars.c/api/?name=${encodeURIComponent(user.name || 'User')}&background=FF5A5F&color=fff&size=128`;
+      if (modalPic) modalPic.src = user.profile_image || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || 'User')}&background=FF5A5F&color=fff&size=128`;
       
       const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.value = val || ''; };
       setVal('profileName', user.name);
@@ -1237,7 +1281,7 @@ function showEventModal(eventId) {
       orgContainer.style.display = 'flex';
       orgContainer.style.alignItems = 'center';
       orgContainer.style.gap = '8px';
-      orgContainer.innerHTML = `Organized by <span style="font-weight: 600;">${event.organizer_name || event.client_name || 'Eventra'}</span> 
+      orgContainer.innerHTML = `Organized by <span style="font-weight: 600;">${escapeHTML(event.organizer_name || event.client_name || 'Eventra')}</span> 
       ${typeof getVerificationBadge === 'function' ? getVerificationBadge(event.verification_status) : (event.is_verified == 1 ? '<span class="verified-check" style="color: #10b981; margin-left: 5px;" title="Verified">✓</span>' : '')}`;
   }
   if (window.lucide) window.lucide.createIcons();
@@ -1246,7 +1290,7 @@ function showEventModal(eventId) {
   const full_address = `${event.address || ''}, ${event.city || ''}, ${event.state || ''}`.replace(/^, /, '').replace(/, , /g, ', ').replace(/, $/, '') || 'Nigeria';
   const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(full_address || 'Nigeria')}`;
   if (document.getElementById('modalEventLocation')) {
-      document.getElementById('modalEventLocation').innerHTML = `<a href="${mapUrl}" target="_blank" class="address-link">${full_address}</a>`;
+      document.getElementById('modalEventLocation').innerHTML = `<a href="${mapUrl}" target="_blank" class="address-link">${escapeHTML(full_address)}</a>`;
   }
   if (document.getElementById('modalEventDescription')) document.getElementById('modalEventDescription').textContent = event.description || 'No description available';
   if (document.getElementById('modalEventCategory')) document.getElementById('modalEventCategory').textContent = event.category || event.event_type || 'General';

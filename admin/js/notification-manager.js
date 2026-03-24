@@ -109,7 +109,7 @@ class NotificationManager {
             if (!clearBtn) {
                 clearBtn = document.createElement('button');
                 clearBtn.className = 'clear-all-btn';
-                clearBtn.innerHTML = 'Clear All';
+                clearBtn.textContent = 'Clear All';
                 clearBtn.style.cssText = 'background: #f1f5f9; border: none; padding: 6px 12px; border-radius: 8px; font-size: 0.8rem; font-weight: 600; color: #64748b; cursor: pointer; transition: all 0.2s;';
                 clearBtn.onclick = () => this.clearAll();
                 drawerHeader.appendChild(clearBtn);
@@ -119,7 +119,7 @@ class NotificationManager {
         }
 
         // Clear existing content
-        drawerContent.innerHTML = '';
+        drawerContent.textContent = '';
 
         if (this.notifications.length === 0) {
             drawerContent.innerHTML = `
@@ -167,7 +167,7 @@ class NotificationManager {
         notifItem.innerHTML = `
             <div class="notif-icon">${icons[notif.type] || icons.info}</div>
             <div class="notif-body">
-                <p class="notif-text">${notif.message}</p>
+                <p class="notif-text">${escapeHtml(notif.message)}</p>
                 <div class="notif-meta">
                     <span>${timeStr}</span>
                     <span>${dateStr}</span>
@@ -282,3 +282,13 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
+
+function escapeHtml(str) {
+    if (!str) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}

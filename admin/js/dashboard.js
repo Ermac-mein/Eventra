@@ -4,14 +4,6 @@
  */
 
 document.addEventListener('DOMContentLoaded', async () => {
-    // Check for namespaced admin user
-    const user = storage.getUser();
-    
-    if (!user || user.role !== 'admin') {
-        window.location.href = '../../admin/pages/adminLogin.html';
-        return;
-    }
-
     // Load admin profile
     await loadAdminProfile();
 
@@ -30,7 +22,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 async function loadAdminProfile() {
     try {
         const user = storage.getUser();
-        const response = await apiFetch('/api/users/get-profile.php?user_id=${user.id}`);
+        const response = await apiFetch(`/api/users/get-profile.php?user_id=${user.id}`);
         const result = await response.json();
 
         if (result.success) {
@@ -125,7 +117,7 @@ function loadRecentActivities(activities) {
             <div class="activity-item" style="padding: 1rem 0; border-bottom: 1px solid #f1f5f9; display: flex; align-items: start; gap: 12px;">
                 <div class="activity-icon" style="background: ${color.bg}; color: ${color.text}; width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; flex-shrink: 0;">${icon}</div>
                 <div class="activity-content" style="flex: 1; min-width: 0;">
-                    <div class="activity-details" style="font-size: 0.9rem; font-weight: 500; color: #334155; line-height: 1.4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${activity.message}">${displayMessage}</div>
+                    <div class="activity-details" style="font-size: 0.9rem; font-weight: 500; color: #334155; line-height: 1.4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${escapeHTML(activity.message)}">${escapeHTML(displayMessage)}</div>
                     <div class="activity-time" style="font-size: 0.75rem; color: #94a3b8; margin-top: 4px;">${timeAgo(activity.created_at)}</div>
                 </div>
             </div>
@@ -145,10 +137,10 @@ function loadTopUsers(users) {
     container.innerHTML = users.map(user => `
         <div class="quick-item">
             <img src="${getProfileImg(user.profile_pic, user.name)}" 
-                 class="small-avatar" alt="${user.name}">
+                 class="small-avatar" alt="${escapeHTML(user.name)}">
             <div style="flex:1">
-                <div style="font-size: 0.9rem; font-weight: 600;">${user.name}</div>
-                <div style="font-size: 0.75rem; color: var(--admin-text-muted);">${user.state || 'N/A'} • ${user.ticket_count || 0} tickets</div>
+                <div style="font-size: 0.9rem; font-weight: 600;">${escapeHTML(user.name)}</div>
+                <div style="font-size: 0.75rem; color: var(--admin-text-muted);">${escapeHTML(user.state) || 'N/A'} • ${parseInt(user.ticket_count) || 0} tickets</div>
             </div>
             <div class="status-badge status-${user.is_online == 1 ? 'ongoing' : 'concluded'}">${user.is_online == 1 ? 'Online' : 'Offline'}</div>
         </div>
@@ -167,10 +159,10 @@ function loadActiveClients(clients) {
     container.innerHTML = clients.map(client => `
         <div class="quick-item">
             <img src="${getProfileImg(client.profile_pic, client.name)}" 
-                 class="small-avatar" alt="${client.name}">
+                 class="small-avatar" alt="${escapeHTML(client.name)}">
             <div style="flex:1">
-                <div style="font-size: 0.9rem; font-weight: 600;">${client.name}</div>
-                <div style="font-size: 0.75rem; color: var(--admin-text-muted);">${client.company || client.email} • ${client.event_count || 0} events</div>
+                <div style="font-size: 0.9rem; font-weight: 600;">${escapeHTML(client.name)}</div>
+                <div style="font-size: 0.75rem; color: var(--admin-text-muted);">${escapeHTML(client.company || client.email)} • ${parseInt(client.event_count) || 0} events</div>
             </div>
             <div class="status-badge status-${client.is_online == 1 ? 'ongoing' : 'concluded'}">${client.is_online == 1 ? 'Online' : 'Offline'}</div>
         </div>
@@ -192,11 +184,11 @@ function loadEventsToSlider(containerId, events) {
             <div class="event-mini-card">
                 <img src="${imagePath}" 
                      onerror="this.src='/public/assets/imgs/event-placeholder.png'"
-                     class="event-mini-img" alt="${event.event_name}">
+                     class="event-mini-img" alt="${escapeHTML(event.event_name)}">
                 <div class="event-mini-info">
-                    <div class="event-mini-title">${event.event_name}</div>
+                    <div class="event-mini-title">${escapeHTML(event.event_name)}</div>
                     <div class="event-mini-meta">
-                        <span>${event.client_name || 'Eventra'}</span>
+                        <span>${escapeHTML(event.client_name || 'Eventra')}</span>
                         <span>${formatDate(event.event_date)}</span>
                     </div>
                 </div>

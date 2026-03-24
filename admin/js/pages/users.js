@@ -32,23 +32,23 @@ document.addEventListener('DOMContentLoaded', async () => {
             <tr data-id="${user.id}">
                 <td style="padding-left: 1.5rem;"><input type="checkbox" class="user-checkbox" data-id="${user.id}"></td>
                 <td>
-                    <div style="font-weight: 700; color: var(--admin-primary);">${user.custom_id || 'N/A'}</div>
+                    <div style="font-weight: 700; color: var(--admin-primary);">${escapeHTML(user.custom_id) || 'N/A'}</div>
                 </td>
                 <td style="display: flex; align-items: center; gap: 12px; padding: 1.2rem 1rem;">
                     <div class="avatar-wrapper">
                         <img src="${getProfileImg(user.profile_pic, user.name)}" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 2px solid #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
                     </div>
-                    <span style="font-weight: 600; color: var(--admin-text-main);">${user.name}</span>
+                    <span style="font-weight: 600; color: var(--admin-text-main);">${escapeHTML(user.name)}</span>
                 </td>
-                <td style="font-size: 0.85rem;">${user.email}</td>
-                <td>${user.phone || 'N/A'}</td>
-                <td style="text-transform: capitalize;">${user.gender || 'N/A'}</td>
-                <td>${user.state || 'N/A'}</td>
-                <td>${user.country || 'N/A'}</td>
-                <td>${user.city || 'N/A'}</td>
-                <td style="max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${user.address || 'N/A'}">${user.address || 'N/A'}</td>
+                <td style="font-size: 0.85rem;">${escapeHTML(user.email)}</td>
+                <td>${escapeHTML(user.phone) || 'N/A'}</td>
+                <td style="text-transform: capitalize;">${escapeHTML(user.gender) || 'N/A'}</td>
+                <td>${escapeHTML(user.state) || 'N/A'}</td>
+                <td>${escapeHTML(user.country) || 'N/A'}</td>
+                <td>${escapeHTML(user.city) || 'N/A'}</td>
+                <td style="max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${escapeHTML(user.address || 'N/A')}">${escapeHTML(user.address || 'N/A')}</td>
                 <td><span class="status-badge status-${user.is_online == 1 ? 'ongoing' : 'concluded'}">${user.is_online == 1 ? 'Online' : 'Offline'}</span></td>
-                <td>${user.last_login_at ? new Date(user.last_login_at).toLocaleDateString() : 'Never'}</td>
+                <td>${user.last_login_at ? escapeHTML(new Date(user.last_login_at).toLocaleDateString()) : 'Never'}</td>
             </tr>
         `).join('');
 

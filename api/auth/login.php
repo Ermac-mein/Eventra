@@ -115,7 +115,7 @@ try {
         }
 
         if (session_status() === PHP_SESSION_NONE) {
-            require_once '../../config/session-config.php';
+            session_start();
         }
 
         if (session_name() === $expectedSessionName && session_status() === PHP_SESSION_ACTIVE) {

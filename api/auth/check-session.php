@@ -1,13 +1,13 @@
 <?php
 header('Content-Type: application/json');
 header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
-header('Post-Check=0, Pre-Check=0', false);
+header('Cache-Control: post-check=0, pre-check=0', false);
 header('Pragma: no-cache');
 require_once __DIR__ . '/../../config/database.php';
 require_once __DIR__ . '/../../includes/helpers/entity-resolver.php';
 
 // 1. Resolve Portal Intent from Headers for Correct Session Targeting
-$headers = getallheaders();
+$headers = function_exists('getallheaders') ? getallheaders() : [];
 $portal = $_SERVER['HTTP_X_EVENTRA_PORTAL'] ?? $headers['X-Eventra-Portal'] ?? $headers['x-eventra-portal'] ?? 'user';
 
 // 2. Set Role-Specific Session Name BEFORE starting session
@@ -26,89 +26,120 @@ if (session_name() !== $expectedSessionName) {
 }
 
 if (session_status() === PHP_SESSION_NONE) {
-    require_once __DIR__ . '/../../config/session-config.php';
+    session_start();
 }
 
+// --- Resolve session state ---
 $sessionRole = $_SESSION['user_role'] ?? $_SESSION['role'] ?? null;
-$token = $_SESSION['auth_token'] ?? null;
+$token       = $_SESSION['auth_token'] ?? null;
+// $authId is auth_accounts.id — used to verify the token in the DB
+$authId      = $_SESSION['auth_id'] ?? null;
+// $user_id is the role-specific profile ID (admins.id, clients.id, users.id)
+$user_id     = null;
 
-// Fallback to Bearer Token if session is not set (Structural Fix Phase 2.3)
+if ($sessionRole === 'admin') {
+    $user_id = $_SESSION['admin_id'] ?? null;
+} elseif ($sessionRole === 'client') {
+    $user_id = $_SESSION['client_id'] ?? null;
+} else {
+    $user_id = $_SESSION['user_id'] ?? null;
+}
+
+// Fallback to Bearer Token if session token is not set
 if (!$token) {
-    $headers = getallheaders();
     $authHeader = $headers['Authorization'] ?? $headers['authorization'] ?? '';
     if (preg_match('/Bearer\s(\S+)/', $authHeader, $matches)) {
         $token = $matches[1];
     }
 }
 
-// Fallback to Role detection from header if session is not set
+// Fallback to Role detection from header if session role is not set
 if (!$sessionRole) {
-    $headers = getallheaders();
-    $sessionRole = $headers['X-Eventra-Portal'] ?? 'user';
+    $sessionRole = $portal; // Already resolved from portal header above
 }
 
-$user_id = null;
-
-if ($sessionRole === 'admin') {
-    $user_id = $_SESSION['admin_id'] ?? null;
-}
-elseif ($sessionRole === 'client') {
-    $user_id = $_SESSION['client_id'] ?? null;
-}
-else {
-    $user_id = $_SESSION['user_id'] ?? null;
-}
-
-// If session IDs are missing, we still need to verify the token to get the user_id
-if (!$user_id && $token) {
-    $stmt = $pdo->prepare("SELECT auth_id FROM auth_tokens WHERE token = ? AND expires_at > NOW()");
+// Token-only fallback: rebuild $authId and $user_id from the token when session is missing
+if ($token && (!$authId || !$user_id)) {
+    $stmt = $pdo->prepare("
+        SELECT t.auth_id, a.role
+        FROM auth_tokens t
+        JOIN auth_accounts a ON a.id = t.auth_id
+        WHERE t.token = ? AND t.expires_at > NOW()
+    ");
     $stmt->execute([$token]);
-    $user_id = $stmt->fetchColumn();
+    $tokenRow = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    if ($tokenRow) {
+        $authId = (int) $tokenRow['auth_id'];
+
+        // Let the token's actual role override if session had none
+        if (!$sessionRole || $sessionRole === 'user') {
+            $sessionRole = strtolower($tokenRow['role']);
+        }
+
+        // Derive the role-specific profile ID from the correct table
+        if ($sessionRole === 'admin') {
+            $s2 = $pdo->prepare("SELECT id FROM admins WHERE admin_auth_id = ?");
+        } elseif ($sessionRole === 'client') {
+            $s2 = $pdo->prepare("SELECT id FROM clients WHERE client_auth_id = ?");
+        } else {
+            $s2 = $pdo->prepare("SELECT id FROM users WHERE user_auth_id = ?");
+        }
+        $s2->execute([$authId]);
+        $user_id = $s2->fetchColumn();
+    }
 }
 
-if (!$sessionRole || !$user_id || !$token) {
+if (!$sessionRole || !$user_id || !$authId || !$token) {
     echo json_encode(['success' => false, 'message' => 'Not authenticated']);
     exit;
 }
 
 try {
-    // Basic verification of the session (can be expanded)
-    $stmt = $pdo->prepare("SELECT a.id, a.email, a.role, a.is_active FROM auth_accounts a JOIN auth_tokens t ON a.id = t.auth_id WHERE t.token = ? AND a.id = ?");
-    $stmt->execute([$token, $user_id]);
+    // Verify the token against the auth_accounts.id (NOT the profile id)
+    $stmt = $pdo->prepare("
+        SELECT a.id, a.email, a.role, a.is_active
+        FROM auth_accounts a
+        JOIN auth_tokens t ON a.id = t.auth_id
+        WHERE t.token = ? AND a.id = ? AND t.expires_at > NOW()
+    ");
+    $stmt->execute([$token, $authId]);
     $account = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    if (!$account || $account['role'] !== $sessionRole) {
+    if (!$account || strtolower($account['role']) !== strtolower($sessionRole)) {
         echo json_encode(['success' => false, 'message' => 'Invalid session']);
         exit;
     }
 
-    $user = resolveEntity($account['email']);
+    // Update last_seen heartbeat
+    $pdo->prepare("UPDATE auth_accounts SET last_seen = NOW() WHERE id = ?")->execute([$account['id']]);
+
+    $user = resolveEntity($account['email'], $account['role']);
 
     echo json_encode([
         'success' => true,
         'user' => [
-            'id' => $user['id'],
-            'name' => $user['name'],
-            'email' => $user['email'],
-            'phone' => $user['phone'] ?? null,
-            'role' => $user['role'],
-            'dob' => $user['dob'] ?? null,
-            'gender' => $user['gender'] ?? null,
-            'country' => $user['country'] ?? null,
-            'city' => $user['city'] ?? null,
-            'state' => $user['state'] ?? null,
-            'address' => $user['address'] ?? null,
+            'id'            => $user['id'],
+            'name'          => $user['name'],
+            'email'         => $user['email'],
+            'phone'         => $user['phone'] ?? null,
+            'role'          => $user['role'],
+            'dob'           => $user['dob'] ?? null,
+            'gender'        => $user['gender'] ?? null,
+            'country'       => $user['country'] ?? null,
+            'city'          => $user['city'] ?? null,
+            'state'         => $user['state'] ?? null,
+            'address'       => $user['address'] ?? null,
             'profile_image' => (function ($pic) {
-            if (!$pic)
-                return null;
-            if (preg_match('/^https?:\/\//i', $pic))
-                return $pic;
-            return '/' . ltrim($pic, '/');
-        })($user['profile_pic'] ?? null),
-            'token' => $token
+                if (!$pic) return null;
+                if (preg_match('/^https?:\/\//i', $pic)) return $pic;
+                return '/' . ltrim($pic, '/');
+            })($user['profile_pic'] ?? null),
+            'custom_id'     => $user['custom_id'] ?? null,
+            'bvn'           => $user['bvn'] ?? null,
+            'token'         => $token
         ]
     ]);
-}
-catch (PDOException $e) {
+} catch (PDOException $e) {
     echo json_encode(['success' => false, 'message' => 'Server error']);
 }

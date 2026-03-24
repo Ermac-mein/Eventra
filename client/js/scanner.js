@@ -85,7 +85,7 @@ function showResult(result) {
 
         document.getElementById('resultDetails').innerHTML = `
             <div style="text-align:center; color:#ef4444; font-weight:600; padding:10px;">
-                ${result.message}
+                ${escapeHTML(result.message)}
             </div>
         `;
     }

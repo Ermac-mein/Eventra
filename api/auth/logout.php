@@ -15,42 +15,21 @@ if (session_status() === PHP_SESSION_NONE) {
 try {
     $role = $_SESSION['user_role'] ?? 'user';
 
-    // Resolve user_id based on role
-    $user_id = null;
-    if ($role === 'admin') {
-        $user_id = $_SESSION['admin_id'] ?? null;
-    } elseif ($role === 'client') {
-        $user_id = $_SESSION['client_id'] ?? null;
-    } else {
-        $user_id = $_SESSION['user_id'] ?? null;
-    }
+    $auth_id = $_SESSION['auth_id'] ?? null;
     $auth_token = $_SESSION['auth_token'] ?? null;
 
-    $table = 'users';
-    if ($role === 'client')
-        $table = 'clients';
-    if ($role === 'admin')
-        $table = 'admins';
+    $table = 'users'; // default
+    if ($role === 'client') $table = 'clients';
+    if ($role === 'admin') $table = 'admins';
 
-    if ($user_id) {
-        // Get user info for notification
-        $stmt = $pdo->prepare("SELECT name FROM $table WHERE id = ?");
-        $stmt->execute([$user_id]);
-        $user = $stmt->fetch();
-
-        // Create logout notification using helper
-        require_once __DIR__ . '/../utils/notification-helper.php';
-        if ($user) {
-            createLogoutNotification($user_id, $user['name']);
-        }
-
+    if ($auth_id) {
         // Update status to offline (only mark is_online = 0, NOT is_active!)
         $stmt = $pdo->prepare("UPDATE auth_accounts SET is_online = 0, last_seen = NOW() WHERE id = ?");
-        $stmt->execute([$user_id]);
+        $stmt->execute([$auth_id]);
 
         // Delete auth tokens
         $stmt = $pdo->prepare("DELETE FROM auth_tokens WHERE auth_id = ?");
-        $stmt->execute([$user_id]);
+        $stmt->execute([$auth_id]);
     }
 
     // Clear session

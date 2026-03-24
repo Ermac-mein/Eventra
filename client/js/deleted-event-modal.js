@@ -72,7 +72,7 @@ class DeletedEventModal {
         
         // Fetch event details
         try {
-            const response = await apiFetch('/api/events/get-event-details.php?event_id=${eventId}`);
+            const response = await apiFetch(`/api/events/get-event-details.php?event_id=${eventId}`);
             const result = await response.json();
             
             if (result && result.success && result.event) {
@@ -98,8 +98,8 @@ class DeletedEventModal {
             <div style="margin-bottom: 1.5rem;">
                 <img src="${eventImage}" style="width: 100%; height: 200px; object-fit: cover; border-radius: 12px;" alt="Event">
             </div>
-            <h3 style="font-size: 1.5rem; font-weight: 800; color: #111827; margin-bottom: 0.5rem;">${event.event_name}</h3>
-            <p style="color: #6b7280; margin-bottom: 1.5rem;">Organized by ${event.client_name || 'Eventra'}</p>
+            <h3 style="font-size: 1.5rem; font-weight: 800; color: #111827; margin-bottom: 0.5rem;">${escapeHTML(event.event_name)}</h3>
+            <p style="color: #6b7280; margin-bottom: 1.5rem;">Organized by ${escapeHTML(event.client_name) || 'Eventra'}</p>
             
             <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; margin-bottom: 1.5rem;">
                 <div style="background: #f3f4f6; padding: 1rem; border-radius: 10px;">
@@ -116,18 +116,18 @@ class DeletedEventModal {
                 </div>
                 <div style="background: #f3f4f6; padding: 1rem; border-radius: 10px;">
                     <div style="font-size: 0.75rem; color: #6b7280; font-weight: 600; text-transform: uppercase; margin-bottom: 0.25rem;">Category</div>
-                    <div style="font-weight: 700; color: #374151;">${event.event_type || 'General'}</div>
+                    <div style="font-weight: 700; color: #374151;">${escapeHTML(event.event_type) || 'General'}</div>
                 </div>
             </div>
             
             <div style="margin-bottom: 1.5rem;">
                 <label style="display: block; font-size: 0.85rem; color: #111827; margin-bottom: 0.5rem; text-transform: uppercase; font-weight: 700;">Location</label>
-                <div style="background: #f3f4f6; padding: 1rem; border-radius: 10px; color: #4b5563;">${event.address || event.state || 'No address provided'}</div>
+                <div style="background: #f3f4f6; padding: 1rem; border-radius: 10px; color: #4b5563;">${escapeHTML(event.address || event.state) || 'No address provided'}</div>
             </div>
             
             <div>
                 <label style="display: block; font-size: 0.85rem; color: #111827; margin-bottom: 0.5rem; text-transform: uppercase; font-weight: 700;">Description</label>
-                <div style="color: #4b5563; line-height: 1.6; background: #f3f4f6; padding: 1rem; border-radius: 10px;">${event.description || 'No description available'}</div>
+                <div style="color: #4b5563; line-height: 1.6; background: #f3f4f6; padding: 1rem; border-radius: 10px;">${escapeHTML(event.description) || 'No description available'}</div>
             </div>
         `;
     }
@@ -170,7 +170,7 @@ class DeletedEventModal {
                     window.notificationSystem.fetchNotifications();
                 }
             } else {
-                this.showNotification('Failed to restore event: ' + data.message, 'error');
+                this.showNotification('Failed to restore event: ' + escapeHTML(data.message), 'error');
             }
         } catch (error) {
             console.error('Error restoring event:', error);
@@ -216,7 +216,7 @@ class DeletedEventModal {
                     window.notificationSystem.fetchNotifications();
                 }
             } else {
-                this.showNotification('Failed to delete event: ' + data.message, 'error');
+                this.showNotification('Failed to delete event: ' + escapeHTML(data.message), 'error');
             }
         } catch (error) {
             console.error('Error deleting event:', error);

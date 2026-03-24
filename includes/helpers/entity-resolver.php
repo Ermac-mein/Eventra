@@ -14,8 +14,13 @@
 function resolveEntity($identifier, $role = null) {
     global $pdo;
 
-    $query = "SELECT a.* FROM auth_accounts a WHERE (a.email = ? OR a.username = ?)";
-    $params = [$identifier, $identifier];
+    if (is_numeric($identifier)) {
+        $query = "SELECT a.* FROM auth_accounts a WHERE a.id = ?";
+        $params = [$identifier];
+    } else {
+        $query = "SELECT a.* FROM auth_accounts a WHERE (a.email = ? OR a.username = ?)";
+        $params = [$identifier, $identifier];
+    }
 
     if ($role) {
         $query .= " AND a.role = ?";
@@ -51,7 +56,11 @@ function resolveEntity($identifier, $role = null) {
 
     // Merge account and profile data
     // In case of duplicate keys (like email), account data wins as it's the auth source
-    return array_merge($profile, $account);
+    $merged = array_merge($profile, $account);
+    if (!isset($merged['email']) && isset($account['email'])) {
+        $merged['email'] = $account['email'];
+    }
+    return $merged;
 }
 
 /**

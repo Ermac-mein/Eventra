@@ -68,7 +68,7 @@ try {
 
     // 9. Active Clients (by events)
     $stmt = $pdo->query("
-        SELECT c.id, c.business_name as name, c.profile_pic, c.company, c.state, c.email, a.is_online,
+        SELECT c.id, c.business_name as name, c.profile_pic, c.company, c.state, a.email, a.is_online,
                IF(a.is_online = 1, 'active', 'offline') as status,
                (SELECT COUNT(*) FROM events WHERE client_id = c.id) as event_count
         FROM clients c

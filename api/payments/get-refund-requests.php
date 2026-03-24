@@ -31,7 +31,7 @@ try {
         JOIN orders o ON rr.order_id = o.id
         JOIN events e ON o.event_id = e.id
         JOIN users u ON rr.user_id = u.id
-        JOIN users a ON u.user_auth_id = a.id
+        JOIN auth_accounts a ON u.user_auth_id = a.id
         {$where}
         ORDER BY rr.created_at DESC
     ");

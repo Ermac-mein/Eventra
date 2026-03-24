@@ -53,7 +53,7 @@ class SearchManager {
 
     async performSearch(query) {
         try {
-            const response = await apiFetch('/api/admin/global-search.php?q=${encodeURIComponent(query)}`);
+            const response = await apiFetch(`/api/admin/global-search.php?q=${encodeURIComponent(query)}`);
             const data = await response.json();
 
             if (data.success) {
@@ -86,7 +86,7 @@ class SearchManager {
         });
 
         if (!hasResults) {
-            this.dropdown.innerHTML = `<div class="search-no-results">No results found for "${query}"</div>`;
+            this.dropdown.innerHTML = `<div class="search-no-results">No results found for "${escapeHTML(query)}"</div>`;
         }
 
         this.showDropdown();
@@ -129,8 +129,8 @@ class SearchManager {
         resultItem.innerHTML = `
             <div class="search-result-icon">${iconSrc}</div>
             <div class="search-result-info">
-                <span class="search-result-name">${item.name}</span>
-                <span class="search-result-meta">${meta}</span>
+                <span class="search-result-name">${escapeHTML(item.name)}</span>
+                <span class="search-result-meta">${escapeHTML(meta)}</span>
             </div>
         `;
 

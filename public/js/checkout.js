@@ -40,7 +40,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         // Fetch Event Data
-        const eventRes = await apiFetch('/api/events/get-event-details.php?event_id=${eventId}`);
+        const eventRes = await apiFetch(`/api/events/get-event-details.php?event_id=${eventId}`);
         const eventResult = await eventRes.json();
 
         if (!eventResult.success || !eventResult.event) {
@@ -172,7 +172,7 @@ function renderEventSummary(event, quantity) {
     };
 
     const elTitle = document.getElementById('summaryTitle');
-    if (elTitle) elTitle.innerHTML = `<strong>${event.event_name}</strong>`;
+    if (elTitle) elTitle.innerHTML = `<strong>${escapeHTML(event.event_name)}</strong>`;
 
     const elDate = document.getElementById('summaryDate');
     if (elDate) elDate.textContent = `${formatDate(event.event_date)} • ${event.event_time || 'TBA'}`;

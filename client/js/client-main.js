@@ -16,29 +16,40 @@ document.addEventListener('DOMContentLoaded', () => {
  */
 async function loadGlobalProfile() {
     try {
-        // Detect role from path
-        const isClient = window.location.pathname.includes('/client/');
-        const isAdmin = window.location.pathname.includes('/admin/');
-        
         const user = storage.getUser();
         if (user) {
             updateGlobalAvatar(user);
             updateClientNameDisplay(user);
         }
 
-        // Fetch fresh data
+        // If auth controller is already synced, we don't need to fetch again immediately
+        if (window.authController && window.authController.settled && window.authController.state === 'authenticated') {
+            console.log('[Profile] Using settled auth state for profile');
+            return;
+        }
+
+        // Fetch fresh data if not settled or on explicit request
         const response = await apiFetch('/api/users/get-profile.php');
-        
         const result = await response.json();
 
         if (result.success) {
             storage.setUser(result.user);
             updateGlobalAvatar(result.user);
+            updateClientNameDisplay(result.user);
         }
     } catch (error) {
         console.error('Error loading global profile:', error);
     }
 }
+
+// Listen for auth sync to update profile
+document.addEventListener('auth:sync', (e) => {
+    if (e.detail.success && e.detail.user) {
+        console.log('[Profile] Updating UI from auth:sync');
+        updateGlobalAvatar(e.detail.user);
+        updateClientNameDisplay(e.detail.user);
+    }
+});
 
 function updateGlobalAvatar(user) {
     const avatars = document.querySelectorAll('.user-avatar');
@@ -54,7 +65,7 @@ function updateGlobalAvatar(user) {
         } else {
             // Fallback to UI Avatars
             const name = user.name || user.business_name || 'User';
-            const defaultAvatar = `https://ui-avatars.c/api/?name=${encodeURIComponent(name)}&background=random&color=fff`;
+            const defaultAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random&color=fff`;
             avatar.style.backgroundImage = `url(${defaultAvatar})`;
         }
         avatar.style.backgroundSize = 'cover';

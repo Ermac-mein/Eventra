@@ -37,20 +37,20 @@ function showProfileEditModal() {
                         <div class="modal-grid">
                             <div class="form-group modal-grid-full">
                                 <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Client ID</label>
-                                <input type="text" value="${user.custom_id || 'Generating...'}" readonly style="width: 100%; padding: 0.75rem; border: 1px solid #e0e0e0; border-radius: 8px; background: #f8fafc; color: #7c3aed; font-weight: 700; font-family: monospace; letter-spacing: 1px;">
+                                <input type="text" value="${escapeHTML(user.custom_id) || 'Generating...'}" readonly style="width: 100%; padding: 0.75rem; border: 1px solid #e0e0e0; border-radius: 8px; background: #f8fafc; color: #7c3aed; font-weight: 700; font-family: monospace; letter-spacing: 1px;">
                             </div>
 
                             <div class="form-group modal-grid-full">
                                 <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Full Name *</label>
-                                <input type="text" name="name" value="${user.name}" required class="form-control">
+                                <input type="text" name="name" value="${escapeHTML(user.name)}" required class="form-control">
                             </div>
                             <div class="form-group">
                                 <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Email</label>
-                                <input type="email" value="${user.email}" disabled class="form-control disabled">
+                                <input type="email" value="${escapeHTML(user.email)}" disabled class="form-control disabled">
                             </div>
                             <div class="form-group">
                                 <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Phone</label>
-                                <input type="tel" name="phone" value="${user.phone || ''}" placeholder="+234..." class="form-control">
+                                <input type="tel" name="phone" value="${escapeHTML(user.phone) || ''}" placeholder="+234..." class="form-control">
                             </div>
                             
                             <div class="form-group modal-grid-full">
@@ -58,12 +58,12 @@ function showProfileEditModal() {
                                     <span>NIN (National Identity Number)</span>
                                     <div id="ninStatus" class="verification-status-indicator"></div>
                                 </label>
-                                <input type="text" id="ninInput" name="nin" value="${user.nin || ''}" placeholder="11-digit NIN" class="form-control" onblur="validateAndVerifyField('nin')">
+                                <input type="text" id="ninInput" name="nin" value="${escapeHTML(user.nin) || ''}" placeholder="11-digit NIN" class="form-control" onblur="validateAndVerifyField('nin')">
                             </div>
 
                             <div class="form-group">
                                 <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Date of Birth</label>
-                                <input type="date" name="dob" value="${user.dob || ''}" class="form-control">
+                                <input type="date" name="dob" value="${escapeHTML(user.dob) || ''}" class="form-control">
                             </div>
                             <div class="form-group">
                                 <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Gender</label>
@@ -77,20 +77,20 @@ function showProfileEditModal() {
                             
                             <div class="form-group modal-grid-full">
                                 <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Address</label>
-                                <textarea name="address" rows="2" placeholder="Full address" class="form-control">${user.address || ''}</textarea>
+                                <textarea name="address" rows="2" placeholder="Full address" class="form-control">${escapeHTML(user.address) || ''}</textarea>
                             </div>
                             
                             <div class="form-group">
                                 <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Job Title</label>
-                                <input type="text" name="job_title" value="${user.job_title || ''}" placeholder="Event Organizer" class="form-control">
+                                <input type="text" name="job_title" value="${escapeHTML(user.job_title) || ''}" placeholder="Event Organizer" class="form-control">
                             </div>
                             <div class="form-group">
                                 <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Company</label>
-                                <input type="text" name="company" value="${user.company || ''}" placeholder="Company Name" class="form-control">
+                                <input type="text" name="company" value="${escapeHTML(user.company) || ''}" placeholder="Company Name" class="form-control">
                             </div>
                             <div class="form-group">
                                 <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">City</label>
-                                <input type="text" name="city" value="${user.city || ''}" placeholder="Lagos" class="form-control">
+                                <input type="text" name="city" value="${escapeHTML(user.city) || ''}" placeholder="Lagos" class="form-control">
                             </div>
                             <div class="form-group">
                                 <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">State</label>
@@ -103,7 +103,7 @@ function showProfileEditModal() {
                             </div>
                             <div class="form-group modal-grid-full">
                                 <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Country</label>
-                                <input type="text" name="country" value="${user.country || ''}" placeholder="Nigeria" class="form-control">
+                                <input type="text" name="country" value="${escapeHTML(user.country) || ''}" placeholder="Nigeria" class="form-control">
                             </div>
                         </div>
 
@@ -116,7 +116,7 @@ function showProfileEditModal() {
                                 <select id="bankSelect" name="bank_code" class="form-control" onchange="resolveAccount()">
                                     <option value="">Select Bank</option>
                                 </select>
-                                <input type="hidden" name="bank_name" id="bankNameInput" value="${user.bank_name || ''}">
+                                <input type="hidden" name="bank_name" id="bankNameInput" value="${escapeHTML(user.bank_name) || ''}">
                             </div>
                             <div class="form-group modal-grid-full">
                                 <label style="font-weight: 600; margin-bottom: 0.5rem; display: flex; align-items: center; justify-content: space-between; width: 100%;">
@@ -127,19 +127,19 @@ function showProfileEditModal() {
                                             : '<span style="color:#f59e0b; font-weight: bold; font-size: 0.85rem;" title="Setup Incomplete">⚠️ Incomplete Setup</span>'}
                                     </div>
                                 </label>
-                                <input type="text" id="accountNumberInput" name="account_number" value="${(user.account_number && !/^[0]*$/.test(user.account_number)) ? user.account_number : ''}" maxlength="10" placeholder="10-digit Account Number" class="form-control" oninput="this.value = this.value.replace(/[^0-9]/g, '');" onblur="resolveAccount()">
+                                <input type="text" id="accountNumberInput" name="account_number" value="${(user.account_number && !/^[0]*$/.test(user.account_number)) ? escapeHTML(user.account_number) : ''}" maxlength="10" placeholder="10-digit Account Number" class="form-control" oninput="this.value = this.value.replace(/[^0-9]/g, '');" onblur="resolveAccount()">
                             </div>
                             <div class="form-group modal-grid-full">
                                 <label style="font-weight: 600; margin-bottom: 0.5rem; display: flex; align-items: center; justify-content: space-between; width: 100%;">
                                     <span>BVN (11 Digits)</span>
                                     <div id="bvnStatus" class="verification-status-indicator"></div>
                                 </label>
-                                <input type="text" id="bvnInput" name="bvn" value="${user.bvn || ''}" maxlength="11" placeholder="11-digit BVN" class="form-control" oninput="this.value = this.value.replace(/[^0-9]/g, '');" onblur="validateAndVerifyField('bvn')">
+                                <input type="text" id="bvnInput" name="bvn" value="${escapeHTML(user.bvn) || ''}" maxlength="11" placeholder="11-digit BVN" class="form-control" oninput="this.value = this.value.replace(/[^0-9]/g, '');" onblur="validateAndVerifyField('bvn')">
                                 <small style="display: block; margin-top: 5px; color: #64748b; font-size: 0.8rem; font-style: italic;">Note: Your BVN is for identity verification only.</small>
                             </div>
                             <div class="form-group modal-grid-full">
                                 <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Account Holder Name (Auto-resolved)</label>
-                                <input type="text" id="accountNameInput" name="account_name" value="${user.account_name || ''}" class="form-control" style="font-weight: 500;">
+                                <input type="text" id="accountNameInput" name="account_name" value="${escapeHTML(user.account_name) || ''}" class="form-control" style="font-weight: 500;">
                             </div>
                         </div>
 
@@ -264,7 +264,7 @@ async function resolveAccount() {
 
         if (result.success) {
             statusDiv.innerHTML = '<span style="color:#10b981; font-weight: bold;">✓ Verified</span>';
-            nameInput.value = result.account_name;
+            nameInput.value = escapeHTML(result.account_name);
         } else {
             statusDiv.innerHTML = '<span style="color:#ef4444; font-weight: bold;">✕ Invalid</span>';
             nameInput.value = 'Resolution Failed';
@@ -317,8 +317,8 @@ async function validateAndVerifyField(type) {
             if (hiddenStatus) hiddenStatus.value = 1;
         } else {
             const errorMsg = result.data?.message || `Invalid ${type.toUpperCase()}`;
-            updateFieldStatus(type, 'error', errorMsg);
-            showNotification(`${type.toUpperCase()} verification failed.`, 'error');
+            updateFieldStatus(type, 'error', escapeHTML(errorMsg));
+            showNotification(`${escapeHTML(type.toUpperCase())} verification failed.`, 'error');
             
             const user = storage.get('client_user') || storage.get('user');
             if (user) {
@@ -346,7 +346,7 @@ function updateFieldStatus(type, status, message = '') {
     } else if (status === 'success') {
         statusDiv.innerHTML = '<span style="color:#10b981; font-size: 1.1rem; font-weight: bold;" title="Verified">✓</span>';
     } else if (status === 'error') {
-        statusDiv.innerHTML = `<span style="color:#ef4444; font-size: 1.1rem; font-weight: bold; cursor: help;" title="${message}">✕</span>`;
+        statusDiv.innerHTML = `<span style="color:#ef4444; font-size: 1.1rem; font-weight: bold; cursor: help;" title="${escapeHTML(message)}">✕</span>`;
     }
 }
 
@@ -444,8 +444,8 @@ function displayEventPreview(event) {
                     
                     <div class="event-preview-content" style="background: white;">
                         <div style="margin-bottom: 2.5rem;">
-                            <h1 class="event-preview-title">${event.event_name}</h1>
-                            <p style="color: #6b7280; font-size: 1.1rem;">Organized by ${user.name || 'Eventra'}</p>
+                            <h1 class="event-preview-title">${escapeHTML(event.event_name)}</h1>
+                            <p style="color: #6b7280; font-size: 1.1rem;">Organized by ${escapeHTML(user.name) || 'Eventra'}</p>
                         </div>
 
                         <div class="event-info-grid">
@@ -474,7 +474,7 @@ function displayEventPreview(event) {
                                 <div class="event-info-icon" style="background: #fdf2f8;">📂</div>
                                 <div>
                                     <div class="event-info-label">Category</div>
-                                    <div class="event-info-value">${event.category || event.event_type || 'General'}</div>
+                                    <div class="event-info-value">${escapeHTML(event.category || event.event_type) || 'General'}</div>
                                 </div>
                             </div>
                         </div>
@@ -482,15 +482,15 @@ function displayEventPreview(event) {
                         <div style="margin-bottom: 2.5rem;">
                             <label style="display: block; font-size: 0.9rem; color: #111827; margin-bottom: 1rem; text-transform: uppercase; font-weight: 800; letter-spacing: 0.05em;">📍 Venue & Location</label>
                             <div style="background: #f9fafb; padding: 1.25rem; border-radius: 16px; border: 1px solid #e5e7eb; color: #4b5563; font-weight: 500; line-height: 1.5;">
-                                ${event.address || 'No address provided'}
-                                ${event.state ? `<br><span style="color: #111827; font-weight: 700;">${event.state}</span>` : ''}
+                                ${escapeHTML(event.address) || 'No address provided'}
+                                ${event.state ? `<br><span style="color: #111827; font-weight: 700;">${escapeHTML(event.state)}</span>` : ''}
                             </div>
                         </div>
 
                         <div style="margin-bottom: 2.5rem;">
                             <label style="display: block; font-size: 0.9rem; color: #111827; margin-bottom: 1rem; text-transform: uppercase; font-weight: 800; letter-spacing: 0.05em;">📝 Event Description</label>
                             <div style="color: #4b5563; line-height: 1.7; white-space: pre-wrap; background: #f9fafb; padding: 1.25rem; border-radius: 16px; border: 1px solid #e5e7eb; font-size: 1.05rem;">
-                                ${event.description || 'No description available'}
+                                ${escapeHTML(event.description) || 'No description available'}
                             </div>
                         </div>
 
@@ -504,7 +504,7 @@ function displayEventPreview(event) {
                                     `).join('')}
                                     ${(parseInt(event.attendee_count) || 0) > 5 ? `<div style="width: 40px; height: 40px; border-radius: 50%; border: 3px solid white; margin-left: -12px; background: #4f46e5; color: white; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700;">+${parseInt(event.attendee_count) - 5}</div>` : ''}
                                 </div>
-                                <span style="font-size: 1.1rem; color: #111827; font-weight: 700;">${event.attendee_count || 0} people attending</span>
+                                <span style="font-size: 1.1rem; color: #111827; font-weight: 700;">${parseInt(event.attendee_count) || 0} people attending</span>
                             </div>
                         </div>
                         
@@ -512,16 +512,16 @@ function displayEventPreview(event) {
                             <div style="margin-bottom: 1.5rem;">
                                 <label style="display: block; font-size: 0.9rem; color: #111827; margin-bottom: 1rem; text-transform: uppercase; font-weight: 800; letter-spacing: 0.05em;">🔗 Events Tag</label>
                                 <div style="display: flex; gap: 0.75rem; align-items: center;">
-                                    <code style="background: #f3f4f6; padding: 0.85rem 1.25rem; border-radius: 12px; border: 1px solid #e5e7eb; font-family: 'JetBrains Mono', monospace; font-size: 1rem; flex: 1; color: #111827; font-weight: 700;">${event.tag}</code>
-                                    <button onclick="navigator.clipboard.writeText('${event.tag}').then(() => showNotification('Tag copied!', 'success'))" style="background: white; border: 1px solid #d1d5db; width: 48px; height: 48px; border-radius: 12px; cursor: pointer; transition: all 0.2s; font-size: 1.25rem; display: flex; align-items: center; justify-content: center;" title="Copy Tag">📋</button>
+                                    <code style="background: #f3f4f6; padding: 0.85rem 1.25rem; border-radius: 12px; border: 1px solid #e5e7eb; font-family: 'JetBrains Mono', monospace; font-size: 1rem; flex: 1; color: #111827; font-weight: 700;">${escapeHTML(event.tag)}</code>
+                                    <button onclick="navigator.clipboard.writeText('${escapeHTML(event.tag)}').then(() => showNotification('Tag copied!', 'success'))" style="background: white; border: 1px solid #d1d5db; width: 48px; height: 48px; border-radius: 12px; cursor: pointer; transition: all 0.2s; font-size: 1.25rem; display: flex; align-items: center; justify-content: center;" title="Copy Tag">📋</button>
                                 </div>
                             </div>
                             <div style="margin-bottom: 2.5rem;">
                                 <label style="display: block; font-size: 0.9rem; color: #111827; margin-bottom: 1rem; text-transform: uppercase; font-weight: 800; letter-spacing: 0.05em;">🚀 Shareable Link</label>
                                 <div style="display: flex; gap: 0.75rem; align-items: center;">
-                                    <input type="text" readonly value="${shareLink}" 
+                                    <input type="text" readonly value="${escapeHTML(shareLink)}" 
                                            style="background: #f3f4f6; padding: 0.85rem 1.25rem; border-radius: 12px; border: 1px solid #e5e7eb; font-family: inherit; font-size: 1rem; flex: 1; color: #111827; font-weight: 600;">
-                                    <button onclick="navigator.clipboard.writeText('${shareLink}').then(() => showNotification('Link copied!', 'success'))" style="background: #4F46E5; color: white; border: none; padding: 0.85rem 1.75rem; border-radius: 12px; cursor: pointer; transition: all 0.2s; font-size: 1rem; font-weight: 700; box-shadow: 0 4px 12px rgba(79, 70, 229, 0.25);">Copy Link</button>
+                                    <button onclick="navigator.clipboard.writeText('${escapeHTML(shareLink)}').then(() => showNotification('Link copied!', 'success'))" style="background: #4F46E5; color: white; border: none; padding: 0.85rem 1.75rem; border-radius: 12px; cursor: pointer; transition: all 0.2s; font-size: 1rem; font-weight: 700; box-shadow: 0 4px 12px rgba(79, 70, 229, 0.25);">Copy Link</button>
                                 </div>
                             </div>
 
@@ -716,7 +716,7 @@ function showEditEventModal(event) {
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
                             <div class="form-group" style="grid-column: 1 / -1;">
                                 <label>Event Name *</label>
-                                <input type="text" name="event_name" value="${event.event_name}" required>
+                                <input type="text" name="event_name" value="${escapeHTML(event.event_name)}" required>
                             </div>
 
                             <div class="form-group">
@@ -789,7 +789,7 @@ function showEditEventModal(event) {
                                 <label>State *</label>
                                 <select name="state" required>
                                     ${getNigerianStates(true).map(state => 
-                                        `<option value="${state}" ${event.state === state ? 'selected' : ''}>${state}</option>`
+                                        `<option value="${escapeHTML(state)}" ${event.state === state ? 'selected' : ''}>${escapeHTML(state)}</option>`
                                     ).join('')}
                                 </select>
                             </div>
@@ -797,7 +797,7 @@ function showEditEventModal(event) {
 
                         <div class="form-group">
                             <label>Venue Address *</label>
-                            <textarea name="address" rows="2" required>${event.address}</textarea>
+                            <textarea name="address" rows="2" required>${escapeHTML(event.address)}</textarea>
                         </div>
 
                         <!-- Contact Information -->
@@ -963,7 +963,7 @@ function showUserPreviewModal(user) {
     const hasValidUrl = user.profile_pic && user.profile_pic.startsWith('http');
     const profileImage = user.profile_pic 
         ? (hasValidUrl ? user.profile_pic : `../../${user.profile_pic}`)
-        : `https://ui-avatars.c/api/?name=${encodeURIComponent(user.name || 'User')}&background=random&size=150`;
+        : `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || 'User')}&background=random&size=150`;
 
     const modalContent = `
         <div id="userPreviewModal" class="modal-backdrop active" role="dialog" aria-modal="true" aria-hidden="false">

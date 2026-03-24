@@ -1,20 +1,18 @@
 /**
  * Eventra Auth Guard
  * Protects routes based on user role and authentication status.
- * Optimized for robustness: Waits for AuthController initialization before evaluating.
+ * Optimized for robustness: Calls AuthController.init() then waits for it to settle.
  */
 
 (async function() {
     const currentPath = window.location.pathname;
-    
-    // 1. Skip protection for login, signup, and homepage to prevent redirect loops
+    const origin = window.location.origin;
+
+    // 1. Skip protection for login, signup, and public pages to prevent redirect loops
     const publicPages = ['adminLogin.html', 'clientLogin.html', 'signup.html', 'index.html', '/public/pages/'];
     if (publicPages.some(page => currentPath.endsWith(page) || currentPath === '/')) {
-        // If it's index.html but it's NOT index.html?trigger=login, we still might want to allow it as a guest area
-        // Protected areas are explicitly /admin/ or /client/
-        if (!currentPath.includes('/admin/') && !currentPath.includes('/client/')) {
-            return;
-        }
+        // ALWAYS skip for explicitly public pages like Login/Signup
+        return;
     }
 
     // Determine required role based on path
@@ -30,14 +28,6 @@
     // FAST synchronous check before rendering body
     const hasLocalAuth = window.storage && window.storage.getUser() && window.storage.getToken();
     if (!hasLocalAuth) {
-        const basePath = getBasePath();
-        
-        // Store the current URL to redirect back after login
-        if (window.storage) {
-            window.storage.set('redirect_after_login', window.location.href);
-        }
-
-        const origin = window.location.origin;
         if (requiredRole === 'admin') {
             window.location.replace(origin + '/admin/pages/adminLogin.html');
         } else {
@@ -46,60 +36,36 @@
         return;
     }
 
-    // 2. Show Premium Loading Overlay
-    const showOverlay = () => {
-        if (!document.body) {
-            console.warn('[Auth Guard] document.body not available yet. Retrying...');
-            setTimeout(showOverlay, 50);
-            return;
-        }
-        
-        const loadingOverlay = document.createElement('div');
-        loadingOverlay.id = 'auth-guard-loading';
-        loadingOverlay.className = 'auth-loading-screen';
-        loadingOverlay.innerHTML = `
-            <div class="auth-spinner-container">
-                <div class="auth-spinner-ring"></div>
-                <div class="auth-spinner-active"></div>
-            </div>
-            <div class="auth-loading-text">Verifying Session...</div>
-        `;
-        document.body.appendChild(loadingOverlay);
-        return loadingOverlay;
-    };
-
-    const loadingOverlay = showOverlay();
+    // 2. Visual loading overlay removed so users can proceed to dashboards instantly.
+    const loadingOverlay = null;
 
     try {
-        // 3. Wait for AuthController to finish its server-side handshake
-        console.log('[Auth Guard] Waiting for AuthController...');
-        
+        // 3. Ensure AuthController exists and is initialized
         if (!window.authController) {
-             throw new Error('AuthController not initialized');
+            console.error('[Auth Guard] authController not found on window. Check script load order.');
+            throw new Error('AuthController not found');
         }
 
-        // 3.5 Ensure AuthController is initialized
+        // Always kick off init() — it guards against double-calls internally
         if (!window.authController.settled && !window.authController.isSyncing) {
             console.log('[Auth Guard] Triggering AuthController.init()...');
             window.authController.init();
         }
 
+        // 4. Wait for AuthController to complete server-side handshake
         const authState = await window.authController.ready;
         console.log('[Auth Guard] Auth settled state:', authState);
 
         const user = window.authController.user;
-        
-        // 4. Final Evaluation
+
+        // 5. Final Evaluation
         if (authState !== 'authenticated' || !user || user.role !== requiredRole) {
             console.warn('[Auth Guard] Access denied. Redirecting to login.');
-            
-            // Store redirect URL
+
             if (window.storage) {
                 window.storage.set('redirect_after_login', window.location.href);
             }
 
-            const basePath = getBasePath();
-            const origin = window.location.origin;
             if (requiredRole === 'admin') {
                 window.location.href = origin + '/admin/pages/adminLogin.html';
             } else {
@@ -108,21 +74,29 @@
             return;
         }
 
-        // 5. Success! Hide Loading Overlay
+        // 6. Success — hide loading overlay
         console.log(`[Auth Guard] Authorized as ${requiredRole}`);
-        loadingOverlay.classList.add('hidden');
-        setTimeout(() => loadingOverlay.remove(), 600);
+        if (loadingOverlay) {
+            loadingOverlay.classList.add('hidden');
+            setTimeout(() => loadingOverlay.remove(), 600);
+        }
 
     } catch (error) {
         console.error('[Auth Guard] Error during validation:', error);
-        // On critical error, fallback to safety: redirect to home or role-specific login
-        const basePath = getBasePath();
+        
+        // Ensure overlay is hidden even on error
+        if (loadingOverlay) {
+            loadingOverlay.classList.add('hidden');
+            setTimeout(() => loadingOverlay.remove(), 600);
+        }
+
+        // On critical error OR sync failure, redirect to the role-specific login
         if (requiredRole === 'admin') {
-            window.location.href = basePath + 'admin/login';
+            window.location.replace(origin + '/admin/pages/adminLogin.html' + (window.location.search || '?error=auth_failed'));
         } else if (requiredRole === 'client') {
-            window.location.href = basePath + 'client/login';
+            window.location.replace(origin + '/client/pages/clientLogin.html' + (window.location.search || '?error=auth_failed'));
         } else {
-            window.location.href = basePath + 'index.html';
+            window.location.replace(origin + '/public/pages/index.html?trigger=login');
         }
     }
 })();

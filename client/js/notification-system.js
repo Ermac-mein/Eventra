@@ -190,8 +190,8 @@ class NotificationManager {
                     <div style="display: flex; gap: 1rem;">
                         <div style="font-size: 1.5rem;">${getNotificationIcon(notif.type)}</div>
                         <div style="flex: 1;">
-                            <div style="font-weight: 600; margin-bottom: 0.25rem;">${title}</div>
-                            <div style="font-size: 0.85rem; color: #6b7280; margin-bottom: 0.5rem;">${notif.message}</div>
+                            <div style="font-weight: 600; margin-bottom: 0.25rem;">${escapeHTML(title)}</div>
+                            <div style="font-size: 0.85rem; color: #6b7280; margin-bottom: 0.5rem;">${escapeHTML(notif.message)}</div>
                             <div style="font-size: 0.75rem; color: #9ca3af;">${formatNotificationTime(notif.created_at)}</div>
                         </div>
                     </div>

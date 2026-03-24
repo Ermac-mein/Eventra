@@ -235,7 +235,7 @@ body {
 .input-icon {
   position: absolute;
   right: 1rem;
-  color: var(--login-text-light);
+  color: var(--border-color);
   font-size: 1.125rem;
   pointer-events: none;
 }
@@ -296,7 +296,7 @@ body {
 }
 
 .forgot-password:hover {
-  color: var(--login-primary);
+  color: var(--border-color);
   text-decoration: underline;
 }
 

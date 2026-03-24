@@ -55,7 +55,7 @@ async function loadMedia() {
             console.error('User session not found');
             return;
         }
-        const response = await apiFetch('/api/media/get-media.php?client_id=${user.id}&status=${currentMediaStatus}${currentFolderId ? '&folder_id=' + currentFolderId : ''}`);
+        const response = await apiFetch(`/api/media/get-media.php?client_id=${user.id}&status=${currentMediaStatus}${currentFolderId ? '&folder_id=' + currentFolderId : ''}`);
         const result = await response.json();
 
         // Update dashboard stats
@@ -494,7 +494,7 @@ async function openFolder(id, name) {
 
     try {
         const user = storage.getUser();
-        const response = await apiFetch('/api/media/get-folder-contents.php?client_id=${user.id}&folder_id=${id}&status=${currentMediaStatus}`);
+        const response = await apiFetch(`/api/media/get-folder-contents.php?client_id=${user.id}&folder_id=${id}&status=${currentMediaStatus}`);
         const result = await response.json();
 
         if (result.success && result.files) {

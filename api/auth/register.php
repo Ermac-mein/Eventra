@@ -25,7 +25,7 @@ try {
     }
 
     // 2. Load ID Generator
-    require_once __DIR__ . '/api/utils/id-generator.php';
+    require_once __DIR__ . '/../utils/id-generator.php';
 
     // 3. Validate Password Strength (Uppercase, Digit, Special Character, Min 8 chars)
     if (!preg_match('/^(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%^&*(),.?":{}|<>]).{8,}$/', $password)) {
@@ -71,7 +71,7 @@ try {
     logSecurityEvent($auth_id, $email, 'registration_success', 'password', "New $role registered: $name (Role ID: $role_id)");
 
     // 5. Notify Admin and User using helper
-    require_once __DIR__ . '/api/utils/notification-helper.php'; // Adjusted path
+    require_once __DIR__ . '/../utils/notification-helper.php'; // Adjusted path
 
     $admin_id = getAdminUserId();
     if ($admin_id) {
