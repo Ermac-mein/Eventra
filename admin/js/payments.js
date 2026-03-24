@@ -96,7 +96,7 @@ async function loadPayments() {
     });
 
     try {
-        const res = await apiFetch(`../../api/payments/get-payments.php?${params}`);
+        const res = await apiFetch(`/api/payments/get-payments.php?${params}`);
         const data = await res.json();
 
         if (!data.success) {
@@ -130,7 +130,7 @@ async function loadRefundRequests() {
     </tr>`;
 
     try {
-        const res = await apiFetch(`../../api/payments/get-refund-requests.php`);
+        const res = await apiFetch('/api/payments/get-refund-requests.php');
         const data = await res.json();
 
         if (!data.success || !data.requests.length) {
@@ -360,7 +360,7 @@ function exportPayments(format) {
     if (menu) menu.classList.remove('open');
     const { sort, dateRange, status, search } = _paymentsState;
     const params = new URLSearchParams({ format, sort, date_range: dateRange, ...(status && { status }), ...(search && { search }) });
-    window.open(`../../api/payments/export-payments.php?${params}`, '_blank');
+    window.open(`/api/payments/export-payments.php?${params}`, '_blank');
 }
 
 function formatDate(dateStr) {

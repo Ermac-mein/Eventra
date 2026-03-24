@@ -16,16 +16,17 @@ try {
     // Fetch admin profile data from auth_accounts and joined admins table
     $stmt = $pdo->prepare("
         SELECT 
-            ad.id,
-            ad.name,
+            a.id as auth_id,
+            adm.id as admin_id,
+            adm.name,
             a.email,
-            ad.profile_pic,
+            adm.profile_pic,
             a.is_active,
-            ad.created_at,
-            ad.updated_at
-        FROM auth_accounts a
-        JOIN admins ad ON a.id = ad.admin_auth_id
-        WHERE a.id = ?
+            adm.created_at,
+            adm.updated_at
+        FROM admins adm
+        JOIN auth_accounts a ON adm.admin_auth_id = a.id
+        WHERE adm.admin_auth_id = ?
     ");
     $stmt->execute([$user_id]);
     $admin = $stmt->fetch();

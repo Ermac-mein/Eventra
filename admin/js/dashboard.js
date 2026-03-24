@@ -30,7 +30,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 async function loadAdminProfile() {
     try {
         const user = storage.getUser();
-        const response = await apiFetch(`../../api/users/get-profile.php?user_id=${user.id}`);
+        const response = await apiFetch('/api/users/get-profile.php?user_id=${user.id}`);
         const result = await response.json();
 
         if (result.success) {
@@ -46,7 +46,7 @@ async function loadAdminProfile() {
 
 async function loadDashboardStats() {
     try {
-        const response = await apiFetch('../../api/stats/get-admin-dashboard-stats.php');
+        const response = await apiFetch('/api/stats/get-admin-dashboard-stats.php');
         const result = await response.json();
 
         if (!result.success) {
@@ -68,6 +68,9 @@ async function loadDashboardStats() {
 
         const totalRevenueEl = document.getElementById('totalRevenue');
         if (totalRevenueEl) totalRevenueEl.textContent = '₦' + parseFloat(stats.total_revenue || 0).toLocaleString();
+
+        const platformEarningsEl = document.getElementById('platformEarnings');
+        if (platformEarningsEl) platformEarningsEl.textContent = '₦' + parseFloat(stats.platform_earnings || 0).toLocaleString();
 
         // Update Events Showcase badges
         const upcomingBadge = document.getElementById('upcomingEventsBadge');

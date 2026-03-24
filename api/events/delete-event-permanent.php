@@ -9,7 +9,7 @@ require_once '../../includes/middleware/auth.php';
 
 // Check authentication (client or admin)
 $user_id = checkAuth();
-$user_role = $_SESSION['user_role'];
+$user_role = $_SESSION['role'] ?? $_SESSION['user_role'] ?? 'user';
 
 $data = json_decode(file_get_contents("php://input"), true);
 $event_id = $data['event_id'] ?? null;
@@ -35,18 +35,8 @@ try {
         exit;
     }
 
-    // Resolve client_id if user is client
+    // Use user_id directly if role is client
     $resolved_user_id = $user_id;
-    if ($user_role === 'client') {
-        $stmt = $pdo->prepare("SELECT id FROM clients WHERE client_auth_id = ?");
-        $stmt->execute([$user_id]);
-        $client = $stmt->fetch();
-        if (!$client) {
-            echo json_encode(['success' => false, 'message' => 'Client profile not found']);
-            exit;
-        }
-        $resolved_user_id = $client['id'];
-    }
 
     // Check permissions
     if ($user_role === 'client' && $event['client_id'] != $resolved_user_id) {
@@ -60,19 +50,15 @@ try {
 
     // Notify admin about permanent deletion if deleted by client
     if ($user_role === 'client') {
-        $stmt = $pdo->prepare("SELECT business_name FROM clients WHERE client_auth_id = ?");
+        $stmt = $pdo->prepare("SELECT business_name FROM clients WHERE id = ?");
         $stmt->execute([$user_id]);
         $client_info = $stmt->fetch();
         $user_name = $client_info['business_name'] ?? 'A Client';
 
-        $stmt = $pdo->prepare("SELECT id FROM auth_accounts WHERE role = 'admin' LIMIT 1");
-        $stmt->execute();
-        $admin = $stmt->fetch();
-
-        if ($admin) {
+        $admin_id = getAdminUserId();
+        if ($admin_id) {
             $message = "Event '{$event['event_name']}' has been permanently deleted by $user_name";
-            $stmt = $pdo->prepare("INSERT INTO notifications (recipient_auth_id, sender_auth_id, message, type) VALUES (?, ?, ?, ?)");
-            $stmt->execute([$admin['id'], $user_id, $message, 'event_deleted_permanent']);
+            createNotification($admin_id, $message, 'event_deleted_permanent', $user_id, 'admin', 'client');
         }
     }
 

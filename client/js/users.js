@@ -101,7 +101,7 @@ function initializeTableSorting() {
 
 async function loadUsers(clientId) {
     try {
-        const response = await apiFetch(`../../api/users/get-users.php?client_id=${clientId}`);
+        const response = await apiFetch('/api/users/get-users.php?client_id=${clientId}`);
         const result = await response.json();
 
         if (result.success) {
@@ -143,7 +143,7 @@ function updateUsersTable(users) {
         const hasValidUrl = user.profile_pic && user.profile_pic.startsWith('http');
         const profileImage = user.profile_pic 
             ? (hasValidUrl ? user.profile_pic : `../../${user.profile_pic}`)
-            : `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || 'User')}&background=random`;
+            : `https://ui-avatars.c/api/?name=${encodeURIComponent(user.name || 'User')}&background=random`;
 
         return `
         <tr style="cursor: pointer;" onclick='showUserPreviewModal(${JSON.stringify(user).replace(/'/g, "&#39;")})'>

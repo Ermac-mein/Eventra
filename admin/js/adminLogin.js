@@ -110,7 +110,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            const response = await apiFetch(basePath + 'api/admin/login.php', {
+            const response = await apiFetch('/api/admin/login.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -120,13 +120,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 })
             });
 
-            const contentType = response.headers.get("content-type");
-            if (!contentType || !contentType.includes("application/json")) {
-                const text = await response.text();
-                console.error("Non-JSON response received:", text);
-                throw new Error("Server returned non-JSON response. Status: " + response.status);
-            }
-
+            // apiFetch now handles non-ok responses by throwing, 
+            // but for login we want to parse the JSON if it's a 200
             const result = await response.json();
             console.log("Login Result:", result);
 
@@ -138,7 +133,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     Swal.fire({
                         icon: 'success',
                         title: 'Welcome Back!',
-                        text: `Logging you in as ${result.user.name}...`,
+                        text: `Logging you in as ${result.user.name || 'Admin'}...`,
                         timer: 1500,
                         showConfirmButton: false,
                         background: 'rgba(30, 41, 59, 0.95)',
@@ -151,21 +146,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 
                 setTimeout(() => {
-                    const redirectUrl = result.redirect || 'public/pages/index.html';
-                    const cleanRedirect = redirectUrl.startsWith('/') ? redirectUrl.substring(1) : redirectUrl;
-                    const finalTarget = basePath + cleanRedirect;
-                    window.location.href = finalTarget;
+                    const redirectUrl = result.redirect || '/admin/pages/adminDashboard.html';
+                    console.log("Redirecting to:", redirectUrl);
+                    window.location.href = redirectUrl;
                 }, 1600);
             } else {
-                // If the message contains "username", show it there, otherwise show at password
                 const errorElement = result.message?.toLowerCase().includes('username') ? 'usernameError' : 'passwordError';
                 showError(errorElement, result.message || 'Invalid username or password');
                 loginButton.disabled = false;
                 loginButton.innerHTML = originalBtnText;
             }
         } catch (error) {
-            console.error('Error:', error);
-            showError('passwordError', 'An error occurred. Please try again later.');
+            console.error('Login Error:', error);
+            showError('passwordError', error.message || 'An error occurred. Please try again later.');
             loginButton.disabled = false;
             loginButton.innerHTML = originalBtnText;
         }
@@ -175,7 +168,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Fetch Google Client ID from server
         let clientId;
         try {
-            const configResponse = await apiFetch(basePath + 'api/config/get-google-config.php');
+            const configResponse = await apiFetch('/api/config/get-google-config.php');
             const configData = await configResponse.json();
             
             if (!configData.success || !configData.client_id) {
@@ -228,7 +221,7 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         try {
-            const res = await apiFetch(basePath + 'api/auth/google-handler.php', {
+            const res = await apiFetch('/api/auth/google-handler.php', { // Use central google handler
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -310,9 +303,9 @@ async function handleForgotPassword() {
     Swal.showLoading();
 
     try {
-        const response = await apiFetch('../../api/auth/forgot-password.php', {
+        const response = await apiFetch('/api/auth/forgot-password.php', {
             method: 'POST',
-            body: JSON.stringify({ email })
+            body: JSON.stringify({ email, intent })
         });
         const result = await response.json();
 
@@ -338,9 +331,9 @@ async function handleForgotPassword() {
             if (!otp) return;
 
             Swal.showLoading();
-            const verifyRes = await apiFetch('../../api/auth/verify-otp.php', {
+            const verifyRes = await apiFetch('/api/auth/verify-otp.php', {
                 method: 'POST',
-                body: JSON.stringify({ email, otp })
+                body: JSON.stringify({ email, otp, intent })
             });
             const verifyResult = await verifyRes.json();
 
@@ -361,7 +354,7 @@ async function handleForgotPassword() {
                 if (!password) return;
 
                 Swal.showLoading();
-                const resetRes = await apiFetch('../../api/auth/reset-password.php', {
+                const resetRes = await apiFetch('/api/auth/reset-password.php', {
                     method: 'POST',
                     body: JSON.stringify({ 
                         reset_token: verifyResult.reset_token, 

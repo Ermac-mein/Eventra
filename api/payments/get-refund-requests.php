@@ -12,19 +12,9 @@ $client_auth_id = clientMiddleware();
 $status_filter = $_GET['status'] ?? ''; // '', 'pending', 'approved', 'declined'
 
 try {
-    // Fetch organizer's client id
-    $cStmt = $pdo->prepare("SELECT id FROM clients WHERE client_auth_id = ?");
-    $cStmt->execute([$client_auth_id]);
-    $client = $cStmt->fetch(PDO::FETCH_ASSOC);
-
-    if (!$client) {
-        http_response_code(404);
-        echo json_encode(['success' => false, 'message' => 'Client not found.']);
-        exit;
-    }
-
+    $client_id = $client_auth_id;
     $where = "WHERE o.organizer_id = ?";
-    $params = [$client['id']];
+    $params = [$client_id];
 
     if ($status_filter !== '') {
         $where .= " AND rr.status = ?";
@@ -41,7 +31,7 @@ try {
         JOIN orders o ON rr.order_id = o.id
         JOIN events e ON o.event_id = e.id
         JOIN users u ON rr.user_id = u.id
-        JOIN auth_accounts a ON u.user_auth_id = a.id
+        JOIN users a ON u.user_auth_id = a.id
         {$where}
         ORDER BY rr.created_at DESC
     ");

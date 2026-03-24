@@ -34,15 +34,13 @@ function fetchOrder(PDO $pdo, string $reference): ?array
         SELECT o.*,
                e.event_name, e.event_date, e.event_time, e.address, e.location, e.image_path,
                u.id AS user_id, u.name AS user_name,
-               a.email AS user_email, u.phone AS user_phone,
-               c.client_auth_id AS organizer_auth_id,
-               ca.email AS organizer_email
+               u.email AS user_email, u.phone AS user_phone,
+               c.id AS organizer_auth_id,
+               c.email AS organizer_email
         FROM orders o
         JOIN events  e  ON o.event_id    = e.id
         JOIN users   u  ON o.user_id     = u.id
-        JOIN auth_accounts a ON u.user_auth_id = a.id
         JOIN clients c  ON o.organizer_id = c.id
-        JOIN auth_accounts ca ON c.client_auth_id = ca.id
         WHERE o.transaction_reference = ?
     ");
     $stmt->execute([$reference]);
@@ -201,14 +199,8 @@ function processSuccessfulPayment(PDO $pdo, array $order, array $psData): void
         }
 
         // In-app: buyer
-        $userAuthStmt = $pdo->prepare("SELECT user_auth_id FROM users WHERE id = ?");
-        $userAuthStmt->execute([$order['user_id']]);
-        $userAuthRow = $userAuthStmt->fetch(PDO::FETCH_ASSOC);
-
-        if ($userAuthRow) {
-            createPaymentSuccessNotification($userAuthRow['user_auth_id'], $order['event_name'], $order['amount']);
-            createTicketIssuedNotification($userAuthRow['user_auth_id'], $order['event_name'], $barcode ?? '');
-        }
+        createPaymentSuccessNotification($order['user_id'], $order['event_name'], $order['amount']);
+        createTicketIssuedNotification($order['user_id'], $order['event_name'], $barcode ?? '');
 
         // In-app: organizer (new sale alert)
         createNewSaleNotification($order['organizer_auth_id'], $order['user_name'], $order['event_name'], $order['amount']);
@@ -249,16 +241,11 @@ try {
             // Optionally notify buyer
             $order = fetchOrder($pdo, $reference);
             if ($order) {
-                $userAuthStmt = $pdo->prepare("SELECT user_auth_id FROM users WHERE id = ?");
-                $userAuthStmt->execute([$order['user_id']]);
-                $userAuthRow = $userAuthStmt->fetch(PDO::FETCH_ASSOC);
-                if ($userAuthRow) {
-                    createNotification(
-                        $userAuthRow['user_auth_id'],
-                        "Your payment for {$order['event_name']} failed. Please try again.",
-                        'payment_failed'
-                    );
-                }
+                createNotification(
+                    $order['user_id'],
+                    "Your payment for {$order['event_name']} failed. Please try again.",
+                    'payment_failed'
+                );
             }
             break;
         }
@@ -293,16 +280,11 @@ try {
 
                 $fullOrder = fetchOrder($pdo, $reference);
                 if ($fullOrder) {
-                    $userAuthStmt = $pdo->prepare("SELECT user_auth_id FROM users WHERE id = ?");
-                    $userAuthStmt->execute([$fullOrder['user_id']]);
-                    $userAuthRow = $userAuthStmt->fetch(PDO::FETCH_ASSOC);
-                    if ($userAuthRow) {
-                        createRefundProcessedNotification(
-                            $userAuthRow['user_auth_id'],
-                            $fullOrder['event_name'],
-                            $fullOrder['amount']
-                        );
-                    }
+                    createRefundProcessedNotification(
+                        $fullOrder['user_id'],
+                        $fullOrder['event_name'],
+                        $fullOrder['amount']
+                    );
                 }
             }
             break;

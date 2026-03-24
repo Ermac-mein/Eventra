@@ -1,14 +1,15 @@
+
 <?php
 /**
  * Logout API
  * Handles user logout, clears session, and updates status
  */
 header('Content-Type: application/json');
-require_once '../../config/database.php';
+require_once __DIR__ . '/../../config/database.php';
 
 // Ensure centralized session configuration is used
 if (session_status() === PHP_SESSION_NONE) {
-    require_once '../../config/session-config.php';
+    require_once __DIR__ . '/../../config/session-config.php';
 }
 
 try {
@@ -38,7 +39,7 @@ try {
         $user = $stmt->fetch();
 
         // Create logout notification using helper
-        require_once '../utils/notification-helper.php';
+        require_once __DIR__ . '/../utils/notification-helper.php';
         if ($user) {
             createLogoutNotification($user_id, $user['name']);
         }

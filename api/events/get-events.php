@@ -26,8 +26,8 @@ try {
     if ($client_id) {
         // If the requester is a client, the frontend might be passing their auth_id.
         // We should ensure we are filtering by the actual client.id (PK)
-        $stmt = $pdo->prepare("SELECT id FROM clients WHERE client_auth_id = ? OR id = ?");
-        $stmt->execute([$client_id, $client_id]);
+        $stmt = $pdo->prepare("SELECT id FROM clients WHERE id = ?");
+        $stmt->execute([$client_id]);
         $resolved_client = $stmt->fetch();
 
         if ($resolved_client) {

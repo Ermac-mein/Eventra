@@ -26,10 +26,7 @@ try {
                 WHERE e.deleted_at IS NULL ";
 
         if ($role === 'client') {
-            // Resolve client_id
-            $stmt = $pdo->prepare("SELECT id FROM clients WHERE client_auth_id = ?");
-            $stmt->execute([$user_id]);
-            $client_id = $stmt->fetchColumn();
+            $client_id = $user_id;
             $sql .= " AND e.client_id = ? ";
             $stmt = $pdo->prepare($sql . " GROUP BY e.id");
             $stmt->execute([$client_id]);
@@ -44,18 +41,15 @@ try {
     } elseif ($type === 'tickets') {
         fputcsv($output, ['ID', 'Event', 'Buyer Name', 'Buyer Email', 'Price', 'Barcode', 'Used', 'Paid At']);
 
-        $sql = "SELECT t.id, e.event_name, u.name, a.email, p.amount, t.barcode, t.used, p.paid_at
+        $sql = "SELECT t.id, e.event_name, u.name, u.email, p.amount, t.barcode, t.used, p.paid_at
                 FROM tickets t
                 JOIN payments p ON t.payment_id = p.id
                 JOIN events e ON p.event_id = e.id
                 JOIN users u ON p.user_id = u.id
-                JOIN auth_accounts a ON u.user_auth_id = a.id
                 WHERE p.status = 'paid' ";
 
         if ($role === 'client') {
-            $stmt = $pdo->prepare("SELECT id FROM clients WHERE client_auth_id = ?");
-            $stmt->execute([$user_id]);
-            $client_id = $stmt->fetchColumn();
+            $client_id = $user_id;
             $sql .= " AND e.client_id = ? ";
             $stmt = $pdo->prepare($sql);
             $stmt->execute([$client_id]);

@@ -45,7 +45,7 @@ class NotificationManager {
         const signal = this.currentAbortController.signal;
 
         try {
-            const response = await apiFetch('../../api/notifications/get-notifications.php', { signal });
+            const response = await apiFetch('/api/notifications/get-notifications.php', { signal });
             
             if (!response) {
                 this.stopPolling();
@@ -245,7 +245,7 @@ class NotificationManager {
     // Mark all notifications as read
     async markAsRead() {
         try {
-            const response = await apiFetch('../../api/notifications/mark-notification-read.php', {
+            const response = await apiFetch('/api/notifications/mark-notification-read.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ mark_all: true })
@@ -276,7 +276,7 @@ class NotificationManager {
     // Mark single notification as read
     async markSingleAsRead(notificationId) {
         try {
-            const response = await apiFetch('../../api/notifications/mark-notification-read.php', {
+            const response = await apiFetch('/api/notifications/mark-notification-read.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ notification_id: notificationId })
@@ -305,7 +305,7 @@ class NotificationManager {
         if (!result.isConfirmed) return;
 
         try {
-            const response = await apiFetch('../../api/notifications/clear-all.php', {
+            const response = await apiFetch('/api/notifications/clear-all.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' }
             });
@@ -353,6 +353,8 @@ function getNotificationIcon(type) {
         'media_deleted': '🗑️',
         'media_restored': '♻️',
         'folder_created': '📁',
+        'client_verified': '✅',
+        'client_rejected': '❌',
         'default': '🔔'
     };
     return icons[type] || icons.default;

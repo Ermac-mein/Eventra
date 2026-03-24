@@ -28,7 +28,7 @@ const PaystackBanks = {
         }
 
         try {
-            const res = await apiFetch('../../api/clients/get-banks.php');
+            const res = await apiFetch('/api/clients/get-banks.php');
             const data = await res.json();
             if (data.success) {
                 this.banks = data.banks;

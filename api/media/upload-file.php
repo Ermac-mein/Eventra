@@ -9,23 +9,9 @@ require_once '../utils/notification-helper.php';
 require_once '../../config/env-loader.php';
 
 // Check authentication
-if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'client') {
-    http_response_code(401);
-    echo json_encode(['success' => false, 'message' => 'Unauthorized. Client access required.']);
-    exit;
-}
-
-$user_id = $_SESSION['user_id'];
-
-// Get the actual client_id from clients table
-$stmt = $pdo->prepare("SELECT id FROM clients WHERE client_auth_id = ?");
-$stmt->execute([$user_id]);
-$client_id = $stmt->fetchColumn();
-
-if (!$client_id) {
-    echo json_encode(['success' => false, 'message' => 'Client profile not found']);
-    exit;
-}
+// Check authentication
+require_once '../../includes/middleware/auth.php';
+$client_id = clientMiddleware();
 
 if (!isset($_FILES['file']) || $_FILES['file']['error'] !== UPLOAD_ERR_OK) {
     echo json_encode(['success' => false, 'message' => 'No file uploaded or upload error']);
@@ -120,15 +106,16 @@ try {
 
     $media_id = $pdo->lastInsertId();
 
+    $auth_id = getAuthId();
     // The notification-helper.php is already required at the top of the file.
     // Calling the notification function after successful DB insertion.
-    createMediaUploadedNotification($client_id, $file_name, $folder_name);
+    createMediaUploadedNotification($auth_id, $file_name, $folder_name);
 
     // Notify Admin
     $admin_id = getAdminUserId();
     if ($admin_id) {
         $admin_msg = "Client uploaded new media: '{$file_name}'";
-        createNotification($admin_id, $admin_msg, 'media_uploaded', $client_id);
+        createNotification($admin_id, $admin_msg, 'media_uploaded', $auth_id, 'admin', 'client');
     }
 
     echo json_encode([

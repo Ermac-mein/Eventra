@@ -118,7 +118,7 @@ async function logout() {
 
     if (result.isConfirmed) {
         try {
-            const response = await apiFetch('../../api/auth/logout.php', {
+            const response = await apiFetch('/api/auth/logout.php', {
                 method: 'POST'
             });
             
@@ -504,7 +504,7 @@ window.initPreviews = function() {
                 backdrop.style.display = 'flex';
                 setTimeout(() => backdrop.classList.add('active'), 10);
 
-                apiFetch(`../../api/admin/get-users.php`) // We search in the cached allUsers or just refetch? Let's use the data we already have in the row if possible or fetch.
+                apiFetch('/api/admin/get-users.php`) // We search in the cached allUsers or just refetch? Let's use the data we already have in the row if possible or fetch.
                     .then(res => res.json())
                     .then(data => {
                         const user = data.users.find(u => u.id == row.dataset.id);
@@ -558,7 +558,7 @@ window.initPreviews = function() {
                 setTimeout(() => backdrop.classList.add('active'), 10);
 
                 // Fetch details
-                apiFetch(`../../api/admin/get-client-details.php?id=${clientId}`)
+                apiFetch('/api/admin/get-client-details.php?id=${clientId}`)
                     .then(res => res.json())
                     .then(data => {
                         if (data.success) {
@@ -597,6 +597,7 @@ window.initPreviews = function() {
                                             <i data-lucide="mail" style="width: 14px;"></i> ${client.email}
                                         </p>
                                     </div>
+                                    <div id="previewLucideInit"></div>
 
                                     <div class="profile-preview-details" style="padding: 0 24px 24px; display: grid; gap: 1.5rem;">
                                         <!-- Basic Info Cards -->
@@ -651,6 +652,15 @@ window.initPreviews = function() {
                                             <div style="font-weight: 700; color: #333; margin-bottom: 1rem; font-size: 0.95rem; display: flex; align-items: center; gap: 8px;">
                                                 <i data-lucide="shield-check" style="width: 18px; color: #10b981;"></i> Identity Verification
                                             </div>
+
+                                            ${client.admin_notes ? `
+                                            <div style="background: #fffbeb; border: 1px solid #fbd38d; border-radius: 12px; padding: 1rem; margin-bottom: 1.5rem;">
+                                                <div style="font-size: 0.7rem; color: #b7791f; text-transform: uppercase; font-weight: 700; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 6px;">
+                                                    <i data-lucide="sticky-note" style="width: 14px;"></i> Latest Admin Notes
+                                                </div>
+                                                <div style="font-size: 0.85rem; color: #744210; font-style: italic; line-height: 1.5;">"${client.admin_notes}"</div>
+                                            </div>
+                                            ` : ''}
                                             
                                             <div style="display: flex; flex-direction: column; gap: 1rem;">
                                                 <!-- NIN/BVN Rows -->
@@ -884,35 +894,55 @@ window.copyToClipboard = function(text, successMsg) {
 
 window.approveClient = async function(clientId, status, btnElement) {
     const action = status ? 'approve' : 'reject';
-    const result = await Swal.fire({
-        title: action.charAt(0).toUpperCase() + action.slice(1) + ' Client?',
-        text: `Are you sure you want to ${action} this client?`,
-        icon: 'warning',
+    const actionLabel = status ? 'Approve' : 'Reject';
+
+    // Step 1: Ask for optional admin notes
+    const { value: adminNotes, isConfirmed } = await Swal.fire({
+        title: `${actionLabel} Client`,
+        html: `
+            <p style="margin-bottom:1rem;color:#64748b;font-size:0.9rem;">
+                ${status
+                    ? 'You are about to <strong>approve</strong> this client. They will receive full access to create events and collect payments.'
+                    : 'You are about to <strong>decline</strong> this client. They will be notified with your reason.'}
+            </p>
+            <textarea id="adminNotesInput" class="swal2-textarea" placeholder="Optional: Add a note for the client (reason, next steps, etc.)" style="min-height:100px;font-size:0.9rem;"></textarea>
+        `,
+        icon: status ? 'question' : 'warning',
         showCancelButton: true,
         confirmButtonColor: status ? '#10b981' : '#ef4444',
         cancelButtonColor: '#64748b',
         confirmButtonText: `Yes, ${action}!`,
-        cancelButtonText: 'Cancel'
+        cancelButtonText: 'Cancel',
+        preConfirm: () => {
+            return document.getElementById('adminNotesInput')?.value?.trim() || '';
+        }
     });
 
-    if (!result.isConfirmed) return;
-    
+    if (!isConfirmed) return;
+
     btnElement.disabled = true;
     const ogText = btnElement.innerText;
     btnElement.innerText = 'Processing...';
 
     try {
-        const res = await apiFetch('../../api/admin/approve-client.php', {
+        const res = await apiFetch('/api/admin/approve-client.php', {
             method: 'POST',
-            body: JSON.stringify({ client_id: clientId, status: status })
+            body: JSON.stringify({ client_id: clientId, status: status, admin_notes: adminNotes || '' })
         });
         const data = await res.json();
         if (data.success) {
-            Swal.fire('Success', `Client ${status ? 'approved' : 'declined'} successfully.`, 'success');
-            // Close preview to force refresh next time it's opened
+            Swal.fire({
+                icon: 'success',
+                title: `Client ${status ? 'Approved' : 'Declined'}`,
+                text: data.message,
+                confirmButtonColor: '#6366f1'
+            });
+            // Close preview and refresh table
             setTimeout(() => {
                 const closeBtn = document.querySelector('.preview-close');
                 if (closeBtn) closeBtn.click();
+                // Trigger clients table reload if on clients page
+                if (typeof loadClients === 'function') loadClients();
             }, 1000);
         } else {
             Swal.fire('Error', data.message || 'Verification failed', 'error');
@@ -930,7 +960,7 @@ window.toggleVerification = async function(clientId, type, status) {
     if (!clientId || !type) return;
     
     try {
-        const response = await apiFetch('../../api/admin/verify-client.php', {
+        const response = await apiFetch('/api/admin/verify-client.php', {
             method: 'POST',
             body: JSON.stringify({ client_id: clientId, type: type, status: status })
         });

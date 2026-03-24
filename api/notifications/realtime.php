@@ -14,11 +14,11 @@ try {
     // Also fetch active users/clients status if user is admin/client
     $usersStatus = [];
     if ($_SESSION['role'] === 'admin' || $_SESSION['role'] === 'client') {
-        // Query auth_accounts joined with profile info
+        // Query users joined with profile info
         $sql = "
             SELECT a.id, COALESCE(u.display_name, c.business_name, adm.name) as name, a.role, 
                    COALESCE(u.status, c.status, 'active') as status 
-            FROM auth_accounts a
+            FROM users a
             LEFT JOIN users u ON a.id = u.auth_id
             LEFT JOIN clients c ON a.id = c.auth_id
             LEFT JOIN admins adm ON a.id = adm.auth_id

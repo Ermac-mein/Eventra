@@ -23,7 +23,6 @@ function processRefund(PDO $pdo, int $refundRequestId): array
         SELECT rr.id AS rr_id, rr.order_id, rr.user_id, rr.status AS rr_status,
                o.transaction_reference, o.amount, o.payment_status, o.refund_status,
                e.event_name,
-               u.user_auth_id AS user_auth_id
         FROM refund_requests rr
         JOIN orders o ON rr.order_id = o.id
         JOIN events e ON o.event_id = e.id
@@ -84,7 +83,7 @@ function processRefund(PDO $pdo, int $refundRequestId): array
     ")->execute([$refundRequestId]);
 
     // ── Notify buyer ─────────────────────────────────────────────────────────
-    createRefundProcessedNotification($rr['user_auth_id'], $rr['event_name'], $rr['amount']);
+    createRefundProcessedNotification($rr['user_id'], $rr['event_name'], $rr['amount']);
 
     return ['success' => true, 'message' => 'Refund processed successfully.'];
 }

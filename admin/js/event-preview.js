@@ -4,26 +4,46 @@ async function previewEvent(eventId) {
     const row = document.querySelector(`tr[data-id="${eventId}"]`);
     if (!row) return;
 
-    // Build event object from row and dataset
-    const event = {
-        id: eventId,
-        name: row.cells[2].querySelector('div:first-child')?.innerText || row.cells[2].innerText,
-        custom_id: row.cells[1].innerText.trim(),
-        client_name: row.cells[2].querySelector('div:nth-child(2)')?.innerText.replace('by ', '') || 'N/A',
-        price: row.cells[8].innerText,
-        attendees: row.cells[9].innerText,
-        category: row.cells[6].innerText,
-        status: row.cells[12].innerText.trim(),
-        image: row.dataset.image || 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=1200&fit=crop',
-        tag: row.cells[10].innerText || 'Standard',
-        description: row.dataset.description,
-        address: row.dataset.address,
-        state: row.dataset.state || row.cells[4].innerText,
-        date: row.dataset.date || row.cells[4].innerText,
-        time: row.dataset.time || row.cells[5].innerText,
-        priority: row.cells[3].innerText,
-        phone: row.cells[7].innerText
-    };
+    // Provide visual feedback while loading
+    row.style.opacity = '0.7';
+    
+    let event;
+    try {
+        const response = await fetch(`/api/events/get-event.php?id=${eventId}`);
+        const result = await response.json();
+        
+        if (result.success && result.event) {
+            const data = result.event;
+            event = {
+                id: eventId,
+                name: data.event_name,
+                custom_id: data.custom_id || eventId,
+                client_name: data.client_name || 'N/A',
+                price: parseFloat(data.price) === 0 ? 'Free' : `₦${parseFloat(data.price).toLocaleString()}`,
+                attendees: data.attendee_count,
+                category: data.category || data.event_type || 'General',
+                status: data.status ? data.status.charAt(0).toUpperCase() + data.status.slice(1) : 'Draft',
+                image: data.image_path || 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=1200&fit=crop',
+                tag: data.tag || 'Standard',
+                description: data.description,
+                address: data.address,
+                state: data.state,
+                date: data.event_date,
+                time: data.event_time,
+                priority: data.priority ? data.priority.charAt(0).toUpperCase() + data.priority.slice(1) : 'Normal',
+                phone: data.phone_contact_1 || 'N/A'
+            };
+        } else {
+            throw new Error(result.message || 'Event not found');
+        }
+    } catch (e) {
+        console.error('Error fetching event preview:', e);
+        alert('Could not load event details.');
+        row.style.opacity = '1';
+        return;
+    } finally {
+        row.style.opacity = '1';
+    }
 
     const eventName = event.name;
     const state = row.dataset.state || event.state;

@@ -16,17 +16,8 @@ try {
     // Check authentication and ensure it's a client
     $auth_id = clientMiddleware();
 
-    // Resolve real_client_id from auth_id
-    $client_stmt = $pdo->prepare("SELECT id FROM clients WHERE client_auth_id = ?");
-    $client_stmt->execute([$auth_id]);
-    $client_row = $client_stmt->fetch();
-
-    if (!$client_row) {
-        http_response_code(404);
-        echo json_encode(['success' => false, 'message' => 'Client profile not found.']);
-        exit;
-    }
-    $real_client_id = $client_row['id'];
+    // Use auth_id directly (it is client_id from clientMiddleware)
+    $real_client_id = $auth_id;
 
     // Get upcoming published events for this client
     $stmt = $pdo->prepare("

@@ -220,7 +220,7 @@ class ProfilePicUpload {
                 this.handleUploadError('Network error. Please check your connection.');
             };
 
-            xhr.open('POST', '../../api/admin/upload-profile-pic.php', true);
+            xhr.open('POST',/api/admin/upload-profile-pic.php', true);
             xhr.send(formData);
 
         } catch (error) {

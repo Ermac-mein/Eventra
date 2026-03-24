@@ -9,7 +9,7 @@ require_once __DIR__ . '/cors-config.php'; // CORS handling for API requests
 define('DB_HOST', $_ENV['DB_HOST'] ?? '127.0.0.1');
 define('DB_NAME', $_ENV['DB_DATABASE'] ?? 'eventra_db');
 define('DB_USER', $_ENV['DB_USERNAME'] ?? 'eventra');
-define('DB_PASS', $_ENV['DB_PASSWORD'] ?? 'Eventra@@12345');
+define('DB_PASS', $_ENV['DB_PASSWORD'] ?? '');
 
 try {
     $pdo = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME, DB_USER, DB_PASS);

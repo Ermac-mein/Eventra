@@ -92,15 +92,8 @@ if (!$isAdmin) {
     // Resolve user profile ID
     $authId = $_SESSION['client_id'] ?? $_SESSION['user_id'] ?? null;
     if ($sessionRole === 'user') {
-        $stmt = $pdo->prepare("SELECT id FROM users WHERE user_auth_id = ?");
-        $stmt->execute([$authId]);
-        $profile = $stmt->fetch();
-        if (!$profile) {
-            echo json_encode(['success' => true, 'payments' => [], 'total' => 0]);
-            exit;
-        }
         $scopeWhere = ' AND p.user_id = ?';
-        $scopeParams[] = $profile['id'];
+        $scopeParams[] = $authId;
     }
 }
 
@@ -129,7 +122,7 @@ $sql = "
     FROM payments p
     LEFT JOIN events e ON p.event_id = e.id
     LEFT JOIN users u ON p.user_id = u.id
-    LEFT JOIN auth_accounts au ON u.user_auth_id = au.id
+    LEFT JOIN users au ON u.user_auth_id = au.id
     LEFT JOIN tickets t ON t.payment_id = p.id
     LEFT JOIN clients c ON e.client_id = c.id
     WHERE 1=1

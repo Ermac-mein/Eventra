@@ -14,18 +14,17 @@ require_once '../../includes/helpers/sms-helper.php';
 // Use standardized auth middleware
 $auth_id = checkAuth('user');
 
-// Resolve actual user profile id from auth_id
-$stmt = $pdo->prepare("SELECT id, email, phone, name FROM users WHERE user_auth_id = ?");
-$stmt->execute([$auth_id]);
+// Use auth_id directly as user_id
+$user_id = $auth_id;
+
+$stmt = $pdo->prepare("SELECT email, phone, name FROM users WHERE id = ?");
+$stmt->execute([$user_id]);
 $user = $stmt->fetch();
 
 if (!$user) {
-    http_response_code(404);
     echo json_encode(['success' => false, 'message' => 'User profile not found.']);
     exit;
 }
-
-$user_id = $user['id'];
 
 $data = json_decode(file_get_contents("php://input"), true);
 $channel = $data['channel'] ?? 'email'; // 'email' or 'sms'
@@ -35,6 +34,13 @@ if (!in_array($channel, ['email', 'sms'])) {
     echo json_encode(['success' => false, 'message' => 'Invalid channel. Use "email" or "sms".']);
     exit;
 }
+
+// Ensure fresh verification session
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+unset($_SESSION['otp_verified_ref']);
+unset($_SESSION['otp_verified_at']);
 
 try {
     // 1. Rate limit check (max 3 OTPs per 5 minutes per user)

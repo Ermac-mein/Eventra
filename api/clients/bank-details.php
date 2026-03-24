@@ -147,10 +147,9 @@ try {
 
     // ── Fetch updated client to return ──────────────────────────────────────
     $fetchStmt = $pdo->prepare("
-        SELECT c.*, a.email AS auth_email
-        FROM clients c
-        JOIN auth_accounts a ON c.client_auth_id = a.id
-        WHERE c.client_auth_id = ?
+        SELECT *
+        FROM clients
+        WHERE client_auth_id = ?
     ");
     $fetchStmt->execute([$client_auth_id]);
     $updated = $fetchStmt->fetch(PDO::FETCH_ASSOC);

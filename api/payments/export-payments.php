@@ -79,17 +79,10 @@ if ($search) {
 
 $scopeWhere = '';
 $scopeParams = [];
-if (!$isAdmin) {
-    $authId = $_SESSION['user_id'] ?? null;
-    $stmt = $pdo->prepare("SELECT id FROM users WHERE user_auth_id = ?");
-    $stmt->execute([$authId]);
-    $profile = $stmt->fetch();
-    if (!$profile) {
-        exit;
+    if ($sessionRole === 'user') {
+        $scopeWhere = ' AND p.user_id = ?';
+        $scopeParams[] = $authId;
     }
-    $scopeWhere = ' AND p.user_id = ?';
-    $scopeParams[] = $profile['id'];
-}
 
 $params = array_merge($scopeParams, $dateParams, $statusParams, $searchParams);
 
@@ -109,7 +102,7 @@ $sql = "
     FROM payments p
     LEFT JOIN events e ON p.event_id = e.id
     LEFT JOIN users u ON p.user_id = u.id
-    LEFT JOIN auth_accounts au ON u.user_auth_id = au.id
+    LEFT JOIN users au ON u.user_auth_id = au.id
     LEFT JOIN tickets t ON t.payment_id = p.id
     WHERE 1=1 $scopeWhere $dateWhere $statusWhere $searchWhere
     GROUP BY p.id

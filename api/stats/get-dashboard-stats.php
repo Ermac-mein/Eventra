@@ -15,16 +15,15 @@ try {
     $stats = [];
 
     if ($user_role === 'client') {
-        // Resolve real_client_id from auth_id
-        $client_stmt = $pdo->prepare("SELECT id FROM clients WHERE client_auth_id = ?");
-        $client_stmt->execute([$user_id]);
-        $client_row = $client_stmt->fetch();
+        // Resolve real_client_id (client_auth_id is now just 'id' in clients table)
+        // Wait, did I keep 'client_auth_id' or is it just 'id' now?
+        // In my migration, I kept 'id' as the PK.
+        $real_client_id = $user_id;
 
-        if (!$client_row) {
+        if (!$real_client_id) {
             echo json_encode(['success' => false, 'message' => 'Client profile not found.']);
             exit;
         }
-        $real_client_id = $client_row['id'];
 
         // Client-specific stats
 
@@ -53,8 +52,8 @@ try {
         // Total Registered Users in System
         $stmt = $pdo->prepare("
             SELECT COUNT(*) as count 
-            FROM auth_accounts 
-            WHERE role = 'user' AND is_active = 1
+            FROM users 
+            WHERE is_active = 1
         ");
         $stmt->execute();
         $stats['total_users'] = $stmt->fetch()['count'] ?? 0;
@@ -86,7 +85,7 @@ try {
         $stmt = $pdo->query("SELECT COUNT(*) as count FROM tickets WHERE status = 'paid'");
         $stats['tickets_sold'] = $stmt->fetch()['count'] ?? 0;
 
-        $stmt = $pdo->query("SELECT COUNT(*) as count FROM auth_accounts WHERE role = 'user' AND is_active = 1");
+        $stmt = $pdo->query("SELECT COUNT(*) as count FROM users WHERE is_active = 1");
         $stats['total_users'] = $stmt->fetch()['count'] ?? 0;
 
         $stmt = $pdo->query("

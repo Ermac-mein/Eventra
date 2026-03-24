@@ -8,25 +8,11 @@ require_once '../../config/database.php';
 require_once '../utils/notification-helper.php';
 
 // Check authentication
-if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'client') {
-    http_response_code(401);
-    echo json_encode(['success' => false, 'message' => 'Unauthorized. Client access required.']);
-    exit;
-}
+require_once '../../includes/middleware/auth.php';
+$client_id = clientMiddleware();
 
 $data = json_decode(file_get_contents("php://input"), true);
 $folder_name = $data['folder_name'] ?? '';
-$user_id = $_SESSION['user_id'];
-
-// Get the actual client_id from clients table
-$stmt = $pdo->prepare("SELECT id FROM clients WHERE client_auth_id = ?");
-$stmt->execute([$user_id]);
-$client_id = $stmt->fetchColumn();
-
-if (!$client_id) {
-    echo json_encode(['success' => false, 'message' => 'Client profile not found']);
-    exit;
-}
 
 if (empty($folder_name)) {
     echo json_encode(['success' => false, 'message' => 'Folder name is required']);

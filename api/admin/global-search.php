@@ -48,10 +48,9 @@ try {
 
     // 2. Search Users
     $stmt = $pdo->prepare("
-        SELECT a.id, u.custom_id, u.name, a.email, u.profile_pic, u.phone
-        FROM auth_accounts a
-        JOIN users u ON a.id = u.user_auth_id
-        WHERE (u.name LIKE ? OR a.email LIKE ? OR u.custom_id LIKE ? OR u.phone LIKE ?) AND a.role = 'user'
+        SELECT id, custom_id, name, email, profile_pic, phone
+        FROM users
+        WHERE (name LIKE ? OR email LIKE ? OR custom_id LIKE ? OR phone LIKE ?)
         LIMIT 5
     ");
     $stmt->execute([$searchTerm, $searchTerm, $searchTerm, $searchTerm]);
@@ -59,10 +58,9 @@ try {
 
     // 3. Search Clients
     $stmt = $pdo->prepare("
-        SELECT a.id, c.custom_id, c.business_name as name, a.email, c.profile_pic, c.company, c.phone, c.subaccount_code
-        FROM auth_accounts a
-        JOIN clients c ON a.id = c.client_auth_id
-        WHERE (c.business_name LIKE ? OR a.email LIKE ? OR c.company LIKE ? OR c.custom_id LIKE ? OR c.phone LIKE ? OR c.subaccount_code LIKE ?) AND a.role = 'client'
+        SELECT id, custom_id, business_name as name, email, profile_pic, company, phone, subaccount_code
+        FROM clients
+        WHERE (business_name LIKE ? OR email LIKE ? OR company LIKE ? OR custom_id LIKE ? OR phone LIKE ? OR subaccount_code LIKE ?)
         LIMIT 5
     ");
     $stmt->execute([$searchTerm, $searchTerm, $searchTerm, $searchTerm, $searchTerm, $searchTerm]);

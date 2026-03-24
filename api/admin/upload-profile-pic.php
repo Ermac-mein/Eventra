@@ -6,7 +6,7 @@ require_once '../../config/database.php';
 // Check authentication and admin role
 $user_id = checkAuth();
 
-// Verify user is admin
+// Verify user is admin by checking the auth_accounts table
 $stmt = $pdo->prepare("SELECT role FROM auth_accounts WHERE id = ?");
 $stmt->execute([$user_id]);
 $user = $stmt->fetch();

@@ -30,33 +30,24 @@ if (!$reference) {
 }
 
 try {
-    // ── Fetch user ───────────────────────────────────────────────────────────
-    $uStmt = $pdo->prepare("SELECT id FROM users WHERE user_auth_id = ?");
-    $uStmt->execute([$auth_id]);
-    $user = $uStmt->fetch(PDO::FETCH_ASSOC);
-
-    if (!$user) {
-        http_response_code(403);
-        echo json_encode(['success' => false, 'message' => 'User not found.']);
-        exit;
-    }
+    // ── Check if user exists ───────────────────────────────────────────────────
+    $user_id = $auth_id;
 
     // ── Check existing order ─────────────────────────────────────────────────
     $oStmt = $pdo->prepare("
         SELECT o.id, o.payment_status, o.amount, o.event_id, o.user_id, o.organizer_id,
                e.event_name, e.event_date, e.event_time, e.address, e.location, e.image_path,
                u.name AS user_name, u.phone AS user_phone,
-               a.email AS user_email,
-               c.client_auth_id AS organizer_auth_id
+               u.email AS user_email,
+               c.id AS organizer_auth_id
         FROM orders o
         JOIN events e ON o.event_id = e.id
         JOIN users u ON o.user_id = u.id
-        JOIN auth_accounts a ON u.user_auth_id = a.id
         JOIN clients c ON o.organizer_id = c.id
         WHERE o.transaction_reference = ?
           AND o.user_id = ?
     ");
-    $oStmt->execute([$reference, $user['id']]);
+    $oStmt->execute([$reference, $user_id]);
     $order = $oStmt->fetch(PDO::FETCH_ASSOC);
 
     if (!$order) {
@@ -198,36 +189,35 @@ try {
                 str_replace(__DIR__ . '/../../', '', $qrCodePath),
                 $ticket_id,
             ]);
+
+        // ── Async notifications (fire-and-forget) ────────────────────────────────
+        if (!empty($pdfPath) && file_exists($pdfPath)) {
+            sendTicketEmailFull($order['user_email'], [
+                'barcode'    => $barcode,
+                'event_name' => $order['event_name'],
+                'event_date' => $order['event_date'],
+                'event_time' => $order['event_time'],
+                'location'   => $order['location'] ?? $order['address'],
+                'user_name'  => $order['user_name'],
+                'order_id'   => $order['id'],
+                'amount'     => $order['amount'],
+            ], $pdfPath);
+        }
+
+        if (!empty($order['user_phone'])) {
+            sendSMS($order['user_phone'],
+                "Hi {$order['user_name']}, your ticket for {$order['event_name']} is confirmed! Check your email."
+            );
+        }
+
+        createPaymentSuccessNotification($auth_id, $order['event_name'], $order['amount']);
+        createTicketIssuedNotification($auth_id, $order['event_name'], $barcode ?? '');
+        createNewSaleNotification($order['organizer_auth_id'], $order['user_name'], $order['event_name'], $order['amount']);
     } else {
         $barcode = $existingTicket['barcode'];
-        $pdfPath = __DIR__ . '/../../uploads/tickets/pdfs/ticket_' . $barcode . '.pdf';
     }
 
     $pdo->commit();
-
-    // ── Async notifications (fire-and-forget) ────────────────────────────────
-    if (!empty($pdfPath) && file_exists($pdfPath)) {
-        sendTicketEmailFull($order['user_email'], [
-            'barcode'    => $barcode,
-            'event_name' => $order['event_name'],
-            'event_date' => $order['event_date'],
-            'event_time' => $order['event_time'],
-            'location'   => $order['location'] ?? $order['address'],
-            'user_name'  => $order['user_name'],
-            'order_id'   => $order['id'],
-            'amount'     => $order['amount'],
-        ], $pdfPath);
-    }
-
-    if (!empty($order['user_phone'])) {
-        sendSMS($order['user_phone'],
-            "Hi {$order['user_name']}, your ticket for {$order['event_name']} is confirmed! Check your email."
-        );
-    }
-
-    createPaymentSuccessNotification($auth_id, $order['event_name'], $order['amount']);
-    createTicketIssuedNotification($auth_id, $order['event_name'], $barcode ?? '');
-    createNewSaleNotification($order['organizer_auth_id'], $order['user_name'], $order['event_name'], $order['amount']);
 
     echo json_encode([
         'success'    => true,

@@ -10,7 +10,7 @@
     <script src="../../public/js/storage.js"></script>
     <script src="../../public/js/utils.js"></script>
     <script src="../../public/js/auth-controller.js"></script>
-    <script src="../../public/js/auth-guard.js" defer></script>
+    <script src="../../public/js/auth-guard.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
     <!-- Favicon -->
@@ -88,40 +88,6 @@
         </header>
 
         <main class="content-area">
-            <div class="page-header">
-                <div class="page-title">
-                    <h1 style="font-size: 1.75rem; font-weight: 800;">Events Management</h1>
-                </div>
-                <div class="header-filters" style="display: flex; gap: 1rem; align-items: center;">
-                    <select id="statusFilter" class="filter-select" style="padding: 0.6rem 1rem; border-radius: 10px; border: 1px solid var(--admin-border);">
-                        <option value="all">All Status</option>
-                        <option value="published">Published</option>
-                        <option value="scheduled">Scheduled</option>
-                        <option value="draft">Draft</option>
-                        <option value="cancelled">Cancelled</option>
-                    </select>
-                    <select id="categoryFilter" class="filter-select" style="padding: 0.6rem 1rem; border-radius: 10px; border: 1px solid var(--admin-border);">
-                        <option value="all">All Categories</option>
-                        <option value="Concert">Concert</option>
-                        <option value="Conference">Conference</option>
-                        <option value="Workshop">Workshop</option>
-                        <option value="Party">Party</option>
-                    </select>
-                    <select id="priceFilter" class="filter-select" style="padding: 0.6rem 1rem; border-radius: 10px; border: 1px solid var(--admin-border);">
-                        <option value="all">Price Range</option>
-                        <option value="free">Free</option>
-                        <option value="paid">Paid</option>
-                        <option value="premium">Premium (>₦50k)</option>
-                    </select>
-                    <select id="attendeeFilter" class="filter-select" style="padding: 0.6rem 1rem; border-radius: 10px; border: 1px solid var(--admin-border);">
-                        <option value="all">Attendees</option>
-                        <option value="0-50">0 - 50</option>
-                        <option value="51-200">51 - 200</option>
-                        <option value="201+">201+</option>
-                    </select>
-                </div>
-            </div>
-
             <div class="stats-grid">
                 <div class="stat-card">
                     <div class="stat-header">

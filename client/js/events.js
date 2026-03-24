@@ -70,7 +70,7 @@ window.switchEventTab = switchEventTab;
 
 async function loadEvents(clientId) {
     try {
-        const response = await apiFetch(`../../api/events/get-events.php?client_id=${clientId}&limit=100`);
+        const response = await apiFetch('/api/events/get-events.php?client_id=${clientId}&limit=100`);
         const result = await response.json();
 
         if (result.success) {
@@ -288,7 +288,7 @@ function initCreateEventButton() {
 async function editEvent(eventId) {
     try {
         const user = storage.getUser();
-        const response = await apiFetch(`../../api/events/get-events.php?client_id=${user.id}&limit=100`);
+        const response = await apiFetch('/api/events/get-events.php?client_id=${user.id}&limit=100`);
         const result = await response.json();
 
         if (result.success) {
@@ -340,7 +340,7 @@ async function deleteEvent(eventId) {
     }
 
     try {
-        const response = await apiFetch('../../api/events/delete-event.php', {
+        const response = await apiFetch('/api/events/delete-event.php', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ event_id: eventId })
@@ -422,7 +422,7 @@ async function undoDelete(eventId) {
     dismissUndoToast();
 
     try {
-        const response = await apiFetch('../../api/events/restore-event.php', {
+        const response = await apiFetch('/api/events/restore-event.php', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ event_id: eventId })
@@ -448,7 +448,7 @@ window.undoDelete = undoDelete;
 async function refreshStats(clientId) {
     try {
         const user = storage.getUser();
-        const response = await apiFetch(`../../api/events/get-events.php?client_id=${user.id}&limit=1`);
+        const response = await apiFetch('/api/events/get-events.php?client_id=${user.id}&limit=1`);
         const result = await response.json();
         if (result.success && result.stats) {
             updateStatsCards(result.stats);
@@ -483,7 +483,7 @@ async function loadTrashEvents() {
     tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 2rem; color: var(--client-text-muted);"><span class="btn-spinner" style="margin-right: 8px;"></span>Loading trash...</td></tr>';
 
     try {
-        const response = await apiFetch('../../api/events/get-trash.php?limit=100');
+        const response = await apiFetch('/api/events/get-trash.php?limit=100');
         const result = await response.json();
 
         if (result.success) {
@@ -550,7 +550,7 @@ async function restoreEvent(eventId) {
     }
 
     try {
-        const response = await apiFetch('../../api/events/restore-event.php', {
+        const response = await apiFetch('/api/events/restore-event.php', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ event_id: eventId })
@@ -604,7 +604,7 @@ async function permanentDeleteEvent(eventId) {
     }
 
     try {
-        const response = await apiFetch('../../api/events/delete-event-permanent.php', {
+        const response = await apiFetch('/api/events/delete-event-permanent.php', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ event_id: eventId })
@@ -751,7 +751,7 @@ async function previewEvent(eventId) {
                     <div style="display: flex; align-items: center; gap: 15px; background: #f9fafb; padding: 1rem; border-radius: 12px; border: 1px solid #e5e7eb;">
                         <div style="display: flex;">
                             ${[...Array(Math.min(parseInt(attendees), 5))].map((_, i) => `
-                                <img src="https://ui-avatars.com/api/?name=User+${i}&background=random" 
+                                <img src="https://ui-avatars.c/api/?name=User+${i}&background=random" 
                                      style="width: 36px; height: 36px; border-radius: 50%; border: 3px solid white; margin-left: ${i === 0 ? '0' : '-12px'}; transition: transform 0.2s;">
                             `).join('')}
                         </div>
@@ -811,7 +811,7 @@ async function publishEvent(eventId) {
     if (!result.isConfirmed) return;
 
     try {
-        const response = await apiFetch('../../api/events/publish-event.php', {
+        const response = await apiFetch('/api/events/publish-event.php', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ event_id: eventId })

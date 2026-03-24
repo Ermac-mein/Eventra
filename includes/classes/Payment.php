@@ -24,7 +24,7 @@ $stmt = $pdo->prepare("UPDATE payments SET status = 'paid', paid_at = NOW(), pay
 $stmt->execute([json_encode($paystack_response), $payment['id']]);
 
 // Generate Ticket
-require_once __DIR__ . '/../../api/utils/barcode-helper.php';
+require_once __DIR__ . /api/utils/barcode-helper.php';
 $barcode = generateTicketBarcode($payment['id'], $payment['user_id'], $payment['event_id']);
 
 $stmt = $pdo->prepare("INSERT INTO tickets (payment_id, barcode) VALUES (?, ?)");

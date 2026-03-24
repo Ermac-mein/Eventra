@@ -18,16 +18,8 @@ if (empty($reference)) {
 }
 
 try {
-    // Fetch user_id for ownership check
-    $uStmt = $pdo->prepare("SELECT id FROM users WHERE user_auth_id = ?");
-    $uStmt->execute([$auth_id]);
-    $user = $uStmt->fetch(PDO::FETCH_ASSOC);
-
-    if (!$user) {
-        http_response_code(403);
-        echo json_encode(['success' => false, 'message' => 'User not found.']);
-        exit;
-    }
+    // Use auth_id directly (it is user_id from checkAuth)
+    $resolved_user_id = $auth_id;
 
     // Fetch order (must belong to this user)
     $stmt = $pdo->prepare("
@@ -41,7 +33,7 @@ try {
         WHERE o.transaction_reference = ?
           AND o.user_id = ?
     ");
-    $stmt->execute([$reference, $user['id']]);
+    $stmt->execute([$reference, $resolved_user_id]);
     $order = $stmt->fetch(PDO::FETCH_ASSOC);
 
     if (!$order) {

@@ -10,7 +10,7 @@ require_once '../../includes/middleware/auth.php';
 $auth_id = checkAuth(); // any role
 
 try {
-    $pdo->prepare("UPDATE auth_accounts SET last_seen = NOW(), is_online = 1 WHERE id = ?")
+    $pdo->prepare("UPDATE users SET last_seen = NOW(), is_online = 1 WHERE id = ?")
         ->execute([$auth_id]);
 
     echo json_encode(['success' => true, 'ts' => time()]);

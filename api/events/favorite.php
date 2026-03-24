@@ -6,7 +6,8 @@ header('Content-Type: application/json');
 require_once '../../config/database.php';
 require_once '../../includes/middleware/auth.php';
 
-$user_id = checkAuth();
+checkAuth();
+$user_id = getAuthId();
 $data = json_decode(file_get_contents("php://input"), true);
 
 if (!isset($data['event_id'])) {

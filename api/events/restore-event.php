@@ -36,18 +36,8 @@ try {
         exit;
     }
 
-    // Resolve client_id if user is client
+    // Use user_id directly if role is client
     $resolved_user_id = $user_id;
-    if ($user_role === 'client') {
-        $stmt = $pdo->prepare("SELECT id FROM clients WHERE client_auth_id = ?");
-        $stmt->execute([$user_id]);
-        $client = $stmt->fetch();
-        if (!$client) {
-            echo json_encode(['success' => false, 'message' => 'Client profile not found']);
-            exit;
-        }
-        $resolved_user_id = $client['id'];
-    }
 
     // Check permissions (client can only restore their own events, admin can restore any)
     if ($user_role === 'client' && $event['client_id'] != $resolved_user_id) {
@@ -61,20 +51,17 @@ try {
 
     // Notify admin about event restoration if restored by client
     if ($user_role === 'client') {
-        $stmt = $pdo->prepare("SELECT business_name FROM clients WHERE client_auth_id = ?");
+        $stmt = $pdo->prepare("SELECT business_name FROM clients WHERE id = ?");
         $stmt->execute([$user_id]);
         $client_info = $stmt->fetch();
         $user_name = $client_info['business_name'] ?? 'A Client';
 
-        $stmt = $pdo->prepare("SELECT id FROM auth_accounts WHERE role = 'admin' LIMIT 1");
-        $stmt->execute();
-        $admin = $stmt->fetch();
-
-        if ($admin) {
+        $admin_id = getAdminUserId();
+        if ($admin_id) {
             $message = "Event '{$event['event_name']}' has been restored by $user_name";
-            $metadata = json_encode(['event_id' => $event_id, 'event_name' => $event['event_name']]);
-            $stmt = $pdo->prepare("INSERT INTO notifications (recipient_auth_id, sender_auth_id, message, type, metadata) VALUES (?, ?, ?, ?, ?)");
-            $stmt->execute([$admin['id'], $user_id, $message, 'event_restored', $metadata]);
+            $metadata = ['event_id' => $event_id, 'event_name' => $event['event_name']];
+            $auth_id = getAuthId();
+            createNotification($admin_id, $message, 'event_restored', $auth_id, 'admin', 'client', $metadata);
         }
     }
 

@@ -33,7 +33,7 @@ function debounce(func, wait) {
 function getProfileImg(path, name = '') {
   if (!path || path.trim() === '') {
     if (name) {
-      return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random&color=fff`;
+      return `https://ui-avatars.c/api/?name=${encodeURIComponent(name)}&background=random&color=fff`;
     }
     return '/public/assets/imgs/admin.png'; // Default admin fallback
   }
@@ -71,24 +71,38 @@ function getProfileImg(path, name = '') {
  * @returns {string} - Badge HTML
  */
 function getVerificationBadge(status) {
-    if (!status) return '';
+    if (!status || status === 'unverified') {
+        return `
+            <div class="verification-badge badge-unverified" title="Unverified Organizer" 
+                 onclick="event.stopPropagation(); Swal.fire({title: 'Not Verified', text: 'This organizer has not completed their identity verification. Proceed with caution.', icon: 'warning', confirmButtonColor: '#6366f1'})">
+                <i data-lucide="alert-triangle" style="color: #f59e0b;"></i>
+            </div>
+        `;
+    }
     
     let icon = 'clock';
     let badgeClass = 'badge-pending';
-    let title = 'Pending Verification';
+    let title = 'Verification Pending';
+    let onclick = '';
 
     if (status === 'verified') {
         icon = 'check';
         badgeClass = 'badge-verified';
-        title = 'Verified';
+        title = 'Verified Organizer';
     } else if (status === 'rejected') {
-        icon = 'x';
+        icon = 'slash';
         badgeClass = 'badge-rejected';
-        title = 'Rejected';
+        title = 'Verification Rejected';
+        onclick = `onclick="event.stopPropagation(); Swal.fire({title: 'Verification Rejected', text: 'This organizer\'s verification was declined by admin. Proceed with extreme caution.', icon: 'error', confirmButtonColor: '#6366f1'})"`;
+    } else if (status === 'pending') {
+        icon = 'clock';
+        badgeClass = 'badge-pending';
+        title = 'Verification Pending';
+        onclick = `onclick="event.stopPropagation(); Swal.fire({title: 'Verification Pending', text: 'This organizer\'s verification is currently being reviewed by our team.', icon: 'info', confirmButtonColor: '#6366f1'})"`;
     }
 
     return `
-        <div class="verification-badge ${badgeClass}" title="${title}">
+        <div class="verification-badge ${badgeClass}" title="${title}" ${onclick} style="cursor: pointer;">
             <i data-lucide="${icon}"></i>
         </div>
     `;
@@ -229,10 +243,11 @@ async function apiFetch(url, options = {}) {
   // Prepare headers
   const headers = {
     'X-Eventra-Portal': portal,
+    'Accept': 'application/json', // Explicitly ask for JSON
     ...options.headers
   };
 
-  // Add Authorization header if token exists (Phase 1.5 Audit Fix)
+  // Add Authorization header if token exists
   const token = window.storage ? window.storage.getToken() : null;
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
@@ -245,8 +260,8 @@ async function apiFetch(url, options = {}) {
     
     // Handle 401 (Unauthorized) indicating session expiration
     if (response.status === 401) {
-      // Skip redirect for login endpoints themselves to avoid infinite loops
-      if (!url.includes('login.php') && !url.includes('google-handler.php') && !url.includes('check-session.php')) {
+      // Skip redirect for login endpoints themselves
+      if (!url.includes('/login') && !url.includes('google-handler.php') && !url.includes('check-session')) {
         const path = window.location.pathname;
         const origin = window.location.origin;
         
@@ -259,33 +274,41 @@ async function apiFetch(url, options = {}) {
           loginPage = origin + '/public/pages/index.html';
         }
         
-        // Prevent redirect loop if we are already on the potential login/portal page
         if (path === new URL(loginPage).pathname || (path.includes('index.html') && loginPage.includes('index.html'))) {
            if (window.storage) window.storage.clearRoleSessions();
            return response;
         }
 
-        // Add error param for feedback
         const finalRedirect = loginPage + (loginPage.includes('?') ? '&' : '?') + 'error=session_timeout' + (loginPage.includes('index.html') ? '&trigger=login' : '');
-        
-        // Clear stale local data
         if (window.storage) window.storage.clearRoleSessions();
         window.location.href = finalRedirect;
         return null;
       }
     }
 
-    // Handle 403 (Forbidden) indicating permission issue, NOT session expiry
-    if (response.status === 403) {
-      console.warn('Access Forbidden (403): User does not have permission for this action.');
-      // Special case: check if it's a profile-not-found error specifically for clients
-      // but generally we want the caller to handle 403 so they can show a specific message.
-      return response; 
+    // Validate Response Type before parsing
+    const contentType = response.headers.get("content-type");
+    const isJson = contentType && contentType.includes("application/json");
+
+    if (!response.ok) {
+      if (isJson) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || `Server error: ${response.status}`);
+      } else {
+        const text = await response.text();
+        console.error(`Non-JSON Error (${response.status}):`, text.substring(0, 200));
+        throw new Error(`Server returned ${response.status} (HTML/Text). This usually means a routing error or a crash.`);
+      }
+    }
+
+    if (!isJson && response.status !== 204) {
+      console.warn(`Expected JSON but got ${contentType}`);
+      // We don't throw here if it's a 200, but we should be careful
     }
     
     return response;
   } catch (error) {
-    if (error.name === 'AbortError') return null; // Silence aborts
+    if (error.name === 'AbortError') return null;
     console.error('API Fetch Error:', error);
     throw error;
   }
@@ -307,8 +330,8 @@ async function apiFetch(url, options = {}) {
     if (isAuthenticated()) {
       try {
         const basePath = getBasePath();
-        // Use check-session.php as a heartbeat
-        await apiFetch(basePath + 'api/auth/check-session.php', { method: 'GET', cache: 'no-store' });
+        // Us/api/auth/check-session as a heartbeat
+        await apiFetch('/api/auth/check-session.php', { method: 'GET', cache: 'no-store' });
         lastPing = Date.now();
         console.log('[Activity Tracker] Session extended');
       } catch (e) {

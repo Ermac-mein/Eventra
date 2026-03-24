@@ -25,18 +25,22 @@ require_once __DIR__ . '/../../config/database.php';
  * @param array|null $metadata Optional metadata to store in JSON format
  * @return bool Success status
  */
-function createNotification($recipient_id, $message, $type = 'info', $sender_id = null, $metadata = null)
+function createNotification($recipient_id, $message, $type = 'info', $sender_id = null, $recipient_role = 'user', $sender_role = null, $metadata = null)
 {
     global $pdo;
 
     try {
-        $stmt = $pdo->prepare("
-            INSERT INTO notifications (recipient_auth_id, sender_auth_id, message, type, metadata, is_read, created_at)
-            VALUES (?, ?, ?, ?, ?, 0, NOW())
-        ");
+        // Ensure IDs are numeric
+        $recipient_id = (int)$recipient_id;
+        $sender_id = $sender_id ? (int)$sender_id : null;
 
         $metadataJson = $metadata ? json_encode($metadata) : null;
-        $stmt->execute([$recipient_id, $sender_id, $message, $type, $metadataJson]);
+        $stmt = $pdo->prepare("
+            INSERT INTO notifications (recipient_auth_id, sender_auth_id, message, type, metadata, sender_role, recipient_role)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        ");
+
+        $stmt->execute([$recipient_id, $sender_id, $message, $type, $metadataJson, $sender_role, $recipient_role]);
         return true;
     } catch (PDOException $e) {
         error_log("Notification creation failed: " . $e->getMessage());
@@ -54,7 +58,7 @@ function createNotification($recipient_id, $message, $type = 'info', $sender_id 
  * @param array|null $metadata
  * @return bool Success status
  */
-function sendNotificationWithRetry($recipient_id, $message, $type = 'info', $sender_id = null, $metadata = [])
+function sendNotificationWithRetry($recipient_id, $message, $type = 'info', $sender_id = null, $recipient_role = 'user', $sender_role = null, $metadata = [])
 {
     $maxAttempts = 3;
     $attempts = 0;
@@ -66,7 +70,7 @@ function sendNotificationWithRetry($recipient_id, $message, $type = 'info', $sen
         try {
             // Here we assume createNotification represents the "send" attempt
             // In a real scenario, this might call an external API (SMTP/Firebase)
-            $res = createNotification($recipient_id, $message, $type, $sender_id, array_merge($metadata, [
+            $res = createNotification($recipient_id, $message, $type, $sender_id, $recipient_role, $sender_role, array_merge($metadata ?? [], [
                 'attempt' => $attempts,
                 'timestamp' => date('Y-m-d H:i:s')
             ]));
@@ -76,7 +80,7 @@ function sendNotificationWithRetry($recipient_id, $message, $type = 'info', $sen
             }
         } catch (Exception $e) {
             $lastError = $e->getMessage();
-            error_log("Attempt $attempts failed for user $recipient_id: $lastError");
+            error_log("Attempt $attempts failed for user $recipient_id ($recipient_role): $lastError");
             if ($attempts < $maxAttempts) {
                 sleep(1); // Wait a bit before retry
             }
@@ -84,7 +88,7 @@ function sendNotificationWithRetry($recipient_id, $message, $type = 'info', $sen
     }
 
     if (!$success) {
-        error_log("Final failure sending notification to user $recipient_id after $maxAttempts attempts.");
+        error_log("Final failure sending notification to user $recipient_id ($recipient_role) after $maxAttempts attempts.");
     }
 
     return $success;
@@ -102,19 +106,19 @@ function createLoginNotification($user_id, $user_name, $user_email)
 /**
  * Create a logout notification
  */
-function createLogoutNotification($user_id, $user_name)
+function createLogoutNotification($user_auth_id, $user_name)
 {
     $message = "{$user_name} logged out";
-    return createNotification($user_id, $message, 'logout', $user_id);
+    return createNotification($user_auth_id, $message, 'logout', $user_auth_id);
 }
 
 /**
  * Create an event created notification
  */
-function createEventCreatedNotification($client_id, $event_name)
+function createEventCreatedNotification($client_auth_id, $event_name)
 {
     $message = "Event '{$event_name}' has been created successfully";
-    return createNotification($client_id, $message, 'event_created', $client_id);
+    return createNotification($client_auth_id, $message, 'event_created', $client_auth_id, 'client', 'client');
 }
 
 /**
@@ -130,10 +134,10 @@ function createEventScheduledNotification($client_id, $event_name, $scheduled_ti
 /**
  * Create an event published notification
  */
-function createEventPublishedNotification($client_id, $event_name)
+function createEventPublishedNotification($client_auth_id, $event_name)
 {
     $message = "Event '{$event_name}' has been published and is now live";
-    return createNotification($client_id, $message, 'event_published', $client_id);
+    return createNotification($client_auth_id, $message, 'event_published', $client_auth_id);
 }
 
 /**
@@ -143,7 +147,7 @@ function createMediaUploadedNotification($client_id, $file_name, $folder_name = 
 {
     $location = $folder_name ? "to folder '{$folder_name}'" : "";
     $message = "Media file '{$file_name}' has been uploaded {$location}";
-    return createNotification($client_id, $message, 'media_uploaded', $client_id);
+    return createNotification($client_id, $message, 'media_uploaded', $client_id, 'client', 'client');
 }
 
 /**
@@ -187,13 +191,13 @@ function createScheduledEventDueNotification($client_id, $event_id, $event_name)
 /**
  * Get unread notification count for a user
  */
-function getUnreadNotificationCount($user_id)
+function getUnreadNotificationCount($user_id, $role = 'user')
 {
     global $pdo;
 
     try {
-        $stmt = $pdo->prepare("SELECT COUNT(*) as count FROM notifications WHERE recipient_auth_id = ? AND is_read = 0");
-        $stmt->execute([$user_id]);
+        $stmt = $pdo->prepare("SELECT COUNT(*) as count FROM notifications WHERE recipient_auth_id = ? AND recipient_role = ? AND is_read = 0");
+        $stmt->execute([$user_id, $role]);
         $result = $stmt->fetch();
         return $result['count'] ?? 0;
     } catch (PDOException $e) {
@@ -218,15 +222,15 @@ function createTicketPurchaseNotification($admin_id, $client_id, $user_id, $buye
 {
     // Notify admin with buyer info
     $admin_message = "New ticket purchase: {$buyer_name} ({$buyer_email}) bought {$quantity} ticket(s) for '{$event_name}' - Total: ₦" . number_format($total_price, 2);
-    createNotification($admin_id, $admin_message, 'ticket_purchase', $user_id);
+    createNotification($admin_id, $admin_message, 'ticket_purchase', $user_id, 'admin', 'user');
 
     // Notify client with buyer info
     $client_message = "New ticket sale: {$buyer_name} ({$buyer_email}) purchased {$quantity} ticket(s) for your event '{$event_name}' - Total: ₦" . number_format($total_price, 2);
-    createNotification($client_id, $client_message, 'ticket_purchase', $user_id);
+    createNotification($client_id, $client_message, 'ticket_purchase', $user_id, 'client', 'user');
 
     // Notify user (buyer) with confirmation
     $user_message = "Purchase confirmed! You bought {$quantity} ticket(s) for '{$event_name}' - Total: ₦" . number_format($total_price, 2);
-    createNotification($user_id, $user_message, 'ticket_purchase_confirmation', $user_id);
+    createNotification($user_id, $user_message, 'ticket_purchase_confirmation', $user_id, 'user', 'user');
 
     return true;
 }
@@ -247,7 +251,7 @@ function createUserLoginNotification($admin_id, $user_id, $user_name, $user_emai
 function createClientLoginNotification($admin_id, $client_id, $client_name, $client_email)
 {
     $message = "Client login: {$client_name} ({$client_email}) has logged in";
-    return createNotification($admin_id, $message, 'client_login', $client_id);
+    return createNotification($admin_id, $message, 'client_login', $client_id, 'admin', 'client');
 }
 
 /**
@@ -276,10 +280,10 @@ function getAdminUserId()
     global $pdo;
 
     try {
-        $stmt = $pdo->prepare("SELECT id FROM auth_accounts WHERE role = 'admin' LIMIT 1");
+        $stmt = $pdo->prepare("SELECT admin_auth_id FROM admins LIMIT 1");
         $stmt->execute();
         $result = $stmt->fetch();
-        return $result['id'] ?? null;
+        return $result['admin_auth_id'] ?? null;
     } catch (PDOException $e) {
         error_log("Failed to get admin user ID: " . $e->getMessage());
         return null;
@@ -289,46 +293,46 @@ function getAdminUserId()
 /**
  * Payment success notification for the buyer
  */
-function createPaymentSuccessNotification($user_auth_id, $event_name, $amount)
+function createPaymentSuccessNotification($user_id, $event_name, $amount)
 {
     $msg = "Payment confirmed! ₦" . number_format($amount, 2) . " for '{$event_name}'. Your ticket is on its way.";
-    return createNotification($user_auth_id, $msg, 'payment_success', $user_auth_id);
+    return createNotification($user_id, $msg, 'payment_success', $user_id, 'user', 'user');
 }
 
 /**
  * Ticket issued notification for the buyer
  */
-function createTicketIssuedNotification($user_auth_id, $event_name, $barcode)
+function createTicketIssuedNotification($user_id, $event_name, $barcode)
 {
     $msg = "Your ticket for '{$event_name}' has been issued. Ticket ID: {$barcode}";
-    return createNotification($user_auth_id, $msg, 'ticket_issued', $user_auth_id);
+    return createNotification($user_id, $msg, 'ticket_issued', $user_id, 'user', 'user');
 }
 
 /**
  * New sale alert for the organizer
  */
-function createNewSaleNotification($organizer_auth_id, $buyer_name, $event_name, $amount)
+function createNewSaleNotification($organizer_id, $buyer_name, $event_name, $amount, $user_id = null)
 {
     $msg = "New sale: {$buyer_name} purchased a ticket for '{$event_name}' — ₦" . number_format($amount, 2);
-    return createNotification($organizer_auth_id, $msg, 'ticket_purchase', null);
+    return createNotification($organizer_id, $msg, 'ticket_purchase', $user_id, 'client', 'user');
 }
 
 /**
  * Refund requested — notify organizer
  */
-function createRefundRequestedNotification($organizer_auth_id, $buyer_name, $event_name, $order_id)
+function createRefundRequestedNotification($organizer_id, $buyer_name, $event_name, $order_id, $recipient_role = 'client', $sender_role = 'user')
 {
     $msg = "Refund requested: {$buyer_name} requested a refund for '{$event_name}' (Order #{$order_id}). Review in Payments → Refund Requests.";
-    return createNotification($organizer_auth_id, $msg, 'refund_requested', null, ['order_id' => $order_id]);
+    return createNotification($organizer_id, $msg, 'refund_requested', null, $recipient_role, $sender_role, ['order_id' => $order_id]);
 }
 
 /**
  * Refund processed — notify the buyer
  */
-function createRefundProcessedNotification($user_auth_id, $event_name, $amount)
+function createRefundProcessedNotification($user_id, $event_name, $amount)
 {
     $msg = "Your refund of ₦" . number_format($amount, 2) . " for '{$event_name}' has been processed. Funds arrive in 3-5 business days.";
-    return createNotification($user_auth_id, $msg, 'refund_processed', null);
+    return createNotification($user_id, $msg, 'refund_processed', null, 'user', 'client');
 }
 /**
  * Notify admin when client profile is updated

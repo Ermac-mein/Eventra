@@ -91,7 +91,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Load Google Config and Initialize
         (async () => {
             try {
-                const configResponse = await apiFetch(basePath + 'api/config/get-google-config.php');
+                const configResponse = await apiFetch('/api/config/get-google-config.php');
                 const configData = await configResponse.json();
                 
                 if (configData.success && configData.client_id) {
@@ -156,14 +156,14 @@ document.addEventListener('DOMContentLoaded', () => {
         loginButton.innerHTML = '<span class="spinner"></span> Logging in...';
 
         try {
-            const loginEndpoint = intent === 'client' ? 'api/clients/login.php' : 'api/users/login.php';
-            const response = await apiFetch(basePath + loginEndpoint, {
+            const response = await apiFetch('/api/client/login.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     email: emailInput.value,
                     password: passwordInput.value,
                     remember_me: rememberMeInput?.checked || false,
+                    intent: intent
                 })
             });
 
@@ -199,11 +199,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 
                 setTimeout(() => {
-                    if (window.authController) {
-                        window.authController.handleRedirect(result.redirect);
-                    } else {
-                        window.location.href = basePath + (result.redirect || 'client/pages/clientDashboard.html');
-                    }
+                    const redirectUrl = result.redirect || '/client/pages/clientDashboard.html';
+                    console.log("Redirecting to:", redirectUrl);
+                    window.location.href = redirectUrl;
                 }, 1600);
             } else {
                 // If the message contains "Email", show it there, otherwise show at password
@@ -240,7 +238,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!sliderContainer) return;
 
         try {
-            const response = await apiFetch(basePath + 'api/events/get-events.php?status=published&limit=10');
+            const response = await apiFetch('/api/events/get-events.php?status=published&limit=10');
             const data = await response.json();
 
             if (data.success && data.events.length > 0) {
@@ -281,9 +279,9 @@ document.addEventListener('DOMContentLoaded', () => {
 async function handleForgotPassword() {
     const { value: identity } = await Swal.fire({
         title: 'Forgot Password?',
-        text: 'Enter your registered email or phone number to receive an OTP.',
+        text: 'Enter your registered email address to receive an OTP.',
         input: 'text',
-        inputPlaceholder: 'Email or Phone Number',
+        inputPlaceholder: 'Email Address',
         showCancelButton: true,
         confirmButtonText: 'Send OTP',
         background: '#1e293b',
@@ -296,7 +294,7 @@ async function handleForgotPassword() {
     Swal.showLoading();
 
     try {
-        const response = await apiFetch('../../api/auth/forgot-password.php', {
+        const response = await apiFetch('/api/auth/forgot-password.php', {
             method: 'POST',
             body: JSON.stringify({ identity })
         });
@@ -324,7 +322,7 @@ async function handleForgotPassword() {
             if (!otp) return;
 
             Swal.showLoading();
-            const verifyRes = await apiFetch('../../api/auth/verify-otp.php', {
+            const verifyRes = await apiFetch('/api/auth/verify-otp.php', {
                 method: 'POST',
                 body: JSON.stringify({ identity, otp })
             });
@@ -356,7 +354,7 @@ async function handleForgotPassword() {
                 if (!password) return;
 
                 Swal.showLoading();
-                const resetRes = await apiFetch('../../api/auth/reset-password.php', {
+                const resetRes = await apiFetch('/api/auth/reset-password.php', {
                     method: 'POST',
                     body: JSON.stringify({ 
                         reset_token: verifyResult.reset_token, 

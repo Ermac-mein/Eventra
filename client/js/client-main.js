@@ -27,7 +27,7 @@ async function loadGlobalProfile() {
         }
 
         // Fetch fresh data
-        const response = await apiFetch('../../api/users/get-profile.php');
+        const response = await apiFetch('/api/users/get-profile.php');
         
         const result = await response.json();
 
@@ -54,7 +54,7 @@ function updateGlobalAvatar(user) {
         } else {
             // Fallback to UI Avatars
             const name = user.name || user.business_name || 'User';
-            const defaultAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random&color=fff`;
+            const defaultAvatar = `https://ui-avatars.c/api/?name=${encodeURIComponent(name)}&background=random&color=fff`;
             avatar.style.backgroundImage = `url(${defaultAvatar})`;
         }
         avatar.style.backgroundSize = 'cover';
@@ -92,7 +92,7 @@ async function logout() {
 
     try {
         // Call server-side logout
-        await apiFetch('../../api/auth/logout.php');
+        await apiFetch('/api/auth/logout.php');
 
         // Stop notification polling
         if (window.notificationManager) {

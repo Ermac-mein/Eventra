@@ -1,68 +1,70 @@
 <?php
 header('Content-Type: application/json');
-require_once '../../config/database.php';
+require_once __DIR__ . '/../../config/database.php';
+require_once __DIR__ . '/../../includes/helpers/email-helper.php';
 
 $data = json_decode(file_get_contents("php://input"), true);
+$email = $data['email'] ?? null;
 
-if (!isset($data['identity']) && !isset($data['email'])) {
-    echo json_encode(['success' => false, 'message' => 'Email or Phone Number is required.']);
+if (!$email) {
+    echo json_encode(['success' => false, 'message' => 'Email is required.']);
     exit;
 }
 
-$identity = $data['identity'] ?? $data['email'];
-
 try {
-    require_once '../../includes/helpers/entity-resolver.php';
-    
-    // Resolve user by identity (email or phone)
-    $user = resolveEntity($identity, 'client');
+    // 1. Check if email exists in auth_accounts and is a client
+    $stmt = $pdo->prepare("SELECT id, username FROM auth_accounts WHERE email = ? AND role = 'client' AND deleted_at IS NULL");
+    $stmt->execute([$email]);
+    $account = $stmt->fetch();
 
-    if ($user && isset($user['id']) && $user['role'] === 'client') {
-        $auth_id = $user['id'];
-        
-        // Ensure we have a phone number for OTP
-        $phone = $user['phone'] ?? null;
-
-        if (!$phone) {
-            echo json_encode(['success' => false, 'message' => 'No phone number associated with this account. Please contact support.']);
-            exit;
-        }
-
-        // Generate 6-digit OTP
-        $otp = sprintf("%06d", mt_rand(0, 999999));
-        $expires_at = date('Y-m-d H:i:s', strtotime('+15 minutes'));
-
-        // Revoke any existing OTPs for this user
-        $pdo->prepare("UPDATE auth_tokens SET revoked = 1 WHERE auth_id = ? AND type = 'otp'")->execute([$auth_id]);
-
-        // Save OTP (we'll store the raw OTP for simplicity in this demo, but ideally hash it)
-        $stmt = $pdo->prepare("INSERT INTO auth_tokens (auth_id, token, type, expires_at) VALUES (?, ?, 'otp', ?)");
-        $stmt->execute([$auth_id, $otp, $expires_at]);
-
-        // Send SMS
-        require_once '../../includes/helpers/sms-helper.php';
-        $message = "Your Eventra password reset OTP is: $otp. Valid for 15 minutes.";
-        $smsResult = sendSMS($phone, $message);
-
-        if ($smsResult['success']) {
-            echo json_encode([
-                'success' => true,
-                'message' => 'A 6-digit OTP has been sent to your registered phone number.',
-                'debug_otp' => $otp // REMOVE IN PRODUCTION
-            ]);
-        } else {
-            // If SMS fails, we still returned success but maybe log internal error
-            error_log("OTP SMS failed for $identity: " . $smsResult['message']);
-            echo json_encode([
-                'success' => false, 
-                'message' => 'Failed to send OTP. Please try again later.'
-            ]);
-        }
-    } else {
-        // Standard security practice: don't reveal if identity exists
-        echo json_encode(['success' => true, 'message' => 'If this identity is registered, you will receive an OTP shortly.']);
+    if (!$account) {
+        // Security best practice: Don't reveal if email exists, BUT if the role is restricted, 
+        // we can still say success to keep the UX smooth and not reveal account existence for other roles
+        echo json_encode(['success' => true, 'message' => 'If a client account exists with this email, you will receive a password reset link shortly.']);
+        exit;
     }
+
+    // 2. Generate secure token
+    $token = bin2hex(random_bytes(32));
+    $expires_at = date('Y-m-d H:i:s', strtotime('+1 hour'));
+
+    // 3. Invalidate previous tokens
+    $stmt = $pdo->prepare("UPDATE auth_tokens SET revoked = 1 WHERE auth_id = ? AND type = 'reset_password'");
+    $stmt->execute([$account['id']]);
+
+    // 4. Store token
+    $stmt = $pdo->prepare("INSERT INTO auth_tokens (auth_id, token, type, expires_at) VALUES (?, ?, 'reset_password', ?)");
+    $stmt->execute([$account['id'], $token, $expires_at]);
+
+    // 5. Build reset link
+    $appUrl = rtrim($_ENV['APP_URL'] ?? 'http://' . $_SERVER['HTTP_HOST'], '/');
+    $resetLink = "{$appUrl}/public/pages/reset-password.html?token=" . $token;
+    
+    // 6. Send Email
+    $subject = "Reset Your Eventra Password";
+    $body = "
+        <div style='font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 12px;'>
+            <h2 style='color: #7c3aed;'>Password Reset Request</h2>
+            <p>Hi there,</p>
+            <p>We received a request to reset your Eventra password. Click the button below to choose a new one. This link will expire in 1 hour.</p>
+            <div style='text-align: center; margin: 30px 0;'>
+                <a href='{$resetLink}' style='background: #7c3aed; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold;'>Reset Password</a>
+            </div>
+            <p style='color: #6b7280; font-size: 14px;'>If you didn't request this, you can safely ignore this email.</p>
+            <hr style='border: 0; border-top: 1px solid #eee; margin: 20px 0;'>
+            <p style='font-size: 12px; color: #9ca3af; text-align: center;'>&copy; " . date('Y') . " Eventra.</p>
+        </div>
+    ";
+
+    $emailResult = sendEmail($email, $subject, $body);
+
+    if ($emailResult['success']) {
+        echo json_encode(['success' => true, 'message' => 'Password reset link has been sent to your email.']);
+    } else {
+        echo json_encode(['success' => false, 'message' => 'Failed to send reset email. Please try again later.']);
+    }
+
 } catch (PDOException $e) {
-    error_log("Forgot Password Error: " . $e->getMessage());
-    echo json_encode(['success' => false, 'message' => 'Database error.']);
+    error_log("Forgot password error: " . $e->getMessage());
+    echo json_encode(['success' => false, 'message' => 'Database error occurred.']);
 }

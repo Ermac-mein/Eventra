@@ -28,7 +28,7 @@ if (!$order_id || empty($reason)) {
 
 try {
     // Fetch user
-    $uStmt = $pdo->prepare("SELECT id FROM users WHERE user_auth_id = ?");
+    $uStmt = $pdo->prepare("SELECT id FROM users WHERE id = ?");
     $uStmt->execute([$auth_id]);
     $user = $uStmt->fetch(PDO::FETCH_ASSOC);
 
@@ -43,7 +43,7 @@ try {
         SELECT o.id, o.payment_status, o.refund_status, o.amount,
                e.event_name, e.event_date,
                u.name AS user_name,
-               c.client_auth_id AS organizer_auth_id
+               c.id AS organizer_id
         FROM orders o
         JOIN events e ON o.event_id = e.id
         JOIN users u ON o.user_id = u.id
@@ -101,10 +101,12 @@ try {
 
     // Notify organizer
     createRefundRequestedNotification(
-        $order['organizer_auth_id'],
+        $order['organizer_id'],
         $order['user_name'],
         $order['event_name'],
-        $order_id
+        $order_id,
+        'client',
+        'user'
     );
 
     echo json_encode([

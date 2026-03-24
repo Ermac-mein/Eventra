@@ -7,7 +7,7 @@ class AdminAuth {
 
     async loadAdminProfile() {
         try {
-            const response = await apiFetch('../../api/admin/get-profile.php', {
+            const response = await apiFetch('/api/admin/get-profile.php', {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json'
@@ -142,7 +142,7 @@ class AdminAuth {
 
     async handleLogout() {
         try {
-            const response = await apiFetch('../../api/auth/logout.php', {
+            const response = await apiFetch('/api/auth/logout.php', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'

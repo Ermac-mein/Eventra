@@ -10,7 +10,7 @@ require_once '../../includes/middleware/auth.php';
 
 // Check authentication and role (client or admin)
 $user_id = checkAuth();
-$user_role = $_SESSION['user_role'];
+$user_role = $_SESSION['role'] ?? $_SESSION['user_role'] ?? 'user';
 
 $data = json_decode(file_get_contents("php://input"), true);
 $event_id = $data['event_id'] ?? null;
@@ -22,7 +22,12 @@ if (!$event_id) {
 
 try {
     // Get event details before deletion
-    $stmt = $pdo->prepare("SELECT event_name, client_id FROM events WHERE id = ?");
+    $stmt = $pdo->prepare("
+        SELECT e.event_name, e.client_id, c.client_auth_id 
+        FROM events e 
+        JOIN clients c ON e.client_id = c.id 
+        WHERE e.id = ?
+    ");
     $stmt->execute([$event_id]);
     $event = $stmt->fetch();
 
@@ -31,18 +36,8 @@ try {
         exit;
     }
 
-    // Resolve client_id if user is client
+    // Use user_id directly if role is client
     $resolved_user_id = $user_id;
-    if ($user_role === 'client') {
-        $stmt = $pdo->prepare("SELECT id FROM clients WHERE client_auth_id = ?");
-        $stmt->execute([$user_id]);
-        $client = $stmt->fetch();
-        if (!$client) {
-            echo json_encode(['success' => false, 'message' => 'Client profile not found']);
-            exit;
-        }
-        $resolved_user_id = $client['id'];
-    }
 
     // Check permissions (client can only delete their own events, admin can delete any)
     if ($user_role === 'client' && $event['client_id'] != $resolved_user_id) {
@@ -68,33 +63,25 @@ try {
     // Send notifications for deletion activity
     if ($user_role === 'client') {
         // Client deleted their event - notify admin
-        $stmt = $pdo->prepare("SELECT business_name FROM clients WHERE client_auth_id = ?");
+        $stmt = $pdo->prepare("SELECT business_name FROM clients WHERE id = ?");
         $stmt->execute([$user_id]);
         $client_info = $stmt->fetch();
         $user_name = $client_info['business_name'] ?? 'A Client';
 
-        $stmt = $pdo->prepare("SELECT id FROM auth_accounts WHERE role = 'admin' LIMIT 1");
-        $stmt->execute();
-        $admin = $stmt->fetch();
-
-        if ($admin) {
+        $admin_id = getAdminUserId();
+        if ($admin_id) {
             $message = "Event '{$event['event_name']}' has been deleted by $user_name";
-            $metadata = json_encode(['event_id' => $event_id, 'event_name' => $event['event_name']]);
-            $stmt = $pdo->prepare("INSERT INTO notifications (recipient_auth_id, sender_auth_id, message, type, metadata) VALUES (?, ?, ?, ?, ?)");
-            $stmt->execute([$admin['id'], $user_id, $message, 'event_deleted', $metadata]);
+            $metadata = ['event_id' => $event_id, 'event_name' => $event['event_name']];
+            $auth_id = $_SESSION['auth_id'];
+            $client_auth_id = $event['client_auth_id'];
+            createNotification($admin_id, $message, 'event_deleted', $auth_id, 'admin', 'client', $metadata);
         }
     } else {
         // Admin deleted the event - notify the client owner
-        $stmt = $pdo->prepare("SELECT client_auth_id FROM clients WHERE id = ?");
-        $stmt->execute([$event['client_id']]);
-        $client_auth = $stmt->fetch();
-
-        if ($client_auth) {
-            $message = "Your event '{$event['event_name']}' has been deleted by an administrator";
-            $metadata = json_encode(['event_id' => $event_id, 'event_name' => $event['event_name']]);
-            $stmt = $pdo->prepare("INSERT INTO notifications (recipient_auth_id, sender_auth_id, message, type, metadata) VALUES (?, ?, ?, ?, ?)");
-            $stmt->execute([$client_auth['client_auth_id'], $user_id, $message, 'event_deleted', $metadata]);
-        }
+        $message = "Your event '{$event['event_name']}' has been moved to trash.";
+        $client_auth_id = $event['client_auth_id'];
+        $auth_id = $_SESSION['auth_id'];
+        createNotification($client_auth_id, $message, 'event_deleted', $auth_id, 'client', 'admin', $metadata);
     }
 
     echo json_encode([

@@ -8,7 +8,8 @@ require_once '../../config/payment.php';
 require_once '../../includes/middleware/auth.php';
 
 // Check authentication
-$client_id = clientMiddleware();
+$auth_id = $_SESSION['auth_id'] ?? checkAuth('client');
+$client_id = $_SESSION['client_id']; // This is clients.id starting from 1
 $name = $_POST['name'];
 $business_name = $_POST['business_name'];
 $phone = $_POST['phone'];
@@ -38,7 +39,7 @@ try {
     // Check if trying to update business name and if it exists
     if (!empty($business_name)) {
         $stmt = $pdo->prepare("SELECT id FROM clients WHERE business_name = ? AND client_auth_id != ? AND deleted_at IS NULL");
-        $stmt->execute([$business_name, $client_id]);
+        $stmt->execute([$business_name, $auth_id]);
         if ($stmt->fetch()) {
             $pdo->rollBack();
             echo json_encode(['success' => false, 'message' => 'Business name already in use']);
@@ -68,21 +69,37 @@ try {
     }
 
     // Fetch existing data for comparison and filling missing fields
-    $stmt_existing = $pdo->prepare("SELECT business_name, email, nin, bvn, nin_verified, bvn_verified, subaccount_code FROM clients WHERE client_auth_id = ?");
-    $stmt_existing->execute([$client_id]);
+    $stmt_existing = $pdo->prepare("SELECT business_name, email, nin, bvn, nin_verified, bvn_verified, subaccount_code, account_number, bank_code, verification_status FROM clients WHERE client_auth_id = ?");
+    $stmt_existing->execute([$auth_id]);
     $existing = $stmt_existing->fetch();
-    
+
     if (empty($business_name) && $existing) {
         $business_name = $existing['business_name'];
     }
 
-    // Dojah Mock Verification Logic
-    $nin_verified = null;
-    $bvn_verified = null;
+    // Preserve existing nin_verified / bvn_verified by default
+    $nin_verified = $existing['nin_verified'] ?? 0;
+    $bvn_verified = $existing['bvn_verified'] ?? 0;
 
-    // Recalculate verification_status after potential NIN/BVN changes
-    // IMPORTANT: Any profile change resets status to pending for admin review
-    $new_verification_status = 'pending';
+    // Only reset verification_status to 'pending' if sensitive identity/payment fields changed.
+    // Regular profile edits (name, address, phone) should NOT revoke verification.
+    $sensitive_changed = (
+        ($nin       !== ($existing['nin']            ?? '')) ||
+        ($bvn       !== ($existing['bvn']            ?? '')) ||
+        ($account_number !== ($existing['account_number'] ?? '')) ||
+        ($bank_code !== ($existing['bank_code']      ?? ''))
+    );
+
+    if ($sensitive_changed) {
+        $new_verification_status = 'pending';
+        // Sensitive fields changed — reset identity verification flags
+        $nin_verified = 0;
+        $bvn_verified = 0;
+    } else {
+        // Keep the current verification status (don't regress verified clients)
+        $new_verification_status = $existing['verification_status'] ?? 'pending';
+    }
+
     $account_name = null;
     $auth_email = $existing['email'] ?? '';
 
@@ -94,7 +111,7 @@ try {
 
         $subRes = ensureSubaccount(
             $pdo, 
-            $client_id, 
+            $auth_id, 
             $bank_code, 
             $account_number, 
             $resolved_account_name, 
@@ -112,12 +129,11 @@ try {
 
     // Prepare Update Query
     $query = "UPDATE clients SET name = ?, business_name = ?, phone = ?, address = ?, city = ?, state = ?, country = ?, job_title = ?, company = ?, dob = ?, gender = ?, nin = ?, bvn = ?, nin_verified = ?, bvn_verified = ?, account_name = ?, account_number = ?, bank_name = ?, bank_code = ?, verification_status = ?, updated_at = NOW()";
-    // Use existing business_name if not provided so we don't null it out accidentally if it's required in some places
     $params = [
-        $name, $business_name, $phone, $address, $city, $state, $country, $job_title, $company, $dob, $gender, 
-        $nin, $bvn, 
-        $_POST['nin_verified'] ?? ($existing['nin_verified'] ?? 0), 
-        $_POST['bvn_verified'] ?? ($existing['bvn_verified'] ?? 0),
+        $name, $business_name, $phone, $address, $city, $state, $country, $job_title, $company, $dob, $gender,
+        $nin, $bvn,
+        $nin_verified,
+        $bvn_verified,
         $account_name, $account_number, $bank_name, $bank_code, $new_verification_status
     ];
 
@@ -127,19 +143,18 @@ try {
     }
 
     $query .= " WHERE client_auth_id = ?";
-    $params[] = $client_id;
+    $params[] = $auth_id;
 
     $stmt = $pdo->prepare($query);
     $stmt->execute($params);
 
     // Fetch updated client data to return
     $stmt = $pdo->prepare("
-        SELECT c.*, a.email 
-        FROM clients c 
-        JOIN auth_accounts a ON c.client_auth_id = a.id 
-        WHERE c.client_auth_id = ?
+        SELECT * 
+        FROM clients 
+        WHERE client_auth_id = ?
     ");
-    $stmt->execute([$client_id]);
+    $stmt->execute([$auth_id]);
     $updated_client = $stmt->fetch(PDO::FETCH_ASSOC);
 
     // Format for frontend
@@ -159,13 +174,13 @@ try {
 
     // Notify user about profile update using helper
     require_once '../utils/notification-helper.php';
-    createNotification($client_id, "Your profile has been updated successfully.", 'profile_updated', $client_id);
+    createNotification($auth_id, "Your profile has been updated successfully.", 'profile_updated', $auth_id, 'client', 'client');
     
     // Notify admin about profile change for review
     $admin_id = getAdminUserId();
     if ($admin_id) {
         $client_name = $updated_client['business_name'] ?? $updated_client['name'];
-        createClientProfileUpdatedNotification($admin_id, $client_id, $client_name);
+        createClientProfileUpdatedNotification($admin_id, $auth_id, $client_name);
     }
 
     $pdo->commit();

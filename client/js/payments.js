@@ -32,7 +32,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Load client profile for avatar consistency
     const userProfileAvatars = document.querySelectorAll('.user-avatar');
     if (userProfileAvatars.length > 0) {
-        const avatarUrl = user.profile_pic || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || user.business_name || 'User')}&background=random&color=fff`;
+        const avatarUrl = user.profile_pic || `https://ui-avatars.c/api/?name=${encodeURIComponent(user.name || user.business_name || 'User')}&background=random&color=fff`;
         userProfileAvatars.forEach(avatar => {
             avatar.style.backgroundImage = `url(${avatarUrl})`;
             avatar.style.backgroundSize = 'cover';
@@ -145,7 +145,7 @@ async function loadPayments() {
         });
 
         try {
-            const res = await apiFetch(`../../api/payments/get-payments.php?${params}`);
+            const res = await apiFetch('/api/payments/get-payments.php?${params}`);
             const data = await res.json();
 
             if (!data.success) {
@@ -169,7 +169,7 @@ async function loadPayments() {
             ...(status && { status }),
         });
         try {
-            const res = await apiFetch(`../../api/payments/get-refund-requests.php?${params}`);
+            const res = await apiFetch('/api/payments/get-refund-requests.php?${params}`);
             const data = await res.json();
 
             if (!data.success) {
@@ -331,7 +331,7 @@ async function reviewRefund(requestId, action) {
     }
 
     try {
-        const res = await apiFetch('../../api/payments/review-refund.php', {
+        const res = await apiFetch('/api/payments/review-refund.php', {
             method: 'POST',
             body: JSON.stringify({ refund_request_id: requestId, action, note })
         });
@@ -602,7 +602,7 @@ function exportPayments(format) {
         ...(status && { status }),
         ...(search && { search }),
     });
-    window.open(`../../api/payments/export-payments.php?${params}`, '_blank');
+    window.open/api/payments/export-payments.php?${params}`, '_blank');
 }
 
 // ─── Helpers ───────────────────────────────────────────────────────────────

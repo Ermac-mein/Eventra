@@ -9,8 +9,8 @@ require_once '../../config/payment.php';
 require_once '../../includes/middleware/auth.php';
 require_once '../../api/utils/id-generator.php';
 
-// Check authentication via standardized middleware
-$auth_id = checkAuth('user');
+// Check authentication via standardized middlewar// Check authentication
+$user_id = checkAuth('user');
 
 $data = json_decode(file_get_contents("php://input"), true);
 $event_id = $data['event_id'] ?? null;
@@ -18,16 +18,8 @@ $quantity = (int) ($data['quantity'] ?? 1);
 $payment_reference = $data['payment_reference'] ?? null;
 $referred_by_client_name = $data['referred_by_client'] ?? null;
 
-// Resolve actual user profile id from auth_id
-$stmt = $pdo->prepare("SELECT id FROM users WHERE user_auth_id = ?");
-$stmt->execute([$auth_id]);
-$userProfile = $stmt->fetch();
-if (!$userProfile) {
-    http_response_code(404);
-    echo json_encode(['success' => false, 'message' => 'User profile not found.']);
-    exit;
-}
-$user_id = $userProfile['id'];
+// Use auth_id directly as user_id
+$user_id = $auth_id;
 
 if (!$event_id || $quantity < 1) {
     echo json_encode(['success' => false, 'message' => 'Invalid event ID or quantity']);
@@ -91,41 +83,30 @@ try {
         }
 
         // --- Payment Verification Logic ---
-        $isSimulated = (strpos($payment_reference, 'PAY-') === 0);
         $verificationSuccess = false;
         $gatewayResponse = "";
 
-        if ($isSimulated) {
-            // Requirement 8: Verify simulated transaction via OTP verification record
-            $stmtVerify = $pdo->prepare("SELECT COUNT(*) FROM payment_otps WHERE user_id = ? AND payment_reference = ? AND verified_at IS NOT NULL AND verified_at > DATE_SUB(NOW(), INTERVAL 30 MINUTE)");
-            $stmtVerify->execute([$user_id, $payment_reference]);
-            if ($stmtVerify->fetchColumn() > 0) {
-                $verificationSuccess = true;
-                $gatewayResponse = json_encode(['status' => 'success', 'source' => 'custom_card_simulation']);
-            }
-        } else {
-            // --- Real Paystack Verification ---
-            $url = "https://api.paystack.co/transaction/verify/" . rawurlencode($payment_reference);
-            $ch = curl_init();
-            curl_setopt($ch, CURLOPT_URL, $url);
-            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-            curl_setopt($ch, CURLOPT_HTTPHEADER, [
-                "Authorization: Bearer " . PAYSTACK_SECRET_KEY,
-                "Cache-Control: no-cache",
-            ]);
-            $gatewayResponse = curl_exec($ch);
-            // curl_close($ch); is deprecated in PHP 8.4+ and no longer needed.
+        // --- Real Paystack Verification ---
+        $url = "https://api.paystack.co/transaction/verify/" . rawurlencode($payment_reference);
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            "Authorization: Bearer " . PAYSTACK_SECRET_KEY,
+            "Cache-Control: no-cache",
+        ]);
+        $gatewayResponse = curl_exec($ch);
+        // curl_close($ch); is deprecated in PHP 8.4+ and no longer needed.
 
-            $paystackResult = json_decode($gatewayResponse);
-            if ($paystackResult && $paystackResult->status && $paystackResult->data->status === 'success') {
-                $verificationSuccess = true;
+        $paystackResult = json_decode($gatewayResponse);
+        if ($paystackResult && $paystackResult->status && $paystackResult->data->status === 'success') {
+            $verificationSuccess = true;
 
-                // Extra check: amount match
-                $expectedAmountKobo = round($total_price * 100);
-                if ($paystackResult->data->amount < $expectedAmountKobo) {
-                    $verificationSuccess = false;
-                    $gatewayResponse = json_encode(['success' => false, 'message' => 'Amount mismatch on gateway.']);
-                }
+            // Extra check: amount match
+            $expectedAmountKobo = round($total_price * 100);
+            if ($paystackResult->data->amount < $expectedAmountKobo) {
+                $verificationSuccess = false;
+                $gatewayResponse = json_encode(['success' => false, 'message' => 'Amount mismatch on gateway.']);
             }
         }
 
@@ -137,8 +118,8 @@ try {
         }
 
         // --- Save Payment Record ---
-        $paystack_id = isset($paystackResult->data->id) ? (string)$paystackResult->data->id : 'sim_' . bin2hex(random_bytes(8));
-        $transaction_id = isset($paystackResult->data->gateway_response) ? (string)$paystackResult->data->gateway_response : $payment_reference;
+        $paystack_id = (string)$paystackResult->data->id;
+        $transaction_id = (string)$paystackResult->data->gateway_response;
         $customId = generatePaymentId($pdo);
 
         $stmt = $pdo->prepare("INSERT INTO payments (event_id, user_id, custom_id, reference, amount, status, paystack_response, payment_id, transaction_id, paid_at) VALUES (?, ?, ?, ?, ?, 'paid', ?, ?, ?, NOW())");

@@ -1,6 +1,6 @@
 <?php
 header('Content-Type: application/json');
-require_once '../../config/database.php';
+require_once __DIR__ . '/../../config/database.php';
 
 $data = json_decode(file_get_contents("php://input"), true);
 
@@ -13,8 +13,8 @@ $identity = $data['identity'] ?? $data['email'];
 $otp = $data['otp'];
 
 try {
-    require_once '../../includes/helpers/entity-resolver.php';
-    
+    require_once __DIR__ . '/../../includes/helpers/entity-resolver.php';
+
     // Resolve user by identity (email or phone)
     $user = resolveEntity($identity, 'client');
     $auth_id = $user['id'] ?? null;
@@ -50,10 +50,12 @@ try {
             'message' => 'OTP verified successfully.',
             'reset_token' => $reset_token
         ]);
-    } else {
+    }
+    else {
         echo json_encode(['success' => false, 'message' => 'Invalid or expired OTP.']);
     }
-} catch (PDOException $e) {
+}
+catch (PDOException $e) {
     error_log("Verify OTP Error: " . $e->getMessage());
     echo json_encode(['success' => false, 'message' => 'Database error.']);
 }

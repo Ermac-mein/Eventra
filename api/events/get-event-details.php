@@ -8,13 +8,12 @@ require_once '../../config/database.php';
 require_once '../../includes/middleware/auth.php';
 
 // Check authentication (optional for public view)
-$user_id = null;
-$user_role = 'guest';
-
-if (isset($_SESSION['user_id'])) {
-    $user_id = $_SESSION['user_id'];
-    $user_role = $_SESSION['role'] ?? 'guest';
+if (session_status() === PHP_SESSION_NONE) {
+    require_once '../../config/session-config.php';
 }
+
+$user_id = checkAuthOptional();
+$user_role = $_SESSION['role'] ?? 'guest';
 
 $event_id = $_GET['event_id'] ?? null;
 
@@ -42,11 +41,7 @@ try {
     // For non-admins/clients, only show published events (unless it's their own)
     if ($user_role !== 'admin' && $event['status'] !== 'published') {
         if ($user_role === 'client') {
-            // Check if it's the client's own event
-            $stmt = $pdo->prepare("SELECT id FROM clients WHERE client_auth_id = ?");
-            $stmt->execute([$user_id]);
-            $client = $stmt->fetch();
-            if (!$client || $event['client_id'] != $client['id']) {
+            if ($event['client_id'] != $user_id) {
                 echo json_encode(['success' => false, 'message' => 'Event not published']);
                 exit;
             }

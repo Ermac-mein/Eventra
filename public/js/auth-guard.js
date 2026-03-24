@@ -7,10 +7,14 @@
 (async function() {
     const currentPath = window.location.pathname;
     
-    // 1. Skip protection for login and signup pages to prevent redirect loops
-    const loginPages = ['adminLogin.html', 'clientLogin.html', 'signup.html', 'index.html'];
-    if (loginPages.some(page => currentPath.endsWith(page)) && !currentPath.includes('/admin/') && !currentPath.includes('/client/')) {
-        return;
+    // 1. Skip protection for login, signup, and homepage to prevent redirect loops
+    const publicPages = ['adminLogin.html', 'clientLogin.html', 'signup.html', 'index.html', '/public/pages/'];
+    if (publicPages.some(page => currentPath.endsWith(page) || currentPath === '/')) {
+        // If it's index.html but it's NOT index.html?trigger=login, we still might want to allow it as a guest area
+        // Protected areas are explicitly /admin/ or /client/
+        if (!currentPath.includes('/admin/') && !currentPath.includes('/client/')) {
+            return;
+        }
     }
 
     // Determine required role based on path
@@ -22,6 +26,25 @@
     }
 
     if (!requiredRole) return; // Not a protected area
+
+    // FAST synchronous check before rendering body
+    const hasLocalAuth = window.storage && window.storage.getUser() && window.storage.getToken();
+    if (!hasLocalAuth) {
+        const basePath = getBasePath();
+        
+        // Store the current URL to redirect back after login
+        if (window.storage) {
+            window.storage.set('redirect_after_login', window.location.href);
+        }
+
+        const origin = window.location.origin;
+        if (requiredRole === 'admin') {
+            window.location.replace(origin + '/admin/pages/adminLogin.html');
+        } else {
+            window.location.replace(origin + '/client/pages/clientLogin.html');
+        }
+        return;
+    }
 
     // 2. Show Premium Loading Overlay
     const showOverlay = () => {
@@ -76,10 +99,11 @@
             }
 
             const basePath = getBasePath();
+            const origin = window.location.origin;
             if (requiredRole === 'admin') {
-                window.location.href = basePath + 'admin/pages/adminLogin.html';
+                window.location.href = origin + '/admin/pages/adminLogin.html';
             } else {
-                window.location.href = basePath + 'client/pages/clientLogin.html';
+                window.location.href = origin + '/client/pages/clientLogin.html';
             }
             return;
         }
@@ -91,7 +115,14 @@
 
     } catch (error) {
         console.error('[Auth Guard] Error during validation:', error);
-        // On critical error, fallback to safety: redirect to home or login
-        window.location.href = getBasePath() + 'public/pages/index.html';
+        // On critical error, fallback to safety: redirect to home or role-specific login
+        const basePath = getBasePath();
+        if (requiredRole === 'admin') {
+            window.location.href = basePath + 'admin/login';
+        } else if (requiredRole === 'client') {
+            window.location.href = basePath + 'client/login';
+        } else {
+            window.location.href = basePath + 'index.html';
+        }
     }
 })();

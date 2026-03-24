@@ -9,7 +9,7 @@ class NotificationManager {
 
     async fetchNotifications() {
         try {
-            const response = await apiFetch('../../api/notifications/get-admin-notifications.php', {
+            const response = await apiFetch('/api/notifications/get-admin-notifications.php', {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json'
@@ -43,7 +43,7 @@ class NotificationManager {
 
     async clearAllNotifications() {
         try {
-            const response = await apiFetch('../../api/notifications/clear-all.php', {
+            const response = await apiFetch('/api/notifications/clear-all.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' }
             });
@@ -194,7 +194,7 @@ class NotificationManager {
                 ? { notification_id: notificationId }
                 : { mark_all: true };
 
-            const response = await apiFetch('../../api/notifications/mark-notification-read.php', {
+            const response = await apiFetch('/api/notifications/mark-notification-read.php', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -228,7 +228,7 @@ class NotificationManager {
         if (!result.isConfirmed) return;
         
         try {
-            const response = await apiFetch('../../api/notifications/clear-all.php', {
+            const response = await apiFetch('/api/notifications/clear-all.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' }
             });

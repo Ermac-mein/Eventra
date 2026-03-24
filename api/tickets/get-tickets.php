@@ -12,16 +12,7 @@ try {
     $auth_id  = checkAuth('client');
     $isAdmin  = false;
 
-    // Resolve real_client_id from auth_id
-    $client_stmt = $pdo->prepare("SELECT id FROM clients WHERE client_auth_id = ?");
-    $client_stmt->execute([$auth_id]);
-    $client_row = $client_stmt->fetch();
-
-    if (!$client_row) {
-        echo json_encode(['success' => false, 'message' => 'Client profile not found.']);
-        exit;
-    }
-    $real_client_id = $client_row['id'];
+    $real_client_id = $auth_id;
 
     // Get tickets with related information
     $stmt = $pdo->prepare("

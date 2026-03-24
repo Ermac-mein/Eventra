@@ -2,116 +2,116 @@
 
 ## Authentication Endpoints
 
-### POST /api/auth/login.php
+### POS/api/auth/login.php
 
 Login user
 
-### POST /api/auth/register.php
+### POS/api/auth/register.php
 
 Register new user
 
-### POST /api/auth/logout.php
+### POS/api/auth/logout.php
 
 Logout user
 
-### POST /api/auth/google-signin.php
+### POS/api/auth/google-signin.php
 
 Google Sign-in
 
 ## Events Endpoints
 
-### GET /api/events/get-events.php
+### GE/api/events/get-events.php
 
 Get all events
 
-### POST /api/events/create-event.php
+### POS/api/events/create-event.php
 
 Create new event
 
-### PUT /api/events/update-event.php
+### PU/api/events/update-event.php
 
 Update event
 
-### DELETE /api/events/delete-event.php
+### DELET/api/events/delete-event.php
 
 Delete event
 
-### GET /api/events/search-events.php
+### GE/api/events/search-events.php
 
 Search events
 
 ## Tickets Endpoints
 
-### GET /api/tickets/get-tickets.php
+### GE/api/tickets/get-tickets.php
 
 Get all tickets
 
-### POST /api/tickets/purchase-ticket.php
+### POS/api/tickets/purchase-ticket.php
 
 Purchase ticket
 
-### POST /api/tickets/validate-ticket.php
+### POS/api/tickets/validate-ticket.php
 
 Validate ticket
 
 ## Users Endpoints
 
-### GET /api/users/get-users.php
+### GE/api/users/get-users.php
 
 Get all users
 
-### PUT /api/users/update-user.php
+### PU/api/users/update-user.php
 
 Update user
 
 ## Clients Endpoints
 
-### GET /api/clients/get-clients.php
+### GE/api/clients/get-clients.php
 
 Get all clients
 
 ## Payments Endpoints
 
-### POST /api/payments/paystack.php
+### POS/api/payments/paystack.php
 
 Process Paystack payment
 
-### POST /api/payments/verify-payment.php
+### POS/api/payments/verify-payment.php
 
 Verify payment
 
 ## Notifications Endpoints
 
-### POST /api/notifications/send-notification.php
+### POS/api/notifications/send-notification.php
 
 Send notification
 
-### GET /api/notifications/realtime.php
+### GE/api/notifications/realtime.php
 
 Real-time notifications
 
 ## Emails Endpoints
 
-### POST /api/emails/send-email.php
+### POS/api/emails/send-email.php
 
 Send email
 
-### POST /api/emails/receive-email.php
+### POS/api/emails/receive-email.php
 
 Receive email
 
 ## Maps Endpoints
 
-### GET /api/maps/google-maps.php
+### GE/api/maps/google-maps.php
 
 Google Maps integration
 
 ## Barcodes Endpoints
 
-### POST /api/barcodes/generate-barcode.php
+### POS/api/barcodes/generate-barcode.php
 
 Generate barcode
 
-### POST /api/barcodes/scan-barcode.php
+### POS/api/barcodes/scan-barcode.php
 
 Scan barcode

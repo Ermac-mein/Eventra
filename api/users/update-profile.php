@@ -6,12 +6,14 @@ header('Content-Type: application/json');
 require_once '../../config/database.php';
 
 // Check authentication
-if (!isset($_SESSION['user_id']) || ($_SESSION['user_role'] ?? $_SESSION['role']) !== 'user') {
+$role = $_SESSION['user_role'] ?? $_SESSION['role'] ?? null;
+if (!isset($_SESSION['user_id']) || $role !== 'user') {
     http_response_code(401);
     echo json_encode(['success' => false, 'message' => 'Unauthorized']);
     exit;
 }
 
+$user_auth_id = $_SESSION['auth_id'];
 $user_id = $_SESSION['user_id'];
 $name = $_POST['name'];
 $phone = $_POST['phone'];
@@ -61,19 +63,18 @@ try {
     }
 
     $query .= " WHERE user_auth_id = ?";
-    $params[] = $user_id;
+    $params[] = $user_auth_id;
 
     $stmt = $pdo->prepare($query);
     $stmt->execute($params);
 
     // Fetch updated user data to return
     $stmt = $pdo->prepare("
-        SELECT u.*, a.email 
-        FROM users u 
-        JOIN auth_accounts a ON u.user_auth_id = a.id 
-        WHERE u.user_auth_id = ?
+        SELECT * 
+        FROM users 
+        WHERE user_auth_id = ?
     ");
-    $stmt->execute([$user_id]);
+    $stmt->execute([$user_auth_id]);
     $updated_user = $stmt->fetch(PDO::FETCH_ASSOC);
 
     // Format for frontend
@@ -94,7 +95,7 @@ try {
 
     // Notify user about profile update using helper
     require_once '../utils/notification-helper.php';
-    createNotification($user_id, "Your profile has been updated successfully.", 'profile_updated', $user_id);
+    createNotification($user_auth_id, "Your profile has been updated successfully.", 'profile_updated', $user_auth_id);
 
     $pdo->commit();
 

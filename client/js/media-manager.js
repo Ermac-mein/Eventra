@@ -55,7 +55,7 @@ async function loadMedia() {
             console.error('User session not found');
             return;
         }
-        const response = await apiFetch(`../../api/media/get-media.php?client_id=${user.id}&status=${currentMediaStatus}${currentFolderId ? '&folder_id=' + currentFolderId : ''}`);
+        const response = await apiFetch('/api/media/get-media.php?client_id=${user.id}&status=${currentMediaStatus}${currentFolderId ? '&folder_id=' + currentFolderId : ''}`);
         const result = await response.json();
 
         // Update dashboard stats
@@ -188,7 +188,7 @@ async function handleFolderCreation(e) {
     const folderName = document.getElementById('folderNameInput').value;
     
     try {
-        const response = await apiFetch('../../api/media/create-folder.php', {
+        const response = await apiFetch('/api/media/create-folder.php', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ folder_name: folderName })
@@ -251,7 +251,7 @@ function uploadFile() {
         }
 
         try {
-            const response = await apiFetch('../../api/media/upload-media.php', {
+            const response = await apiFetch('/api/media/upload-media.php', {
                 method: 'POST',
                 body: formData
             });
@@ -296,7 +296,7 @@ function uploadToFolder(folderId, folderName, e) {
         formData.append('folder_name', folderName);
 
         try {
-            const response = await apiFetch('../../api/media/upload-media.php', {
+            const response = await apiFetch('/api/media/upload-media.php', {
                 method: 'POST',
                 body: formData
             });
@@ -374,7 +374,7 @@ async function deleteMedia(id, type = 'file', e, fileCount = 0) {
         if (!confirmResult.isConfirmed) return;
         
         try {
-            const response = await apiFetch('../../api/media/delete-folder.php', {
+            const response = await apiFetch('/api/media/delete-folder.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ folder_id: id })
@@ -407,7 +407,7 @@ async function deleteMedia(id, type = 'file', e, fileCount = 0) {
         if (!result.isConfirmed) return;
 
         try {
-            const response = await apiFetch('../../api/media/delete-media.php', {
+            const response = await apiFetch('/api/media/delete-media.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ media_id: id })
@@ -435,7 +435,7 @@ async function deleteMedia(id, type = 'file', e, fileCount = 0) {
 async function restoreMedia(id, type = 'file', e) {
     if (e) e.stopPropagation();
     try {
-        const response = await apiFetch('../../api/media/restore.php', {
+        const response = await apiFetch('/api/media/restore.php', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ id: id, type: type })
@@ -494,7 +494,7 @@ async function openFolder(id, name) {
 
     try {
         const user = storage.getUser();
-        const response = await apiFetch(`../../api/media/get-folder-contents.php?client_id=${user.id}&folder_id=${id}&status=${currentMediaStatus}`);
+        const response = await apiFetch('/api/media/get-folder-contents.php?client_id=${user.id}&folder_id=${id}&status=${currentMediaStatus}`);
         const result = await response.json();
 
         if (result.success && result.files) {

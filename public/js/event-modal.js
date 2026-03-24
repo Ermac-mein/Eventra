@@ -297,7 +297,7 @@ function performEnhancedSearch(query) {
     dropdown.innerHTML = '<div class="search-result-item">No events found</div>';
   } else {
     dropdown.innerHTML = results.map(event => {
-      const eventStr = JSON.stringify(event).replace(/"/g, '&quot;');
+      const eventStr = JSON.stringify(event).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
       return `
         <div class="search-result-item" onclick='openEventDetailsModal(${eventStr})'>
           <strong>${event.event_name}</strong>

@@ -7,25 +7,12 @@ header('Content-Type: application/json');
 require_once '../../config/database.php';
 require_once '../utils/notification-helper.php';
 
-if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'client') {
-    http_response_code(401);
-    echo json_encode(['success' => false, 'message' => 'Unauthorized']);
-    exit;
-}
+// Check authentication
+require_once '../../includes/middleware/auth.php';
+$client_id = clientMiddleware();
 
 $data = json_decode(file_get_contents("php://input"), true);
 $folder_id = $data['folder_id'] ?? null;
-$user_id = $_SESSION['user_id'];
-
-// Get the actual client_id from clients table
-$stmt = $pdo->prepare("SELECT id FROM clients WHERE client_auth_id = ?");
-$stmt->execute([$user_id]);
-$client_id = $stmt->fetchColumn();
-
-if (!$client_id) {
-    echo json_encode(['success' => false, 'message' => 'Client profile not found']);
-    exit;
-}
 
 if (!$folder_id) {
     echo json_encode(['success' => false, 'message' => 'Folder ID is required']);

@@ -9,8 +9,8 @@ function showProfileEditModal() {
     if (!user) return;
 
     const modalHTML = `
-        <div id="profileEditModal" class="modal-backdrop active" role="dialog" aria-modal="true" aria-hidden="false">
-            <div class="modal-content" style="max-width: 800px; max-height: 90vh; overflow-y: auto; margin: auto;">
+        <div id="profileEditModal" class="modal-backdrop active" role="dialog" aria-modal="true">
+            <div class="modal-content modal-content-animate" style="max-width: 800px;">
                 <div class="modal-header">
                     <h2>Edit Profile</h2>
                     <button class="modal-close" onclick="closeProfileEditModal()">×</button>
@@ -18,60 +18,56 @@ function showProfileEditModal() {
                 <div class="modal-body">
                     <form id="profileEditForm" enctype="multipart/form-data">
                         <!-- Profile Picture -->
-                        <div style="text-align: center; margin-bottom: 3.5rem; margin-top: 1rem;">
-                                <div class="avatar-wrapper" style="position: relative; display: inline-block;">
-                                    <img id="profilePreview" 
-                                         src="${user.profile_pic || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=random&size=160`}" 
-                                         style="width: 160px; height: 160px; border-radius: 50%; object-fit: cover; box-shadow: 0 4px 20px rgba(0,0,0,0.08);">
+                        <div class="profile-edit-avatar-container">
+                                <div class="avatar-wrapper">
+                                    <img id="profilePreview" class="profile-preview-img"
+                                         src="${user.profile_pic || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=random&size=160`}">
                                     ${getVerificationBadge(user.verification_status)}
                                     
-                                    <label for="profilePicInput" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(139, 92, 246, 0.8); color: white; width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 1.2rem; box-shadow: 0 4px 12px rgba(0,0,0,0.15); transition: all 0.2s; z-index: 3;" onmouseover="this.style.transform='translate(-50%, -50%) scale(1.1)'; this.style.background='rgba(139, 92, 246, 0.9)'" onmouseout="this.style.transform='translate(-50%, -50%)'; this.style.background='rgba(139, 92, 246, 0.8)'">
+                                    <label for="profilePicInput" class="avatar-upload-label">
                                         📷
                                     </label>
                                 </div>
                                 <input type="file" id="profilePicInput" name="profile_pic" accept="image/*" style="display: none;" onchange="previewProfilePic(event)">
-                            </div>
                         </div>
 
                         <!-- Personal Information Section -->
-                        <h3 style="margin-top: 1rem; margin-bottom: 1.5rem; padding-bottom: 0.75rem; border-bottom: 2px solid #f0f0f0; color: #333; font-size: 1.25rem;">Personal Information</h3>
+                        <h3 class="modal-form-section-title">Personal Information</h3>
                         
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
-                            <div class="form-group" style="grid-column: span 2;">
+                        <div class="modal-grid">
+                            <div class="form-group modal-grid-full">
                                 <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Client ID</label>
                                 <input type="text" value="${user.custom_id || 'Generating...'}" readonly style="width: 100%; padding: 0.75rem; border: 1px solid #e0e0e0; border-radius: 8px; background: #f8fafc; color: #7c3aed; font-weight: 700; font-family: monospace; letter-spacing: 1px;">
                             </div>
 
-                            <div class="form-group" style="grid-column: span 2;">
+                            <div class="form-group modal-grid-full">
                                 <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Full Name *</label>
-                                <input type="text" name="name" value="${user.name}" required style="width: 100%; padding: 0.75rem; border: 1px solid #ccc; border-radius: 8px;">
+                                <input type="text" name="name" value="${user.name}" required class="form-control">
                             </div>
                             <div class="form-group">
                                 <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Email</label>
-                                <input type="email" value="${user.email}" disabled style="width: 100%; padding: 0.75rem; border: 1px solid #e0e0e0; border-radius: 8px; background: #f9f9f9; color: #777;">
+                                <input type="email" value="${user.email}" disabled class="form-control disabled">
                             </div>
                             <div class="form-group">
                                 <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Phone</label>
-                                <input type="tel" name="phone" value="${user.phone || ''}" placeholder="+234..." style="width: 100%; padding: 0.75rem; border: 1px solid #ccc; border-radius: 8px;">
+                                <input type="tel" name="phone" value="${user.phone || ''}" placeholder="+234..." class="form-control">
                             </div>
                             
-                            <div class="form-group" style="grid-column: span 2;">
+                            <div class="form-group modal-grid-full">
                                 <label style="font-weight: 600; margin-bottom: 0.5rem; display: flex; align-items: center; justify-content: space-between; width: 100%;">
                                     <span>NIN (National Identity Number)</span>
-                                    <div id="ninStatus" class="verification-status-indicator" style="display: flex; align-items: center; gap: 0.5rem;">
-                                        <!-- Will be populated dynamically -->
-                                    </div>
+                                    <div id="ninStatus" class="verification-status-indicator"></div>
                                 </label>
-                                <input type="text" id="ninInput" name="nin" value="${user.nin || ''}" placeholder="11-digit NIN" style="width: 100%; padding: 0.75rem; border: 1px solid #ccc; border-radius: 8px;" onblur="validateAndVerifyField('nin')">
+                                <input type="text" id="ninInput" name="nin" value="${user.nin || ''}" placeholder="11-digit NIN" class="form-control" onblur="validateAndVerifyField('nin')">
                             </div>
 
                             <div class="form-group">
                                 <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Date of Birth</label>
-                                <input type="date" name="dob" value="${user.dob || ''}" style="width: 100%; padding: 0.75rem; border: 1px solid #ccc; border-radius: 8px;">
+                                <input type="date" name="dob" value="${user.dob || ''}" class="form-control">
                             </div>
                             <div class="form-group">
                                 <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Gender</label>
-                                <select name="gender" style="width: 100%; padding: 0.75rem; border: 1px solid #ccc; border-radius: 8px; background: white;">
+                                <select name="gender" class="form-control">
                                     <option value="">Select Gender</option>
                                     <option value="male" ${user.gender === 'male' ? 'selected' : ''}>Male</option>
                                     <option value="female" ${user.gender === 'female' ? 'selected' : ''}>Female</option>
@@ -79,89 +75,78 @@ function showProfileEditModal() {
                                 </select>
                             </div>
                             
-                            <div class="form-group" style="grid-column: span 2;">
+                            <div class="form-group modal-grid-full">
                                 <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Address</label>
-                                <textarea name="address" rows="2" placeholder="Full address" style="width: 100%; padding: 0.75rem; border: 1px solid #ccc; border-radius: 8px;">${user.address || ''}</textarea>
+                                <textarea name="address" rows="2" placeholder="Full address" class="form-control">${user.address || ''}</textarea>
                             </div>
                             
                             <div class="form-group">
                                 <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Job Title</label>
-                                <input type="text" name="job_title" value="${user.job_title || ''}" placeholder="Event Organizer" style="width: 100%; padding: 0.75rem; border: 1px solid #ccc; border-radius: 8px;">
+                                <input type="text" name="job_title" value="${user.job_title || ''}" placeholder="Event Organizer" class="form-control">
                             </div>
                             <div class="form-group">
                                 <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Company</label>
-                                <input type="text" name="company" value="${user.company || ''}" placeholder="Company Name" style="width: 100%; padding: 0.75rem; border: 1px solid #ccc; border-radius: 8px;">
+                                <input type="text" name="company" value="${user.company || ''}" placeholder="Company Name" class="form-control">
                             </div>
                             <div class="form-group">
                                 <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">City</label>
-                                <input type="text" name="city" value="${user.city || ''}" placeholder="Lagos" style="width: 100%; padding: 0.75rem; border: 1px solid #ccc; border-radius: 8px;">
+                                <input type="text" name="city" value="${user.city || ''}" placeholder="Lagos" class="form-control">
                             </div>
                             <div class="form-group">
                                 <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">State</label>
-                                <select name="state" style="width: 100%; padding: 0.75rem; border: 1px solid #ccc; border-radius: 8px; background: white;">
+                                <select name="state" class="form-control">
                                     <option value="">Select State</option>
                                     ${getNigerianStates().map(state => 
                                         `<option value="${state}" ${user.state === state ? 'selected' : ''}>${state}</option>`
                                     ).join('')}
                                 </select>
                             </div>
-                            <div class="form-group" style="grid-column: span 2;">
+                            <div class="form-group modal-grid-full">
                                 <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Country</label>
-                                <input type="text" name="country" value="${user.country || ''}" placeholder="Nigeria" style="width: 100%; padding: 0.75rem; border: 1px solid #ccc; border-radius: 8px;">
+                                <input type="text" name="country" value="${user.country || ''}" placeholder="Nigeria" class="form-control">
                             </div>
                         </div>
 
                         <!-- Payment Information Section -->
-                        <h3 style="margin-top: 2.5rem; margin-bottom: 1.5rem; padding-bottom: 0.75rem; border-bottom: 2px solid #f0f0f0; color: #333; font-size: 1.25rem;">Payment Information</h3>
+                        <h3 class="modal-form-section-title">Payment Information</h3>
                         
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
-                            <div class="form-group" style="grid-column: span 2;">
+                        <div class="modal-grid">
+                            <div class="form-group modal-grid-full">
                                 <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Settlement Bank</label>
-                                <select id="bankSelect" name="bank_code" style="width: 100%; padding: 0.75rem; border: 1px solid #ccc; border-radius: 8px; background: white;" onchange="resolveAccount()">
+                                <select id="bankSelect" name="bank_code" class="form-control" onchange="resolveAccount()">
                                     <option value="">Select Bank</option>
-                                    <!-- Populated by PaystackBanks -->
                                 </select>
                                 <input type="hidden" name="bank_name" id="bankNameInput" value="${user.bank_name || ''}">
                             </div>
-                            <div class="form-group" style="grid-column: span 2;">
+                            <div class="form-group modal-grid-full">
                                 <label style="font-weight: 600; margin-bottom: 0.5rem; display: flex; align-items: center; justify-content: space-between; width: 100%;">
                                     <span>Account Number (10 Digits)</span>
-                                    <div id="accountStatus" class="verification-status-indicator" style="display: flex; align-items: center; gap: 0.5rem;">
+                                    <div id="accountStatus" class="verification-status-indicator">
                                         ${user.subaccount_code 
                                             ? '<span style="color:#10b981; font-weight: bold;" title="Verified Subaccount">✓ Verified</span>' 
                                             : '<span style="color:#f59e0b; font-weight: bold; font-size: 0.85rem;" title="Setup Incomplete">⚠️ Incomplete Setup</span>'}
                                     </div>
                                 </label>
-                                <input type="text" id="accountNumberInput" name="account_number" value="${(user.account_number && !/^[0]*$/.test(user.account_number)) ? user.account_number : ''}" maxlength="10" placeholder="10-digit Account Number" style="width: 100%; padding: 0.75rem; border: 1px solid #ccc; border-radius: 8px;" oninput="this.value = this.value.replace(/[^0-9]/g, '');" onblur="resolveAccount()">
+                                <input type="text" id="accountNumberInput" name="account_number" value="${(user.account_number && !/^[0]*$/.test(user.account_number)) ? user.account_number : ''}" maxlength="10" placeholder="10-digit Account Number" class="form-control" oninput="this.value = this.value.replace(/[^0-9]/g, '');" onblur="resolveAccount()">
                             </div>
-                            <div class="form-group" style="grid-column: span 2;">
+                            <div class="form-group modal-grid-full">
                                 <label style="font-weight: 600; margin-bottom: 0.5rem; display: flex; align-items: center; justify-content: space-between; width: 100%;">
                                     <span>BVN (11 Digits)</span>
-                                    <div id="bvnStatus" class="verification-status-indicator" style="display: flex; align-items: center; gap: 0.5rem;">
-                                        <!-- Will be populated dynamically -->
-                                    </div>
+                                    <div id="bvnStatus" class="verification-status-indicator"></div>
                                 </label>
-                                <input type="text" id="bvnInput" name="bvn" value="${user.bvn || ''}" maxlength="11" placeholder="11-digit BVN" style="width: 100%; padding: 0.75rem; border: 1px solid #ccc; border-radius: 8px;" oninput="this.value = this.value.replace(/[^0-9]/g, '');" onblur="validateAndVerifyField('bvn')">
-                                <small style="display: block; margin-top: 0.4rem; color: #64748b; font-size: 0.8rem; font-style: italic;">Note: Your BVN is for identity verification only and is not shared with Paystack for subaccount creation.</small>
+                                <input type="text" id="bvnInput" name="bvn" value="${user.bvn || ''}" maxlength="11" placeholder="11-digit BVN" class="form-control" oninput="this.value = this.value.replace(/[^0-9]/g, '');" onblur="validateAndVerifyField('bvn')">
+                                <small style="display: block; margin-top: 5px; color: #64748b; font-size: 0.8rem; font-style: italic;">Note: Your BVN is for identity verification only.</small>
                             </div>
-                            <div class="form-group" style="grid-column: span 2;">
+                            <div class="form-group modal-grid-full">
                                 <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Account Holder Name (Auto-resolved)</label>
-                                <input type="text" id="accountNameInput" name="account_name" value="${user.account_name || ''}" style="width: 100%; padding: 0.75rem; border: 1px solid #ccc; border-radius: 8px; background: white; color: #334155; font-weight: 500;">
+                                <input type="text" id="accountNameInput" name="account_name" value="${user.account_name || ''}" class="form-control" style="font-weight: 500;">
                             </div>
                         </div>
 
-                        <!-- Hidden Verification Status -->
-                        <input type="hidden" id="ninVerifiedInput" name="nin_verified" value="${user.nin_verified || 0}">
-                        <input type="hidden" id="bvnVerifiedInput" name="bvn_verified" value="${user.bvn_verified || 0}">
-
                         <!-- Submit Button -->
                         <div style="display: flex; gap: 1rem; margin-top: 2rem;">
-                            <button type="submit" class="btn btn-primary" style="flex: 1;">
-                                Save Changes
-                            </button>
-                            <button type="button" class="btn btn-secondary" onclick="closeProfileEditModal()" style="flex: 1;">
-                                Cancel
-                            </button>
+                            <button type="submit" class="btn btn-primary" style="flex: 1;">Save Changes</button>
+                            <button type="button" class="btn btn-secondary" onclick="closeProfileEditModal()" style="flex: 1;">Cancel</button>
                         </div>
                     </form>
                 </div>
@@ -212,14 +197,14 @@ async function handleProfileUpdate(e) {
     const formData = new FormData(e.target);
     
     try {
-        const response = await apiFetch('../../api/clients/update-profile.php', {
+        const response = await apiFetch('/api/clients/update-profile.php', {
             method: 'POST',
             body: formData
         });
 
-        const result = await response.json();
+        const profileResult = await response.json();
 
-        if (result.success) {
+        if (profileResult.success) {
             showNotification('Profile updated successfully!', 'success');
             
             // Update stored user data
@@ -241,7 +226,7 @@ async function handleProfileUpdate(e) {
             
             setTimeout(() => window.location.reload(), 1000);
         } else {
-            showNotification('Failed to update profile: ' + result.message, 'error');
+            showNotification('Failed to update profile: ' + profileResult.message, 'error');
         }
     } catch (error) {
         console.error('Error updating profile:', error);
@@ -272,7 +257,7 @@ async function resolveAccount() {
     statusDiv.innerHTML = '<span class="spinner" style="width: 16px; height: 16px; border: 2px solid #8b5cf6; border-top-color: transparent; border-radius: 50%; display: inline-block; animation: spin 0.8s linear infinite;"></span>';
 
     try {
-        const response = await apiFetch(`../../api/clients/bank-details.php?bank_code=${bankCode}&account_number=${accountNumber}`, {
+        const response = await apiFetch(`/api/clients/bank-details.php?bank_code=${bankCode}&account_number=${accountNumber}`, {
             method: 'GET'
         });
         const result = await response.json();
@@ -306,7 +291,7 @@ async function validateAndVerifyField(type) {
     updateFieldStatus(type, 'loading');
 
     try {
-        const response = await apiFetch('../../api/admin/dojah-mock.php', {
+        const response = await apiFetch('/api/admin/dojah-mock.php', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ type: type, number: value })
@@ -416,7 +401,7 @@ function showEventPreviewModal(eventId) {
 
 async function fetchEventDetails(eventId) {
     try {
-        const response = await apiFetch(`../../api/events/get-event-details.php?event_id=${eventId}`);
+        const response = await apiFetch(`/api/events/get-event-details.php?event_id=${eventId}`);
         const result = await response.json();
 
         if (result.success && result.event) {
@@ -441,56 +426,55 @@ function displayEventPreview(event) {
     
     // Get client name for sharing
     const user = storage.get('client_user') || storage.get('user') || {};
-    const clientNameSlug = (user.name || '').toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-');
     const shareLink = `${window.location.origin}/public/pages/event-details.html?event=${event.tag}&client=${clientNameSlug}`;
 
     const modalContent = `
-        <div id="eventPreviewModal" class="modal-backdrop active" role="dialog" aria-modal="true" aria-hidden="false" style="background: rgba(0,0,0,0.6); backdrop-filter: blur(6px);">
-            <div class="modal-content" style="max-width: 800px; padding: 0; border-radius: 20px; overflow: hidden; transform: translateY(20px); transition: all 0.3s ease;">
+        <div id="eventPreviewModal" class="modal-backdrop active" role="dialog" aria-modal="true">
+            <div class="modal-content modal-content-animate" style="max-width: 800px; padding: 0; overflow: hidden;">
                 <div class="event-preview">
                     <!-- Close Button -->
                     <button onclick="closeEventPreviewModal()" style="position: absolute; top: 1.5rem; right: 1.5rem; background: rgba(255,255,255,0.2); border: none; width: 40px; height: 40px; border-radius: 50%; color: white; font-size: 1.5rem; cursor: pointer; z-index: 10; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px);">&times;</button>
                     
-                    <div style="height: 300px; overflow: hidden; position: relative;">
-                        <img src="${eventImage.startsWith('http') ? eventImage : (eventImage.startsWith('/') ? '../..' + eventImage : '../../' + eventImage)}" style="width: 100%; height: 100%; object-fit: cover;" alt="Event">
-                        <div style="position: absolute; top: 1.5rem; left: 1.5rem; background: ${getStatusBadgeColor(status.toLowerCase())}; color: white; padding: 0.6rem 1.25rem; border-radius: 30px; font-weight: 700; font-size: 0.8rem; text-transform: uppercase; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+                    <div class="event-preview-hero">
+                        <img src="${eventImage.startsWith('http') ? eventImage : (eventImage.startsWith('/') ? '../..' + eventImage : '../../' + eventImage)}" alt="Event">
+                        <div class="event-status-badge" style="background: ${getStatusBadgeColor(status.toLowerCase())};">
                             ${status}
                         </div>
                     </div>
                     
-                    <div style="padding: 2.5rem; background: white;">
+                    <div class="event-preview-content" style="background: white;">
                         <div style="margin-bottom: 2.5rem;">
-                            <h1 style="font-size: 2.25rem; font-weight: 800; color: #111827; line-height: 1.2; margin-bottom: 0.5rem;">${event.event_name}</h1>
+                            <h1 class="event-preview-title">${event.event_name}</h1>
                             <p style="color: #6b7280; font-size: 1.1rem;">Organized by ${user.name || 'Eventra'}</p>
                         </div>
 
-                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 1.5rem; margin-bottom: 2.5rem;">
-                            <div style="display: flex; align-items: center; gap: 0.85rem;">
-                                <div style="width: 48px; height: 48px; background: #eef2ff; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 1.35rem;">📅</div>
+                        <div class="event-info-grid">
+                            <div class="event-info-item">
+                                <div class="event-info-icon" style="background: #eef2ff;">📅</div>
                                 <div>
-                                    <div style="font-size: 0.75rem; color: #6b7280; font-weight: 700; text-transform: uppercase; letter-spacing: 0.025em; margin-bottom: 2px;">Date</div>
-                                    <div style="font-weight: 700; color: #1f2937;">${date}</div>
+                                    <div class="event-info-label">Date</div>
+                                    <div class="event-info-value">${date}</div>
                                 </div>
                             </div>
-                            <div style="display: flex; align-items: center; gap: 0.85rem;">
-                                <div style="width: 48px; height: 48px; background: #fff7ed; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 1.35rem;">🕒</div>
+                            <div class="event-info-item">
+                                <div class="event-info-icon" style="background: #fff7ed;">🕒</div>
                                 <div>
-                                    <div style="font-size: 0.75rem; color: #6b7280; font-weight: 700; text-transform: uppercase; letter-spacing: 0.025em; margin-bottom: 2px;">Time</div>
-                                    <div style="font-weight: 700; color: #1f2937;">${time}</div>
+                                    <div class="event-info-label">Time</div>
+                                    <div class="event-info-value">${time}</div>
                                 </div>
                             </div>
-                            <div style="display: flex; align-items: center; gap: 0.85rem;">
-                                <div style="width: 48px; height: 48px; background: #f0fdf4; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 1.35rem;">💰</div>
+                            <div class="event-info-item">
+                                <div class="event-info-icon" style="background: #f0fdf4;">💰</div>
                                 <div>
-                                    <div style="font-size: 0.75rem; color: #6b7280; font-weight: 700; text-transform: uppercase; letter-spacing: 0.025em; margin-bottom: 2px;">Price</div>
-                                    <div style="font-weight: 700; color: #1f2937;">${price}</div>
+                                    <div class="event-info-label">Price</div>
+                                    <div class="event-info-value">${price}</div>
                                 </div>
                             </div>
-                            <div style="display: flex; align-items: center; gap: 0.85rem;">
-                                <div style="width: 48px; height: 48px; background: #fdf2f8; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 1.35rem;">📂</div>
+                            <div class="event-info-item">
+                                <div class="event-info-icon" style="background: #fdf2f8;">📂</div>
                                 <div>
-                                    <div style="font-size: 0.75rem; color: #6b7280; font-weight: 700; text-transform: uppercase; letter-spacing: 0.025em; margin-bottom: 2px;">Category</div>
-                                    <div style="font-weight: 700; color: #1f2937;">${event.category || event.event_type || 'General'}</div>
+                                    <div class="event-info-label">Category</div>
+                                    <div class="event-info-value">${event.category || event.event_type || 'General'}</div>
                                 </div>
                             </div>
                         </div>
@@ -673,15 +657,15 @@ async function publishEvent(eventId) {
     if (!result.isConfirmed) return;
 
     try {
-        const response = await apiFetch('../../api/events/publish-event.php', {
+        const response = await apiFetch('/api/events/publish-event.php', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ event_id: eventId })
         });
 
-        const result = await response.json();
+        const publishResult = await response.json();
 
-        if (result.success) {
+        if (publishResult.success) {
             showNotification('Event published successfully!', 'success');
             closeEventActionModal();
             // Trigger dashboard stat update if on dashboard
@@ -693,7 +677,7 @@ async function publishEvent(eventId) {
             // Reload page to reflect changes
             setTimeout(() => window.location.reload(), 1000);
         } else {
-            showNotification('Failed to publish event: ' + result.message, 'error');
+            showNotification('Failed to publish event: ' + publishResult.message, 'error');
         }
     } catch (error) {
         console.error('Error publishing event:', error);
@@ -885,7 +869,7 @@ async function handleEventUpdate(e) {
     submitBtn.disabled = true;
     
     try {
-        const response = await apiFetch('../../api/events/update-event.php', {
+        const response = await apiFetch('/api/events/update-event.php', {
             method: 'POST',
             body: formData
         });
@@ -979,7 +963,7 @@ function showUserPreviewModal(user) {
     const hasValidUrl = user.profile_pic && user.profile_pic.startsWith('http');
     const profileImage = user.profile_pic 
         ? (hasValidUrl ? user.profile_pic : `../../${user.profile_pic}`)
-        : `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || 'User')}&background=random&size=150`;
+        : `https://ui-avatars.c/api/?name=${encodeURIComponent(user.name || 'User')}&background=random&size=150`;
 
     const modalContent = `
         <div id="userPreviewModal" class="modal-backdrop active" role="dialog" aria-modal="true" aria-hidden="false">

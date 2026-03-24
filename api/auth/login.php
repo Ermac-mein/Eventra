@@ -1,7 +1,7 @@
 <?php
 header('Content-Type: application/json');
-require_once '../../config/database.php';
-require_once '../../includes/helpers/entity-resolver.php';
+require_once __DIR__ . '/../../config/database.php';
+require_once __DIR__ . '/../../includes/helpers/entity-resolver.php';
 
 $data = json_decode(file_get_contents("php://input"), true);
 
@@ -11,7 +11,8 @@ $password = $data['password'] ?? null;
 // Support for dedicated login endpoint overrides
 if (isset($auth_intent)) {
     $intent = $auth_intent;
-} else {
+}
+else {
     $intent = $data['intent'] ?? 'client';
 }
 
@@ -101,28 +102,47 @@ try {
         $expectedSessionName = 'EVENTRA_USER_SESS';
         if ($userRole === 'admin') {
             $expectedSessionName = 'EVENTRA_ADMIN_SESS';
-        } elseif ($userRole === 'client') {
+        }
+        elseif ($userRole === 'client') {
             $expectedSessionName = 'EVENTRA_CLIENT_SESS';
+        }
+
+        if (session_name() !== $expectedSessionName) {
+            if (session_status() === PHP_SESSION_ACTIVE) {
+                session_write_close();
+            }
+            session_name($expectedSessionName);
         }
 
         if (session_status() === PHP_SESSION_NONE) {
             require_once '../../config/session-config.php';
         }
 
-        if (session_name() !== $expectedSessionName) {
-            session_write_close();
-            session_name($expectedSessionName);
-            session_start();
-            session_regenerate_id(true);
-            $_SESSION = [];
+        if (session_name() === $expectedSessionName && session_status() === PHP_SESSION_ACTIVE) {
+             session_regenerate_id(true);
+             $_SESSION = [];
         }
 
-        // Strict Role-Specific Session Keys + Universal user_id
-        $_SESSION['user_id'] = $user['id']; // Universal key for broad compatibility
+        // Strict Role-Specific Session Keys + Universal auth_id
+        $_SESSION['auth_id'] = $user['id']; // Global auth account ID
         if ($userRole === 'admin') {
-            $_SESSION['admin_id'] = $user['id'];
-        } elseif ($userRole === 'client') {
-            $_SESSION['client_id'] = $user['id'];
+            // resolveEntity merged the admins table data, so 'id' from admins is not directly available because auth_accounts also has 'id'
+            // Let's re-fetch the role-specific PK if not already distinct.
+            // In resolveEntity: array_merge($profile, $account), account 'id' overwrote profile 'id'.
+            // I need to ensure the profile ID is preserved.
+            $stmt = $pdo->prepare("SELECT id FROM admins WHERE admin_auth_id = ?");
+            $stmt->execute([$user['id']]);
+            $_SESSION['admin_id'] = $stmt->fetchColumn();
+        }
+        elseif ($userRole === 'client') {
+            $stmt = $pdo->prepare("SELECT id FROM clients WHERE client_auth_id = ?");
+            $stmt->execute([$user['id']]);
+            $_SESSION['client_id'] = $stmt->fetchColumn();
+        }
+        elseif ($userRole === 'user') {
+            $stmt = $pdo->prepare("SELECT id FROM users WHERE user_auth_id = ?");
+            $stmt->execute([$user['id']]);
+            $_SESSION['user_id'] = $stmt->fetchColumn();
         }
 
         $_SESSION['user_role'] = $userRole;
@@ -131,25 +151,27 @@ try {
         $_SESSION['last_activity'] = time();
 
         // Log success
-        logSecurityEvent($user['id'], $identity, 'login_success', 'password', "Logged in as $userRole via portal $effectiveIntent");
+        logSecurityEvent($user['id'], $identity, 'login_success', 'password', "Logged in as $userRole (Role ID: " . ($_SESSION[$userRole . '_id'] ?? 'N/A') . ") via portal $effectiveIntent");
 
         // Notify admin of login activity
         require_once __DIR__ . '/../utils/notification-helper.php';
         $admin_id = getAdminUserId();
         if ($admin_id) {
             if ($userRole === 'client') {
-                createClientLoginNotification($admin_id, $user['id'], $user['name'] ?? 'Client', $email);
-            } elseif ($userRole === 'user') {
-                createUserLoginNotification($admin_id, $user['id'], $user['name'] ?? 'User', $email);
+                createClientLoginNotification($admin_id, $user['id'], $user['name'] ?? 'Client', $identity);
+            }
+            elseif ($userRole === 'user') {
+                createUserLoginNotification($admin_id, $user['id'], $user['name'] ?? 'User', $identity);
             }
         }
 
-        // Role-Based Redirects
-        $redirect = 'public/pages/index.html'; // Default for users
+        // Role-Based Redirects (absolute paths for JS redirect)
+        $redirect = '/public/pages/index.html'; // Default for users
         if ($userRole === 'admin') {
-            $redirect = 'admin/pages/adminDashboard.html';
-        } elseif ($userRole === 'client') {
-            $redirect = 'client/pages/clientDashboard.html';
+            $redirect = '/admin/pages/adminDashboard.html';
+        }
+        elseif ($userRole === 'client') {
+            $redirect = '/client/pages/clientDashboard.html';
         }
 
         echo json_encode([
@@ -165,16 +187,17 @@ try {
                 'custom_id' => $user['custom_id'] ?? null,
                 'bvn' => $user['bvn'] ?? null,
                 'profile_image' => (function ($pic) {
-                    if (!$pic)
-                        return null;
-                    if (preg_match('/^https?:\/\//i', $pic))
-                        return $pic;
-                    return '/' . ltrim($pic, '/');
-                })($user['profile_pic'] ?? null),
+            if (!$pic)
+                return null;
+            if (preg_match('/^https?:\/\//i', $pic))
+                return $pic;
+            return '/' . ltrim($pic, '/');
+        })($user['profile_pic'] ?? null),
                 'token' => $token
             ]
         ]);
-    } else {
+    }
+    else {
         // Increment failed attempts
         $pdo->prepare("UPDATE auth_accounts SET failed_attempts = failed_attempts + 1 WHERE id = ?")->execute([$user['id']]);
 
@@ -188,6 +211,7 @@ try {
         $fieldLabel = ($intent === 'admin') ? 'username' : 'email';
         echo json_encode(['success' => false, 'message' => "Invalid $fieldLabel or password."]);
     }
-} catch (PDOException $e) {
+}
+catch (PDOException $e) {
     echo json_encode(['success' => false, 'message' => 'Database error occurred.']);
 }

@@ -10,18 +10,8 @@ require_once '../../includes/middleware/auth.php';
 // Use standardized auth middleware
 $auth_id = checkAuth('user');
 
-// Resolve actual user profile id
-$stmt = $pdo->prepare("SELECT id FROM users WHERE user_auth_id = ?");
-$stmt->execute([$auth_id]);
-$userProfile = $stmt->fetch();
-
-if (!$userProfile) {
-    http_response_code(404);
-    echo json_encode(['success' => false, 'message' => 'User profile not found.']);
-    exit;
-}
-
-$user_id = $userProfile['id'];
+// Use auth_id directly as user_id
+$user_id = $auth_id;
 
 $data = json_decode(file_get_contents("php://input"), true);
 $otp = $data['otp'] ?? '';

@@ -11,16 +11,8 @@ require_once '../../includes/middleware/auth.php';
 $auth_id = checkAuth('client');
 
 try {
-    // 1. Resolve real_client_id from auth_id
-    $client_stmt = $pdo->prepare("SELECT id FROM clients WHERE client_auth_id = ?");
-    $client_stmt->execute([$auth_id]);
-    $client_row = $client_stmt->fetch();
-
-    if (!$client_row) {
-        echo json_encode(['success' => false, 'message' => 'Client profile not found.']);
-        exit;
-    }
-    $real_client_id = $client_row['id'];
+    // 1. Resolve real_client_id from session (standardized role-id)
+    $real_client_id = $_SESSION['client_id'] ?? $auth_id;
 
     // 2. Client Revenue — correctly calculated as SUM(event_price × tickets_sold)
     //    Revenue = Σ(e.price * ticket_count) per event, then summed across all events.
@@ -67,13 +59,12 @@ try {
 
     // 6. Detailed Attendee List (With profile pics)
     $stmt = $pdo->prepare("
-        SELECT u.name, a.email, u.profile_pic, e.event_name, p.paid_at, t.barcode, t.used, p.amount, t.created_at, p.paystack_response,
+        SELECT u.name, u.email, u.profile_pic, e.event_name, p.paid_at, t.barcode, t.used, p.amount, t.created_at, p.paystack_response,
                e.price as event_price,
                CASE WHEN e.price = 0 OR e.price IS NULL THEN 'Free' ELSE CONCAT('₦', FORMAT(e.price, 0)) END as price_display
         FROM tickets t
         JOIN payments p ON t.payment_id = p.id
         JOIN users u ON p.user_id = u.id
-        JOIN auth_accounts a ON u.user_auth_id = a.id
         JOIN events e ON p.event_id = e.id
         WHERE e.client_id = ? AND p.status = 'paid'
         ORDER BY t.created_at DESC

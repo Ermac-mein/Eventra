@@ -391,7 +391,7 @@ async function handleEventCreation(e) {
     submitBtn.disabled = true;
     
     try {
-        const response = await apiFetch('../../api/events/create-event.php', {
+        const response = await apiFetch('/api/events/create-event.php', {
             method: 'POST',
             body: formData
         });
@@ -472,7 +472,7 @@ async function autoExtractFromFlyer() {
         formData.append('extracted_text', text);
 
         const basePath = getBasePath ? getBasePath() : '../../';
-        const response = await apiFetch(basePath + 'api/events/extract-flyer.php', {
+        const response = await apiFetch('/api/events/extract-flyer.php', {
             method: 'POST',
             body: formData
         });

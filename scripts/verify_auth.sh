@@ -2,9 +2,9 @@
 
 # Configuration
 BASE_URL="http://localhost:8000" # Adjusted for common dev environment
-API_USERS_LOGIN="$BASE_URL/api/users/login.php"
-API_CLIENTS_LOGIN="$BASE_URL/api/clients/login.php"
-API_CHECK_SESSION="$BASE_URL/api/auth/check-session.php"
+API_USERS_LOGIN="$BASE_U/api/users/login.php"
+API_CLIENTS_LOGIN="$BASE_U/api/clients/login.php"
+API_CHECK_SESSION="$BASE_U/api/auth/check-session.php"
 
 echo "Running Auth Refactor Verification..."
 
@@ -17,7 +17,7 @@ echo "   - Client Login -> Expect redirect: client/pages/clientDashboard.html"
 echo "   - Admin Login -> Expect redirect: admin/pages/adminDashboard.html"
 
 echo "2. Testing Separation"
-echo "   - Requesting /api/users/update-profile.php without user session -> Expect 401/403"
-echo "   - Requesting /api/clients/update-profile.php with user session -> Expect 401/403"
+echo "   - Requestin/api/users/update-profile.php without user session -> Expect 401/403"
+echo "   - Requestin/api/clients/update-profile.php with user session -> Expect 401/403"
 
 echo "Verification complete (Structural audit passed)."

@@ -49,7 +49,7 @@ async function loadTickets() {
     const offset = (_tktPage - 1) * TKT_PER_PAGE;
 
     try {
-        const url = `../../api/admin/get-tickets.php?limit=${TKT_PER_PAGE}&offset=${offset}&search=${encodeURIComponent(search)}&status=${statusFilter}`;
+        const url =/api/admin/get-tickets.php?limit=${TKT_PER_PAGE}&offset=${offset}&search=${encodeURIComponent(search)}&status=${statusFilter}`;
         const res = await apiFetch(url);
         const data = await res.json();
         

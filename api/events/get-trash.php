@@ -19,17 +19,10 @@ try {
     $where_clauses = ["e.deleted_at IS NOT NULL"];
     $params = [];
 
-    // Resolve client_id if user is client
+    // Use user_id directly if user is client
     if ($user_role === 'client') {
-        $stmt = $pdo->prepare("SELECT id FROM clients WHERE client_auth_id = ?");
-        $stmt->execute([$user_id]);
-        $client = $stmt->fetch();
-        if (!$client) {
-            echo json_encode(['success' => false, 'message' => 'Client profile not found']);
-            exit;
-        }
         $where_clauses[] = "e.client_id = ?";
-        $params[] = $client['id'];
+        $params[] = $user_id;
     }
     // Admin can see all trashed events (no additional filter)
 

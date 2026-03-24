@@ -87,7 +87,7 @@ function ensureSubaccount($pdo, $client_id, $bank_code, $account_number, $busine
     $id   = $res['body']['data']['id'] ?? null;
 
     // Update local database with subaccount info
-    $stmt = $pdo->prepare("UPDATE clients SET subaccount_code = ?, subaccount_id = ? WHERE client_auth_id = ?");
+    $stmt = $pdo->prepare("UPDATE clients SET subaccount_code = ?, subaccount_id = ? WHERE id = ?");
     $stmt->execute([$code, $id, $client_id]);
 
     return ['success' => true, 'subaccount_code' => $code];

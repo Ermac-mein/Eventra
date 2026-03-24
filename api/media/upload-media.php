@@ -8,22 +8,8 @@ require_once '../../config/database.php';
 require_once '../utils/notification-helper.php';
 
 // Check authentication
-if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'client') {
-    echo json_encode(['success' => false, 'message' => 'Unauthorized']);
-    exit;
-}
-
-$user_id = $_SESSION['user_id'];
-
-// Get the actual client_id from clients table
-$stmt = $pdo->prepare("SELECT id FROM clients WHERE client_auth_id = ?");
-$stmt->execute([$user_id]);
-$client_id = $stmt->fetchColumn();
-
-if (!$client_id) {
-    echo json_encode(['success' => false, 'message' => 'Client profile not found']);
-    exit;
-}
+require_once '../../includes/middleware/auth.php';
+$client_id = clientMiddleware();
 
 if (!isset($_FILES['files'])) {
     echo json_encode(['success' => false, 'message' => 'No files uploaded']);

@@ -19,17 +19,8 @@ if (empty($barcode)) {
 }
 
 try {
-    // Fetch user
-    $uStmt = $pdo->prepare("SELECT id FROM users WHERE user_auth_id = ?");
-    $uStmt->execute([$auth_id]);
-    $user = $uStmt->fetch(PDO::FETCH_ASSOC);
-
-    if (!$user) {
-        http_response_code(403);
-        header('Content-Type: application/json');
-        echo json_encode(['success' => false, 'message' => 'User not found.']);
-        exit;
-    }
+    // Use auth_id directly (it is user_id from checkAuth)
+    $resolved_user_id = $auth_id;
 
     // Verify ticket ownership
     $tStmt = $pdo->prepare("
@@ -37,7 +28,7 @@ try {
         FROM tickets t
         WHERE t.barcode = ? AND t.user_id = ?
     ");
-    $tStmt->execute([$barcode, $user['id']]);
+    $tStmt->execute([$barcode, $resolved_user_id]);
     $ticket = $tStmt->fetch(PDO::FETCH_ASSOC);
 
     if (!$ticket) {

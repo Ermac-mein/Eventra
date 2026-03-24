@@ -16,33 +16,32 @@ try {
     $search = $_GET['search'] ?? '';
 
     $params = [];
-    $where_clause = "WHERE a.role = 'client'";
+    $where_clause = "WHERE 1=1";
 
     if (!empty($search)) {
-        $where_clause .= " AND (p.business_name LIKE ? OR a.email LIKE ? OR p.company LIKE ? OR p.state LIKE ?)";
+        $where_clause .= " AND (p.business_name LIKE ? OR p.email LIKE ? OR p.company LIKE ? OR p.state LIKE ?)";
         $search_param = "%$search%";
         $params = [$search_param, $search_param, $search_param, $search_param];
     }
 
     // Get total count
-    $count_sql = "SELECT COUNT(*) FROM auth_accounts a JOIN clients p ON a.id = p.client_auth_id $where_clause";
+    $count_sql = "SELECT COUNT(*) FROM clients p $where_clause";
     $count_stmt = $pdo->prepare($count_sql);
     $count_stmt->execute($params);
     $total_records = $count_stmt->fetchColumn();
 
     // Get clients with event count
-    $sql = "SELECT p.id, p.custom_id, p.business_name as name, a.email, p.profile_pic, p.company, p.state, p.phone, 
-            p.account_name, p.account_number, p.bank_name, p.subaccount_code, p.verification_status,
-            p.dob, p.gender, p.address, p.city, p.country,
-            a.is_active, a.is_online,
-            IF(a.is_online = 1, 'active', 'inactive') as status, a.created_at,
-            (SELECT COUNT(*) FROM events WHERE client_id = p.id) as event_count
-            (SELECT COUNT(*) FROM tickets WHERE referred_by_id = p.id) as referred_tickets_count,
-            (SELECT COUNT(DISTINCT user_id) FROM tickets WHERE referred_by_id = p.id) as referred_users_count
-            FROM auth_accounts a
-            JOIN clients p ON a.id = p.client_auth_id
-            $where_clause 
-            ORDER BY a.created_at DESC 
+    $sql = "SELECT p.id, p.custom_id, p.business_name as name, p.email, p.profile_pic, p.company, p.state, p.phone,
+            p.nin, p.bvn, p.nin_verified, p.bvn_verified,
+            p.account_name, p.account_number, p.bank_name, p.bank_code, p.subaccount_code, p.verification_status,
+            p.admin_notes, p.dob, p.gender, p.address, p.city, p.country, p.job_title,
+            p.is_active, p.is_online, p.last_seen,
+            IF(p.is_online = 1 AND p.last_seen >= DATE_SUB(NOW(), INTERVAL 6 MINUTE), 'active', 'inactive') as status,
+            p.created_at,
+            (SELECT COUNT(*) FROM events WHERE client_id = p.id AND deleted_at IS NULL) as event_count
+            FROM clients p
+            $where_clause
+            ORDER BY p.created_at DESC
             LIMIT ? OFFSET ?";
 
     $stmt = $pdo->prepare($sql);

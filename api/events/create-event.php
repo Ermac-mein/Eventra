@@ -13,8 +13,8 @@ require_once '../../includes/middleware/auth.php';
 $client_id = checkAuth('client');
 
 try {
-    // 1. Resolve actual Client ID (PK) from Auth ID early
-    $stmt = $pdo->prepare("SELECT id, name FROM clients WHERE client_auth_id = ?");
+    // 1. Resolve actual Client name from client_id early
+    $stmt = $pdo->prepare("SELECT name, verification_status FROM clients WHERE id = ?");
     $stmt->execute([$client_id]);
     $client_data = $stmt->fetch();
 
@@ -22,9 +22,28 @@ try {
         throw new Exception("Client profile not found for this account.");
     }
 
-    $real_client_id = $client_data['id'];
+    $real_client_id = $client_id;
     $raw_client_name = $client_data['name'] ?? 'client';
     $client_name = strtolower(str_replace(' ', '-', preg_replace('/[^A-Za-z0-9 ]/', '', $raw_client_name)));
+
+    // ── Event Limit Check for Unverified Clients ──────────────────────────────
+    $limitStmt = $pdo->prepare("
+        SELECT COUNT(*) AS event_count
+        FROM events WHERE client_id = ? AND deleted_at IS NULL
+    ");
+    $limitStmt->execute([$real_client_id]);
+    $limitData = $limitStmt->fetch();
+
+    if ($client_data && $client_data['verification_status'] !== 'verified') {
+        http_response_code(403);
+        echo json_encode([
+            'success' => false,
+            'message' => "Unverified accounts cannot create events. Please complete your profile verification (NIN, BVN, bank account) and wait for admin approval to start creating events.",
+            'limit_reached' => true
+        ]);
+        exit;
+    }
+    // ─────────────────────────────────────────────────────────────────────────
 
     // 2. Handle file upload if present using standardized path
     $image_path = null;
@@ -93,7 +112,7 @@ try {
     }
 
     // 3. Get POST data
-    require_once '../../api/utils/id-generator.php';
+    require_once '/api/utils/id-generator.php';
     $custom_id = generateEventId($pdo);
 
     $event_name = $_POST['event_name'] ?? '';
@@ -172,21 +191,23 @@ try {
     // Create notifications using helper functions
     require_once '../utils/notification-helper.php';
 
+    $auth_id = getAuthId();
+
     // Notify admin about event creation
     $admin_id = getAdminUserId();
     if ($admin_id) {
         $display_name = $client_data['name'] ?? 'Client';
         $admin_message = "New event created: '{$event_name}' by {$display_name} - Status: {$status}";
-        createNotification($admin_id, $admin_message, 'event_created', $client_id);
+        createNotification($admin_id, $admin_message, 'event_created', $auth_id, 'admin', 'client');
     }
 
     // Notify client
     if ($status === 'scheduled' && $scheduled_publish_time) {
-        createEventScheduledNotification($client_id, $event_name, $scheduled_publish_time);
+        createEventScheduledNotification($auth_id, $event_name, $scheduled_publish_time);
     } elseif ($status === 'published') {
-        createEventPublishedNotification($client_id, $event_name);
+        createEventPublishedNotification($auth_id, $event_name);
     } else {
-        createEventCreatedNotification($client_id, $event_name);
+        createEventCreatedNotification($auth_id, $event_name);
     }
 
     echo json_encode([

@@ -21,7 +21,7 @@ class ScheduleNotificationChecker {
 
     async checkUpcomingEvents() {
         try {
-            const response = await apiFetch('../../api/events/get-upcoming-events.php');
+            const response = await apiFetch('/api/events/get-upcoming-events.php');
 
             const result = await response.json();
             

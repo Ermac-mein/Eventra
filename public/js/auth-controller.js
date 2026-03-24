@@ -36,17 +36,6 @@ class AuthController {
         let storedUser = window.storage ? window.storage.getUser() : null;
         let storedToken = window.storage ? window.storage.getToken() : null;
         
-        // Test Simulation Hook
-        if (!storedUser && !storedToken) {
-            const urlParams = new URLSearchParams(window.location.search);
-            if (urlParams.get('test_mode') === 'true' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-                console.log('[AuthController] Simulating test login for approvedmail57@gmail.com');
-                this.simulateTestLogin();
-                storedUser = window.storage.getUser();
-                storedToken = window.storage.getToken();
-            }
-        }
-
         if (storedUser && storedToken) {
             this.user = storedUser;
             this.setState(this.states.AUTHENTICATED);
@@ -90,7 +79,10 @@ class AuthController {
                 }
             }
 
-            const response = await apiFetch(basePath + 'api/auth/check-session.php', {
+            const role = this.getPortalIntent();
+            const endpoint = `${basePath}api/auth/check-session.php`; // Use centralized endpoint directly
+
+            const response = await apiFetch(endpoint, {
                 cache: 'no-store'
             });
             
@@ -242,12 +234,15 @@ class AuthController {
 
         try {
             const basePath = getBasePath();
-            const res = await apiFetch(basePath + 'api/auth/google-handler.php', {
+            const role = this.getPortalIntent();
+            const endpoint = `${basePath}api/${role}/auth/google-login`;
+            
+            const res = await apiFetch(endpoint, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     credential: response.credential,
-                    intent: this.getPortalIntent()
+                    client_id: google.accounts.id.client_id // Useful for verification if needed
                 }),
                 cache: 'no-store'
             });
@@ -295,25 +290,44 @@ class AuthController {
      * Unified Redirect Handler
      */
     handleRedirect(target) {
+        const basePath = getBasePath();
+        
+        // 1. Resolve Default Target if not provided
         if (!target) {
-            const basePath = getBasePath();
             const role = this.user ? this.user.role : 'user';
-            
-            if (role === 'admin') target = basePath + 'admin/pages/adminDashboard.html';
-            else if (role === 'client') target = basePath + 'client/pages/clientDashboard.html';
-            else target = basePath + 'public/pages/index.html';
+            if (role === 'admin') target = '/admin/pages/adminDashboard.html';
+            else if (role === 'client') target = '/client/pages/clientDashboard.html';
+            else target = '/public/pages/index.html';
         }
 
-        // Check if there was a pending redirect
-        const pending = window.storage ? window.storage.get('redirect_after_login') : null;
+        // 2. Priority: redirect_after_login (if deep/specific)
+        let pending = window.storage ? window.storage.get('redirect_after_login') : null;
+        
+        // Sanitize pending redirect - ignore if it's just the homepage/root and we have a specific dashboard target
+        if (pending) {
+            const isWeakRedirect = pending.endsWith('/') || pending.endsWith('index.html') || pending.includes('?trigger=login');
+            const targetIsDashboard = target.includes('Dashboard.html');
+            
+            if (isWeakRedirect && targetIsDashboard) {
+                console.log('[AuthController] Ignoring weak pending redirect in favor of dashboard:', pending);
+                pending = null;
+                if (window.storage) window.storage.remove('redirect_after_login');
+            }
+        }
+
         if (pending) {
             if (window.storage) window.storage.remove('redirect_after_login');
+            console.log('[AuthController] Using pending redirect:', pending);
             window.location.href = pending;
             return;
         }
 
-        const finalUrl = target.includes('://') ? target : getBasePath() + target.replace(/^\//, '');
+        // 3. Final URL Resolution
+        // Normalize: remove leading slash to prevent double slash with basePath
+        const normalizedTarget = target.replace(/^\//, '');
+        const finalUrl = target.includes('://') ? target : basePath + normalizedTarget;
         
+        console.log('[AuthController] Redirecting to:', finalUrl);
         window.location.href = finalUrl;
     }
 
@@ -322,31 +336,25 @@ class AuthController {
      */
     async logout(shouldRedirect = true) {
         try {
-            await apiFetch(getBasePath() + 'api/auth/logout.php');
+            const role = this.getPortalIntent();
+            await apiFetch('/api/auth/logout.php`, { method: 'POST' });
         } catch (e) {}
 
         this.clearSession();
         
         if (shouldRedirect) {
-            window.location.href = getBasePath() + 'public/pages/index.html';
+            const role = this.getPortalIntent();
+            const origin = window.location.origin;
+            if (role === 'admin') {
+                window.location.href = origin + '/admin/pages/adminLogin.html';
+            } else if (role === 'client') {
+                window.location.href = origin + '/client/pages/clientLogin.html';
+            } else {
+                window.location.href = origin + '/public/pages/index.html?trigger=login';
+            }
         }
     }
 
-    /**
-     * Simulate Test Login
-     */
-    simulateTestLogin() {
-        const testUser = {
-            id: 999,
-            name: 'Test Member',
-            email: 'approvedmail57@gmail.com',
-            role: 'user',
-            profile_image: 'https://ui-avatars.com/api/?name=Test+Member&background=FF5A5F&color=fff',
-            token: 'test-token-12345'
-        };
-        if (window.storage) window.storage.setUser(testUser);
-        this.user = testUser;
-    }
 }
 
 // Global Singleton

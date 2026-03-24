@@ -63,8 +63,8 @@ try {
         // Users registered per day
         $stmt = $pdo->prepare("
             SELECT DATE(created_at) as date, COUNT(*) as count
-            FROM auth_accounts
-            WHERE created_at >= ? AND role = 'user'
+            FROM users
+            WHERE created_at >= ?
             GROUP BY DATE(created_at)
             ORDER BY date ASC
         ");
@@ -121,10 +121,8 @@ try {
         ]);
 
     } elseif ($user_role === 'client') {
-        // Resolve real_client_id from auth_id
-        $client_stmt = $pdo->prepare("SELECT id FROM clients WHERE client_auth_id = ?");
-        $client_stmt->execute([$user_id]);
-        $real_client_id = $client_stmt->fetchColumn();
+        // Resolve real_client_id (it's just user_id for clients now)
+        $real_client_id = $user_id;
 
         if (!$real_client_id) {
             echo json_encode(['success' => false, 'message' => 'Client profile not found.']);

@@ -1,0 +1,11 @@
+HTTP/1.1 200 OK
+Host: localhost:8000
+Date: Tue, 24 Mar 2026 00:30:17 GMT
+Connection: close
+X-Powered-By: PHP/8.3.6
+Content-Type: application/json
+Expires: Thu, 19 Nov 1981 08:52:00 GMT
+Cache-Control: no-store, no-cache, must-revalidate
+Pragma: no-cache
+
+{"success":true,"admin":{"auth_id":1,"admin_id":1,"name":"System Administrator","email":"admin@eventra.com","profile_pic":"\/public\/assets\/imgs\/admin.png","is_active":1,"created_at":"2026-03-23 14:10:44","updated_at":"2026-03-23 14:10:44","status":"active"}}

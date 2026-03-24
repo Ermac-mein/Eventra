@@ -17,15 +17,8 @@ try {
         exit;
     }
 
-    // Get the actual client_id from clients table using user_id from frontend
-    $stmt = $pdo->prepare("SELECT id FROM clients WHERE client_auth_id = ?");
-    $stmt->execute([$user_id]);
-    $client_id = $stmt->fetchColumn();
-
-    if (!$client_id) {
-        echo json_encode(['success' => false, 'message' => 'Client profile not found']);
-        exit;
-    }
+    // Use user_id directly (it is client_id from frontend)
+    $client_id = $user_id;
 
     // Build query
     $where_clauses = ["client_id = ?"];

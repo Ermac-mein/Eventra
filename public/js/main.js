@@ -23,7 +23,7 @@ async function loadEvents() {
   if (globalSearch && globalSearch.value.trim() !== '') return; // Don't refresh data while search is active
 
   try {
-    const response = await apiFetch('../../api/events/get-events.php');
+    const response = await apiFetch('/api/events/get-events.php');
     const result = await response.json();
     if (result.success && result.events) {
       // Deduplicate events by ID and filter for published status
@@ -164,6 +164,7 @@ function renderAllCategories(data = eventsData) {
             
             uniqueToCategory.forEach(e => window.homepageSeenIds.add(e.id));
             initSwiper(swiperSelector, gridId);
+            if (window.lucide) window.lucide.createIcons();
         } else {
             section.style.display = 'none';
         }
@@ -237,7 +238,7 @@ function initUserIcon() {
     if (authController.state === authController.states.AUTHENTICATED && user) {
       // Update icon
       if (userProfileImg) {
-          userProfileImg.src = user.profile_image || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || 'User')}&background=FF5A5F&color=fff&size=128`;
+          userProfileImg.src = user.profile_image || `https://ui-avatars.c/api/?name=${encodeURIComponent(user.name || 'User')}&background=FF5A5F&color=fff&size=128`;
           userProfileImg.title = `Logged in as ${user.name}`;
           userProfileImg.style.display = 'block';
       }
@@ -342,7 +343,7 @@ function initUserIcon() {
         return;
       }
       const modalPic = document.getElementById('modalProfilePic');
-      if (modalPic) modalPic.src = user.profile_image || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || 'User')}&background=FF5A5F&color=fff&size=128`;
+      if (modalPic) modalPic.src = user.profile_image || `https://ui-avatars.c/api/?name=${encodeURIComponent(user.name || 'User')}&background=FF5A5F&color=fff&size=128`;
       
       const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.value = val || ''; };
       setVal('profileName', user.name);
@@ -390,7 +391,7 @@ function initUserIcon() {
       const keys = typeof getRoleKeys === 'function' ? getRoleKeys() : { user: 'user' };
       
       try {
-        const response = await apiFetch('../../api/users/update-profile.php', {
+        const response = await apiFetch('/api/users/update-profile.php', {
           method: 'POST',
           body: formData
         });
@@ -447,7 +448,7 @@ async function initGoogleAuth() {
 
     try {
         const basePath = getBasePath();
-        const response = await apiFetch(basePath + 'api/config/get-google-config.php');
+        const response = await apiFetch('/api/config/get-google-config.php');
         const data = await response.json();
 
         if (data.success && data.client_id) {
@@ -537,7 +538,7 @@ async function performServerSearch(query) {
   if (allEventsTitle) allEventsTitle.textContent = `🔍 Results for "${query}"`;
 
   try {
-    const url = new URL('../../api/events/search-events.php', window.location.href);
+    const url = new URL('/api/events/search-events.php', window.location.href);
     url.searchParams.append('q', query);
     url.searchParams.append('limit', '40');
 
@@ -575,6 +576,7 @@ function renderSearchResults(events) {
   }
 
   grid.innerHTML = events.map((e, i) => createEventCard(e, i)).join('');
+  if (window.lucide) window.lucide.createIcons();
 }
 
 function renderEventsGrid(gridId, events, emptyMessage) {
@@ -587,6 +589,7 @@ function renderEventsGrid(gridId, events, emptyMessage) {
          <div style="font-size: 3rem; margin-bottom: 1rem;">🔎</div>
          <h3 style="color: #4b5563;">${emptyMessage}</h3>
        </div>`;
+  if (window.lucide) window.lucide.createIcons();
 }
 
 
@@ -679,7 +682,10 @@ function createEventCard(event, index) {
         </div>
         
         <div class="event-card-description">${desc}</div>
-        <div class="event-organizer">By ${organizer} ${event.is_verified == 1 ? '<span class="verified-check" title="Verified">✓</span>' : ''}</div>
+        <div class="event-organizer" style="display: flex; align-items: center; gap: 4px;">
+            By ${organizer} 
+            ${typeof getVerificationBadge === 'function' ? getVerificationBadge(event.verification_status) : (event.is_verified == 1 ? '<span class="verified-check" title="Verified">✓</span>' : '')}
+        </div>
       </div>
 
       <div class="event-footer" style="padding: 0 1.5rem 1.5rem 1.5rem;">
@@ -779,6 +785,8 @@ function renderDiscovery(events = eventsData.all) {
         ${createEventCard(event)}
     </div>
   `).join('');
+  
+  if (window.lucide) window.lucide.createIcons();
   
   // 6. Update Pagination UI
   renderPaginationUI(totalPages);
@@ -1025,7 +1033,7 @@ async function toggleFavorite(e, eventId) {
         return;
     }
     try {
-        const response = await apiFetch('../../api/events/favorite.php', {
+        const response = await apiFetch('/api/events/favorite.php', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ event_id: eventId })
@@ -1226,8 +1234,13 @@ function showEventModal(eventId) {
   if (document.getElementById('modalEventTitle')) document.getElementById('modalEventTitle').textContent = event.event_name;
   if (document.getElementById('modalEventOrganizer')) {
       const orgContainer = document.getElementById('modalEventOrganizer');
-      orgContainer.innerHTML = `Organized by ${event.organizer_name || event.client_name || 'Eventra'} ${event.is_verified == 1 ? '<span class="verified-check" style="color: #10b981; margin-left: 5px;" title="Verified">✓</span>' : ''}`;
+      orgContainer.style.display = 'flex';
+      orgContainer.style.alignItems = 'center';
+      orgContainer.style.gap = '8px';
+      orgContainer.innerHTML = `Organized by <span style="font-weight: 600;">${event.organizer_name || event.client_name || 'Eventra'}</span> 
+      ${typeof getVerificationBadge === 'function' ? getVerificationBadge(event.verification_status) : (event.is_verified == 1 ? '<span class="verified-check" style="color: #10b981; margin-left: 5px;" title="Verified">✓</span>' : '')}`;
   }
+  if (window.lucide) window.lucide.createIcons();
   if (document.getElementById('modalEventDate')) document.getElementById('modalEventDate').textContent = new Date(event.event_date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
   if (document.getElementById('modalEventTime')) document.getElementById('modalEventTime').textContent = event.event_time || 'TBA';
   const full_address = `${event.address || ''}, ${event.city || ''}, ${event.state || ''}`.replace(/^, /, '').replace(/, , /g, ', ').replace(/, $/, '') || 'Nigeria';
@@ -1331,7 +1344,7 @@ async function initUserLogin() {
             loginBtn.innerHTML = '<span class="spinner" style="width: 18px; height: 18px; border: 2px solid #fff; border-top-color: transparent; border-radius: 50%; display: inline-block; animation: spin 0.8s linear infinite;"></span> Logging in...';
 
             try {
-                const response = await apiFetch('../../api/auth/login.php', {
+                const response = await apiFetch('/api/auth/login.php', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({

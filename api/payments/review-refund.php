@@ -27,29 +27,20 @@ if (!$refundRequestId || !in_array($action, ['approve', 'decline'], true)) {
 }
 
 try {
-    // Verify organizer owns this refund request's event
-    $cStmt = $pdo->prepare("SELECT id FROM clients WHERE client_auth_id = ?");
-    $cStmt->execute([$client_auth_id]);
-    $client = $cStmt->fetch(PDO::FETCH_ASSOC);
-
-    if (!$client) {
+    if (!$client_auth_id) {
         http_response_code(403);
         echo json_encode(['success' => false, 'message' => 'Client not found.']);
         exit;
     }
+    $client_id = $client_auth_id;
 
     $checkStmt = $pdo->prepare("
         SELECT rr.id, rr.user_id, rr.status AS rr_status,
                o.id AS order_id, o.organizer_id, o.refund_status, o.amount,
                e.event_name,
-               u.user_auth_id
-        FROM refund_requests rr
-        JOIN orders o ON rr.order_id = o.id
-        JOIN events e ON o.event_id = e.id
-        JOIN users u ON rr.user_id = u.id
         WHERE rr.id = ? AND o.organizer_id = ?
     ");
-    $checkStmt->execute([$refundRequestId, $client['id']]);
+    $checkStmt->execute([$refundRequestId, $client_id]);
     $rr = $checkStmt->fetch(PDO::FETCH_ASSOC);
 
     if (!$rr) {
@@ -81,10 +72,13 @@ try {
 
         // Notify buyer of decline
         createNotification(
-            $rr['user_auth_id'],
+            $rr['user_id'],
             "Your refund request for \"{$rr['event_name']}\" was declined by the organizer." .
             ($note ? " Note: {$note}" : ''),
-            'refund_declined'
+            'refund_declined',
+            $client_id,
+            'user',
+            'client'
         );
 
         echo json_encode(['success' => true, 'message' => 'Refund request declined.']);

@@ -18,18 +18,8 @@ if (!$event_id) {
 }
 
 try {
-    // RESOLVE: Get the actual client_id from the auth_id in session
-    $client_stmt = $pdo->prepare("SELECT id FROM clients WHERE client_auth_id = ?");
-    $client_stmt->execute([$user_id]);
-    $client_row = $client_stmt->fetch();
-
-    if (!$client_row && $role !== 'admin') {
-        http_response_code(403);
-        echo json_encode(['success' => false, 'message' => 'Client profile not found.']);
-        exit;
-    }
-
-    $real_client_id = $client_row['id'] ?? null;
+    // Use user_id (which is client_id from checkAuth('client'))
+    $real_client_id = $user_id;
 
     // Get current event details
     $stmt = $pdo->prepare("SELECT * FROM events WHERE id = ?");
@@ -178,22 +168,23 @@ try {
         $event_id
     ]);
 
-    // Create notification
-    require_once '../utils/notification-helper.php';
-
-    // Resolve client's auth_id for notification recipient
-    $auth_stmt = $pdo->prepare("SELECT client_auth_id FROM clients WHERE id = ?");
-    $auth_stmt->execute([$event['client_id']]);
-    $recipient_auth_id = $auth_stmt->fetchColumn();
-
     $message = "Event '{$_POST['event_name']}' has been updated";
-    createNotification($recipient_auth_id, $message, 'event_updated', $user_id);
+    $auth_id = $_SESSION['auth_id'];
+    $client_auth_id = $event['client_auth_id'] ?? null;
+    if (!$client_auth_id) {
+        $stmt = $pdo->prepare("SELECT client_auth_id FROM clients WHERE id = ?");
+        $stmt->execute([$event['client_id']]);
+        $client_auth_id = $stmt->fetchColumn();
+    }
 
-    // Notify Admin
+    createNotification($client_auth_id, $message, 'event_updated', $auth_id, 'client', ($role === 'admin' ? 'admin' : 'client'));
+
+    // Notify Admin as well
     $admin_id = getAdminUserId();
-    if ($admin_id) {
-        $admin_message = "Client updated event '{$_POST['event_name']}'";
-        createNotification($admin_id, $admin_message, 'event_updated', $user_id);
+    if ($admin_id && $auth_id != $admin_id) {
+        $name = $_POST['event_name'];
+        $admin_message = "Event '{$name}' has been updated" . ($role === 'admin' ? " by an administrator." : " by organizer.");
+        createNotification($admin_id, $admin_message, 'event_updated', $auth_id, 'admin', ($role === 'admin' ? 'admin' : 'client'));
     }
 
     echo json_encode([

@@ -47,7 +47,7 @@ function sendSMS($phoneNumber, $message)
     $response = curl_exec($ch);
     $error = curl_error($ch);
     $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    // curl_close($ch); is deprecated in PHP 8.4+ and no longer needed.
+    curl_close($ch);
 
     if ($error) {
         error_log("Twilio SMS Error: " . $error);

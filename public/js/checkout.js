@@ -40,7 +40,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         // Fetch Event Data
-        const eventRes = await apiFetch(`../../api/events/get-event-details.php?event_id=${eventId}`);
+        const eventRes = await apiFetch('/api/events/get-event-details.php?event_id=${eventId}`);
         const eventResult = await eventRes.json();
 
         if (!eventResult.success || !eventResult.event) {
@@ -64,7 +64,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         renderEventSummary(eventData, currentQuantity);
 
         // Fetch Paystack Config
-        const paystackRes = await apiFetch('../../api/payments/paystack.php');
+        const paystackRes = await apiFetch('/api/payments/paystack.php');
         const paystackResult = await paystackRes.json();
 
         if (paystackResult.success && paystackResult.public_key) {
@@ -107,7 +107,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             
             try {
                 // Initialize Order via Marketplace API
-                const res = await apiFetch('../../api/payments/initialize.php', {
+                const res = await apiFetch('/api/payments/initialize.php', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({

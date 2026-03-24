@@ -20,30 +20,14 @@ if ($user_id != $current_user_id && $_SESSION['role'] !== 'admin') {
 }
 
 try {
-    $role = $_SESSION['role'] ?? 'user';
-    $table = 'users';
-    if ($role === 'client')
-        $table = 'clients';
-    if ($role === 'admin')
-        $table = 'admins';
+    require_once '../../includes/helpers/entity-resolver.php';
+    
+    // Use the robust entity resolver
+    $user = resolveEntity($user_id, $_SESSION['role']);
 
-    $auth_col = 'auth_id';
-    if ($role === 'client')
-        $auth_col = 'client_auth_id';
-    elseif ($role === 'user')
-        $auth_col = 'user_auth_id';
-    elseif ($role === 'admin')
-        $auth_col = 'admin_auth_id';
-
-    // Join with auth_accounts to get the role
-    $stmt = $pdo->prepare("
-        SELECT p.*, a.id, a.role, a.email 
-        FROM auth_accounts a 
-        LEFT JOIN $table p ON a.id = p.$auth_col
-        WHERE a.id = ?
-    ");
-    $stmt->execute([$user_id]);
-    $user = $stmt->fetch();
+    if (!$user) {
+        $user = resolveEntity($user_id); // Fallback if role is not in session
+    }
 
     if (!$user) {
         echo json_encode(['success' => false, 'message' => 'User not found']);

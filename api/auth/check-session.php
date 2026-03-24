@@ -3,14 +3,33 @@ header('Content-Type: application/json');
 header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
 header('Post-Check=0, Pre-Check=0', false);
 header('Pragma: no-cache');
-require_once '../../config/database.php';
-require_once '../../includes/helpers/entity-resolver.php';
+require_once __DIR__ . '/../../config/database.php';
+require_once __DIR__ . '/../../includes/helpers/entity-resolver.php';
 
-if (session_status() === PHP_SESSION_NONE) {
-    require_once '../../config/session-config.php';
+// 1. Resolve Portal Intent from Headers for Correct Session Targeting
+$headers = getallheaders();
+$portal = $_SERVER['HTTP_X_EVENTRA_PORTAL'] ?? $headers['X-Eventra-Portal'] ?? $headers['x-eventra-portal'] ?? 'user';
+
+// 2. Set Role-Specific Session Name BEFORE starting session
+$expectedSessionName = 'EVENTRA_USER_SESS';
+if ($portal === 'admin') {
+    $expectedSessionName = 'EVENTRA_ADMIN_SESS';
+} elseif ($portal === 'client') {
+    $expectedSessionName = 'EVENTRA_CLIENT_SESS';
 }
 
-$sessionRole = $_SESSION['user_role'] ?? null;
+if (session_name() !== $expectedSessionName) {
+    if (session_status() === PHP_SESSION_ACTIVE) {
+        session_write_close();
+    }
+    session_name($expectedSessionName);
+}
+
+if (session_status() === PHP_SESSION_NONE) {
+    require_once __DIR__ . '/../../config/session-config.php';
+}
+
+$sessionRole = $_SESSION['user_role'] ?? $_SESSION['role'] ?? null;
 $token = $_SESSION['auth_token'] ?? null;
 
 // Fallback to Bearer Token if session is not set (Structural Fix Phase 2.3)
@@ -32,9 +51,11 @@ $user_id = null;
 
 if ($sessionRole === 'admin') {
     $user_id = $_SESSION['admin_id'] ?? null;
-} elseif ($sessionRole === 'client') {
+}
+elseif ($sessionRole === 'client') {
     $user_id = $_SESSION['client_id'] ?? null;
-} else {
+}
+else {
     $user_id = $_SESSION['user_id'] ?? null;
 }
 
@@ -78,15 +99,16 @@ try {
             'state' => $user['state'] ?? null,
             'address' => $user['address'] ?? null,
             'profile_image' => (function ($pic) {
-                if (!$pic)
-                    return null;
-                if (preg_match('/^https?:\/\//i', $pic))
-                    return $pic;
-                return '/' . ltrim($pic, '/');
-            })($user['profile_pic'] ?? null),
+            if (!$pic)
+                return null;
+            if (preg_match('/^https?:\/\//i', $pic))
+                return $pic;
+            return '/' . ltrim($pic, '/');
+        })($user['profile_pic'] ?? null),
             'token' => $token
         ]
     ]);
-} catch (PDOException $e) {
+}
+catch (PDOException $e) {
     echo json_encode(['success' => false, 'message' => 'Server error']);
 }

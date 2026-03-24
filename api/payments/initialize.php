@@ -31,12 +31,7 @@ if (!$event_id) {
 
 try {
     // ── Fetch user profile ───────────────────────────────────────────────────
-    $uStmt = $pdo->prepare("
-        SELECT u.id AS user_id, u.name, a.email
-        FROM users u
-        JOIN auth_accounts a ON u.user_auth_id = a.id
-        WHERE u.user_auth_id = ?
-    ");
+    $uStmt = $pdo->prepare("SELECT id AS user_id, name, email FROM users WHERE id = ?");
     $uStmt->execute([$auth_id]);
     $user = $uStmt->fetch(PDO::FETCH_ASSOC);
 

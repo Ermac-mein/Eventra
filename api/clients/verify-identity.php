@@ -26,7 +26,7 @@ try {
     $pdo->beginTransaction();
 
     // Fetch existing client to cross-check against account_name
-    $stmt = $pdo->prepare("SELECT id, account_name FROM clients WHERE client_auth_id = ?");
+    $stmt = $pdo->prepare("SELECT id, account_name FROM clients WHERE id = ?");
     $stmt->execute([$client_auth_id]);
     $client = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -40,7 +40,7 @@ try {
     // Call Mock service (simulating real verification)
     $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http';
     $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
-    $mockUrl = "$protocol://$host/api/admin/dojah-mock.php";
+    $mockUrl = "$protocol://$ho/api/admin/dojah-mock.php";
 
     $ch = curl_init($mockUrl);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
@@ -79,7 +79,7 @@ try {
         SET $col = 1, 
             $valCol = ?, 
             updated_at = NOW() 
-        WHERE client_auth_id = ?
+        WHERE id = ?
     ");
     $updateStmt->execute([$number, $client_auth_id]);
 

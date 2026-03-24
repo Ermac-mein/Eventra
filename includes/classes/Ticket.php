@@ -37,14 +37,13 @@ class Ticket
                        e.event_date,
                        e.id      AS event_id,
                        c.business_name AS client_name,
-                       u.name    AS buyer_name,
-                       a.email   AS buyer_email
+                       u.name AS buyer_name,
+                       u.email AS buyer_email
                 FROM tickets t
                 JOIN payments p ON t.payment_id = p.id
                 JOIN events   e ON p.event_id   = e.id
                 JOIN clients  c ON e.client_id  = c.id
-                JOIN users    u ON p.user_id    = u.id
-                JOIN auth_accounts a ON u.user_auth_id = a.id
+                JOIN users    u ON t.user_id     = u.id
                 WHERE t.barcode = ?
                 FOR UPDATE
             ");

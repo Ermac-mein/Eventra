@@ -4,7 +4,7 @@
  */
 header('Content-Type: application/json');
 require_once '../../config/database.php';
-require_once '../../includes/middleware/admin-auth.php';
+require_once '../../includes/middleware/auth.php';
 
 // Check authentication
 $admin_id = adminMiddleware();
@@ -26,17 +26,31 @@ try {
     $stmt->execute([(int)$status, $client_id]);
 
     if ($stmt->rowCount() > 0) {
+        // If status is 1 (verified), also update the main verification_status ENUM
+        if ($status == 1) {
+            $stmtStatus = $pdo->prepare("UPDATE clients SET verification_status = 'verified' WHERE id = ?");
+            $stmtStatus->execute([$client_id]);
+        }
+
         // Notify client about verification
         require_once '../utils/notification-helper.php';
         $status_text = $status ? 'verified' : 'unverified';
         
-        // Need to get client_auth_id to send notification
-        $clientStmt = $pdo->prepare("SELECT client_auth_id FROM clients WHERE id = ?");
-        $clientStmt->execute([$client_id]);
-        $client = $clientStmt->fetch();
-        
-        if ($client) {
-            createNotification($client['client_auth_id'], "Your " . strtoupper($type) . " has been marked as $status_text by an administrator.", 'verification_update', $admin_id);
+        if ($client_id) {
+            // We need the auth_id for notifications
+            $stmtAuth = $pdo->prepare("SELECT client_auth_id FROM clients WHERE id = ?");
+            $stmtAuth->execute([$client_id]);
+            $recipient_auth_id = $stmtAuth->fetchColumn();
+
+            $admin_auth_id = getAuthId();
+            createNotification(
+                $recipient_auth_id, 
+                "Your " . strtoupper($type) . " has been marked as $status_text by an administrator.", 
+                'verification_update', 
+                $admin_auth_id,
+                'client',
+                'admin'
+            );
         }
 
         require_once '../../includes/helpers/entity-resolver.php';

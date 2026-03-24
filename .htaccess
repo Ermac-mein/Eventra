@@ -1,23 +1,11 @@
-# Apache configuration for URL rewriting and security
+RewriteEngine On
+RewriteBase /
 
-<IfModule mod_headers.c>
-    # Critical for Google Identity Services (GSI) Popups
-    Header set Cross-Origin-Opener-Policy "same-origin-allow-popups"
-    Header set Cross-Origin-Embedder-Policy "unsafe-none"
-    
-    # Cache Control for API endpoints to prevent stale check-session responses
-    <FilesMatch "\.(php|json)$">
-        Header set Cache-Control "no-store, no-cache, must-revalidate, max-age=0"
-        Header set Pragma "no-cache"
-    </FilesMatch>
-</IfModule>
+# Redirect Trailing Slashes If Not A Directory...
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^(.*)/$ /$1 [L,R=301]
 
-# PHP configuration for larger uploads
-<IfModule mod_php7.c>
-    php_value upload_max_filesize 10M
-    php_value post_max_size 12M
-</IfModule>
-<IfModule mod_php.c>
-    php_value upload_max_filesize 10M
-    php_value post_max_size 12M
-</IfModule>
+# Handle Front Controller...
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteRule ^ index.php [L]

@@ -19,7 +19,7 @@ try {
     // 1. "Day Before" Rule: Precisely 24 hours from now
     // Window: ±1 minute (since cron runs every minute)
     $oneDayQuery = $pdo->prepare("
-        SELECT e.*, c.client_auth_id, c.business_name
+        SELECT e.*, c.business_name
         FROM events e
         JOIN clients c ON e.client_id = c.id
         WHERE e.status = 'scheduled'
@@ -34,7 +34,7 @@ try {
 
     // 2. "Direct" Trigger: Event time has passed or is now
     $immediateQuery = $pdo->prepare("
-        SELECT e.*, c.client_auth_id, c.business_name
+        SELECT e.*, c.business_name
         FROM events e
         JOIN clients c ON e.client_id = c.id
         WHERE e.status = 'scheduled'
@@ -75,12 +75,12 @@ try {
             ];
 
             // Send to Client with Retry
-            $clientRes = sendNotificationWithRetry($event['client_auth_id'], $clientMessage, $type, 1, $metadata);
+            $clientRes = sendNotificationWithRetry($event['client_id'], $clientMessage, $type, 1, 'client', 'admin', $metadata);
 
             // Notify Admin
             if ($adminId) {
                 $adminMessage = "Notification sent for '{$event['event_name']}' (Client: {$event['business_name']})";
-                sendNotificationWithRetry($adminId, $adminMessage, "admin_{$type}", $event['client_auth_id'], $metadata);
+                sendNotificationWithRetry($adminId, $adminMessage, "admin_{$type}", $event['client_id'], 'admin', 'admin', $metadata);
             }
 
             echo "Processed event: {$event['event_name']} (" . ($isLeadTime ? "24h Reminder" : "Immediate") . ")\n";

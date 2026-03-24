@@ -28,7 +28,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 async function loadEventDetailsById(id) {
     try {
-        const response = await apiFetch(`../../api/events/get-event-details.php?event_id=${id}`);
+        const response = await apiFetch('/api/events/get-event-details.php?event_id=${id}`);
         const result = await response.json();
 
         if (result.success) {
@@ -45,7 +45,7 @@ async function loadEventDetailsById(id) {
 
 async function loadEventDetailsByTag(tag) {
     try {
-        const response = await apiFetch(`../../api/events/get-event-by-tag.php?tag=${tag}`);
+        const response = await apiFetch('/api/events/get-event-by-tag.php?tag=${tag}`);
         const result = await response.json();
 
         if (result.success) {
@@ -111,7 +111,7 @@ function renderEvent(event) {
     for (let i = 0; i < iconsCount; i++) {
         const icon = document.createElement('img');
         icon.className = 'attendee-icon';
-        icon.src = `https://ui-avatars.com/api/?name=User+${i}&background=random`;
+        icon.src = `https://ui-avatars.c/api/?name=User+${i}&background=random`;
         stack.appendChild(icon);
     }
     
@@ -182,7 +182,7 @@ async function handleBooking(eventId) {
     const referral = sessionStorage.getItem('referral_client');
 
     try {
-        const response = await apiFetch('../../api/tickets/purchase-ticket.php', {
+        const response = await apiFetch('/api/tickets/purchase-ticket.php', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
