@@ -2,6 +2,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     const clientsTableBody = document.querySelector('table tbody');
     let allClients = [];
     let sortConfig = { key: null, direction: 'asc' };
+    let pagination = null;
+    const selectedClientIds = new Set();
 
     // Load stats cards from the server for accurate real-time values
     async function loadStats() {
@@ -18,14 +20,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (totalEl) totalEl.textContent = s.total_clients ?? 0;
             // "Active" = online within last 5 min
             if (activeEl) activeEl.textContent = s.online_clients ?? 0;
-            // Sum all events from client list (loaded separately for accuracy)
             if (eventsEl) {
-                const evtRes = await apiFetch('/api/admin/get-clients.php?limit=9999&offset=0');
-                const evtData = await evtRes.json();
-                if (evtData.success) {
-                    const total = evtData.clients.reduce((acc, c) => acc + parseInt(c.event_count || 0), 0);
-                    eventsEl.textContent = total;
-                }
+                eventsEl.textContent = s.total_clients_events ?? 0;
             }
         } catch (e) {
             console.error('Stats load error:', e);
@@ -39,7 +35,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             if (result.success) {
                 allClients = result.clients;
-                renderClients(allClients);
+                updatePagination(allClients);
             } else {
                 console.error('Failed to load clients:', result.message);
                 if (clientsTableBody) {
@@ -67,7 +63,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         clientsTableBody.innerHTML = clients.map(client => `
             <tr data-id="${client.id}" data-profile-pic="${client.profile_pic || ''}">
-                <td style="padding-left: 1.5rem;"><input type="checkbox" class="client-checkbox" data-id="${client.id}"></td>
+                <td style="padding-left: 1.5rem;">
+                    <input type="checkbox" class="client-checkbox" data-id="${client.id}" ${selectedClientIds.has(client.id.toString()) ? 'checked' : ''}>
+                </td>
                 <td>
                     <div style="font-weight: 700; color: var(--admin-primary);">${escapeHTML(client.custom_id) || 'N/A'}</div>
                 </td>
@@ -102,17 +100,18 @@ document.addEventListener('DOMContentLoaded', async () => {
             paginationInfo.textContent = `1 - ${clients.length} of ${clients.length}`;
         }
 
-        // Handle Select All
-        const selectAll = document.getElementById('selectAll');
-        if (selectAll) {
-            selectAll.onchange = (e) => {
-                document.querySelectorAll('.client-checkbox').forEach(cb => cb.checked = e.target.checked);
-            };
-        }
-
-        // Prevent preview open on checkbox click
-        document.querySelectorAll('.client-checkbox, #selectAll').forEach(cb => {
+        // Handle individual checkboxes
+        document.querySelectorAll('.client-checkbox').forEach(cb => {
             cb.onclick = (e) => e.stopPropagation();
+            cb.onchange = (e) => {
+                const id = e.target.dataset.id;
+                if (e.target.checked) {
+                    selectedClientIds.add(id);
+                } else {
+                    selectedClientIds.delete(id);
+                }
+                updateSelectAllState();
+            };
         });
 
         // Re-initialize Lucide icons for badges
@@ -120,6 +119,39 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         // Re-initialize previews for new rows
         if (window.initPreviews) window.initPreviews();
+        
+        updateSelectAllState();
+    }
+
+    function updateSelectAllState() {
+        const selectAll = document.getElementById('selectAll');
+        if (!selectAll) return;
+        
+        const pageCheckboxes = document.querySelectorAll('.client-checkbox');
+        if (pageCheckboxes.length === 0) {
+            selectAll.checked = false;
+            return;
+        }
+        
+        const allCheckedOnPage = Array.from(pageCheckboxes).every(cb => cb.checked);
+        selectAll.checked = allCheckedOnPage;
+    }
+
+    function updatePagination(clients) {
+        if (!pagination) {
+            pagination = new EventraPagination({
+                data: clients,
+                containerId: 'paginationContainer',
+                persistState: true,
+                onPageChange: (pageData, shouldScroll = true) => {
+                    renderClients(pageData);
+                    if (shouldScroll) window.scrollTo({ top: 0, behavior: 'smooth' });
+                }
+            });
+            renderClients(pagination.getPageData(), false);
+        } else {
+            pagination.updateData(clients);
+        }
     }
 
     function sortClients(key) {
@@ -150,7 +182,24 @@ document.addEventListener('DOMContentLoaded', async () => {
             return 0;
         });
 
-        renderClients(sorted);
+        updatePagination(sorted);
+    }
+
+    // Handle Select All click (across global selection)
+    const selectAll = document.getElementById('selectAll');
+    if (selectAll) {
+        selectAll.addEventListener('change', (e) => {
+            const pageCheckboxes = document.querySelectorAll('.client-checkbox');
+            pageCheckboxes.forEach(cb => {
+                cb.checked = e.target.checked;
+                const id = cb.dataset.id;
+                if (e.target.checked) {
+                    selectedClientIds.add(id);
+                } else {
+                    selectedClientIds.delete(id);
+                }
+            });
+        });
     }
 
     // Sort listeners

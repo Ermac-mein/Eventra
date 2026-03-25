@@ -145,7 +145,7 @@ async function loadPayments() {
         });
 
         try {
-            const res = await apiFetch('/api/payments/get-payments.php?${params}');
+            const res = await apiFetch(`/api/payments/get-payments.php?${params}`);
             const data = await res.json();
 
             if (!data.success) {
@@ -169,7 +169,7 @@ async function loadPayments() {
             ...(status && { status }),
         });
         try {
-            const res = await apiFetch('/api/payments/get-refund-requests.php?${params}');
+            const res = await apiFetch(`/api/payments/get-refund-requests.php?${params}`);
             const data = await res.json();
 
             if (!data.success) {
@@ -602,7 +602,7 @@ function exportPayments(format) {
         ...(status && { status }),
         ...(search && { search }),
     });
-    window.open('/api/payments/export-payments.php?${params}', '_blank');
+    window.open(`/api/payments/export-payments.php?${params}`, '_blank');
 }
 
 // ─── Helpers ───────────────────────────────────────────────────────────────

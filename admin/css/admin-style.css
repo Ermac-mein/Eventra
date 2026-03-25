@@ -362,7 +362,9 @@ body {
     background-color: var(--admin-bg-card);
     border-radius: var(--admin-radius);
     box-shadow: var(--admin-shadow);
-    overflow: hidden;
+    overflow-x: auto;
+    position: relative;
+    padding-bottom: 10px; /* Space for bottom scrollbar */
 }
 
 .table-header {

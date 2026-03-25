@@ -1,7 +1,6 @@
-/**
- * Client Users Page JavaScript
- * Handles user display and preview
- */
+let allUsers = [];
+let pagination = null;
+const selectedUserIds = new Set();
 
 document.addEventListener('DOMContentLoaded', async () => {
     const user = storage.getUser();
@@ -105,7 +104,8 @@ async function loadUsers(clientId) {
         const result = await response.json();
 
         if (result.success) {
-            updateUsersTable(result.users || []);
+            allUsers = result.users || [];
+            updatePagination(allUsers);
             if (result.stats) {
                 updateStatsCards(result.stats);
             }
@@ -172,7 +172,13 @@ function updateUsersTable(users) {
     if (selectAll) {
         selectAll.onchange = (e) => {
             const checkboxes = document.querySelectorAll('.user-checkbox');
-            checkboxes.forEach(cb => cb.checked = e.target.checked);
+            checkboxes.forEach(cb => {
+                cb.checked = e.target.checked;
+                const id = cb.dataset.id;
+                if (e.target.checked) selectedUserIds.add(id);
+                else selectedUserIds.delete(id);
+            });
+            updateSelectAllState();
         };
     }
 
@@ -180,6 +186,36 @@ function updateUsersTable(users) {
     document.querySelectorAll('.user-checkbox, #selectAll').forEach(cb => {
         cb.onclick = (e) => e.stopPropagation();
     });
+
+    updateSelectAllState();
+}
+
+function updateSelectAllState() {
+    const selectAll = document.getElementById('selectAll');
+    if (!selectAll) return;
+    const pageCheckboxes = document.querySelectorAll('.user-checkbox');
+    if (pageCheckboxes.length === 0) {
+        selectAll.checked = false;
+        return;
+    }
+    const allCheckedOnPage = Array.from(pageCheckboxes).every(cb => cb.checked);
+    selectAll.checked = allCheckedOnPage;
+}
+
+function updatePagination(users) {
+    if (!pagination) {
+        pagination = new EventraPagination({
+            data: users,
+            containerId: 'paginationContainer',
+            onPageChange: (pageData) => {
+                updateUsersTable(pageData);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        });
+        updateUsersTable(pagination.getPageData());
+    } else {
+        pagination.updateData(users);
+    }
 }
 
 function formatDate(dateString) {

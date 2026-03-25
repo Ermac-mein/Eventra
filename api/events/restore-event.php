@@ -60,7 +60,7 @@ try {
         if ($admin_id) {
             $message = "Event '{$event['event_name']}' has been restored by $user_name";
             $metadata = ['event_id' => $event_id, 'event_name' => $event['event_name']];
-            $auth_id = getAuthId();
+            $auth_id = getAuthId(); // Consistent way to get auth ID
             createNotification($admin_id, $message, 'event_restored', $auth_id, 'admin', 'client', $metadata);
         }
     }

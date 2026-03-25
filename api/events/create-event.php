@@ -112,7 +112,7 @@ try {
     }
 
     // 3. Get POST data
-    require_once '/api/utils/id-generator.php';
+    require_once '../utils/id-generator.php';
     $custom_id = generateEventId($pdo);
 
     $event_name = $_POST['event_name'] ?? '';
@@ -138,13 +138,28 @@ try {
         : date('Y-m-d H:i:s');
 
 
-    // Validate required fields
+    // Validate required fields (including image)
     if (
         empty($event_name) || empty($description) || empty($event_type) ||
         empty($event_date) || empty($event_time) || empty($phone_contact_1) ||
-        empty($state) || empty($address)
+        empty($state) || empty($address) || empty($image_path)
     ) {
-        echo json_encode(['success' => false, 'message' => 'All required fields must be filled.']);
+        http_response_code(400);
+        $missing = [];
+        if (empty($event_name)) $missing[] = 'Event Name';
+        if (empty($description)) $missing[] = 'Description';
+        if (empty($event_type)) $missing[] = 'Category';
+        if (empty($event_date)) $missing[] = 'Date';
+        if (empty($event_time)) $missing[] = 'Time';
+        if (empty($phone_contact_1)) $missing[] = 'Primary Contact';
+        if (empty($state)) $missing[] = 'State';
+        if (empty($address)) $missing[] = 'Address';
+        if (empty($image_path)) $missing[] = 'Event Image (Banner)';
+
+        echo json_encode([
+            'success' => false, 
+            'message' => 'All required fields must be filled: ' . implode(', ', $missing)
+        ]);
         exit;
     }
 
@@ -223,6 +238,10 @@ try {
     ]);
 
 } catch (Throwable $e) {
-    http_response_code(500);
+    if (strpos($e->getMessage(), 'Image upload failed') !== false || strpos($e->getMessage(), 'required fields') !== false) {
+        http_response_code(400);
+    } else {
+        http_response_code(500);
+    }
     echo json_encode(['success' => false, 'message' => 'Error: ' . $e->getMessage()]);
 }

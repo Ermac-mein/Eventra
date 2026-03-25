@@ -384,6 +384,74 @@ document.addEventListener('click', (e) => {
 });
 
 /**
+ * Save form state to localStorage
+ * @param {string} formId - The ID of the form to save
+ */
+function saveFormState(formId) {
+    const form = document.getElementById(formId);
+    if (!form) return;
+
+    const formData = {};
+    const elements = form.querySelectorAll('input, select, textarea');
+
+    elements.forEach(el => {
+        // Skip sensitive or unnecessary fields
+        if (el.type === 'password' || el.type === 'file' || el.type === 'hidden' || el.name === 'event_id') {
+            return;
+        }
+
+        if (el.type === 'checkbox' || el.type === 'radio') {
+            formData[el.name] = el.checked;
+        } else {
+            formData[el.name] = el.value;
+        }
+    });
+
+    localStorage.setItem(`form_state_${formId}`, JSON.stringify(formData));
+}
+
+/**
+ * Restore form state from localStorage
+ * @param {string} formId - The ID of the form to restore
+ */
+function restoreFormState(formId) {
+    const savedData = localStorage.getItem(`form_state_${formId}`);
+    if (!savedData) return;
+
+    try {
+        const formData = JSON.parse(savedData);
+        const form = document.getElementById(formId);
+        if (!form) return;
+
+        Object.keys(formData).forEach(name => {
+            const el = form.querySelector(`[name="${name}"]`);
+            if (!el) return;
+
+            if (el.type === 'checkbox' || el.type === 'radio') {
+                el.checked = formData[name];
+                // Trigger change event for interactive elements
+                el.dispatchEvent(new Event('change', { bubbles: true }));
+            } else {
+                el.value = formData[name];
+                // Trigger input/change events
+                el.dispatchEvent(new Event('input', { bubbles: true }));
+                el.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+        });
+    } catch (e) {
+        console.warn(`[Persistence] Failed to restore state for ${formId}:`, e);
+    }
+}
+
+/**
+ * Clear form state from localStorage
+ * @param {string} formId - The ID of the form to clear
+ */
+function clearFormState(formId) {
+    localStorage.removeItem(`form_state_${formId}`);
+}
+
+/**
  * Animate numbers (Count Up effect)
  */
 function animateNumbers() {
@@ -426,3 +494,180 @@ if (typeof module !== 'undefined' && module.exports) {
     apiFetch
   };
 }
+
+/**
+ * Custom Time Picker Logic
+ * Used by create-event.js and modals.js
+ */
+function toggleTimePicker(dropdownId) {
+    const dropdown = document.getElementById(dropdownId);
+    if (!dropdown) return;
+    
+    const container = dropdown.closest('.time-picker-container');
+    const display = container.querySelector('.time-picker-display');
+    
+    // Close other dropdowns if any
+    document.querySelectorAll('.time-picker-dropdown').forEach(d => {
+        if (d.id !== dropdownId) {
+            d.classList.remove('active');
+            const otherContainer = d.closest('.time-picker-container');
+            if (otherContainer) {
+                otherContainer.querySelector('.time-picker-display').classList.remove('active');
+            }
+        }
+    });
+    
+    dropdown.classList.toggle('active');
+    
+    if (dropdown.classList.contains('active')) {
+        display.classList.add('active');
+        
+        // Add one-time click listener to document to close when clicking outside
+        const closePicker = (e) => {
+            if (!container.contains(e.target)) {
+                dropdown.classList.remove('active');
+                display.classList.remove('active');
+                document.removeEventListener('click', closePicker);
+            }
+        };
+        setTimeout(() => document.addEventListener('click', closePicker), 10);
+    } else {
+        display.classList.remove('active');
+    }
+}
+
+function selectHour(hour, containerId) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    
+    container.querySelectorAll('.hours .time-btn').forEach(btn => btn.classList.remove('selected'));
+    // Find the button with the hour text and select it
+    // Handle both "4" and "04" if needed, but grid will use "1", "2", etc.
+    const targetBtn = Array.from(container.querySelectorAll('.hours .time-btn')).find(b => b.textContent.trim() === hour.toString());
+    if (targetBtn) targetBtn.classList.add('selected');
+    
+    updateTimeValue(containerId);
+}
+
+function selectMinute(minute, containerId) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    
+    container.querySelectorAll('.minutes .time-btn').forEach(btn => btn.classList.remove('selected'));
+    const targetBtn = Array.from(container.querySelectorAll('.minutes .time-btn')).find(b => b.textContent.trim() === minute.toString());
+    if (targetBtn) targetBtn.classList.add('selected');
+    
+    updateTimeValue(containerId);
+}
+
+function selectAmPm(period, containerId) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    
+    container.querySelectorAll('.time-picker-ampm .time-btn').forEach(btn => btn.classList.remove('selected'));
+    const targetBtn = Array.from(container.querySelectorAll('.time-picker-ampm .time-btn')).find(b => b.textContent.toLowerCase().trim() === period.toLowerCase());
+    if (targetBtn) targetBtn.classList.add('selected');
+    
+    updateTimeValue(containerId);
+}
+
+function updateTimeValue(containerId) {
+    const container = document.getElementById(containerId);
+    const hourBtn = container.querySelector('.hours .time-btn.selected');
+    const minuteBtn = container.querySelector('.minutes .time-btn.selected');
+    const ampmBtn = container.querySelector('.time-picker-ampm .time-btn.selected');
+    const display = container.querySelector('.time-picker-display span');
+    const input = container.querySelector('input[type="hidden"]');
+    
+    if (hourBtn && minuteBtn && ampmBtn) {
+        const hText = hourBtn.textContent.trim();
+        const mText = minuteBtn.textContent.trim();
+        const pText = ampmBtn.textContent.trim().toLowerCase();
+        
+        const timeDisplay = `${hText}:${mText} ${pText}`;
+        
+        let h = parseInt(hText);
+        const m = mText;
+        
+        if (pText === 'pm' && h < 12) h += 12;
+        if (pText === 'am' && h === 12) h = 0;
+        
+        const timeValue24 = `${h.toString().padStart(2, '0')}:${m}`;
+        
+        input.value = timeValue24;
+        display.textContent = timeDisplay;
+        display.style.color = '#334155'; // Vibrant charcoal
+        
+        // Dispatches input event for persistence tracking
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+
+        // Auto-close if all three are selected
+        setTimeout(() => {
+            const dropdown = container.querySelector('.time-picker-dropdown');
+            const displayEl = container.querySelector('.time-picker-display');
+            if (dropdown) dropdown.classList.remove('active');
+            if (displayEl) displayEl.classList.remove('active');
+        }, 500);
+    } else {
+        const h = hourBtn ? hourBtn.textContent.trim() : '--';
+        const m = minuteBtn ? minuteBtn.textContent.trim() : '--';
+        const p = ampmBtn ? ampmBtn.textContent.trim().toLowerCase() : '--';
+        display.textContent = `${h}:${m} ${p}`;
+    }
+}
+
+function setTimePickerValue(containerId, time) {
+    const container = document.getElementById(containerId);
+    if (!container || !time) return;
+
+    // Expected format HH:mm or HH:mm:ss or "h:mm am/pm"
+    let hour, minute, period;
+
+    if (time.toLowerCase().includes('am') || time.toLowerCase().includes('pm')) {
+        // "4:10 pm" format
+        const parts = time.toLowerCase().split(/[:\s]/);
+        hour = parts[0];
+        minute = parts[1];
+        period = parts[2];
+    } else {
+        // "HH:mm" format
+        const parts = time.split(':');
+        if (parts.length < 2) return;
+        let hNum = parseInt(parts[0]);
+        minute = parts[1].padStart(2, '0');
+        
+        if (hNum >= 12) {
+            period = 'pm';
+            if (hNum > 12) hNum -= 12;
+        } else {
+            period = 'am';
+            if (hNum === 0) hNum = 12;
+        }
+        hour = hNum.toString();
+    }
+
+    // Round minute to nearest 5
+    const minNum = parseInt(minute);
+    const roundedMin = (Math.round(minNum / 5) * 5 % 60).toString().padStart(2, '0');
+
+    // Select buttons
+    container.querySelectorAll('.hours .time-btn').forEach(btn => {
+        btn.classList.toggle('selected', btn.textContent === hour);
+    });
+    container.querySelectorAll('.minutes .time-btn').forEach(btn => {
+        btn.classList.toggle('selected', btn.textContent === roundedMin);
+    });
+    container.querySelectorAll('.time-picker-ampm .time-btn').forEach(btn => {
+        btn.classList.toggle('selected', btn.textContent.toLowerCase() === period.toLowerCase());
+    });
+
+    updateTimeValue(containerId);
+}
+
+// Export for window
+window.toggleTimePicker = toggleTimePicker;
+window.selectHour = selectHour;
+window.selectMinute = selectMinute;
+window.selectAmPm = selectAmPm;
+window.updateTimeValue = updateTimeValue;
+window.setTimePickerValue = setTimePickerValue;

@@ -60,6 +60,10 @@ try {
     $stmt = $pdo->prepare("UPDATE events SET deleted_at = NOW() WHERE id = ?");
     $stmt->execute([$event_id]);
 
+    // Define metadata for notifications
+    $metadata = ['event_id' => $event_id, 'event_name' => $event['event_name']];
+    $auth_id = $_SESSION['auth_id'];
+
     // Send notifications for deletion activity
     if ($user_role === 'client') {
         // Client deleted their event - notify admin
@@ -71,16 +75,12 @@ try {
         $admin_id = getAdminUserId();
         if ($admin_id) {
             $message = "Event '{$event['event_name']}' has been deleted by $user_name";
-            $metadata = ['event_id' => $event_id, 'event_name' => $event['event_name']];
-            $auth_id = $_SESSION['auth_id'];
-            $client_auth_id = $event['client_auth_id'];
             createNotification($admin_id, $message, 'event_deleted', $auth_id, 'admin', 'client', $metadata);
         }
     } else {
         // Admin deleted the event - notify the client owner
         $message = "Your event '{$event['event_name']}' has been moved to trash.";
         $client_auth_id = $event['client_auth_id'];
-        $auth_id = $_SESSION['auth_id'];
         createNotification($client_auth_id, $message, 'event_deleted', $auth_id, 'client', 'admin', $metadata);
     }
 

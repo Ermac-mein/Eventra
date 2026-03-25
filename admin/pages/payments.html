@@ -13,6 +13,7 @@
     <script src="../../public/js/auth-guard.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="icon" type="image/x-icon" href="/public/favicon.ico">
+    <link rel="stylesheet" href="../../public/css/pagination.css">
 
     <style>
         /* ── Filter Bar ─────────────────────────────────── */
@@ -50,13 +51,7 @@
         /* ── Ticket badge ───────────────────────────────── */
         .ticket-badge { display:inline-flex; align-items:center; justify-content:center; width:26px; height:26px; border-radius:50%; background:#e0f2fe; color:#0369a1; font-size:.78rem; font-weight:700; }
 
-        /* ── Pagination ─────────────────────────────────── */
-        .pagination-bar { display:flex; align-items:center; justify-content:space-between; margin-top:1.2rem; flex-wrap:wrap; gap:.75rem; }
-        .pagination-info { font-size:.82rem; color:#64748b; }
-        .pagination-btns { display:flex; gap:.35rem; align-items:center; }
-        .page-btn { padding:.38rem .8rem; border-radius:8px; border:1.5px solid #e2e8f0; background:white; cursor:pointer; font-weight:600; font-size:.82rem; transition:all .18s; }
-        .page-btn:hover, .page-btn.active { background:#6366f1; color:white; border-color:#6366f1; }
-        .page-btn:disabled { opacity:.35; cursor:not-allowed; }
+
 
         /* ── Detail Modal ─────────────────────────────── */
         .payment-detail-modal { position:fixed; inset:0; background:rgba(0,0,0,.45); display:none; align-items:center; justify-content:center; z-index:9000; backdrop-filter:blur(4px); padding:1rem; }
@@ -179,10 +174,7 @@
                     </table>
                 </div>
 
-                <div class="pagination-bar">
-                    <span class="pagination-info" id="paginationInfo">Showing 0 payments</span>
-                    <div class="pagination-btns" id="paginationBtns"></div>
-                </div>
+                <div id="paginationContainer"></div>
             </div>
         </main>
     </div>
@@ -243,6 +235,7 @@
     <script src="../js/profile-pic-upload.js"></script>
     <script src="../js/search-manager.js"></script>
     <script src="../js/admin-main.js"></script>
+    <script src="../../public/js/pagination.js"></script>
     <script src="../js/payments.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => { 

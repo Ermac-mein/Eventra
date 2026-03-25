@@ -6,6 +6,8 @@
 let currentTab = 'active';
 let eventsData = [];
 let sortConfig = { key: 'event_date', direction: 'desc' };
+let pagination = null;
+const selectedEventIds = new Set();
 
 document.addEventListener('DOMContentLoaded', async () => {
     const user = storage.getUser();
@@ -82,7 +84,7 @@ async function loadEvents(clientId) {
 
             // Update events table
             eventsData = result.events;
-            sortEvents(sortConfig.key, false);
+            updatePagination(eventsData);
         }
     } catch (error) {
         console.error('Error loading events:', error);
@@ -112,7 +114,7 @@ function updateStatsCards(stats) {
 }
 
 function updateEventsTable(events) {
-    const tbody = document.querySelector('.table-card table tbody');
+    const tbody = document.getElementById('eventsTableBody');
     if (!tbody) return;
 
     // Restore default table headers for active view
@@ -220,6 +222,37 @@ function updateEventsTable(events) {
     document.querySelectorAll('.event-checkbox, #selectAll').forEach(cb => {
         cb.onclick = (e) => e.stopPropagation();
     });
+
+    updateSelectAllState();
+}
+
+function updateSelectAllState() {
+    const selectAll = document.getElementById('selectAll');
+    if (!selectAll) return;
+    const pageCheckboxes = document.querySelectorAll('.event-checkbox');
+    if (pageCheckboxes.length === 0) {
+        selectAll.checked = false;
+        return;
+    }
+    const allCheckedOnPage = Array.from(pageCheckboxes).every(cb => cb.checked);
+    selectAll.checked = allCheckedOnPage;
+}
+
+function updatePagination(events) {
+    if (!pagination) {
+        pagination = new EventraPagination({
+            data: events,
+            containerId: 'paginationContainer',
+            persistState: true,
+            onPageChange: (pageData, shouldScroll = true) => {
+                updateEventsTable(pageData);
+                if (shouldScroll) window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        });
+        updateEventsTable(pagination.getPageData(), false);
+    } else {
+        pagination.updateData(events);
+    }
 }
 
 function getSortIcon(key) {
@@ -261,7 +294,7 @@ function sortEvents(key, toggle = true) {
         return 0;
     });
 
-    updateEventsTable(eventsData);
+    updatePagination(eventsData);
 }
 window.sortEvents = sortEvents;
 
@@ -480,45 +513,23 @@ async function loadTrashEvents() {
         `;
     }
 
-    tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 2rem; color: var(--client-text-muted);"><span class="btn-spinner" style="margin-right: 8px;"></span>Loading trash...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 2rem; color: var(--client-text-muted);"><span class="btn-spinner" style="margin-right: 8px;"></span>Loading trash...</td></tr>';
 
     try {
         const response = await apiFetch('/api/events/get-trash.php?limit=100');
         const result = await response.json();
 
         if (result.success) {
-            if (result.events.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 2rem; color: var(--client-text-muted);">🎉 Trash is empty!</td></tr>';
+            eventsData = result.events;
+            if (eventsData.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 2rem; color: var(--client-text-muted);">🎉 Trash is empty!</td></tr>';
+                if (pagination) pagination.updateData([]);
                 return;
             }
 
-            tbody.innerHTML = result.events.map(event => `
-                <tr data-id="${event.id}" style="transition: opacity 0.3s, transform 0.3s;">
-                    <td><input type="checkbox" class="event-checkbox" data-id="${event.id}"></td>
-                    <td style="font-family:monospace;font-size:0.8rem;color:#635bff;font-weight:600;">${event.custom_id || '—'}</td>
-                    <td>
-                        <div style="font-weight: 600;">${event.event_name}</div>
-                    </td>
-                    <td>${event.event_type || '—'}</td>
-                    <td>${new Date(event.event_date).toLocaleDateString()}</td>
-                    <td>${parseFloat(event.price) === 0 
-                        ? '<span style="background: #ecfdf5; color: #10b981; padding: 2px 8px; border-radius: 4px; font-weight: 600; font-size: 0.8rem;">Free</span>'
-                        : '₦' + parseFloat(event.price).toLocaleString()}</td>
-                    <td style="color: #ef4444; font-size: 0.85rem;">${new Date(event.deleted_at).toLocaleString()}</td>
-                    <td class="text-center">
-                        <div style="display: flex; gap: 0.5rem; justify-content: center;">
-                            <button onclick="restoreEvent(${event.id})" title="Restore Event" style="background: #10b981; color: white; border: none; padding: 6px 14px; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 0.8rem; transition: all 0.2s;">
-                                Restore
-                            </button>
-                            <button onclick="permanentDeleteEvent(${event.id})" title="Delete Forever" style="background: #ef4444; color: white; border: none; padding: 6px 14px; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 0.8rem; transition: all 0.2s;">
-                                 Delete Forever
-                            </button>
-                        </div>
-                    </td>
-                </tr>
-            `).join('');
+            updatePagination(eventsData);
         } else {
-            tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 2rem; color: #ef4444;">Failed to load trash</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 2rem; color: #ef4444;">Failed to load trash</td></tr>';
         }
     } catch (error) {
         console.error('Error loading trash:', error);
@@ -531,7 +542,7 @@ async function loadTrashEvents() {
 async function restoreEvent(eventId) {
     const result = await Swal.fire({
         title: 'Restore Event?',
-        text: 'This event will be restored with "Draft" status. You can then edit and re-publish it.',
+        text: 'This event will be restored with "Restored" status. You can then edit and re-publish it.',
         icon: 'question',
         showCancelButton: true,
         confirmButtonColor: '#10b981',
@@ -560,7 +571,7 @@ async function restoreEvent(eventId) {
 
         if (data.success) {
             setTimeout(() => { if (row) row.remove(); }, 350);
-            showNotification('Event restored! Status set to Draft.', 'success');
+            showNotification('Event restored! Status set to Restored.', 'success');
             const user = storage.getUser();
             refreshStats(user.id);
 
@@ -830,9 +841,10 @@ async function publishEvent(eventId) {
             if (window.loadDashboardStats) {
                 window.loadDashboardStats(storage.get('user').id);
             }
-            
-            // Reload page to reflect changes
-            setTimeout(() => window.location.reload(), 1000);
+            // Refresh data instead of full reload
+            loadEvents(storage.get('user').id);
+            // Close preview modal if still open
+            closeEventPreviewModal && closeEventPreviewModal();
         } else {
             showNotification('Failed to publish event: ' + result.message, 'error');
         }

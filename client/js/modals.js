@@ -168,7 +168,15 @@ function showProfileEditModal() {
     }
 
     // Add form submit handler
-    document.getElementById('profileEditForm').addEventListener('submit', handleProfileUpdate);
+    const profileEditForm = document.getElementById('profileEditForm');
+    profileEditForm.addEventListener('submit', handleProfileUpdate);
+
+    // Add persistence: save on input
+    profileEditForm.addEventListener('input', () => saveFormState('profileEditForm'));
+    profileEditForm.addEventListener('change', () => saveFormState('profileEditForm'));
+
+    // Restore saved state
+    restoreFormState('profileEditForm');
 
     // Initialize verification statuses
     if (user.nin_verified == 1) updateFieldStatus('nin', 'success');
@@ -207,30 +215,33 @@ async function handleProfileUpdate(e) {
         if (profileResult.success) {
             showNotification('Profile updated successfully!', 'success');
             
+            // Clear saved form state
+            clearFormState('profileEditForm');
+            
             // Update stored user data
-            storage.set('client_user', result.user);
-            storage.set('user', result.user); // Sync both
+            storage.set('client_user', profileResult.user);
+            storage.set('user', profileResult.user); // Sync both
             
             // Close modal
             closeProfileEditModal();
             
             // Reload page to reflect changes
             if (window.loadDashboardStats) {
-                window.loadDashboardStats(result.user.id);
+                window.loadDashboardStats(profileResult.user.id);
             }
             
             // Update sidebar profile if exists
             if (document.getElementById('sidebarUserName')) {
-                document.getElementById('sidebarUserName').textContent = result.user.name;
+                document.getElementById('sidebarUserName').textContent = profileResult.user.name;
             }
             
             setTimeout(() => window.location.reload(), 1000);
         } else {
-            showNotification('Failed to update profile: ' + profileResult.message, 'error');
+            console.warn('Failed to update profile:', profileResult.message);
         }
     } catch (error) {
         console.error('Error updating profile:', error);
-        showNotification('An error occurred while updating profile', 'error');
+        // User requested notifications and indicators only on success
     }
 }
 
@@ -318,7 +329,7 @@ async function validateAndVerifyField(type) {
         } else {
             const errorMsg = result.data?.message || `Invalid ${type.toUpperCase()}`;
             updateFieldStatus(type, 'error', escapeHTML(errorMsg));
-            showNotification(`${escapeHTML(type.toUpperCase())} verification failed.`, 'error');
+            // User requested notifications only on success
             
             const user = storage.get('client_user') || storage.get('user');
             if (user) {
@@ -688,6 +699,7 @@ async function publishEvent(eventId) {
 // Edit Event Modal
 function showEditEventModal(event) {
     const modalHTML = `
+        <link rel="stylesheet" href="../../public/css/time-picker.css">
         <div id="editEventModal" class="modal-backdrop active" role="dialog" aria-modal="true" aria-hidden="false">
             <div class="modal-content" style="max-width: 800px; max-height: 90vh; overflow-y: auto;">
                 <div class="modal-header">
@@ -737,6 +749,7 @@ function showEditEventModal(event) {
                                     <option value="Religious" ${event.event_type === 'Religious' ? 'selected' : ''}>Religious</option>
                                     <option value="Cultural" ${event.event_type === 'Cultural' ? 'selected' : ''}>Cultural</option>
                                     <option value="Educational" ${event.event_type === 'Educational' ? 'selected' : ''}>Educational</option>
+                                    <option value="Business" ${event.event_type === 'Business' ? 'selected' : ''}>Business</option>
                                     <option value="Other" ${event.event_type === 'Other' ? 'selected' : ''}>Other</option>
                                 </select>
                             </div>
@@ -759,7 +772,36 @@ function showEditEventModal(event) {
 
                             <div class="form-group">
                                 <label>Event Time *</label>
-                                <input type="time" name="event_time" value="${event.event_time}" required>
+                                <div id="editEventTimePickerContainer" class="time-picker-container">
+                                    <div class="time-picker-display" onclick="toggleTimePicker('editEventTimePickerDropdown')">
+                                        <span id="editEventTimeDisplay">${event.event_time ? event.event_time.substring(0, 5) : 'Select Time'}</span>
+                                        <span style="font-size: 0.8rem; opacity: 0.5;">🕒</span>
+                                    </div>
+                                    <div id="editEventTimePickerDropdown" class="time-picker-dropdown">
+                                        <!-- Top Section: Hours -->
+                                        <div class="time-picker-section">
+                                            <label class="time-picker-label">Hours</label>
+                                            <div class="time-picker-grid hours" id="editHourGrid">
+                                                ${[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(h => `<button type="button" class="time-btn" onclick="selectHour('${h}', 'editEventTimePickerContainer')">${h}</button>`).join('')}
+                                            </div>
+                                        </div>
+                                        <!-- Middle Section: Minutes -->
+                                        <div class="time-picker-section">
+                                            <label class="time-picker-label">Minutes</label>
+                                            <div class="time-picker-grid minutes" id="editMinuteGrid">
+                                                ${['00', '05', '10', '15', '20', '25', '30', '35', '40', '45', '50', '55'].map(m => `<button type="button" class="time-btn" onclick="selectMinute('${m}', 'editEventTimePickerContainer')">${m}</button>`).join('')}
+                                            </div>
+                                        </div>
+                                        <!-- Bottom Section: Period -->
+                                        <div class="time-picker-section">
+                                            <div class="time-picker-ampm">
+                                                <button type="button" class="time-btn ampm-btn" onclick="selectAmPm('am', 'editEventTimePickerContainer')">am</button>
+                                                <button type="button" class="time-btn ampm-btn" onclick="selectAmPm('pm', 'editEventTimePickerContainer')">pm</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <input type="hidden" name="event_time" id="editEventTimeInput" value="${event.event_time || ''}" required>
+                                </div>
                             </div>
 
                             <div class="form-group">
@@ -835,10 +877,23 @@ function showEditEventModal(event) {
     // Add modal to body
     document.body.insertAdjacentHTML('beforeend', modalHTML);
 
-    // Add form submit handler
-    document.getElementById('editEventForm').addEventListener('submit', handleEventUpdate);
+    // Add persistence
+    const editEventForm = document.getElementById('editEventForm');
+    editEventForm.addEventListener('input', () => saveFormState('editEventForm'));
+    editEventForm.addEventListener('change', () => saveFormState('editEventForm'));
 
-    // Logic for visibility binding removed as requested
+    // Restore saved state
+    restoreFormState('editEventForm');
+
+    // Add submit handler
+    editEventForm.addEventListener('submit', handleEventUpdate);
+
+    // Initialize Time Picker highlights if time exists
+    if (event.event_time) {
+        if (typeof setTimePickerValue === 'function') {
+            setTimePickerValue('editEventTimePickerContainer', event.event_time);
+        }
+    }
 }
 
 function closeEditEventModal() {
@@ -878,6 +933,10 @@ async function handleEventUpdate(e) {
 
         if (result.success) {
             showNotification('Event updated successfully!', 'success');
+            
+            // Clear saved form state
+            clearFormState('editEventForm');
+            
             closeEditEventModal();
             setTimeout(() => window.location.reload(), 1000);
         } else {

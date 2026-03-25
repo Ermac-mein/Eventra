@@ -1,13 +1,14 @@
 /**
- * Admin Tickets Dashboard — Fully rewritten
- * Supports status filtering, search, sort, pagination, and ticket detail modal.
+ * Admin Tickets Dashboard — Fully rewritten with Unified Pagination
  */
 
 let _allTickets = [];
 let _filteredTickets = [];
 let _tktSort = { key: 'created_at', dir: 'desc' };
-let _tktPage = 1;
-const TKT_PER_PAGE = 20;
+let _tktPage = parseInt(new URLSearchParams(window.location.search).get('page')) || 1;
+let TKT_PER_PAGE = 10;
+let _tktPagination = null;
+const selectedTicketIds = new Set();
 
 document.addEventListener('DOMContentLoaded', async () => {
     await loadTickets();
@@ -58,12 +59,10 @@ async function loadTickets() {
         if (!data.success) throw new Error(data.message || 'Failed');
         
         _allTickets = data.tickets || [];
-        // We still use _filteredTickets for local UI logic but the source is now paginated/filtered by server
         _filteredTickets = _allTickets; 
         
         renderTicketsTable();
-        // Updated pagination renders based on data.total
-        renderTktPagination(data.total || 0);
+        updateTktPagination(data.total || 0, _tktPage, TKT_PER_PAGE);
         updateStats(data);
     } catch (err) {
         console.error('Tickets load error', err);
@@ -74,7 +73,6 @@ async function loadTickets() {
 }
 
 function applyFilters() {
-    // Now just triggers loadTickets for server-side filtering
     loadTickets();
 }
 
@@ -104,12 +102,29 @@ function renderTicketsTable() {
         tbody.appendChild(row);
     });
 
+    // Handle individual checkboxes
+    document.querySelectorAll('.ticket-checkbox').forEach(cb => {
+        cb.onclick = (e) => e.stopPropagation();
+        cb.onchange = (e) => {
+            const id = e.target.dataset.id;
+            if (e.target.checked) selectedTicketIds.add(id);
+            else selectedTicketIds.delete(id);
+            updateSelectAllState();
+        };
+    });
+
     // Handle Select All
     const selectAll = document.getElementById('selectAll');
     if (selectAll) {
         selectAll.onchange = (e) => {
             const checkboxes = document.querySelectorAll('.ticket-checkbox');
-            checkboxes.forEach(cb => cb.checked = e.target.checked);
+            checkboxes.forEach(cb => {
+                cb.checked = e.target.checked;
+                const id = cb.dataset.id;
+                if (e.target.checked) selectedTicketIds.add(id);
+                else selectedTicketIds.delete(id);
+            });
+            updateSelectAllState();
         };
     }
 
@@ -118,40 +133,50 @@ function renderTicketsTable() {
         cb.onclick = (e) => e.stopPropagation();
     });
 
+    updateSelectAllState();
+
     if (window.lucide) lucide.createIcons();
 }
 
-function renderTktPagination(totalOverride) {
-    const info = document.getElementById('tktPagInfo');
-    const btns = document.getElementById('tktPagBtns');
-    if (!info || !btns) return;
-
-    const total = totalOverride !== undefined ? totalOverride : _filteredTickets.length;
-    const pages = Math.max(1, Math.ceil(total / TKT_PER_PAGE));
-    const from = total === 0 ? 0 : (_tktPage - 1) * TKT_PER_PAGE + 1;
-    const to = Math.min(_tktPage * TKT_PER_PAGE, total);
-    const statusMsg = total === 0 ? 'No tickets' : `Showing ${from}–${to} of ${total} tickets`;
-    info.textContent = statusMsg;
-    btns.textContent = '';
-
-    const prev = document.createElement('button');
-    prev.className = 'tkt-page-btn'; prev.textContent = '← Prev'; prev.disabled = _tktPage <= 1;
-    prev.onclick = () => { _tktPage--; loadTickets(); };
-    btns.appendChild(prev);
-
-    for (let i = Math.max(1, _tktPage - 2); i <= Math.min(pages, _tktPage + 2); i++) {
-        const b = document.createElement('button');
-        b.className = `tkt-page-btn${i === _tktPage ? ' active' : ''}`;
-        b.textContent = i;
-        const pg = i;
-        b.onclick = () => { _tktPage = pg; loadTickets(); };
-        btns.appendChild(b);
+function updateSelectAllState() {
+    const selectAll = document.getElementById('selectAll');
+    if (!selectAll) return;
+    const pageCheckboxes = document.querySelectorAll('.ticket-checkbox');
+    if (pageCheckboxes.length === 0) {
+        selectAll.checked = false;
+        return;
     }
+    const allCheckedOnPage = Array.from(pageCheckboxes).every(cb => cb.checked);
+    selectAll.checked = allCheckedOnPage;
+}
 
-    const next = document.createElement('button');
-    next.className = 'tkt-page-btn'; next.textContent = 'Next →'; next.disabled = _tktPage >= pages;
-    next.onclick = () => { _tktPage++; loadTickets(); };
-    btns.appendChild(next);
+function updateTktPagination(total, page, limit) {
+    if (!_tktPagination) {
+        _tktPagination = new EventraPagination({
+            mode: 'server',
+            totalItems: total,
+            pageSize: limit,
+            currentPage: page,
+            persistState: true,
+            containerId: 'paginationContainer'
+        });
+        
+        _tktPagination.setPage = (p, smoothScroll = true) => {
+            if (p < 1 || p > _tktPagination.totalPages) return;
+            _tktPage = p;
+            if (_tktPagination.persistState) _tktPagination.syncUrl();
+            loadTickets();
+            if (smoothScroll) window.scrollTo({ top: 0, behavior: 'smooth' });
+        };
+        
+        _tktPagination.setPageSize = (size) => {
+            TKT_PER_PAGE = parseInt(size);
+            _tktPage = 1;
+            loadTickets();
+        };
+    } else {
+        _tktPagination.updateData([], total, Math.ceil(total / limit), page);
+    }
 }
 
 function updateStats(data) {
@@ -177,8 +202,8 @@ function openAdminTicketModal(ticket) {
         : null;
     const heroBg = imgSrc ? `url("${imgSrc.replace(/"/g, '%22')}")` : 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)';
     const price = parseFloat(ticket.total_price) === 0 ? 'Free' : `₦${parseFloat(ticket.total_price).toLocaleString()}`;
-    const statusClass = ticket.status === 'active' ? 'tkt-active' : ticket.status === 'used' ? 'tkt-used' : 'tkt-cancelled';
-    const statusLabel = { active: '✓ Active', used: '👁 Used', cancelled: '✕ Cancelled' }[ticket.status] || ticket.status;
+    const statusClass = ticket.status === 'valid' ? 'tkt-active' : ticket.status === 'used' ? 'tkt-used' : 'tkt-cancelled';
+    const statusLabel = { valid: '✓ Valid', used: '👁 Used', cancelled: '✕ Cancelled' }[ticket.status] || ticket.status;
 
     const html = `
     <div id="adminTicketModal" style="position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:9100;backdrop-filter:blur(6px);padding:1rem;">
@@ -230,7 +255,7 @@ function setTableStatusRow(tbody, message, color = '#94a3b8') {
     tbody.textContent = '';
     const tr = document.createElement('tr');
     const td = document.createElement('td');
-    td.colSpan = 8;
+    td.colSpan = 10;
     td.style.textAlign = 'center';
     td.style.padding = '2.5rem';
     td.style.color = color;
@@ -253,6 +278,7 @@ function createTicketRow(t) {
     input.type = 'checkbox';
     input.className = 'ticket-checkbox';
     input.dataset.id = t.id;
+    input.checked = selectedTicketIds.has(t.id.toString());
     input.onclick = (e) => e.stopPropagation();
     tdCheck.appendChild(input);
     tr.appendChild(tdCheck);

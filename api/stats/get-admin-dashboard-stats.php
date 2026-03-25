@@ -24,10 +24,10 @@ try {
     $total_events = $stmt->fetch()['total'];
 
     // 4. Total Online (Using auth_accounts since that's where status is stored)
-    $stmt = $pdo->query("SELECT COUNT(*) as total FROM auth_accounts WHERE is_online = 1 AND last_seen >= DATE_SUB(NOW(), INTERVAL 5 MINUTE) AND role = 'user'");
+    $stmt = $pdo->query("SELECT COUNT(*) as total FROM auth_accounts WHERE is_online = 1 AND last_seen >= DATE_SUB(NOW(), INTERVAL 5 MINUTE) AND role = 'user' AND deleted_at IS NULL");
     $online_users = $stmt->fetch()['total'] ?? 0;
     
-    $stmt = $pdo->query("SELECT COUNT(*) as total FROM auth_accounts WHERE is_online = 1 AND last_seen >= DATE_SUB(NOW(), INTERVAL 5 MINUTE) AND role = 'client'");
+    $stmt = $pdo->query("SELECT COUNT(*) as total FROM auth_accounts WHERE is_online = 1 AND last_seen >= DATE_SUB(NOW(), INTERVAL 5 MINUTE) AND role = 'client' AND deleted_at IS NULL");
     $online_clients = $stmt->fetch()['total'] ?? 0;
 
     // 5. Total Revenue — correctly as SUM(e.price) for all paid tickets
@@ -117,7 +117,8 @@ try {
             'total_revenue' => (float) $total_revenue,
             'platform_earnings' => (float) ($total_revenue * 0.30),
             'pending_payments' => (int) $pending_payments,
-            'restored_events' => (int) $restored_events
+            'restored_events' => (int) $restored_events,
+            'total_clients_events' => (int) $pdo->query("SELECT COUNT(*) FROM events WHERE deleted_at IS NULL")->fetchColumn()
         ],
         'recent_activities' => $recent_activities,
         'top_users' => $top_users,

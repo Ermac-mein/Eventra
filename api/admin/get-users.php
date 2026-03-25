@@ -19,25 +19,26 @@ try {
     $where_clause = "WHERE 1=1";
 
     if (!empty($search)) {
-        $where_clause .= " AND (p.name LIKE ? OR p.email LIKE ? OR p.phone LIKE ?)";
+        $where_clause .= " AND (p.name LIKE ? OR a.email LIKE ? OR p.phone LIKE ?)";
         $search_param = "%$search%";
         $params = [$search_param, $search_param, $search_param];
     }
 
     // Get total count
-    $count_sql = "SELECT COUNT(*) FROM users p $where_clause";
+    $count_sql = "SELECT COUNT(*) FROM users p JOIN auth_accounts a ON p.user_auth_id = a.id $where_clause";
     $count_stmt = $pdo->prepare($count_sql);
     $count_stmt->execute($params);
     $total_records = $count_stmt->fetchColumn();
 
     // Get users
-    $sql = "SELECT p.id, p.custom_id, p.name, p.email, p.profile_pic, p.phone, 
+    $sql = "SELECT p.id, p.custom_id, p.name, a.email, p.profile_pic, p.phone, 
             p.gender, p.dob, p.address, p.city, p.state, p.country,
-            p.is_active, p.is_online,
-            IF(p.is_online = 1, 'active', 'inactive') as status, p.created_at, p.last_login_at as last_login_at, p.email_verified_at,
+            a.is_active, a.is_online,
+            IF(a.is_online = 1, 'active', 'inactive') as status, p.created_at, a.last_login_at, a.email_verified_at,
             (SELECT COUNT(*) FROM tickets t JOIN payments py ON t.payment_id = py.id WHERE py.user_id = p.id AND t.used = 1) as checked_in_count,
             (SELECT business_name FROM clients WHERE id = (SELECT client_id FROM events WHERE id = (SELECT event_id FROM tickets WHERE user_id = p.id LIMIT 1))) as client_name
             FROM users p
+            JOIN auth_accounts a ON p.user_auth_id = a.id
             $where_clause 
             ORDER BY p.created_at DESC 
             LIMIT ? OFFSET ?";
@@ -58,10 +59,10 @@ try {
     $registered_sql = "SELECT COUNT(*) FROM users WHERE deleted_at IS NULL";
     $registered_count = $pdo->query($registered_sql)->fetchColumn();
 
-    $active_sql = "SELECT COUNT(*) FROM users WHERE is_active = 1 AND deleted_at IS NULL";
+    $active_sql = "SELECT COUNT(*) FROM users u JOIN auth_accounts a ON u.user_auth_id = a.id WHERE a.is_active = 1 AND u.deleted_at IS NULL";
     $active_count = $pdo->query($active_sql)->fetchColumn();
 
-    $online_sql = "SELECT COUNT(*) FROM users WHERE is_online = 1 AND deleted_at IS NULL";
+    $online_sql = "SELECT COUNT(*) FROM users u JOIN auth_accounts a ON u.user_auth_id = a.id WHERE a.is_online = 1 AND u.deleted_at IS NULL";
     $online_count = $pdo->query($online_sql)->fetchColumn();
 
     echo json_encode([

@@ -118,7 +118,7 @@ try {
     }
 
     $subaccount_code = $subRes['subaccount_code'];
-    $subaccount_id   = null; // handled inside ensureSubaccount now
+    $subaccount_id   = $subRes['subaccount_id'] ?? null;
 
     // IMPORTANT: Any profile/bank change resets status to pending for admin review
     $verification_status = 'pending';

@@ -178,22 +178,26 @@ function initExportModal() {
         if (exportBtn && modalBackdrop) {
             // Check if there's a table on the current page
             const hasTable = document.querySelector('table tbody tr');
+            const hasCheckedRows = document.querySelector('table tbody tr input[type="checkbox"]:checked');
             
             if (!hasTable || hasTable.innerText.includes('Loading') || hasTable.innerText.includes('No data')) {
-                // If on dashboard, maybe we want to export something else? 
-                // For now, follow the requirement to consolidate.
-                if (window.location.pathname.includes('adminDashboard.html')) {
-                    // Dashboard might not have a main table, but maybe stats?
-                    // Let's assume the user wants to export the main view data.
-                } else {
-                    Swal.fire({
-                        icon: 'warning',
-                        title: 'No Data to Export',
-                        text: 'Please wait for data to load or navigate to a page with records before exporting.',
-                        confirmButtonColor: '#1976D2'
-                    });
-                    return;
-                }
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'No Data to Export',
+                    text: 'Please wait for data to load or ensure there is data in the table.',
+                    confirmButtonColor: '#1976D2'
+                });
+                return;
+            }
+
+            if (!hasCheckedRows) {
+                Swal.fire({
+                    icon: 'info',
+                    title: 'No Selection',
+                    text: 'Please select at least one row to export.',
+                    confirmButtonColor: '#1976D2'
+                });
+                return;
             }
             
             modalBackdrop.style.display = 'flex';

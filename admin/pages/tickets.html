@@ -15,6 +15,7 @@
 
     <!-- Favicon -->
     <link rel="icon" type="image/x-icon" href="/public/favicon.ico">
+    <link rel="stylesheet" href="../../public/css/pagination.css">
 </head>
 <body>
     <!-- Sidebar -->
@@ -119,13 +120,7 @@
                 .tkt-used     { background:#e0f2fe; color:#0369a1; }
                 .tkt-cancelled{ background:#fee2e2; color:#dc2626; }
 
-                /* ── Pagination ─────────────────────────────── */
-                .tkt-pag-bar { display:flex; align-items:center; justify-content:space-between; margin-top:1.2rem; flex-wrap:wrap; gap:.75rem; }
-                .tkt-pag-info { font-size:.82rem; color:#64748b; }
-                .tkt-pag-btns { display:flex; gap:.35rem; }
-                .tkt-page-btn { padding:.38rem .8rem; border-radius:8px; border:1.5px solid #e2e8f0; background:white; cursor:pointer; font-weight:600; font-size:.82rem; transition:all .18s; }
-                .tkt-page-btn:hover, .tkt-page-btn.active { background:#6366f1; color:white; border-color:#6366f1; }
-                .tkt-page-btn:disabled { opacity:.35; cursor:not-allowed; }
+
             </style>
 
             <div class="page-header">
@@ -191,10 +186,7 @@
                     </table>
                 </div>
 
-                <div class="tkt-pag-bar">
-                    <span class="tkt-pag-info" id="tktPagInfo">Showing 0 tickets</span>
-                    <div class="tkt-pag-btns" id="tktPagBtns"></div>
-                </div>
+                <div id="paginationContainer"></div>
             </div>
         </main>
 
@@ -256,6 +248,7 @@
     <script src="../js/pages/tickets.js"></script>
     <script src="../../public/js/heartbeat.js"></script>
     <script src="../js/admin-main.js"></script>
+    <script src="../../public/js/pagination.js"></script>
     <script>lucide.createIcons();</script>
 </body>
 </html>

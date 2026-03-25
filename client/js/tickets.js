@@ -2,6 +2,9 @@
  * Client Tickets Page JavaScript
  * Handles ticket display and preview
  */
+let allTickets = [];
+let pagination = null;
+const selectedTicketIds = new Set();
 
 document.addEventListener('DOMContentLoaded', async () => {
     const user = storage.getUser();
@@ -132,7 +135,8 @@ async function loadTickets(clientId) {
         const result = JSON.parse(text);
 
         if (result.success) {
-            updateTicketsTable(result.tickets || []);
+            allTickets = result.tickets || [];
+            updatePagination(allTickets);
             if (result.stats) {
                 updateStatsCards(result.stats);
             }
@@ -204,7 +208,13 @@ function updateTicketsTable(tickets) {
     if (selectAll) {
         selectAll.onchange = (e) => {
             const checkboxes = document.querySelectorAll('.ticket-checkbox');
-            checkboxes.forEach(cb => cb.checked = e.target.checked);
+            checkboxes.forEach(cb => {
+                cb.checked = e.target.checked;
+                const id = cb.dataset.id;
+                if (e.target.checked) selectedTicketIds.add(id);
+                else selectedTicketIds.delete(id);
+            });
+            updateSelectAllState();
         };
     }
 
@@ -212,5 +222,35 @@ function updateTicketsTable(tickets) {
     document.querySelectorAll('.ticket-checkbox, #selectAll').forEach(cb => {
         cb.onclick = (e) => e.stopPropagation();
     });
+
+    updateSelectAllState();
+}
+
+function updateSelectAllState() {
+    const selectAll = document.getElementById('selectAll');
+    if (!selectAll) return;
+    const pageCheckboxes = document.querySelectorAll('.ticket-checkbox');
+    if (pageCheckboxes.length === 0) {
+        selectAll.checked = false;
+        return;
+    }
+    const allCheckedOnPage = Array.from(pageCheckboxes).every(cb => cb.checked);
+    selectAll.checked = allCheckedOnPage;
+}
+
+function updatePagination(tickets) {
+    if (!pagination) {
+        pagination = new EventraPagination({
+            data: tickets,
+            containerId: 'paginationContainer',
+            onPageChange: (pageData) => {
+                updateTicketsTable(pageData);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        });
+        updateTicketsTable(pagination.getPageData());
+    } else {
+        pagination.updateData(tickets);
+    }
 }
 

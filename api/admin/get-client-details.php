@@ -43,12 +43,13 @@ try {
 
     // 3. Get Buyers for this client's events
     $buyStmt = $pdo->prepare("
-        SELECT u.id, u.name, u.profile_pic, u.email, COUNT(t.id) as tickets_bought
+        SELECT u.id, u.name, u.profile_pic, a.email, COUNT(t.id) as tickets_bought
         FROM users u
+        JOIN auth_accounts a ON u.user_auth_id = a.id
         JOIN tickets t ON t.user_id = u.id
         JOIN events e ON t.event_id = e.id
         WHERE e.client_id = ?
-        GROUP BY u.id, u.name, u.profile_pic, u.email
+        GROUP BY u.id, u.name, u.profile_pic, a.email
         ORDER BY tickets_bought DESC
     ");
     $buyStmt->execute([$client_id]);

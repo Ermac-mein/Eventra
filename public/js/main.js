@@ -14,7 +14,7 @@ let swiperInstances = {}; // Store Swiper instances
 
 // Pagination state
 let currentPage = 1;
-const itemsPerPage = 12;
+const itemsPerPage = 14;
 let filteredDiscoveryEvents = [];
 
 // Load events from API
@@ -103,8 +103,8 @@ async function loadEvents() {
       // Categorized Rendering with Cross-Category Deduplication
       renderAllCategories();
 
-      // Initialize Hero Carousel with Featured Events
-      initHeroCarousel();
+      // Initialize Hero Background with a random event
+      initHeroBackground();
 
       // Finally apply filters for the "All Discovery Results" grid
       applyFilters();
@@ -118,45 +118,44 @@ async function loadEvents() {
   }
 }
 
-function initHeroCarousel() {
+function initHeroBackground() {
+    const heroSection = document.getElementById('home');
     const wrapper = document.getElementById('heroCarouselWrapper');
-    if (!wrapper) return;
+    if (!heroSection || !wrapper) return;
 
-    // Filter for trending/featured events to show in hero
-    const heroEvents = allEvents.filter(e => e.priority === 'featured' || e.priority === 'trending').slice(0, 5);
+    // Pick a random event from all unique published events
+    const eligibleEvents = allEvents.filter(e => e.image_path);
+    const randomEvent = eligibleEvents.length > 0 
+        ? eligibleEvents[Math.floor(Math.random() * eligibleEvents.length)] 
+        : null;
     
-    if (heroEvents.length > 0) {
-        wrapper.innerHTML = heroEvents.map(event => {
-            const relPath = event.image_path ? event.image_path.replace(/^\/+/, '') : null;
-            const fallback = 'https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=1920&h=1080&fit=crop';
-            const basePath = typeof getBasePath === 'function' ? getBasePath() : '/';
-            const eventImage = relPath ? (relPath.startsWith('http') ? relPath : basePath + relPath) : fallback;
+    const fallback = 'https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=1920&h=1080&fit=crop';
+    let eventImage = fallback;
 
-            return `
-                <div class="swiper-slide hero-slide">
-                    <img src="${eventImage}" alt="${event.event_name}" class="hero-background" onerror="this.src='${fallback}'">
-                    <div class="hero-overlay"></div>
-                    <div class="hero-gradient"></div>
-                    <div class="hero-content">
-                        <div class="hero-category-tag" style="background: var(--primary-color); display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 700; margin-bottom: 1rem;">${event.category || 'Trending'}</div>
-                        <h1 class="hero-title">${event.event_name}</h1>
-                        <p class="hero-subtitle">${event.description ? event.description.substring(0, 100) + '...' : 'An exclusive experience on Eventra.'}</p>
-                        <button class="hero-action-btn" onclick="showEventModal(${event.id})" style="background: white; color: black; border: none; padding: 12px 30px; border-radius: 30px; font-weight: 700; cursor: pointer; transition: all 0.3s ease;">Explore Event</button>
-                    </div>
-                </div>
-            `;
-        }).join('');
-
-        // Initialize Swiper
-        new Swiper('.hero.swiper', {
-            effect: 'fade',
-            fadeEffect: { crossFade: true },
-            loop: true,
-            autoplay: { delay: 5000, disableOnInteraction: false },
-            pagination: { el: '.hero .swiper-pagination', clickable: true },
-            navigation: { nextEl: '.hero .swiper-button-next', prevEl: '.hero .swiper-button-prev' },
-        });
+    if (randomEvent) {
+        const relPath = randomEvent.image_path.replace(/^\/+/, '');
+        const basePath = typeof getBasePath === 'function' ? getBasePath() : '/';
+        eventImage = relPath.startsWith('http') ? relPath : basePath + relPath;
     }
+
+    wrapper.innerHTML = `
+        <div class="hero-slide-static">
+            <img src="${eventImage}" alt="Event Background" class="hero-background" onerror="this.src='${fallback}'">
+            <div class="hero-overlay"></div>
+            <div class="hero-gradient"></div>
+            <div class="hero-content">
+                <h1 class="hero-title">Discover & Live Your Next Experience</h1>
+                <p class="hero-subtitle">Find amazing events happening around you</p>
+            </div>
+        </div>
+    `;
+
+    // Remove any existing swiper navigation/pagination if they exist in the DOM
+    const swiperControls = heroSection.querySelectorAll('.swiper-pagination, .swiper-button-next, .swiper-button-prev');
+    swiperControls.forEach(el => el.remove());
+    
+    // Remove swiper class to prevent JS initialization interference
+    heroSection.classList.remove('swiper');
 }
 
 // Swiper Initialization Helper

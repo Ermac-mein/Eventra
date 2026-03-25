@@ -21,6 +21,7 @@
 
     <!-- Favicon -->
     <link rel="icon" type="image/x-icon" href="/public/favicon.ico">
+    <link rel="stylesheet" href="../../public/css/pagination.css">
 </head>
 <body>
     <!-- Sidebar -->
@@ -178,11 +179,7 @@
                         <!-- Events will be populated dynamically -->
                     </tbody>
                 </table>
-                <div style="padding: 1rem 1.5rem; display: flex; justify-content: flex-end; align-items: center; gap: 1rem; font-size: 0.8rem; color: var(--client-text-muted);">
-                    <span>Rows per page: <b>10</b></span>
-                    <span>1-10 of 14</span>
-                    <div style="display: flex; gap: 10px; cursor: pointer;"><span>❮</span><span>❯</span></div>
-                </div>
+                <div id="paginationContainer"></div>
             </div>
         </main>
     </div>
@@ -219,6 +216,7 @@
     <script src="../js/deleted-event-modal.js"></script>
     <script src="../js/create-event.js"></script>
     <script src="../js/events.js"></script>
+    <script src="../../public/js/pagination.js"></script>
     <script src="../js/client-main.js"></script>
     <script>
         // Initialize Lucide icons

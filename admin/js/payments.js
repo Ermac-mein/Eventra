@@ -5,13 +5,15 @@
 
 let _paymentsState = {
     page: 1,
-    limit: 20,
+    limit: 10,
     sort: 'date_desc',
     dateRange: 'all',
     status: '',
     search: '',
     totalPages: 1,
-    view: 'transactions', // 'transactions' | 'refunds'
+    view: 'transactions',
+    pagination: null,
+    selectedIds: new Set()
 };
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -106,7 +108,7 @@ async function loadPayments() {
 
         _paymentsState.totalPages = data.pages || 1;
         renderTransactionsTable(data.payments);
-        renderPagination(data.total, data.page, data.limit, data.pages);
+        updateEventraPagination(data.total, data.page, data.limit, data.pages);
         computeStats(data.payments, data.total);
     } catch (err) {
         console.error('Payments load error', err);
@@ -159,11 +161,7 @@ async function loadRefundRequests() {
             </tr>`;
         }).join('');
 
-        const info = document.getElementById('paginationInfo');
-        if (info) info.textContent = `Showing ${data.total} refund request${data.total !== 1 ? 's' : ''}`;
-        const btns = document.getElementById('paginationBtns');
-        if (btns) btns.innerHTML = '';
-
+        updateEventraPagination(data.total, 1, data.limit || 100, 1);
     } catch (err) {
         console.error('Refunds load error', err);
         if (tbody) tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:2rem;color:#ef4444;">Error loading refund requests.</td></tr>`;
@@ -211,7 +209,9 @@ function renderTransactionsTable(payments) {
 
         return `
         <tr onclick="openDetailModal(${encoded})">
-            <td style="padding-left: 1.5rem;"><input type="checkbox" class="payment-checkbox" data-id="${escapeHtml(p.id)}"></td>
+            <td style="padding-left: 1.5rem;">
+                <input type="checkbox" class="payment-checkbox" data-id="${escapeHtml(p.id)}" ${_paymentsState.selectedIds.has(p.id.toString()) ? 'checked' : ''}>
+            </td>
             <td>
                 <div style="font-size:.7rem;color:var(--admin-primary);font-family:monospace;font-weight:700;">${escapeHtml(p.custom_id || 'N/A')}</div>
             </td>
@@ -242,14 +242,74 @@ function renderTransactionsTable(payments) {
     if (selectAll) {
         selectAll.onchange = (e) => {
             const checkboxes = document.querySelectorAll('.payment-checkbox');
-            checkboxes.forEach(cb => cb.checked = e.target.checked);
+            checkboxes.forEach(cb => {
+                cb.checked = e.target.checked;
+                const id = cb.dataset.id;
+                if (e.target.checked) _paymentsState.selectedIds.add(id);
+                else _paymentsState.selectedIds.delete(id);
+            });
+            updateSelectAllState();
         };
     }
 
-    // Prevent detail modal open on checkbox click
-    document.querySelectorAll('.payment-checkbox, #selectAll').forEach(cb => {
+    // Handle individual checkboxes
+    document.querySelectorAll('.payment-checkbox').forEach(cb => {
         cb.onclick = (e) => e.stopPropagation();
+        cb.onchange = (e) => {
+            const id = e.target.dataset.id;
+            if (e.target.checked) _paymentsState.selectedIds.add(id);
+            else _paymentsState.selectedIds.delete(id);
+            updateSelectAllState();
+        };
     });
+    
+    updateSelectAllState();
+}
+
+function updateSelectAllState() {
+    const selectAll = document.getElementById('selectAll');
+    if (!selectAll) return;
+    const pageCheckboxes = document.querySelectorAll('.payment-checkbox');
+    if (pageCheckboxes.length === 0) {
+        selectAll.checked = false;
+        return;
+    }
+    const allCheckedOnPage = Array.from(pageCheckboxes).every(cb => cb.checked);
+    selectAll.checked = allCheckedOnPage;
+}
+
+function updateEventraPagination(total, page, limit, pages) {
+    if (!_paymentsState.pagination) {
+        _paymentsState.pagination = new EventraPagination({
+            mode: 'server',
+            totalItems: total,
+            pageSize: limit,
+            currentPage: page,
+            containerId: 'paginationContainer',
+            onPageChange: (dummyData) => {
+                // In server mode, the callback triggers a search, 
+                // but we need to update state first.
+                // Actually, the component's internal state already changed?
+                // Let's hook the setPage and setPageSize.
+            }
+        });
+        
+        // Override internal behavior for server-side
+        const p = _paymentsState.pagination;
+        p.setPage = (page) => {
+            if (page < 1 || page > p.totalPages) return;
+            _paymentsState.page = page;
+            loadPayments();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        };
+        p.setPageSize = (size) => {
+            _paymentsState.limit = parseInt(size);
+            _paymentsState.page = 1;
+            loadPayments();
+        };
+    } else {
+        _paymentsState.pagination.updateData([], total, pages, page);
+    }
 }
 
 function computeStats(payments, total) {
@@ -263,35 +323,7 @@ function computeStats(payments, total) {
     setEl('statRevenue', revenue === 0 ? '₦0' : `₦${revenue.toLocaleString(undefined, { minimumFractionDigits: 0 })}`);
 }
 
-function renderPagination(total, page, limit, pages) {
-    const info = document.getElementById('paginationInfo');
-    const btns = document.getElementById('paginationBtns');
-    if (!info || !btns) return;
 
-    const from = total === 0 ? 0 : (page - 1) * limit + 1;
-    const to   = Math.min(page * limit, total);
-    info.textContent = `Showing ${from}–${to} of ${total} payments`;
-    btns.innerHTML = '';
-
-    const prev = document.createElement('button');
-    prev.className = 'page-btn'; prev.textContent = '← Prev'; prev.disabled = page <= 1;
-    prev.onclick = () => { _paymentsState.page--; loadPayments(); };
-    btns.appendChild(prev);
-
-    for (let i = Math.max(1, page - 2); i <= Math.min(pages, page + 2); i++) {
-        const btn = document.createElement('button');
-        btn.className = `page-btn${i === page ? ' active' : ''}`;
-        btn.textContent = i;
-        const pg = i;
-        btn.onclick = () => { _paymentsState.page = pg; loadPayments(); };
-        btns.appendChild(btn);
-    }
-
-    const next = document.createElement('button');
-    next.className = 'page-btn'; next.textContent = 'Next →'; next.disabled = page >= pages;
-    next.onclick = () => { _paymentsState.page++; loadPayments(); };
-    btns.appendChild(next);
-}
 
 function openDetailModal(payment) {
     const modal = document.getElementById('paymentDetailModal');

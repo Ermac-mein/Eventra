@@ -128,7 +128,7 @@ function createEventScheduledNotification($client_id, $event_name, $scheduled_ti
 {
     $formatted_time = date('M d, Y \a\t g:i A', strtotime($scheduled_time));
     $message = "Event '{$event_name}' has been scheduled for {$formatted_time}";
-    return createNotification($client_id, $message, 'event_scheduled', $client_id);
+    return createNotification($client_id, $message, 'event_scheduled', $client_id, 'client', 'client');
 }
 
 /**
@@ -137,7 +137,7 @@ function createEventScheduledNotification($client_id, $event_name, $scheduled_ti
 function createEventPublishedNotification($client_auth_id, $event_name)
 {
     $message = "Event '{$event_name}' has been published and is now live";
-    return createNotification($client_auth_id, $message, 'event_published', $client_auth_id);
+    return createNotification($client_auth_id, $message, 'event_published', $client_auth_id, 'client', 'client');
 }
 
 /**
@@ -157,7 +157,7 @@ function createMediaDeletedNotification($client_id, $item_name, $type = 'file')
 {
     $type_label = ucfirst($type);
     $message = "{$type_label} '{$item_name}' has been moved to trash";
-    return createNotification($client_id, $message, 'media_deleted', $client_id);
+    return createNotification($client_id, $message, 'media_deleted', $client_id, 'client', 'client');
 }
 
 /**
@@ -167,7 +167,7 @@ function createMediaRestoredNotification($client_id, $item_name, $type = 'file')
 {
     $type_label = ucfirst($type);
     $message = "{$type_label} '{$item_name}' has been restored from trash";
-    return createNotification($client_id, $message, 'media_restored', $client_id);
+    return createNotification($client_id, $message, 'media_restored', $client_id, 'client', 'client');
 }
 
 /**
@@ -176,7 +176,7 @@ function createMediaRestoredNotification($client_id, $item_name, $type = 'file')
 function createFolderCreatedNotification($client_id, $folder_name)
 {
     $message = "A new folder '{$folder_name}' has been created";
-    return createNotification($client_id, $message, 'folder_created', $client_id);
+    return createNotification($client_id, $message, 'folder_created', $client_id, 'client', 'client');
 }
 
 /**
@@ -185,7 +185,7 @@ function createFolderCreatedNotification($client_id, $folder_name)
 function createScheduledEventDueNotification($client_id, $event_id, $event_name)
 {
     $message = "Event '{$event_name}' is ready to be published. Click to publish or cancel.";
-    return createNotification($client_id, $message, 'scheduled_event_due', $client_id);
+    return createNotification($client_id, $message, 'scheduled_event_due', $client_id, 'client', 'client');
 }
 
 /**
@@ -212,7 +212,7 @@ function getUnreadNotificationCount($user_id, $role = 'user')
 function createEventDeletedNotification($admin_id, $event_name, $deleted_by_name)
 {
     $message = "Event '{$event_name}' has been deleted by {$deleted_by_name}";
-    return createNotification($admin_id, $message, 'event_deleted', null);
+    return createNotification($admin_id, $message, 'event_deleted', null, 'admin');
 }
 
 /**

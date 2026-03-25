@@ -73,7 +73,10 @@ function initializeDrawers() {
                     <div class="profile-avatar-large" id="profileAvatarLarge"></div>
                     <h3 id="profileName">Loading...</h3>
                     <p id="profileEmail" style="color: var(--client-text-muted);"></p>
-                    <button class="btn btn-primary" onclick="editProfile()" style="margin-top: 1rem;">Edit Profile</button>
+                    <div style="display: flex; gap: 10px; margin-top: 1.5rem; justify-content: center;">
+                        <button class="btn btn-primary" onclick="editProfile()" style="flex: 1;">Edit Profile</button>
+                        <button class="btn" onclick="deleteClientProfile()" style="flex: 1; background-color: #ef4444; color: white; border: none; border-radius: 8px;">Delete Profile</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -317,8 +320,51 @@ function editProfile() {
     }
 }
 
+async function deleteClientProfile() {
+    const result = await Swal.fire({
+        title: 'Delete Profile?',
+        text: 'Are you sure you want to completely delete your profile and all associated data (events, tickets, payments, etc.)? This action cannot be undone.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#ef4444',
+        cancelButtonColor: '#6b7280',
+        confirmButtonText: 'Yes, Delete Everything',
+        cancelButtonText: 'Cancel'
+    });
+
+    if (result.isConfirmed) {
+        try {
+            const response = await apiFetch('/api/clients/delete-profile.php', {
+                method: 'DELETE'
+            });
+            const data = await response.json();
+            
+            if (data.success) {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Profile Deleted',
+                    text: 'Your profile has been successfully deleted.',
+                    timer: 2000,
+                    showConfirmButton: false
+                }).then(() => {
+                    storage.remove('client_user');
+                    storage.remove('client_auth_token');
+                    if (storage.get('auth_token')) storage.remove('auth_token');
+                    window.location.href = '../../client/pages/clientLogin.html';
+                });
+            } else {
+                Swal.fire('Error', data.message || 'Failed to delete profile.', 'error');
+            }
+        } catch (error) {
+            console.error('Error deleting profile:', error);
+            Swal.fire('Error', 'An unexpected error occurred.', 'error');
+        }
+    }
+}
+
 // Make functions globally available
 window.openDrawer = openDrawer;
 window.closeDrawer = closeDrawer;
 window.closeAllDrawers = closeAllDrawers;
 window.editProfile = editProfile;
+window.deleteClientProfile = deleteClientProfile;

@@ -4,6 +4,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     let allEvents = [];
     let filteredEvents = [];
     let sortConfig = { key: null, direction: 'asc' };
+    let pagination = null;
+    
+    // Track selected checkboxes across pages
+    const selectedEventIds = new Set();
     
     // Filter elements
     const statusFilter = document.getElementById('statusFilter');
@@ -32,7 +36,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!eventsTableBody) return;
         
         if (events.length === 0) {
-            eventsTableBody.innerHTML = '<tr><td colspan="11" style="text-align: center; padding: 2rem; color: #999;">No events found</td></tr>';
+            eventsTableBody.innerHTML = '<tr><td colspan="13" style="text-align: center; padding: 3rem; color: #999;">No events found</td></tr>';
             return;
         }
 
@@ -60,7 +64,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                     data-priority="${escapeHTML(event.priority || 'low')}"
                     data-client-name="${escapeHTML(event.client_name || 'Eventra')}"
                     data-tag="${escapeHTML(event.tag || '')}">
-                    <td style="padding-left: 1.5rem;"><input type="checkbox" class="event-checkbox" data-id="${event.id}"></td>
+                    <td style="padding-left: 1.5rem;">
+                        <input type="checkbox" class="event-checkbox" data-id="${event.id}" ${selectedEventIds.has(event.id.toString()) ? 'checked' : ''}>
+                    </td>
                     <td>
                         <div style="font-size:.7rem;color:var(--admin-primary);font-family:monospace;font-weight:700;">${escapeHTML(event.custom_id || 'N/A')}</div>
                     </td>
@@ -83,24 +89,40 @@ document.addEventListener('DOMContentLoaded', async () => {
             `;
         }).join('');
 
-        // Handle Select All
-        const selectAll = document.getElementById('selectAll');
-        if (selectAll) {
-            selectAll.onchange = (e) => {
-                const checkboxes = document.querySelectorAll('.event-checkbox');
-                checkboxes.forEach(cb => cb.checked = e.target.checked);
-            };
-        }
-
-        // Prevent preview open on checkbox click
-        document.querySelectorAll('.event-checkbox, #selectAll').forEach(cb => {
+        // Handle individual checkboxes
+        document.querySelectorAll('.event-checkbox').forEach(cb => {
             cb.onclick = (e) => e.stopPropagation();
+            cb.onchange = (e) => {
+                const id = e.target.dataset.id;
+                if (e.target.checked) {
+                    selectedEventIds.add(id);
+                } else {
+                    selectedEventIds.delete(id);
+                }
+                updateSelectAllState();
+            };
         });
 
         // Re-initialize previews for new rows
         if (window.initPreviews) {
             window.initPreviews();
         }
+        
+        updateSelectAllState();
+    }
+
+    function updateSelectAllState() {
+        const selectAll = document.getElementById('selectAll');
+        if (!selectAll) return;
+        
+        const pageCheckboxes = document.querySelectorAll('.event-checkbox');
+        if (pageCheckboxes.length === 0) {
+            selectAll.checked = false;
+            return;
+        }
+        
+        const allCheckedOnPage = Array.from(pageCheckboxes).every(cb => cb.checked);
+        selectAll.checked = allCheckedOnPage;
     }
 
     function applyFilters() {
@@ -135,7 +157,24 @@ document.addEventListener('DOMContentLoaded', async () => {
             sortConfig.key = null; // Reset to force sort
             sortEvents(currentConfig.key, currentConfig.direction);
         } else {
-            renderEvents(filteredEvents);
+            updatePagination(filteredEvents);
+        }
+    }
+
+    function updatePagination(events) {
+        if (!pagination) {
+            pagination = new EventraPagination({
+                data: events,
+                containerId: 'paginationContainer',
+                persistState: true,
+                onPageChange: (pageData, shouldScroll = true) => {
+                    renderEvents(pageData);
+                    if (shouldScroll) window.scrollTo({ top: 0, behavior: 'smooth' });
+                }
+            });
+            renderEvents(pagination.getPageData(), false);
+        } else {
+            pagination.updateData(events);
         }
     }
 
@@ -177,7 +216,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             return 0;
         });
 
-        renderEvents(sortedEvents);
+        updatePagination(sortedEvents);
     }
 
     function anyFilterActive() {
@@ -193,6 +232,23 @@ document.addEventListener('DOMContentLoaded', async () => {
             sortEvents(th.dataset.sort);
         });
     });
+
+    // Handle Select All click (across global selection)
+    const selectAll = document.getElementById('selectAll');
+    if (selectAll) {
+        selectAll.addEventListener('change', (e) => {
+            const pageCheckboxes = document.querySelectorAll('.event-checkbox');
+            pageCheckboxes.forEach(cb => {
+                cb.checked = e.target.checked;
+                const id = cb.dataset.id;
+                if (e.target.checked) {
+                    selectedEventIds.add(id);
+                } else {
+                    selectedEventIds.delete(id);
+                }
+            });
+        });
+    }
 
     // Initialize filter listeners
     [statusFilter, categoryFilter, priceFilter, attendeeFilter].forEach(el => {

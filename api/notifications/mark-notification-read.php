@@ -8,7 +8,8 @@ require_once '../../config/database.php';
 require_once '../../includes/middleware/auth.php';
 
 // Check authentication
-$user_id = checkAuth();
+checkAuth();
+$auth_id = getAuthId();
 
 $data = json_decode(file_get_contents("php://input"), true);
 
@@ -22,7 +23,7 @@ if (isset($data['notification_id'])) {
     // Mark all notifications as read for this user
     try {
         $stmt = $pdo->prepare("UPDATE notifications SET is_read = 1 WHERE recipient_auth_id = ? AND is_read = 0");
-        $stmt->execute([$user_id]);
+        $stmt->execute([$auth_id]);
 
         echo json_encode([
             'success' => true,
@@ -56,7 +57,7 @@ try {
     $query = "UPDATE notifications SET is_read = 1 
               WHERE id IN ($placeholders) AND recipient_auth_id = ? AND is_read = 0";
 
-    $params = array_merge($notification_ids, [$user_id]);
+    $params = array_merge($notification_ids, [$auth_id]);
     $stmt = $pdo->prepare($query);
     $stmt->execute($params);
 

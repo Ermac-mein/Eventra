@@ -63,7 +63,7 @@ function paystackRequest(string $method, string $path, array $payload = []): arr
  * Ensures a client has a subaccount in Paystack
  * Returns ['success' => bool, 'subaccount_code' => string, 'message' => string]
  */
-function ensureSubaccount($pdo, $client_id, $bank_code, $account_number, $business_name, $email, $existing_subaccount_code = null)
+function ensureSubaccount($pdo, $client_auth_id, $bank_code, $account_number, $business_name, $email, $existing_subaccount_code = null)
 {
     $subPayload = [
         'business_name' => $business_name,
@@ -89,10 +89,10 @@ function ensureSubaccount($pdo, $client_id, $bank_code, $account_number, $busine
     $id = $res['body']['data']['id'] ?? null;
 
     // Update local database with subaccount info
-    $stmt = $pdo->prepare("UPDATE clients SET subaccount_code = ?, subaccount_id = ? WHERE id = ?");
-    $stmt->execute([$code, $id, $client_id]);
+    $stmt = $pdo->prepare("UPDATE clients SET subaccount_code = ?, subaccount_id = ? WHERE client_auth_id = ?");
+    $stmt->execute([$code, $id, $client_auth_id]);
 
-    return ['success' => true, 'subaccount_code' => $code];
+    return ['success' => true, 'subaccount_code' => $code, 'subaccount_id' => $id];
 }
 
 function verifyPaystackSignature($payload, $signature_header)

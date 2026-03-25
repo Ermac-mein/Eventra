@@ -59,6 +59,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Form submission
     if (signupForm) {
+        // Add persistence: save on input
+        signupForm.addEventListener('input', () => saveFormState('signupForm'));
+        signupForm.addEventListener('change', () => saveFormState('signupForm'));
+
+        // Restore saved state
+        restoreFormState('signupForm');
+
         signupForm.addEventListener('submit', (e) => {
             e.preventDefault();
             
@@ -146,6 +153,9 @@ document.addEventListener('DOMContentLoaded', () => {
                         background: 'rgba(30, 41, 59, 0.95)',
                         color: '#fff'
                     });
+
+                    // Clear saved form state
+                    clearFormState('signupForm');
                 } else if (successMessage) {
                     successMessage.classList.add('show');
                     successMessage.textContent = 'Account created successfully! Redirecting...';

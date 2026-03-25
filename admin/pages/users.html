@@ -15,6 +15,7 @@
 
     <!-- Favicon -->
     <link rel="icon" type="image/x-icon" href="/public/favicon.ico">
+    <link rel="stylesheet" href="../../public/css/pagination.css">
 </head>
 <body>
     <!-- Sidebar -->
@@ -144,15 +145,7 @@
                         </tr>
                     </tbody>
                 </table>
-                <div class="pagination" style="margin-top: 2rem; border-top: 1px solid #f1f5f9; padding-top: 1.5rem;">
-                    <span>Rows per page:</span>
-                    <select style="padding: 0.4rem; border-radius: 8px; border: 1px solid var(--admin-border);"><option>10</option></select>
-                    <span id="paginationInfo">1 - 10 of 0</span>
-                    <div style="display: flex; gap: 10px;">
-                        <button class="btn btn-secondary" style="background: #f1f5f9; padding: 0.5rem;"><i data-lucide="chevron-left"></i></button>
-                        <button class="btn btn-secondary" style="background: #f1f5f9; padding: 0.5rem;"><i data-lucide="chevron-right"></i></button>
-                    </div>
-                </div>
+                <div id="paginationContainer"></div>
             </div>
         </main>
 
@@ -212,6 +205,7 @@
     <script src="../js/pages/users.js"></script>
     <script src="../../public/js/heartbeat.js"></script>
     <script src="../js/admin-main.js"></script>
+    <script src="../../public/js/pagination.js"></script>
     <script>lucide.createIcons();</script>
 </body>
 </html>

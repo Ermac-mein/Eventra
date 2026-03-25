@@ -10,6 +10,7 @@ function showCreateEventModal() {
     if (!user) return;
 
     const modalHTML = `
+        <link rel="stylesheet" href="../../public/css/time-picker.css">
         <div id="createEventModal" class="modal-backdrop active" role="dialog" aria-modal="true" aria-hidden="false" 
              style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.6); display: flex; justify-content: center; align-items: center; z-index: 10000; backdrop-filter: blur(8px);">
             <div class="modal-content" style="
@@ -49,9 +50,9 @@ function showCreateEventModal() {
                                          src="" 
                                          style="width: 100%; height: 280px; object-fit: cover; border-radius: 20px; border: 3px solid rgba(255, 255, 255, 0.8); box-shadow: 0 10px 30px rgba(0,0,0,0.1);">
                                     <label for="eventImageInput" style="position: absolute; bottom: 1.5rem; right: 1.5rem; background: rgba(255, 255, 255, 0.95); color: #8b5cf6; padding: 0.875rem 1.75rem; border-radius: 50px; cursor: pointer; font-weight: 700; box-shadow: 0 8px 20px rgba(139, 92, 246, 0.3); backdrop-filter: blur(10px); transition: all 0.3s; border: 2px solid rgba(139, 92, 246, 0.2);">
-                                        📷 Upload Banner
+                                        📷 Upload Banner <span style="color: #ef4444">*</span>
                                     </label>
-                                    <input type="file" id="eventImageInput" name="event_image" accept="image/*" style="display: none;" onchange="previewEventImage(event)">
+                                    <input type="file" id="eventImageInput" name="event_image" accept="image/*" required style="display: none;" onchange="previewEventImage(event)">
                                 </div>
                             </div>
 
@@ -77,6 +78,7 @@ function showCreateEventModal() {
                                             <option value="Networking">Networking</option>
                                             <option value="Festival">Festival</option>
                                             <option value="Concert">Concert</option>
+                                            <option value="Business">Business</option>
                                             <option value="Educational">Educational</option>
                                             <option value="Social">Social</option>
                                             <option value="Personal">Personal</option>
@@ -111,7 +113,36 @@ function showCreateEventModal() {
 
                                     <div class="form-group">
                                         <label style="display: block; font-size: 0.875rem; font-weight: 600; color: #6b7280; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.5px;">Time <span style="color: #ef4444">*</span></label>
-                                        <input type="time" name="event_time" required style="width: 100%; padding: 1rem 1.25rem; border: 2px solid #e5e7eb; border-radius: 12px; font-size: 1rem; background: white; transition: all 0.3s; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
+                                        <div id="eventTimePickerContainer" class="time-picker-container">
+                                            <div class="time-picker-display" onclick="toggleTimePicker('eventTimePickerDropdown')">
+                                                <span id="eventTimeDisplay">Select Time</span>
+                                                <span style="font-size: 0.8rem; opacity: 0.5;">🕒</span>
+                                            </div>
+                                            <div id="eventTimePickerDropdown" class="time-picker-dropdown">
+                                                <!-- Top Section: Hours -->
+                                                <div class="time-picker-section">
+                                                    <label class="time-picker-label">Hours</label>
+                                                    <div class="time-picker-grid hours" id="hourGrid">
+                                                        ${[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(h => `<button type="button" class="time-btn" onclick="selectHour('${h}', 'eventTimePickerContainer')">${h}</button>`).join('')}
+                                                    </div>
+                                                </div>
+                                                <!-- Middle Section: Minutes -->
+                                                <div class="time-picker-section">
+                                                    <label class="time-picker-label">Minutes</label>
+                                                    <div class="time-picker-grid minutes" id="minuteGrid">
+                                                        ${['00', '05', '10', '15', '20', '25', '30', '35', '40', '45', '50', '55'].map(m => `<button type="button" class="time-btn" onclick="selectMinute('${m}', 'eventTimePickerContainer')">${m}</button>`).join('')}
+                                                    </div>
+                                                </div>
+                                                <!-- Bottom Section: Period -->
+                                                <div class="time-picker-section">
+                                                    <div class="time-picker-ampm">
+                                                        <button type="button" class="time-btn ampm-btn" onclick="selectAmPm('am', 'eventTimePickerContainer')">am</button>
+                                                        <button type="button" class="time-btn ampm-btn" onclick="selectAmPm('pm', 'eventTimePickerContainer')">pm</button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <input type="hidden" name="event_time" id="eventTimeInput" required>
+                                        </div>
                                     </div>
 
                                     <div class="form-group">
@@ -152,8 +183,9 @@ function showCreateEventModal() {
                                     </div>
 
                                     <div class="form-group">
-                                        <label style="display: block; font-size: 0.875rem; font-weight: 600; color: #6b7280; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.5px;">Priority Level</label>
-                                        <select name="priority" id="prioritySelect" style="width: 100%; padding: 1rem 1.25rem; border: 2px solid #e5e7eb; border-radius: 12px; font-size: 1rem; background: white; transition: all 0.3s; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
+                                        <label style="display: block; font-size: 0.875rem; font-weight: 600; color: #6b7280; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.5px;">Priority Level <span style="color: #ef4444">*</span></label>
+                                        <select name="priority" id="prioritySelect" required style="width: 100%; padding: 1rem 1.25rem; border: 2px solid #e5e7eb; border-radius: 12px; font-size: 1rem; background: white; transition: all 0.3s; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
+                                            <option value="">Select Priority</option>
                                             <option value="nearby">📍 Nearby</option>
                                             <option value="hot">🔥 Hot</option>
                                             <option value="trending">📈 Trending</option>
@@ -281,7 +313,21 @@ function showCreateEventModal() {
     if (dateInput) dateInput.setAttribute('min', today);
 
     // Add form submit handler
-    document.getElementById('createEventForm').addEventListener('submit', handleEventCreation);
+    const createEventForm = document.getElementById('createEventForm');
+    createEventForm.addEventListener('submit', handleEventCreation);
+
+    // Add persistence: save on input
+    createEventForm.addEventListener('input', () => saveFormState('createEventForm'));
+    createEventForm.addEventListener('change', () => saveFormState('createEventForm'));
+
+    // Restore saved state
+    restoreFormState('createEventForm');
+
+    // Sync time picker UI with restored value if it exists
+    const restoredTime = document.getElementById('eventTimeInput')?.value;
+    if (restoredTime && typeof setTimePickerValue === 'function') {
+        setTimePickerValue('eventTimePickerContainer', restoredTime);
+    }
 
     // Free Event Checkbox Handler
     const freeCheckbox = document.getElementById('freeEventCheckbox');
@@ -401,6 +447,9 @@ async function handleEventCreation(e) {
         if (result.success) {
             showNotification('Event created successfully!', 'success');
             
+            // Clear saved form state
+            clearFormState('createEventForm');
+            
             // Close modal
             closeCreateEventModal();
             
@@ -487,7 +536,15 @@ async function autoExtractFromFlyer() {
             const fill = (selector, value) => {
                 if (value) {
                     const el = document.querySelector(selector);
-                    if (el) { el.value = value; filledCount++; }
+                    if (el) { 
+                        el.value = value; 
+                        filledCount++;
+                        
+                        // Handle custom time picker sync
+                        if (selector === '[name="event_time"]') {
+                            setTimePickerValue('eventTimePickerContainer', value);
+                        }
+                    }
                 }
             };
 

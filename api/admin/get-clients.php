@@ -35,8 +35,8 @@ try {
             p.nin, p.bvn, p.nin_verified, p.bvn_verified,
             p.account_name, p.account_number, p.bank_name, p.bank_code, p.subaccount_code, p.verification_status,
             p.admin_notes, p.dob, p.gender, p.address, p.city, p.country, p.job_title,
-            p.is_active, p.is_online, p.last_seen,
-            IF(p.is_online = 1 AND p.last_seen >= DATE_SUB(NOW(), INTERVAL 6 MINUTE), 'active', 'inactive') as status,
+            a.is_active, a.is_online, a.last_seen,
+            IF(a.is_online = 1 AND a.last_seen >= DATE_SUB(NOW(), INTERVAL 6 MINUTE), 'active', 'inactive') as status,
             p.created_at,
             (SELECT COUNT(*) FROM events WHERE client_id = p.id AND deleted_at IS NULL) as event_count
             FROM clients p

@@ -291,6 +291,22 @@ function exportCurrentTableToCSV(dataType) {
 function showExportModal(dataType) {
     if (!checkTableData()) return;
     
+    // Check if at least one row is selected
+    const checkedRows = document.querySelectorAll('table tbody tr input[type="checkbox"]:checked');
+    if (checkedRows.length === 0) {
+        if (window.Swal) {
+            Swal.fire({
+                icon: 'info',
+                title: 'No Selection',
+                text: 'Please select at least one row to export.',
+                confirmButtonColor: '#6366f1'
+            });
+        } else {
+            showNotification('Please select at least one row to export.', 'info');
+        }
+        return;
+    }
+
     const modal = document.getElementById('exportModal');
     if (modal) {
         modal.classList.add('active');

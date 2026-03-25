@@ -120,7 +120,7 @@ try {
     }
 
     // Validation
-    $required_fields = ['event_name', 'event_type', 'event_date', 'event_time', 'price', 'status', 'address', 'phone_contact_1', 'category'];
+    $required_fields = ['event_name', 'event_type', 'event_date', 'event_time', 'price', 'status', 'address', 'phone_contact_1'];
     foreach ($required_fields as $field) {
         if (!isset($_POST[$field]) || trim($_POST[$field]) === '') {
             echo json_encode(['success' => false, 'message' => "Field '$field' is required"]);
@@ -164,7 +164,7 @@ try {
         $_POST['phone_contact_1'],
         $_POST['phone_contact_2'] ?? null,
         $image_path,
-        $_POST['category'],
+        $_POST['category'] ?? $_POST['event_type'],
         $event_id
     ]);
 

@@ -311,6 +311,7 @@ class NotificationManager {
             });
             const result = await response.json();
             if (result.success) {
+                this.updateNotificationBadge(0);
                 this.fetchNotifications();
                 if (typeof showNotification === 'function') {
                     showNotification('Notifications cleared', 'success');

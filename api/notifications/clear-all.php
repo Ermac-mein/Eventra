@@ -8,11 +8,12 @@ require_once '../../config/database.php';
 require_once '../../includes/middleware/auth.php';
 
 // Check authentication
-$user_id = checkAuth();
+checkAuth();
+$auth_id = getAuthId();
 
 try {
     $stmt = $pdo->prepare("DELETE FROM notifications WHERE recipient_auth_id = ?");
-    $stmt->execute([$user_id]);
+    $stmt->execute([$auth_id]);
 
     echo json_encode([
         'success' => true,

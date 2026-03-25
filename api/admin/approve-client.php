@@ -24,11 +24,19 @@ try {
     $verification_status = $status ? 'verified' : 'rejected';
 
     // Update verification_status and persist admin_notes
-    $stmt = $pdo->prepare("
-        UPDATE clients 
-        SET verification_status = ?, admin_notes = ?, updated_at = NOW() 
-        WHERE id = ?
-    ");
+    if ($status) {
+        $stmt = $pdo->prepare("
+            UPDATE clients 
+            SET verification_status = ?, admin_notes = ?, nin_verified = 1, bvn_verified = 1, updated_at = NOW() 
+            WHERE id = ?
+        ");
+    } else {
+        $stmt = $pdo->prepare("
+            UPDATE clients 
+            SET verification_status = ?, admin_notes = ?, updated_at = NOW() 
+            WHERE id = ?
+        ");
+    }
     $stmt->execute([$verification_status, $admin_notes ?: null, $client_id]);
 
     $stmtStatusCheck = $pdo->prepare("SELECT verification_status FROM clients WHERE id = ?");
