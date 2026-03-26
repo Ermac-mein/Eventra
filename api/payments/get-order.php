@@ -1,9 +1,11 @@
 <?php
+
 /**
  * Get Order API
  * Returns order details + ticket info by payment reference.
  * Used by the frontend callback page after Paystack redirect.
  */
+
 header('Content-Type: application/json');
 require_once '../../config/database.php';
 require_once '../../includes/middleware/auth.php';
@@ -72,7 +74,6 @@ try {
             ] : null,
         ],
     ]);
-
 } catch (PDOException $e) {
     error_log('[get-order.php] DB error: ' . $e->getMessage());
     http_response_code(500);

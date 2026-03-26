@@ -1,8 +1,10 @@
 <?php
+
 /**
  * Get Refund Requests API (Organizer)
  * Returns all refund requests for the organizer's events.
  */
+
 header('Content-Type: application/json');
 require_once '../../config/database.php';
 require_once '../../includes/middleware/auth.php';
@@ -39,7 +41,6 @@ try {
     $requests = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     echo json_encode(['success' => true, 'requests' => $requests, 'total' => count($requests)]);
-
 } catch (PDOException $e) {
     error_log('[get-refund-requests.php] DB error: ' . $e->getMessage());
     http_response_code(500);

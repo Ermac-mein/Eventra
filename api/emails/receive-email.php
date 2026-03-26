@@ -1,7 +1,9 @@
 <?php
+
 /**
  * Receive Email Webhook Stub
  */
+
 header('Content-Type: application/json');
 
 // Log the received email for now

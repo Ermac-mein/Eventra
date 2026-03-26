@@ -1,8 +1,10 @@
 <?php
+
 /**
  * Heartbeat API
  * Called every 60 seconds from authenticated pages to maintain online status.
  */
+
 header('Content-Type: application/json');
 require_once '../../config/database.php';
 require_once '../../includes/middleware/auth.php';

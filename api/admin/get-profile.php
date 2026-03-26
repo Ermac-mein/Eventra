@@ -1,4 +1,5 @@
 <?php
+
 header('Content-Type: application/json');
 require_once '../../includes/middleware/auth.php';
 require_once '../../config/database.php';
@@ -32,7 +33,7 @@ try {
     $admin = $stmt->fetch();
 
     if ($admin) {
-        // Map is_active back to 'active' for frontend consistency if needed, 
+        // Map is_active back to 'active' for frontend consistency if needed,
         // but often 1/0 is fine or 'active'/'inactive'
         $admin['status'] = $admin['is_active'] ? 'active' : 'inactive';
 
@@ -47,7 +48,6 @@ try {
             'message' => 'Admin profile not found'
         ]);
     }
-
 } catch (PDOException $e) {
     http_response_code(500);
     echo json_encode([

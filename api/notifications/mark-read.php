@@ -1,4 +1,5 @@
 <?php
+
 header('Content-Type: application/json');
 require_once '../../includes/middleware/auth.php';
 require_once '../../config/database.php';
@@ -38,7 +39,6 @@ try {
             'message' => 'Invalid request. Provide notification_id or mark_all parameter.'
         ]);
     }
-
 } catch (PDOException $e) {
     http_response_code(500);
     echo json_encode([

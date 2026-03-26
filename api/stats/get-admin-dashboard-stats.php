@@ -1,8 +1,10 @@
 <?php
+
 /**
  * Get Admin Dashboard Stats API
  * Provides comprehensive statistics for admin dashboard
  */
+
 header('Content-Type: application/json');
 require_once '../../config/database.php';
 
@@ -27,7 +29,7 @@ try {
     $stmt = $pdo->prepare("SELECT COUNT(*) as total FROM auth_accounts WHERE is_online = 1 AND last_seen >= DATE_SUB(NOW(), INTERVAL 10 MINUTE) AND role = 'user' AND deleted_at IS NULL");
     $stmt->execute();
     $online_users = $stmt->fetch()['total'] ?? 0;
-    
+
     $stmt = $pdo->prepare("SELECT COUNT(*) as total FROM auth_accounts WHERE is_online = 1 AND last_seen >= DATE_SUB(NOW(), INTERVAL 10 MINUTE) AND role = 'client' AND deleted_at IS NULL");
     $stmt->execute();
     $online_clients = $stmt->fetch()['total'] ?? 0;
@@ -143,7 +145,6 @@ try {
         'past_events' => $past_events,
         'recent_logs' => $recent_activities
     ]);
-
 } catch (PDOException $e) {
     http_response_code(500);
     echo json_encode(['success' => false, 'message' => 'Failed to fetch admin stats.']);

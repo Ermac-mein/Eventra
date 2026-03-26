@@ -20,7 +20,9 @@ class JWTHelper
     public static function validateJWT($jwt)
     {
         $parts = explode('.', $jwt);
-        if (count($parts) !== 3) return false;
+        if (count($parts) !== 3) {
+            return false;
+        }
 
         list($header, $payload, $signature) = $parts;
 
@@ -32,7 +34,9 @@ class JWTHelper
         }
 
         $decodedPayload = json_decode(self::base64UrlDecode($payload), true);
-        if (!$decodedPayload) return false;
+        if (!$decodedPayload) {
+            return false;
+        }
 
         if (isset($decodedPayload['exp']) && $decodedPayload['exp'] < time()) {
             return false;

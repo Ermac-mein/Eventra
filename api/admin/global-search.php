@@ -1,8 +1,10 @@
 <?php
+
 /**
  * Global Search API
  * Unified search for events, users, and clients
  */
+
 header('Content-Type: application/json');
 require_once '../../config/database.php';
 require_once '../../includes/middleware/auth.php';
@@ -96,7 +98,6 @@ try {
         'results' => $results,
         'query' => $query
     ]);
-
 } catch (PDOException $e) {
     http_response_code(500);
     error_log("Global Search Error: " . $e->getMessage());

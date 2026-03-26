@@ -1,8 +1,10 @@
 <?php
+
 /**
  * Verify OTP API
  * Verifies the provided OTP — single-use, time-sensitive enforcement
  */
+
 header('Content-Type: application/json');
 require_once '../../config/database.php';
 require_once '../../includes/middleware/auth.php';
@@ -74,7 +76,6 @@ try {
             'remaining_attempts' => $remaining
         ]);
     }
-
 } catch (PDOException $e) {
     echo json_encode(['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);
 }

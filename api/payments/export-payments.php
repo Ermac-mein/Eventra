@@ -1,10 +1,12 @@
 <?php
+
 /**
  * Export Payments API
  * Exports payment records as CSV, PDF, or Excel.
  * Respects same filters as get-payments.php.
  * Role-based: users export own payments, admin exports all.
  */
+
 require_once '../../config/database.php';
 require_once '../../includes/middleware/auth.php';
 
@@ -79,10 +81,10 @@ if ($search) {
 
 $scopeWhere = '';
 $scopeParams = [];
-    if ($sessionRole === 'user') {
-        $scopeWhere = ' AND p.user_id = ?';
-        $scopeParams[] = $authId;
-    }
+if ($sessionRole === 'user') {
+    $scopeWhere = ' AND p.user_id = ?';
+    $scopeParams[] = $authId;
+}
 
 $params = array_merge($scopeParams, $dateParams, $statusParams, $searchParams);
 

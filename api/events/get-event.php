@@ -1,8 +1,10 @@
 <?php
+
 /**
  * API: Get Single Event
  * Returns event details by ID
  */
+
 header('Content-Type: application/json');
 require_once '../../config/database.php';
 

@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Barcode Helper
  * Generates secure unique barcodes for event tickets.

@@ -1,8 +1,10 @@
 <?php
+
 /**
  * Force Delete Event API
  * Permanently deletes an event and its associated data
  */
+
 header('Content-Type: application/json');
 require_once '../../config/database.php';
 require_once '../utils/notification-helper.php';
@@ -67,7 +69,6 @@ try {
         'success' => true,
         'message' => 'Event permanently deleted'
     ]);
-
 } catch (PDOException $e) {
     http_response_code(500);
     echo json_encode(['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);

@@ -1,10 +1,12 @@
 <?php
+
 /**
  * Download Ticket API
  * Streams the PDF ticket to the authenticated user.
  *
  * GET ?code=BARCODE
  */
+
 require_once '../../config/database.php';
 require_once '../../includes/middleware/auth.php';
 
@@ -55,7 +57,6 @@ try {
     header('Cache-Control: no-cache, no-store, must-revalidate');
     header('Pragma: no-cache');
     readfile($pdfPath);
-
 } catch (PDOException $e) {
     error_log('[download-ticket.php] DB error: ' . $e->getMessage());
     http_response_code(500);

@@ -1,9 +1,11 @@
 <?php
+
 /**
  * Get Tickets API
  * Retrieves tickets purchased for the client's events.
  * Revenue = SUM(event.price) per paid ticket row.
  */
+
 header('Content-Type: application/json');
 require_once '../../config/database.php';
 require_once '../../includes/middleware/auth.php';
@@ -71,14 +73,13 @@ try {
     $stats['total_tickets']    = (int)   ($stats['total_tickets']    ?? 0);
     $stats['total_revenue']    = (float) ($stats['total_revenue']    ?? 0.0);
     $stats['pending_tickets']  = (int)   ($stats['pending_tickets']  ?? 0);
-    $stats['cancelled_tickets']= (int)   ($stats['cancelled_tickets'] ?? 0);
+    $stats['cancelled_tickets'] = (int)   ($stats['cancelled_tickets'] ?? 0);
 
     echo json_encode([
         'success' => true,
         'tickets' => $tickets,
         'stats'   => $stats,
     ]);
-
 } catch (PDOException $e) {
     http_response_code(500);
     echo json_encode(['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);

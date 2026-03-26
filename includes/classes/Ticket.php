@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Ticket — Core validation and scan logic
  * Validates tickets with: payment check, used status, event expiry, single-entry enforcement
@@ -99,7 +100,6 @@ class Ticket
                 'status'  => 'used',
                 'data'    => $ticket
             ];
-
         } catch (Exception $e) {
             $pdo->rollBack();
             throw $e;

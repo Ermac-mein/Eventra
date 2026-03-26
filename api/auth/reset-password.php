@@ -1,4 +1,5 @@
 <?php
+
 header('Content-Type: application/json');
 require_once __DIR__ . '/../../config/database.php';
 
@@ -41,7 +42,6 @@ try {
     $stmt->execute([$token]);
 
     echo json_encode(['success' => true, 'message' => 'Your password has been reset successfully. You can now log in.']);
-
 } catch (PDOException $e) {
     error_log("Reset password error: " . $e->getMessage());
     echo json_encode(['success' => false, 'message' => 'Database error occurred.']);

@@ -1,9 +1,11 @@
 <?php
+
 /**
  * Paystack Webhook Handler — Marketplace Edition
  *
  * Handles: charge.success | charge.failed | refund.processed
  */
+
 header('Content-Type: application/json');
 require_once '../../config/database.php';
 require_once '../../config/payment.php';
@@ -150,11 +152,10 @@ function processSuccessfulPayment(PDO $pdo, array $order, array $psData): void
 
                 $pdo->prepare("UPDATE tickets SET qr_code_path = ? WHERE id = ?")
                     ->execute([str_replace(__DIR__ . '/../../', '', $qrCodePath), $ticket_id]);
-                
+
                 $barcodes[] = $barcode;
             }
             $barcode = $barcodes[0]; // Primary for email notified
-
         } else {
             $barcode = $existingTickets[0]['barcode'];
             $pdfPath = __DIR__ . '/../../uploads/tickets/pdfs/ticket_' . $barcode . '.pdf';
@@ -197,7 +198,8 @@ function processSuccessfulPayment(PDO $pdo, array $order, array $psData): void
 
         // SMS to buyer
         if (!empty($order['user_phone'])) {
-            sendSMS($order['user_phone'],
+            sendSMS(
+                $order['user_phone'],
                 "Hi {$order['user_name']}, your ticket for {$order['event_name']} is confirmed! Check your email for the PDF ticket."
             );
         }
@@ -208,9 +210,10 @@ function processSuccessfulPayment(PDO $pdo, array $order, array $psData): void
 
         // In-app: organizer (new sale alert)
         createNewSaleNotification($order['organizer_auth_id'], $order['user_name'], $order['event_name'], $order['amount']);
-
     } catch (Throwable $e) {
-        if ($pdo->inTransaction()) $pdo->rollBack();
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
         error_log('[Webhook] processSuccessfulPayment error: ' . $e->getMessage());
     }
 }
@@ -218,10 +221,11 @@ function processSuccessfulPayment(PDO $pdo, array $order, array $psData): void
 // ── Event Routing ────────────────────────────────────────────────────────────
 try {
     switch ($type) {
-
-        case 'charge.success': {
+        case 'charge.success':
             $reference = $data['reference'] ?? '';
-            if (!$reference) break;
+            if (!$reference) {
+                break;
+            }
 
             $order = fetchOrder($pdo, $reference);
             if (!$order) {
@@ -231,11 +235,12 @@ try {
 
             processSuccessfulPayment($pdo, $order, $data);
             break;
-        }
 
-        case 'charge.failed': {
+        case 'charge.failed':
             $reference = $data['reference'] ?? '';
-            if (!$reference) break;
+            if (!$reference) {
+                break;
+            }
 
             $pdo->prepare("
                 UPDATE orders SET payment_status = 'failed', updated_at = NOW()
@@ -252,11 +257,12 @@ try {
                 );
             }
             break;
-        }
 
-        case 'refund.processed': {
+        case 'refund.processed':
             $reference = $data['transaction_reference'] ?? $data['reference'] ?? '';
-            if (!$reference) break;
+            if (!$reference) {
+                break;
+            }
 
             $pdo->prepare("
                 UPDATE orders
@@ -292,13 +298,11 @@ try {
                 }
             }
             break;
-        }
 
         default:
             // Unhandled event — acknowledged (200 already sent)
             break;
     }
-
 } catch (Throwable $e) {
     error_log('[Paystack Webhook] Unhandled error: ' . $e->getMessage());
 }

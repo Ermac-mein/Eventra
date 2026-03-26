@@ -1,4 +1,5 @@
 <?php
+
 header('Content-Type: application/json');
 require_once '../../includes/middleware/auth.php';
 require_once '../../config/database.php';

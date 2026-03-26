@@ -1,8 +1,10 @@
 <?php
+
 /**
  * Purchase Ticket API
  * Handles ticket purchases for events
  */
+
 header('Content-Type: application/json');
 require_once '../../config/database.php';
 require_once '../../config/payment.php';
@@ -38,7 +40,7 @@ if ($payment_reference && $payment_reference !== 'free') {
             exit;
         }
     }
-    // Clear session flag after use to prevent reuse if necessary, 
+    // Clear session flag after use to prevent reuse if necessary,
     // but keep it for the duration of this request
 }
 
@@ -185,7 +187,6 @@ try {
         'total_price' => $total_price,
         'event_name' => $event['event_name']
     ]);
-
 } catch (PDOException $e) {
     if ($pdo->inTransaction()) {
         $pdo->rollBack();
@@ -199,4 +200,3 @@ try {
     http_response_code(500);
     echo json_encode(['success' => false, 'message' => 'General error: ' . $e->getMessage()]);
 }
-

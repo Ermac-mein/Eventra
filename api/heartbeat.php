@@ -1,10 +1,12 @@
 <?php
+
 /**
  * Universal Heartbeat API
  * Called every 60 seconds from authenticated pages to:
  *  1. Keep the session alive and update last_seen
  *  2. Clean up stale is_online flags for inactive users
  */
+
 header('Content-Type: application/json');
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../includes/middleware/auth.php';

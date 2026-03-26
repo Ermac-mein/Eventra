@@ -1,4 +1,5 @@
 <?php
+
 header('Content-Type: application/json');
 require_once __DIR__ . '/../../config/database.php';
 
@@ -50,12 +51,10 @@ try {
             'message' => 'OTP verified successfully.',
             'reset_token' => $reset_token
         ]);
-    }
-    else {
+    } else {
         echo json_encode(['success' => false, 'message' => 'Invalid or expired OTP.']);
     }
-}
-catch (PDOException $e) {
+} catch (PDOException $e) {
     error_log("Verify OTP Error: " . $e->getMessage());
     echo json_encode(['success' => false, 'message' => 'Database error.']);
 }

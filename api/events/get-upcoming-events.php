@@ -1,8 +1,10 @@
 <?php
+
 /**
  * Get Upcoming Events API for Schedule Notifications
  * Returns upcoming events for the authenticated client
  */
+
 // Error reporting temporarily enabled for debugging
 ini_set('display_errors', 0);
 error_reporting(E_ALL);
@@ -44,7 +46,6 @@ try {
         'success' => true,
         'events' => $events
     ]);
-
 } catch (Throwable $e) {
     http_response_code(500);
     error_log("Get upcoming events BIG FATAL error: " . $e->getMessage() . " on line " . $e->getLine());

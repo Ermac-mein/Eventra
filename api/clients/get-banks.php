@@ -1,16 +1,18 @@
 <?php
+
 /**
  * Get Banks API
  * Returns Paystack supported bank list for Nigeria
  * Results are cached in session for 24 hours to avoid repeated API calls.
  */
+
 header('Content-Type: application/json');
 require_once '../../config/database.php';
 require_once '../../config/payment.php';
 require_once '../../includes/middleware/auth.php';
 
 // Must be authenticated as a client
-checkAuth(); 
+checkAuth();
 
 $role = $_SESSION['user_role'] ?? null;
 if ($role !== 'client') {

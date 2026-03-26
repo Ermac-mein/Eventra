@@ -1,8 +1,10 @@
 <?php
+
 /**
  * Delete Folder API
  * Soft-deletes a folder and all its contents
  */
+
 header('Content-Type: application/json');
 require_once '../../config/database.php';
 require_once '../utils/notification-helper.php';
@@ -52,10 +54,10 @@ try {
         'success' => true,
         'message' => 'Folder and contents deleted successfully'
     ]);
-
 } catch (PDOException $e) {
-    if ($pdo->inTransaction())
+    if ($pdo->inTransaction()) {
         $pdo->rollBack();
+    }
     http_response_code(500);
     echo json_encode(['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);
 }

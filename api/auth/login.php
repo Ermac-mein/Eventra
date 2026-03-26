@@ -1,4 +1,5 @@
 <?php
+
 header('Content-Type: application/json');
 require_once __DIR__ . '/../../config/database.php';
 require_once __DIR__ . '/../../includes/helpers/entity-resolver.php';
@@ -11,8 +12,7 @@ $password = $data['password'] ?? null;
 // Support for dedicated login endpoint overrides
 if (isset($auth_intent)) {
     $intent = $auth_intent;
-}
-else {
+} else {
     $intent = $data['intent'] ?? 'client';
 }
 
@@ -85,7 +85,7 @@ try {
         // Reset failed attempts on success
         $pdo->prepare("UPDATE auth_accounts SET failed_attempts = 0, last_login_at = NOW(), is_online = 1 WHERE id = ?")->execute([$user['id']]);
 
-        // Update role-specific status to 'online' (preserving 'pending' logic: only update if not pending? 
+        // Update role-specific status to 'online' (preserving 'pending' logic: only update if not pending?
         // User said: "Do not override 'pending' except on first successful login; after that only online/offline."
         // Actually, if they are logging in, they are no longer pending.
         // Rely on auth_accounts.is_online (updated above) as the source of truth for online status
@@ -108,8 +108,7 @@ try {
         $expectedSessionName = 'EVENTRA_USER_SESS';
         if ($userRole === 'admin') {
             $expectedSessionName = 'EVENTRA_ADMIN_SESS';
-        }
-        elseif ($userRole === 'client') {
+        } elseif ($userRole === 'client') {
             $expectedSessionName = 'EVENTRA_CLIENT_SESS';
         }
 
@@ -139,13 +138,11 @@ try {
             $stmt = $pdo->prepare("SELECT id FROM admins WHERE admin_auth_id = ?");
             $stmt->execute([$user['id']]);
             $_SESSION['admin_id'] = $stmt->fetchColumn();
-        }
-        elseif ($userRole === 'client') {
+        } elseif ($userRole === 'client') {
             $stmt = $pdo->prepare("SELECT id FROM clients WHERE client_auth_id = ?");
             $stmt->execute([$user['id']]);
             $_SESSION['client_id'] = $stmt->fetchColumn();
-        }
-        elseif ($userRole === 'user') {
+        } elseif ($userRole === 'user') {
             $stmt = $pdo->prepare("SELECT id FROM users WHERE user_auth_id = ?");
             $stmt->execute([$user['id']]);
             $_SESSION['user_id'] = $stmt->fetchColumn();
@@ -165,8 +162,7 @@ try {
         if ($admin_id) {
             if ($userRole === 'client') {
                 createClientLoginNotification($admin_id, $user['id'], $user['name'] ?? 'Client', $identity);
-            }
-            elseif ($userRole === 'user') {
+            } elseif ($userRole === 'user') {
                 createUserLoginNotification($admin_id, $user['id'], $user['name'] ?? 'User', $identity);
             }
         }
@@ -175,8 +171,7 @@ try {
         $redirect = '/public/pages/index.html'; // Default for users
         if ($userRole === 'admin') {
             $redirect = '/admin/pages/adminDashboard.html';
-        }
-        elseif ($userRole === 'client') {
+        } elseif ($userRole === 'client') {
             $redirect = '/client/pages/clientDashboard.html';
         }
 
@@ -193,17 +188,18 @@ try {
                 'custom_id' => $user['custom_id'] ?? null,
                 'bvn' => $user['bvn'] ?? null,
                 'profile_image' => (function ($pic) {
-            if (!$pic)
-                return null;
-            if (preg_match('/^https?:\/\//i', $pic))
-                return $pic;
-            return '/' . ltrim($pic, '/');
-        })($user['profile_pic'] ?? null),
+                    if (!$pic) {
+                        return null;
+                    }
+                    if (preg_match('/^https?:\/\//i', $pic)) {
+                        return $pic;
+                    }
+                    return '/' . ltrim($pic, '/');
+                })($user['profile_pic'] ?? null),
                 'token' => $token
             ]
         ]);
-    }
-    else {
+    } else {
         // Increment failed attempts
         $pdo->prepare("UPDATE auth_accounts SET failed_attempts = failed_attempts + 1 WHERE id = ?")->execute([$user['id']]);
 
@@ -217,7 +213,6 @@ try {
         $fieldLabel = ($intent === 'admin') ? 'username' : 'email';
         echo json_encode(['success' => false, 'message' => "Invalid $fieldLabel or password."]);
     }
-}
-catch (PDOException $e) {
+} catch (PDOException $e) {
     echo json_encode(['success' => false, 'message' => 'Database error occurred.']);
 }

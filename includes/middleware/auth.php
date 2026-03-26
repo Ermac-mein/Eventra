@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Legacy Auth Middleware Wrapper
  * Refactored to use the new MVC-based authentication system.
@@ -7,10 +8,11 @@
 
 require_once __DIR__ . '/../../config/database.php';
 
-function checkAuth($requiredRole = null) {
+function checkAuth($requiredRole = null)
+{
     // Delegate to the new Router's logic or a dedicated service if we had one.
     // For now, we manually check the role-specific session.
-    
+
     if (session_status() === PHP_SESSION_NONE) {
         require_once __DIR__ . '/../../config/session-config.php';
     }
@@ -37,26 +39,37 @@ function checkAuth($requiredRole = null) {
 
 /**
  * Returns the global authentication account ID (auth_accounts.id)
- * 
+ *
  * @return int|null
  */
-function getAuthId() {
+function getAuthId()
+{
     if (session_status() === PHP_SESSION_NONE) {
         require_once __DIR__ . '/../../config/session-config.php';
     }
     return $_SESSION['auth_id'] ?? null;
 }
 
-function adminMiddleware() { return checkAuth('admin'); }
-function clientMiddleware() { return checkAuth('client'); }
-function userMiddleware() { return checkAuth('user'); }
+function adminMiddleware()
+{
+    return checkAuth('admin');
+}
+function clientMiddleware()
+{
+    return checkAuth('client');
+}
+function userMiddleware()
+{
+    return checkAuth('user');
+}
 
 /**
  * Optional Auth Check
  * Returns the user ID if a session exists, or null otherwise.
  * Does not redirect or terminate the script.
  */
-function checkAuthOptional() {
+function checkAuthOptional()
+{
     if (session_status() === PHP_SESSION_NONE) {
         require_once __DIR__ . '/../../config/session-config.php';
     }

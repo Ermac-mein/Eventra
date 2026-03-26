@@ -1,8 +1,10 @@
 <?php
+
 /**
  * Validate Ticket API
  * Stub for validating a ticket via QR code scan
  */
+
 header('Content-Type: application/json');
 require_once '../../config/database.php';
 
@@ -52,7 +54,6 @@ try {
         'user_name' => $ticket['user_name'],
         'barcode' => $barcode
     ]);
-
 } catch (PDOException $e) {
     echo json_encode(['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);
 }

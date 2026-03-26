@@ -1,9 +1,11 @@
 <?php
+
 /**
  * Review Refund API (Organizer)
  *
  * POST: { refund_request_id, action: 'approve'|'decline', note?: string }
  */
+
 header('Content-Type: application/json');
 require_once '../../config/database.php';
 require_once '../../config/payment.php';
@@ -58,7 +60,6 @@ try {
         // Delegate to processRefund (calls Paystack)
         $result = processRefund($pdo, $refundRequestId);
         echo json_encode($result);
-
     } elseif ($action === 'decline') {
         $pdo->prepare("
             UPDATE refund_requests
@@ -83,7 +84,6 @@ try {
 
         echo json_encode(['success' => true, 'message' => 'Refund request declined.']);
     }
-
 } catch (PDOException $e) {
     error_log('[review-refund.php] DB error: ' . $e->getMessage());
     http_response_code(500);

@@ -1,9 +1,11 @@
 <?php
+
 /**
  * Get All Tickets API for Admin
  * Returns all tickets globalwide with full details.
  * Revenue = SUM(event.price) per valid ticket.
  */
+
 header('Content-Type: application/json');
 require_once '../../config/database.php';
 require_once '../../includes/middleware/auth.php';
@@ -99,9 +101,9 @@ try {
     $stats = $sStmt->fetch(PDO::FETCH_ASSOC);
     $stats['total_tickets']    = (int)$stats['total_tickets'];
     $stats['used_tickets']     = (int)$stats['used_tickets'];
-    $stats['cancelled_tickets']= (int)$stats['cancelled_tickets'];
+    $stats['cancelled_tickets'] = (int)$stats['cancelled_tickets'];
     $stats['total_revenue']    = (float)$stats['total_revenue'];
-    $stats['remaining_tickets']= $stats['total_tickets'] - $stats['used_tickets'] - $stats['cancelled_tickets'];
+    $stats['remaining_tickets'] = $stats['total_tickets'] - $stats['used_tickets'] - $stats['cancelled_tickets'];
 
     echo json_encode([
         'success' => true,
@@ -109,7 +111,6 @@ try {
         'stats'   => $stats,
         'total'   => $total,
     ]);
-
 } catch (PDOException $e) {
     http_response_code(500);
     echo json_encode(['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);

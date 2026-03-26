@@ -1,7 +1,9 @@
 <?php
+
 /**
  * Update Client Profile API
  */
+
 header('Content-Type: application/json');
 require_once '../../config/database.php';
 require_once '../../config/payment.php';
@@ -25,7 +27,7 @@ $gender = $_POST['gender'];
 $nin = $_POST['nin'];
 $bvn = $_POST['bvn'];
 $account_number = $_POST['account_number'];
-$bank_code = $_POST['bank_code']; 
+$bank_code = $_POST['bank_code'];
 $bank_name = $_POST['bank_name'];
 
 if (empty($name)) {
@@ -115,12 +117,12 @@ try {
         $resolved_account_name = $resolveRes['body']['data']['account_name'] ?? ($business_name ?: $name);
 
         $subRes = ensureSubaccount(
-            $pdo, 
-            $auth_id, 
-            $bank_code, 
-            $account_number, 
-            $resolved_account_name, 
-            $auth_email, 
+            $pdo,
+            $auth_id,
+            $bank_code,
+            $account_number,
+            $resolved_account_name,
+            $auth_email,
             $existing['subaccount_code']
         );
 
@@ -180,7 +182,7 @@ try {
     // Notify user about profile update using helper
     require_once '../utils/notification-helper.php';
     createNotification($auth_id, "Your profile has been updated successfully.", 'profile_updated', $auth_id, 'client', 'client');
-    
+
     // Notify admin about profile change for review
     $admin_id = getAdminUserId();
     if ($admin_id) {
@@ -195,7 +197,6 @@ try {
         'message' => 'Profile updated successfully',
         'user' => $updated_client
     ]);
-
 } catch (PDOException $e) {
     if ($pdo->inTransaction()) {
         $pdo->rollBack();

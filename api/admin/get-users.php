@@ -1,8 +1,10 @@
 <?php
+
 /**
  * Get All Users API for Admin
  * Retrieves all registered users with role 'user'
  */
+
 header('Content-Type: application/json');
 require_once '../../config/database.php';
 require_once '../../includes/middleware/auth.php';
@@ -75,7 +77,6 @@ try {
             'total_checked_in' => (int) $online_count // Mapping online users to "Checked-In" card as per user request
         ]
     ]);
-
 } catch (PDOException $e) {
     http_response_code(500);
     echo json_encode(['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);

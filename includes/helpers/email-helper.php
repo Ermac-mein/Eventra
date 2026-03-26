@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Email Helper using PHPMailer
  * Supports HTML emails with optional PDF attachments
@@ -65,7 +66,6 @@ function sendEmail($to, $subject, $body, $attachments = [], $altBody = '')
         // Delivery logging
         error_log("[Email Helper] Email sent successfully to: {$to} | Subject: {$subject}");
         return ['success' => true, 'message' => 'Email sent successfully'];
-
     } catch (Exception $e) {
         error_log("[Email Helper] Mailer Error sending to {$to}: {$mail->ErrorInfo}");
         return ['success' => false, 'message' => "Email delivery failed: {$mail->ErrorInfo}"];

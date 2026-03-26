@@ -1,8 +1,10 @@
 <?php
+
 /**
  * Get User Profile API
  * Retrieves user or client profile information
  */
+
 header('Content-Type: application/json');
 require_once '../../config/database.php';
 require_once '../../includes/middleware/auth.php';
@@ -20,7 +22,7 @@ if ($user_id != $auth_id && $_SESSION['role'] !== 'admin') {
 
 try {
     require_once '../../includes/helpers/entity-resolver.php';
-    
+
     // Use the robust entity resolver
     $user = resolveEntity($user_id, $_SESSION['role']);
 
@@ -45,7 +47,6 @@ try {
         'success' => true,
         'user' => $user
     ]);
-
 } catch (PDOException $e) {
     http_response_code(500);
     echo json_encode(['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);

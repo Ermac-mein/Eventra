@@ -1,8 +1,10 @@
 <?php
+
 /**
  * Create Media Folder API
  * Creates a new folder for organizing media files
  */
+
 header('Content-Type: application/json');
 require_once '../../config/database.php';
 require_once '../utils/notification-helper.php';
@@ -40,7 +42,6 @@ try {
         'folder_name' => $folder_name,
         'folder_id' => $folder_id
     ]);
-
 } catch (Exception $e) {
     http_response_code(500);
     echo json_encode(['success' => false, 'message' => 'Error creating folder: ' . $e->getMessage()]);

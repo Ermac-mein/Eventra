@@ -36,10 +36,14 @@ class Router
         if ($scriptName !== '/' && $scriptName !== '\\') {
             $uri = preg_replace('#^' . preg_quote($scriptName, '#') . '#', '', $uri);
         }
-        
+
         // Ensure starting slash
-        if (empty($uri)) $uri = '/';
-        if ($uri[0] !== '/') $uri = '/' . $uri;
+        if (empty($uri)) {
+            $uri = '/';
+        }
+        if ($uri[0] !== '/') {
+            $uri = '/' . $uri;
+        }
 
         error_log("Router Dispatch: $method $uri (Original: {$_SERVER['REQUEST_URI']}, Base: $scriptName)");
 
@@ -62,13 +66,13 @@ class Router
                 // Call Handler (Controller@method string)
                 list($controller, $action) = explode('@', $route['handler']);
                 $controllerClass = "App\\Controllers\\" . $controller;
-                
+
                 if (class_exists($controllerClass)) {
                     $controllerInstance = new $controllerClass();
                     $params = array_filter($matches, 'is_string', ARRAY_FILTER_USE_KEY);
                     return call_user_func_array([$controllerInstance, $action], $params);
                 }
-                
+
                 $this->sendError(500, "Controller $controllerClass not found. Check autoloader and case-sensitivity.", $uri);
                 error_log("Router Error: Controller $controllerClass not found");
                 return;
@@ -97,7 +101,7 @@ class Router
     {
         // 1. Enforce Session Isolation
         $sessionName = 'EVENTRA_' . strtoupper($role) . '_SESS';
-        
+
         if (session_name() !== $sessionName) {
             if (session_status() === PHP_SESSION_ACTIVE) {
                 session_write_close();
@@ -124,9 +128,9 @@ class Router
             // Unauthenticated: Clear session and redirect to role-specific login
             $_SESSION = [];
             session_destroy();
-            
+
             $loginPath = ($role === 'client') ? '/client/login' : (($role === 'admin') ? '/admin/login' : '/user/login');
-            
+
             if (isset($_SERVER['HTTP_ACCEPT']) && strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false) {
                 http_response_code(401);
                 echo json_encode(['success' => false, 'message' => 'Unauthorized. Please login.', 'redirect' => $loginPath]);
@@ -142,7 +146,7 @@ class Router
     {
         http_response_code($code);
         $isApi = strpos($uri, '/api/') === 0 || (isset($_SERVER['HTTP_ACCEPT']) && strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false);
-        
+
         if ($isApi) {
             header('Content-Type: application/json');
             echo json_encode(['success' => false, 'message' => $message]);

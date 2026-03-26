@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Process Refund API (Internal — called by review-refund.php on approval)
  *
@@ -7,6 +8,7 @@
  *
  * POST: { refund_request_id }
  */
+
 header('Content-Type: application/json');
 require_once '../../config/database.php';
 require_once '../../config/payment.php';

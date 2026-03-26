@@ -1,7 +1,9 @@
 <?php
+
 /**
  * Verify Client NIN/BVN API
  */
+
 header('Content-Type: application/json');
 require_once '../../config/database.php';
 require_once '../../includes/middleware/auth.php';
@@ -21,7 +23,7 @@ if (!$client_id || !in_array($type, ['nin', 'bvn']) || $status === null) {
 
 try {
     $field = $type === 'nin' ? 'nin_verified' : 'bvn_verified';
-    
+
     $stmt = $pdo->prepare("UPDATE clients SET $field = ?, updated_at = NOW() WHERE id = ?");
     $stmt->execute([(int)$status, $client_id]);
 
@@ -35,7 +37,7 @@ try {
         // Notify client about verification
         require_once '../utils/notification-helper.php';
         $status_text = $status ? 'verified' : 'unverified';
-        
+
         if ($client_id) {
             // We need the auth_id for notifications
             $stmtAuth = $pdo->prepare("SELECT client_auth_id FROM clients WHERE id = ?");
@@ -44,9 +46,9 @@ try {
 
             $admin_auth_id = getAuthId();
             createNotification(
-                $recipient_auth_id, 
-                "Your " . strtoupper($type) . " has been marked as $status_text by an administrator.", 
-                'verification_update', 
+                $recipient_auth_id,
+                "Your " . strtoupper($type) . " has been marked as $status_text by an administrator.",
+                'verification_update',
                 $admin_auth_id,
                 'client',
                 'admin'
@@ -63,7 +65,6 @@ try {
     } else {
         echo json_encode(['success' => false, 'message' => 'Client not found or no changes made.']);
     }
-
 } catch (PDOException $e) {
     http_response_code(500);
     echo json_encode(['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);

@@ -1,8 +1,10 @@
 <?php
+
 /**
  * Approve / Decline Client API
  * Supports optional admin notes stored to DB and included in client notification.
  */
+
 header('Content-Type: application/json');
 require_once '../../config/database.php';
 require_once '../../includes/middleware/auth.php';
@@ -92,7 +94,6 @@ try {
     } else {
         echo json_encode(['success' => false, 'message' => 'Client not found or no changes made.']);
     }
-
 } catch (PDOException $e) {
     http_response_code(500);
     echo json_encode(['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);

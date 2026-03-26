@@ -1,8 +1,10 @@
 <?php
+
 /**
  * Export Data API
  * Exports data in CSV or Excel format with role-based filtering
  */
+
 header('Content-Type: application/json');
 require_once '../../config/database.php';
 require_once '../../includes/middleware/auth.php';
@@ -224,7 +226,6 @@ try {
     }
 
     echo json_encode(['success' => false, 'message' => 'Invalid format']);
-
 } catch (PDOException $e) {
     http_response_code(500);
     echo json_encode(['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);

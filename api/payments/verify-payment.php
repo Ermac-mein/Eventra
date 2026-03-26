@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Verify Payment API — Idempotent Fallback
  *
@@ -6,6 +7,7 @@
  * If the webhook already processed the payment, returns the existing order state.
  * If not (webhook delay), verifies with Paystack and runs post-payment processing.
  */
+
 header('Content-Type: application/json');
 require_once '../../config/database.php';
 require_once '../../config/payment.php';
@@ -190,13 +192,13 @@ try {
                     'order_id'       => $order['id'],
                     'amount'         => $order['amount'],
                 ];
-                
+
                 $qrCodePath = generateTicketQRCode($ticketData);
                 $pdfPath    = generateTicketPDF($ticketData);
 
                 $pdo->prepare("UPDATE tickets SET qr_code_path = ? WHERE id = ?")
                     ->execute([str_replace(__DIR__ . '/../../', '', $qrCodePath), $ticket_id]);
-                
+
                 $barcodes[] = $barcode;
             }
             $barcode = $barcodes[0]; // Primary for notification
@@ -217,7 +219,7 @@ try {
                 'order_id'       => $order['id'],
                 'amount'         => $order['amount'],
             ];
-            
+
             $qrCodePath = generateTicketQRCode($ticketData);
             $pdfPath    = generateTicketPDF($ticketData);
 
@@ -238,7 +240,6 @@ try {
             } catch (Exception $e) {
                 error_log('[verify-payment.php] Notification failed: ' . $e->getMessage());
             }
-
         } else {
             $pdo->commit();
             $barcode = $existingTicket['barcode'];
@@ -253,17 +254,17 @@ try {
             'event_name' => $order['event_name'],
             'barcode'    => $barcode,
         ]);
-
     } catch (Exception $e) {
-        if ($pdo->inTransaction()) $pdo->rollBack();
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
         throw $e;
     }
-
 } catch (PDOException $e) {
-    if ($pdo->inTransaction()) $pdo->rollBack();
+    if ($pdo->inTransaction()) {
+        $pdo->rollBack();
+    }
     error_log('[verify-payment.php] DB error: ' . $e->getMessage());
     http_response_code(500);
     echo json_encode(['success' => false, 'message' => 'Verification failed. Please contact support.']);
 }
-
-

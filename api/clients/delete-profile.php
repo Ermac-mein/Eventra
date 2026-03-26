@@ -1,9 +1,11 @@
 <?php
+
 /**
  * Delete Client Profile API
  * Deletes the client's auth_account, which cascades to delete all their records (clients, events, media, etc.).
  * Also attempts to delete their media directory.
  */
+
 header('Content-Type: application/json');
 require_once '../../config/database.php';
 require_once '../../includes/middleware/auth.php';
@@ -39,8 +41,8 @@ try {
             if (is_dir($client_media_dir)) {
                 $iterator = new RecursiveDirectoryIterator($client_media_dir, RecursiveDirectoryIterator::SKIP_DOTS);
                 $files = new RecursiveIteratorIterator($iterator, RecursiveIteratorIterator::CHILD_FIRST);
-                foreach($files as $file) {
-                    if ($file->isDir()){
+                foreach ($files as $file) {
+                    if ($file->isDir()) {
                         @rmdir($file->getRealPath());
                     } else {
                         @unlink($file->getRealPath());

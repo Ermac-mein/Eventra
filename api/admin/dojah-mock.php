@@ -1,8 +1,10 @@
 <?php
+
 /**
  * Dojah Mock Verification API
  * Simulates NIN/BVN verification for local development
  */
+
 header('Content-Type: application/json');
 
 // Get request body

@@ -20,14 +20,16 @@ class BaseController
     protected function decodeGoogleJWT($credential)
     {
         $parts = explode('.', $credential);
-        if (count($parts) < 2) return null;
-        
+        if (count($parts) < 2) {
+            return null;
+        }
+
         $payload = str_replace(['-', '_'], ['+', '/'], $parts[1]);
         $remainder = strlen($payload) % 4;
         if ($remainder) {
             $payload .= str_repeat('=', 4 - $remainder);
         }
-        
+
         return json_decode(base64_decode($payload), true);
     }
 
@@ -42,7 +44,7 @@ class BaseController
         extract($data);
         $base = __DIR__ . '/../../' . $view;
         $viewPath = file_exists($base . '.php') ? $base . '.php' : $base . '.html';
-        
+
         if (file_exists($viewPath)) {
             require $viewPath;
         } else {

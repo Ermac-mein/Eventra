@@ -1,8 +1,10 @@
 <?php
+
 /**
  * Upload Media File API
  * Handles file uploads (images, videos, documents)
  */
+
 header('Content-Type: application/json');
 require_once '../../config/database.php';
 require_once '../utils/notification-helper.php';
@@ -129,7 +131,6 @@ try {
             'file_size' => $file_size
         ]
     ]);
-
 } catch (PDOException $e) {
     http_response_code(500);
     echo json_encode(['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);

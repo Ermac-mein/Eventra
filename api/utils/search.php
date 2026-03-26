@@ -1,8 +1,10 @@
 <?php
+
 /**
  * Unified Search API
  * Searches across events, tickets, users, and media based on role-specific visibility.
  */
+
 header('Content-Type: application/json');
 require_once '../../config/database.php';
 require_once '../../includes/middleware/auth.php';
@@ -32,11 +34,11 @@ try {
     $eventSql = "SELECT id, event_name as title, SUBSTRING(description, 1, 60) as subtitle, category, price 
                  FROM events 
                  WHERE (event_name LIKE ? OR description LIKE ?) AND deleted_at IS NULL";
-    
+
     if ($role === 'client') {
         $eventSql .= " AND client_id = (SELECT id FROM clients WHERE client_auth_id = ?)";
     }
-    
+
     $stmt = $pdo->prepare($eventSql);
     if ($role === 'client') {
         $stmt->execute([$searchTerm, $searchTerm, $auth_id]);
@@ -51,7 +53,7 @@ try {
                   JOIN events e ON t.event_id = e.id
                   JOIN users u ON t.user_id = u.id
                   WHERE (e.event_name LIKE ? OR u.name LIKE ? OR t.id LIKE ?)";
-    
+
     if ($role === 'client') {
         $ticketSql .= " AND e.client_id = (SELECT id FROM clients WHERE client_auth_id = ?)";
     }
@@ -90,11 +92,11 @@ try {
     $mediaSql = "SELECT id, file_name as title, CONCAT(file_type, ' • ', file_size, ' bytes') as subtitle, file_size, 'file' as item_type
                  FROM media
                  WHERE file_name LIKE ? AND is_deleted = 0";
-    
+
     if ($role === 'client') {
         $mediaSql .= " AND client_id = (SELECT id FROM clients WHERE client_auth_id = ?)";
     }
-    
+
     $stmt = $pdo->prepare($mediaSql);
     if ($role === 'client') {
         $stmt->execute([$searchTerm, $auth_id]);
@@ -107,7 +109,6 @@ try {
         'success' => true,
         'results' => $results
     ]);
-
 } catch (PDOException $e) {
     http_response_code(500);
     echo json_encode(['success' => false, 'message' => 'Search error: ' . $e->getMessage()]);

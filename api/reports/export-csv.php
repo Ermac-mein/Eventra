@@ -1,4 +1,5 @@
 <?php
+
 header('Content-Type: text/csv');
 header('Content-Disposition: attachment; filename="report_' . date('Y-m-d_H-i-s') . '.csv"');
 
@@ -63,7 +64,6 @@ try {
             fputcsv($output, $row);
         }
     }
-
 } catch (Exception $e) {
     error_log("Export Error: " . $e->getMessage());
 }

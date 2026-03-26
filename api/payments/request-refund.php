@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Request Refund API
  *
@@ -7,6 +8,7 @@
  * Conditions: order belongs to user, payment_status=success,
  *             refund_status=none, event is >= REFUND_WINDOW_DAYS away.
  */
+
 header('Content-Type: application/json');
 require_once '../../config/database.php';
 require_once '../../includes/middleware/auth.php';
@@ -113,9 +115,10 @@ try {
         'success' => true,
         'message' => 'Refund request submitted. The organizer will review it shortly.',
     ]);
-
 } catch (PDOException $e) {
-    if ($pdo->inTransaction()) $pdo->rollBack();
+    if ($pdo->inTransaction()) {
+        $pdo->rollBack();
+    }
     error_log('[request-refund.php] DB error: ' . $e->getMessage());
     http_response_code(500);
     echo json_encode(['success' => false, 'message' => 'Failed to submit refund request.']);

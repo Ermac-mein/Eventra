@@ -1,8 +1,10 @@
 <?php
+
 /**
  * Delete Media API
  * Deletes a media file
  */
+
 header('Content-Type: application/json');
 require_once '../../config/database.php';
 require_once '../utils/notification-helper.php';
@@ -45,7 +47,6 @@ try {
     } else {
         echo json_encode(['success' => false, 'message' => 'Failed to delete media or already in trash']);
     }
-
 } catch (PDOException $e) {
     http_response_code(500);
     echo json_encode(['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);

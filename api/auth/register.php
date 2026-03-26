@@ -1,4 +1,5 @@
 <?php
+
 header('Content-Type: application/json');
 require_once __DIR__ . '/../../config/database.php';
 require_once __DIR__ . '/../../includes/helpers/entity-resolver.php';
@@ -53,13 +54,11 @@ try {
         $customId = generateClientId($pdo);
         $stmt = $pdo->prepare("INSERT INTO clients (client_auth_id, custom_id, business_name, name) VALUES (?, ?, ?, ?)");
         $stmt->execute([$auth_id, $customId, $name, $name]);
-    }
-    elseif ($role === 'admin') {
+    } elseif ($role === 'admin') {
         $stmt = $pdo->prepare("INSERT INTO admins (admin_auth_id, name) VALUES (?, ?)");
         $stmt->execute([$auth_id, $name]);
         $role_id = $pdo->lastInsertId();
-    }
-    elseif ($role === 'user') {
+    } elseif ($role === 'user') {
         $customId = generateUserId($pdo);
         $stmt = $pdo->prepare("INSERT INTO users (user_auth_id, custom_id, name) VALUES (?, ?, ?)");
         $stmt->execute([$auth_id, $customId, $name]);
@@ -85,9 +84,7 @@ try {
         'success' => true,
         'message' => 'Registration successful! You can now log in.'
     ]);
-
-}
-catch (PDOException $e) {
+} catch (PDOException $e) {
     if ($pdo->inTransaction()) {
         $pdo->rollBack();
     }

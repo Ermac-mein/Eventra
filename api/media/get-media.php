@@ -1,8 +1,10 @@
 <?php
+
 /**
  * Get Media API
  * Retrieves media files and folders for a client
  */
+
 header('Content-Type: application/json');
 require_once '../../config/database.php';
 
@@ -44,11 +46,11 @@ try {
     foreach ($images as $img) {
         $path = $img['image_path'];
         $name = $img['event_name'] . ' flyer';
-        
+
         // Check if already in media
         $check_media = $pdo->prepare("SELECT id FROM media WHERE client_id = ? AND file_path = ? AND is_deleted = 0");
         $check_media->execute([$client_id, $path]);
-        
+
         if (!$check_media->fetch()) {
             // Add to media table
             $ext = pathinfo($path, PATHINFO_EXTENSION);
@@ -97,11 +99,11 @@ try {
     if ($folder_id) {
         $f_clauses[] = "parent_id = ?"; // Assuming parent_id for nested folders if exists, else skip
     } else {
-        $f_clauses[] = "parent_id IS NULL"; 
+        $f_clauses[] = "parent_id IS NULL";
     }
     // Note: If schema doesn't have parent_id, just list all primary folders at root
     // Checking schema: media_folders has id, client_id, name, created_at, is_deleted, parent_folder_id
-    
+
     $folders_sql = "SELECT id, name, created_at FROM media_folders WHERE client_id = ? AND is_deleted = ?";
     if (!$folder_id) {
         $folders_sql .= " AND parent_folder_id IS NULL";
@@ -110,7 +112,7 @@ try {
         $folders_sql .= " AND parent_folder_id = ?";
         $f_params = [$client_id, $is_trash, $folder_id];
     }
-    
+
     $f_stmt = $pdo->prepare($folders_sql);
     $f_stmt->execute($f_params);
     $db_folders = $f_stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -151,7 +153,6 @@ try {
         ],
         'folders' => $folders
     ]);
-
 } catch (PDOException $e) {
     http_response_code(500);
     echo json_encode(['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);

@@ -1,8 +1,10 @@
 <?php
+
 /**
  * Get All Clients API for Admin
  * Retrieves all registered users with role 'client'
  */
+
 header('Content-Type: application/json');
 require_once '../../config/database.php';
 require_once '../../includes/middleware/auth.php';
@@ -62,7 +64,6 @@ try {
         'clients' => $clients,
         'total' => $total_records
     ]);
-
 } catch (PDOException $e) {
     http_response_code(500);
     echo json_encode(['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);

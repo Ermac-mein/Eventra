@@ -1,8 +1,10 @@
 <?php
+
 /**
  * API: Upload Media
  * Handles file uploads for events and media gallery
  */
+
 header('Content-Type: application/json');
 require_once '../../config/database.php';
 require_once '../utils/notification-helper.php';
@@ -136,7 +138,6 @@ try {
         'message' => count($uploadedFiles) . ' file(s) uploaded successfully',
         'files' => $uploadedFiles
     ]);
-
 } catch (Exception $e) {
     if ($pdo->inTransaction()) {
         $pdo->rollBack();

@@ -1,8 +1,10 @@
 <?php
+
 /**
  * Restore Media API
  * Restores a soft-deleted file or folder
  */
+
 header('Content-Type: application/json');
 require_once '../../config/database.php';
 require_once '../utils/notification-helper.php';
@@ -62,10 +64,10 @@ try {
         'success' => true,
         'message' => ucfirst($type) . ' restored successfully'
     ]);
-
 } catch (PDOException $e) {
-    if ($pdo->inTransaction())
+    if ($pdo->inTransaction()) {
         $pdo->rollBack();
+    }
     http_response_code(500);
     echo json_encode(['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);
 }

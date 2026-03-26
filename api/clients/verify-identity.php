@@ -1,11 +1,13 @@
 <?php
+
 /**
  * Identity Verification API — Separate BVN/NIN validation
  *
  * POST: type ('bvn'|'nin'), number
- * 
+ *
  * Legitimizes bank details by cross-checking names (simulated/mocked)
  */
+
 header('Content-Type: application/json');
 require_once '../../config/database.php';
 require_once '../../includes/middleware/auth.php';
@@ -49,7 +51,7 @@ try {
     curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
     curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
     curl_setopt($ch, CURLOPT_TIMEOUT, 5);
-    
+
     $result = curl_exec($ch);
     $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
@@ -86,13 +88,14 @@ try {
     $pdo->commit();
 
     echo json_encode([
-        'success' => true, 
+        'success' => true,
         'message' => ucfirst($type) . ' verified successfully.',
         'legitimatized' => true // Metadata indicating this legitimizes bank details
     ]);
-
 } catch (PDOException $e) {
-    if ($pdo->inTransaction()) $pdo->rollBack();
+    if ($pdo->inTransaction()) {
+        $pdo->rollBack();
+    }
     http_response_code(500);
     echo json_encode(['success' => false, 'message' => 'Database error.']);
 }

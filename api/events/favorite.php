@@ -1,7 +1,9 @@
 <?php
+
 /**
  * Toggle Favorite API
  */
+
 header('Content-Type: application/json');
 require_once '../../config/database.php';
 require_once '../../includes/middleware/auth.php';
@@ -42,7 +44,6 @@ try {
         'message' => $message,
         'is_favorite' => $is_favorite
     ]);
-
 } catch (PDOException $e) {
     echo json_encode(['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);
 }

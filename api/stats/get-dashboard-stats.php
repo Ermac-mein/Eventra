@@ -1,8 +1,10 @@
 <?php
+
 /**
  * Dashboard Statistics API
  * Returns statistics for the client dashboard
  */
+
 header('Content-Type: application/json');
 require_once '../../config/database.php';
 require_once '../../includes/middleware/auth.php';
@@ -75,7 +77,6 @@ try {
         ");
         $stmt->execute([$real_client_id]);
         $stats['total_events'] = $stmt->fetch()['count'] ?? 0;
-
     } elseif ($user_role === 'admin') {
         // Admin stats - all data
 
@@ -94,7 +95,6 @@ try {
                 (SELECT COUNT(*) FROM media_folders WHERE is_deleted = 0) as count
         ");
         $stats['media_uploads'] = $stmt->fetch()['count'] ?? 0;
-
     } else {
         // Regular user stats
 
@@ -115,7 +115,6 @@ try {
         'success' => true,
         'stats' => $stats
     ]);
-
 } catch (PDOException $e) {
     echo json_encode([
         'success' => false,

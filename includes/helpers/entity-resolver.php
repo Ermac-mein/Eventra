@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Entity Resolver Helper
  * Centralized logic for resolving auth entities and enforcing policies.
@@ -6,12 +7,13 @@
 
 /**
  * Resolves an authentication entity (admin, client, or user) from the database.
- * 
+ *
  * @param string $identifier Email or Username
  * @param string|null $role Expected role (admin, client, user)
  * @return array|null The resolved user data or null if not found
  */
-function resolveEntity($identifier, $role = null) {
+function resolveEntity($identifier, $role = null)
+{
     global $pdo;
 
     if (is_numeric($identifier)) {
@@ -65,13 +67,14 @@ function resolveEntity($identifier, $role = null) {
 
 /**
  * Enforces authentication policies based on role and login method.
- * 
+ *
  * @param string $role The user's role
  * @param string $method The login method (password, google)
  * @param array $user The user's data
  * @return array Policy result ['allowed' => bool, 'message' => string]
  */
-function getAuthPolicy($role, $method, $user) {
+function getAuthPolicy($role, $method, $user)
+{
     // 1. Check if account is active
     if (isset($user['is_active']) && !$user['is_active']) {
         return ['allowed' => false, 'message' => 'Account is deactivated.'];
@@ -97,12 +100,13 @@ function getAuthPolicy($role, $method, $user) {
 
 /**
  * Checks if a user is allowed to register with the given email and role.
- * 
+ *
  * @param string $email The email to check
  * @param string $role The target role
  * @return array Result ['success' => bool, 'message' => string]
  */
-function canRegisterAs($email, $role) {
+function canRegisterAs($email, $role)
+{
     global $pdo;
 
     // Check if email already exists in auth_accounts
@@ -125,7 +129,8 @@ function canRegisterAs($email, $role) {
  * Security logging helper (Mock or implementation if missing)
  */
 if (!function_exists('logSecurityEvent')) {
-    function logSecurityEvent($auth_id, $username, $event_type, $method, $details) {
+    function logSecurityEvent($auth_id, $username, $event_type, $method, $details)
+    {
         global $pdo;
         try {
             $stmt = $pdo->prepare("INSERT INTO auth_logs (auth_id, username, event_type, auth_method, details, ip_address, user_agent) VALUES (?, ?, ?, ?, ?, ?, ?)");

@@ -1,4 +1,5 @@
 <?php
+
 header('Content-Type: application/json');
 header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
 header('Cache-Control: post-check=0, pre-check=0', false);
@@ -131,8 +132,12 @@ try {
             'state'         => $user['state'] ?? null,
             'address'       => $user['address'] ?? null,
             'profile_image' => (function ($pic) {
-                if (!$pic) return null;
-                if (preg_match('/^https?:\/\//i', $pic)) return $pic;
+                if (!$pic) {
+                    return null;
+                }
+                if (preg_match('/^https?:\/\//i', $pic)) {
+                    return $pic;
+                }
                 return '/' . ltrim($pic, '/');
             })($user['profile_pic'] ?? null),
             'custom_id'     => $user['custom_id'] ?? null,

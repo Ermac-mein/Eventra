@@ -1,9 +1,11 @@
 <?php
+
 /**
  * Get Payments API
  * Returns paginated, filterable payment list.
  * Users: own payments only. Admins: all payments.
  */
+
 header('Content-Type: application/json');
 require_once '../../config/database.php';
 require_once '../../includes/middleware/auth.php';
@@ -157,10 +159,15 @@ try {
         $p['amount'] = (float) $p['amount'];
         $created = strtotime($p['created_at']);
         $diff = time() - $created;
-        if ($diff < 60) $p['relative_time'] = 'Just now';
-        elseif ($diff < 3600) $p['relative_time'] = floor($diff / 60) . ' min ago';
-        elseif ($diff < 86400) $p['relative_time'] = floor($diff / 3600) . ' hr ago';
-        else $p['relative_time'] = date('M d, Y', $created);
+        if ($diff < 60) {
+            $p['relative_time'] = 'Just now';
+        } elseif ($diff < 3600) {
+            $p['relative_time'] = floor($diff / 60) . ' min ago';
+        } elseif ($diff < 86400) {
+            $p['relative_time'] = floor($diff / 3600) . ' hr ago';
+        } else {
+            $p['relative_time'] = date('M d, Y', $created);
+        }
     }
 
     echo json_encode([

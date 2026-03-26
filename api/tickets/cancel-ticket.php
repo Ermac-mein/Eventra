@@ -1,8 +1,10 @@
 <?php
+
 /**
  * API: Cancel Ticket
  * Handles ticket cancellation and triggers notification
  */
+
 header('Content-Type: application/json');
 require_once '../../config/database.php';
 require_once '../utils/notification-helper.php';
@@ -58,7 +60,6 @@ try {
         'success' => true,
         'message' => 'Ticket cancelled successfully'
     ]);
-
 } catch (Exception $e) {
     if ($pdo->inTransaction()) {
         $pdo->rollBack();

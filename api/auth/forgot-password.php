@@ -1,4 +1,5 @@
 <?php
+
 header('Content-Type: application/json');
 require_once __DIR__ . '/../../config/database.php';
 require_once __DIR__ . '/../../includes/helpers/email-helper.php';
@@ -18,7 +19,7 @@ try {
     $account = $stmt->fetch();
 
     if (!$account) {
-        // Security best practice: Don't reveal if email exists, BUT if the role is restricted, 
+        // Security best practice: Don't reveal if email exists, BUT if the role is restricted,
         // we can still say success to keep the UX smooth and not reveal account existence for other roles
         echo json_encode(['success' => true, 'message' => 'If a client account exists with this email, you will receive a password reset link shortly.']);
         exit;
@@ -39,7 +40,7 @@ try {
     // 5. Build reset link
     $appUrl = rtrim($_ENV['APP_URL'] ?? 'http://' . $_SERVER['HTTP_HOST'], '/');
     $resetLink = "{$appUrl}/public/pages/reset-password.html?token=" . $token;
-    
+
     // 6. Send Email
     $subject = "Reset Your Eventra Password";
     $body = "
@@ -63,7 +64,6 @@ try {
     } else {
         echo json_encode(['success' => false, 'message' => 'Failed to send reset email. Please try again later.']);
     }
-
 } catch (PDOException $e) {
     error_log("Forgot password error: " . $e->getMessage());
     echo json_encode(['success' => false, 'message' => 'Database error occurred.']);

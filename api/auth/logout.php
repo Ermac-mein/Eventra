@@ -1,9 +1,10 @@
-
 <?php
+
 /**
  * Logout API
  * Handles user logout, clears session, and updates status
  */
+
 header('Content-Type: application/json');
 require_once __DIR__ . '/../../config/database.php';
 
@@ -19,8 +20,12 @@ try {
     $auth_token = $_SESSION['auth_token'] ?? null;
 
     $table = 'users'; // default
-    if ($role === 'client') $table = 'clients';
-    if ($role === 'admin') $table = 'admins';
+    if ($role === 'client') {
+        $table = 'clients';
+    }
+    if ($role === 'admin') {
+        $table = 'admins';
+    }
 
     if ($auth_id) {
         // Update status to offline (only mark is_online = 0, NOT is_active!)

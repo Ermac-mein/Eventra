@@ -1,8 +1,10 @@
 <?php
+
 /**
  * Publish Event API
  * Publishes a scheduled or draft event
  */
+
 header('Content-Type: application/json');
 require_once '../../config/database.php';
 require_once '../../includes/middleware/auth.php';
@@ -54,7 +56,7 @@ try {
     $message = "Your event '{$event['event_name']}' has been published and is now live!";
     $auth_id = $_SESSION['auth_id'];
     $client_auth_id = $event['client_auth_id'];
-    
+
     createNotification($client_auth_id, $message, 'event_published', $auth_id, 'client', ($role === 'admin' ? 'admin' : 'client'));
 
     // Notify Admin
@@ -68,7 +70,6 @@ try {
         'success' => true,
         'message' => 'Event published successfully'
     ]);
-
 } catch (Throwable $e) {
     http_response_code(500);
     echo json_encode(['success' => false, 'message' => 'Server error: ' . $e->getMessage()]);

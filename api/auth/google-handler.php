@@ -1,4 +1,5 @@
 <?php
+
 header('Content-Type: application/json');
 header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
 header('Pragma: no-cache');
@@ -119,8 +120,7 @@ try {
             $existingCustomId = $pdo->query("SELECT custom_id FROM clients WHERE client_auth_id = " . (int)$user['id'])->fetchColumn();
             $customId = $existingCustomId ?: generateClientId($pdo);
             $stmt->execute([$user['id'], $customId, $name, $email, $name, $profile_pic]);
-        }
-        else {
+        } else {
             $stmt = $pdo->prepare("
                 INSERT INTO users (user_auth_id, custom_id, name, profile_pic) 
                 VALUES (?, ?, ?, ?)
@@ -142,8 +142,7 @@ try {
                 $user['profile_pic'] = '/' . ltrim($user['profile_pic'], '/');
             }
         }
-    }
-    else {
+    } else {
         // 4. Registration Flow (Google-only for Users/Clients)
         if ($intent === 'admin') {
             logSecurityEvent(null, $email, 'login_failure', 'google', "Attempted admin registration via Google.");
@@ -171,8 +170,7 @@ try {
             $customId = generateClientId($pdo);
             $stmt = $pdo->prepare("INSERT INTO clients (client_auth_id, custom_id, business_name, email, name, profile_pic, password) VALUES (?, ?, ?, ?, ?, ?, 'GOOGLE_AUTH')");
             $stmt->execute([$auth_id, $customId, $name, $email, $name, $profile_pic]);
-        }
-        else {
+        } else {
             // Default to 'user' role
             $customId = generateUserId($pdo);
             $stmt = $pdo->prepare("INSERT INTO users (user_auth_id, custom_id, name, profile_pic) VALUES (?, ?, ?, ?)");
@@ -208,8 +206,7 @@ try {
     $expectedSessionName = 'EVENTRA_USER_SESS';
     if ($userRole === 'admin') {
         $expectedSessionName = 'EVENTRA_ADMIN_SESS';
-    }
-    elseif ($userRole === 'client') {
+    } elseif ($userRole === 'client') {
         $expectedSessionName = 'EVENTRA_CLIENT_SESS';
     }
 
@@ -226,19 +223,17 @@ try {
     $_SESSION['auth_id'] = $user['id']; // Global auth account ID
     $_SESSION['user_role'] = $userRole;
     $_SESSION['role'] = $userRole; // Normalize for legacy support
-    
+
     // Set role-specific IDs
     if ($userRole === 'admin') {
         $stmt = $pdo->prepare("SELECT id FROM admins WHERE admin_auth_id = ?");
         $stmt->execute([$user['id']]);
         $_SESSION['admin_id'] = $stmt->fetchColumn();
-    }
-    elseif ($userRole === 'client') {
+    } elseif ($userRole === 'client') {
         $stmt = $pdo->prepare("SELECT id FROM clients WHERE client_auth_id = ?");
         $stmt->execute([$user['id']]);
         $_SESSION['client_id'] = $stmt->fetchColumn();
-    }
-    elseif ($userRole === 'user') {
+    } elseif ($userRole === 'user') {
         $stmt = $pdo->prepare("SELECT id FROM users WHERE user_auth_id = ?");
         $stmt->execute([$user['id']]);
         $_SESSION['user_id'] = $stmt->fetchColumn();
@@ -255,8 +250,7 @@ try {
     if ($admin_id) {
         if ($userRole === 'client') {
             createClientLoginNotification($admin_id, $user['id'], $user['name'] ?? 'Client', $email);
-        }
-        elseif ($userRole === 'user') {
+        } elseif ($userRole === 'user') {
             createUserLoginNotification($admin_id, $user['id'], $user['name'] ?? 'User', $email);
         }
     }
@@ -265,8 +259,7 @@ try {
     $redirect = 'public/pages/index.html'; // Default for users
     if ($userRole === 'admin') {
         $redirect = 'admin/pages/adminDashboard.html';
-    }
-    elseif ($userRole === 'client') {
+    } elseif ($userRole === 'client') {
         $redirect = 'client/pages/clientDashboard.html';
     }
 
@@ -283,24 +276,27 @@ try {
             'custom_id' => $user['custom_id'] ?? null,
             'bvn' => $user['bvn'] ?? null,
             'profile_pic' => (function ($pic) {
-            if (!$pic)
-                return null;
-            if (preg_match('/^https?:\/\//i', $pic))
-                return $pic;
-            return '/' . ltrim($pic, '/');
-        })($user['profile_pic'] ?? null),
+                if (!$pic) {
+                    return null;
+                }
+                if (preg_match('/^https?:\/\//i', $pic)) {
+                    return $pic;
+                }
+                return '/' . ltrim($pic, '/');
+            })($user['profile_pic'] ?? null),
             'profile_image' => (function ($pic) {
-            if (!$pic)
-                return null;
-            if (preg_match('/^https?:\/\//i', $pic))
-                return $pic;
-            return '/' . ltrim($pic, '/');
-        })($user['profile_pic'] ?? null),
+                if (!$pic) {
+                    return null;
+                }
+                if (preg_match('/^https?:\/\//i', $pic)) {
+                    return $pic;
+                }
+                return '/' . ltrim($pic, '/');
+            })($user['profile_pic'] ?? null),
             'token' => $token
         ]
     ]);
-}
-catch (PDOException $e) {
+} catch (PDOException $e) {
     if ($pdo->inTransaction()) {
         $pdo->rollBack();
     }

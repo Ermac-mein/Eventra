@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Notification Helper Functions
  * Provides standardized notification creation across the application
@@ -8,7 +9,7 @@ require_once __DIR__ . '/../../config/database.php';
 
 /**
  * Create a notification
- * 
+ *
  * @param int $recipient_id User ID who will receive the notification
  * @param string $message Notification message
  * @param string $type Notification type (login, logout, event_created, etc.)
@@ -17,7 +18,7 @@ require_once __DIR__ . '/../../config/database.php';
  */
 /**
  * Create a notification
- * 
+ *
  * @param int $recipient_id User ID who will receive the notification
  * @param string $message Notification message
  * @param string $type Notification type
@@ -50,7 +51,7 @@ function createNotification($recipient_id, $message, $type = 'info', $sender_id 
 
 /**
  * Sends a notification with a retry mechanism (up to 3 attempts)
- * 
+ *
  * @param int $recipient_id
  * @param string $message
  * @param string $type

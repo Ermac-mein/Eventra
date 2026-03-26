@@ -1,10 +1,12 @@
 <?php
+
 /**
  * Bank Details API — Organizer Paystack Subaccount Onboarding
  *
  * POST: bank_code, account_number, bank_name (display label)
 
  */
+
 header('Content-Type: application/json');
 require_once '../../config/database.php';
 require_once '../../config/payment.php';
@@ -67,7 +69,7 @@ try {
         $stmt_check = $pdo->prepare("SELECT account_number, bank_code FROM clients WHERE client_auth_id = ?");
         $stmt_check->execute([$client_auth_id]);
         $existing = $stmt_check->fetch();
-        
+
         if ($existing['account_number'] !== $account_number || $existing['bank_code'] !== $bank_code) {
             $pdo->rollBack();
             http_response_code(403);
@@ -102,12 +104,12 @@ try {
     $account_name = $resolveRes['body']['data']['account_name'] ?? 'Unknown';
 
     $subRes = ensureSubaccount(
-        $pdo, 
-        $client_auth_id, 
-        $bank_code, 
-        $account_number, 
-        $account_name, 
-        $client['email'], 
+        $pdo,
+        $client_auth_id,
+        $bank_code,
+        $account_number,
+        $account_name,
+        $client['email'],
         $client['subaccount_code']
     );
 
@@ -167,9 +169,10 @@ try {
         'verification_status' => $verification_status,
         'user'                => $updated,
     ]);
-
 } catch (PDOException $e) {
-    if ($pdo->inTransaction()) $pdo->rollBack();
+    if ($pdo->inTransaction()) {
+        $pdo->rollBack();
+    }
     error_log('[bank-details.php] DB error: ' . $e->getMessage());
     http_response_code(500);
     echo json_encode(['success' => false, 'message' => 'Database error. Please try again.']);

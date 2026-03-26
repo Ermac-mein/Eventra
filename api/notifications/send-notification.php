@@ -1,4 +1,5 @@
 <?php
+
 require_once __DIR__ . '/../../config/database.php';
 
 function sendNotification($recipient_id, $message, $type = 'info', $sender_id = null)

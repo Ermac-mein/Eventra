@@ -1,8 +1,10 @@
 <?php
+
 /**
  * Get Folder Contents API
  * Retrieves media files within a specific folder
  */
+
 header('Content-Type: application/json');
 require_once '../../config/database.php';
 
@@ -53,7 +55,6 @@ try {
         'files' => $files,
         'count' => count($files)
     ]);
-
 } catch (PDOException $e) {
     http_response_code(500);
     echo json_encode(['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);

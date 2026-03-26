@@ -118,7 +118,7 @@ try {
             for ($i = 0; $i < $quantity; $i++) {
                 $ticketCustomId = generateTicketId($pdo);
                 $barcode = 'TKT-FREE-' . strtoupper(substr(uniqid(), -8));
-                
+
                 $pdo->prepare("
                     INSERT INTO tickets (user_id, event_id, payment_id, custom_id, barcode, status)
                     VALUES (?, ?, ?, ?, ?, 'valid')
@@ -138,7 +138,7 @@ try {
                 $qrPath = generateTicketQRCode($ticketData);
                 $pdo->prepare("UPDATE tickets SET qr_code_path = ? WHERE id = ?")
                     ->execute([str_replace(__DIR__ . '/../../', '', $qrPath), $ticket_id]);
-                
+
                 $tickets[] = ['barcode' => $barcode, 'id' => $ticket_id];
             }
 
@@ -160,9 +160,10 @@ try {
                 'is_free' => true
             ]);
             exit;
-
         } catch (Exception $e) {
-            if ($pdo->inTransaction()) $pdo->rollBack();
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
             error_log('[initialize.php] Free checkout error: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'message' => 'Failed to process free ticket.']);
@@ -239,12 +240,12 @@ try {
         $errMsg = $psResult['message'] ?? 'Paystack initialization failed.';
         $psCode = $psResult['code'] ?? 'N/A';
         error_log("[initialize.php] Paystack Error: {$errMsg} (Code: {$psCode})");
-        
+
         // Provide more helpful messages for common errors
         if (str_contains($errMsg, 'subaccount')) {
             $errMsg = "Organizer payment setup issue: " . $errMsg;
         }
-        
+
         echo json_encode(['success' => false, 'message' => $errMsg, 'error_code' => $psCode]);
         exit;
     }
@@ -258,9 +259,10 @@ try {
         'order_id'          => (int)$order_id,
         'amount'            => $total,
     ]);
-
 } catch (PDOException $e) {
-    if ($pdo->inTransaction()) $pdo->rollBack();
+    if ($pdo->inTransaction()) {
+        $pdo->rollBack();
+    }
     error_log('[initialize.php] DB error: ' . $e->getMessage());
     http_response_code(500);
     echo json_encode(['success' => false, 'message' => 'Order creation failed. Please try again.']);

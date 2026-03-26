@@ -1,8 +1,10 @@
 <?php
+
 /**
  * Get Notifications API
  * Retrieves notifications for a user
  */
+
 header('Content-Type: application/json');
 require_once '../../config/database.php';
 
@@ -16,12 +18,12 @@ require_once '../../includes/middleware/auth.php';
     $limit = $_GET['limit'] ?? 20;
     $offset = $_GET['offset'] ?? 0;
     $is_read = $_GET['is_read'] ?? null;
-    
+
 try {
     // Auto-delete notifications older than 30 days
     $cleanup_stmt = $pdo->prepare("DELETE FROM notifications WHERE created_at < DATE_SUB(NOW(), INTERVAL 30 DAY)");
     $cleanup_stmt->execute();
-    
+
     // Build query
     $where_clauses = ["recipient_auth_id = ?", "recipient_role = ?"];
     $params = [$auth_id, $role];
@@ -79,7 +81,6 @@ try {
         'notifications' => $notifications,
         'unread_count' => $unread_count
     ]);
-
 } catch (PDOException $e) {
     http_response_code(500);
     echo json_encode(['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);

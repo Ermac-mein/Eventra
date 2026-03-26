@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Ticket Helper for generating secure QR codes and PDF tickets
  *

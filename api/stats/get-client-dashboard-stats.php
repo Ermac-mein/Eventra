@@ -1,8 +1,10 @@
 <?php
+
 /**
  * Get Client Dashboard Stats API
  * Provides statistics for client dashboard
  */
+
 header('Content-Type: application/json');
 require_once '../../config/database.php';
 
@@ -112,7 +114,6 @@ try {
         'attendees' => $attendees,
         'events' => $event_breakdown
     ]);
-
 } catch (PDOException $e) {
     http_response_code(500);
     echo json_encode(['success' => false, 'message' => 'Failed to fetch client stats: ' . $e->getMessage()]);

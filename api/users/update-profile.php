@@ -1,7 +1,9 @@
 <?php
+
 /**
  * Update User Profile API
  */
+
 header('Content-Type: application/json');
 require_once '../../config/database.php';
 
@@ -104,7 +106,6 @@ try {
         'message' => 'Profile updated successfully',
         'user' => $updated_user
     ]);
-
 } catch (PDOException $e) {
     if ($pdo->inTransaction()) {
         $pdo->rollBack();

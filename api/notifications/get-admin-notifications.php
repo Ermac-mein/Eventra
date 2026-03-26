@@ -1,4 +1,5 @@
 <?php
+
 header('Content-Type: application/json');
 require_once '../../includes/middleware/auth.php';
 require_once '../../config/database.php';
@@ -32,7 +33,7 @@ try {
         ORDER BY n.created_at DESC
         LIMIT 10
     ");
-    $stmt->execute([$admin_auth_id]); 
+    $stmt->execute([$admin_auth_id]);
     $notifications = $stmt->fetchAll();
 
     // Get unread count
@@ -46,7 +47,6 @@ try {
         'notifications' => $notifications,
         'unread_count' => (int) $unread_count
     ]);
-
 } catch (PDOException $e) {
     http_response_code(500);
     echo json_encode([

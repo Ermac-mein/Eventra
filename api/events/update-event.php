@@ -1,8 +1,10 @@
 <?php
+
 /**
  * Update Event API
  * Updates event details (only for draft and scheduled events)
  */
+
 header('Content-Type: application/json');
 require_once '../../includes/middleware/auth.php';
 
@@ -50,7 +52,7 @@ try {
     $image_path = $event['image_path']; // Keep existing image by default
     if (isset($_FILES['event_image']) && $_FILES['event_image']['error'] === UPLOAD_ERR_OK) {
         $upload_dir = "../../uploads/events/";
-        
+
         if (!is_dir($upload_dir)) {
             mkdir($upload_dir, 0777, true);
         }
@@ -110,12 +112,12 @@ try {
     } elseif (isset($_FILES['event_image']) && $_FILES['event_image']['error'] !== UPLOAD_ERR_NO_FILE) {
         $error_code = $_FILES['event_image']['error'];
         $error_message = "Image upload failed (Error: $error_code)";
-        
+
         if ($error_code === UPLOAD_ERR_INI_SIZE || $error_code === UPLOAD_ERR_FORM_SIZE) {
             $max_size = ini_get('upload_max_filesize');
             $error_message = "The uploaded image is too large. Your server's current limit is $max_size. Please upload a smaller image or increase 'upload_max_filesize' in your PHP configuration.";
         }
-        
+
         throw new Exception($error_message);
     }
 
@@ -191,7 +193,6 @@ try {
         'success' => true,
         'message' => 'Event updated successfully'
     ]);
-
 } catch (Throwable $e) {
     error_log("[Update Event Global Error] " . $e->getMessage() . "\n" . $e->getTraceAsString());
     http_response_code(500);

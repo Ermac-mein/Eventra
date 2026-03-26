@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Scheduled Event Notification Cron Job
  * Purpose: Send notifications for scheduled events (1 day before + 5 minutes before)
@@ -53,7 +54,7 @@ try {
         foreach ($events as $event) {
             // Atomic update: Mark as sent BEFORE actually sending to prevent race conditions in long-running processes
             // If the script crashes, we might miss one, but better than spamming.
-            // Actually, for 100% delivery, we should mark it AFTER success, 
+            // Actually, for 100% delivery, we should mark it AFTER success,
             // but the user asked for "set to 1 immediately to prevent duplicate alerts".
             $pdo->prepare("UPDATE events SET schedule_notification_sent = 1 WHERE id = ?")->execute([$event['id']]);
 
@@ -92,7 +93,6 @@ try {
 
     $total = count($oneDayEvents) + count($immediateEvents);
     echo "[" . date('Y-m-d H:i:s') . "] Cron completed. Total processed: $total\n";
-
 } catch (Exception $e) {
     error_log("Notification Cron Error: " . $e->getMessage());
     echo "Fatal Error: " . $e->getMessage() . "\n";

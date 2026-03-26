@@ -1,10 +1,12 @@
 <?php
+
 /**
  * Generate OTP API
  * Generates and sends a 6-digit OTP to the user via Email or SMS
  * - OTP expires in 5 minutes (single-use, time-sensitive)
  * - Uses standardized auth middleware
  */
+
 header('Content-Type: application/json');
 require_once '../../config/database.php';
 require_once '../../includes/middleware/auth.php';
@@ -115,7 +117,6 @@ try {
     } else {
         echo json_encode(['success' => false, 'message' => 'Failed to send OTP: ' . $error_msg]);
     }
-
 } catch (PDOException $e) {
     echo json_encode(['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);
 }

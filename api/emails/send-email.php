@@ -1,8 +1,10 @@
 <?php
+
 /**
  * Send Email API
  * Handles various email types: receipt, ticket (with PDF), notification
  */
+
 header('Content-Type: application/json');
 require_once '../../config/database.php';
 require_once '../../includes/middleware/auth.php';
@@ -161,7 +163,6 @@ try {
 
     $result = sendEmail($user['email'], $subject, $body, $attachments);
     echo json_encode($result);
-
 } catch (PDOException $e) {
     echo json_encode(['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);
 }

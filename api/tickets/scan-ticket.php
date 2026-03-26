@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Scan Ticket API
  * Called when a client scans a QR code at a venue entrance.
@@ -10,6 +11,7 @@
  *
  * Protected: client session required (clients scan tickets at their events).
  */
+
 header('Content-Type: application/json');
 require_once '../../config/database.php';
 require_once '../../includes/middleware/auth.php';
@@ -56,7 +58,6 @@ try {
             'details' => $result['details'] ?? null
         ]);
     }
-
 } catch (Exception $e) {
     http_response_code(500);
     echo json_encode(['success' => false, 'message' => 'Server error: ' . $e->getMessage()]);

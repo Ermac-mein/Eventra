@@ -1,8 +1,10 @@
 <?php
+
 /**
  * Mark Notification as Read API
  * Marks one or more notifications as read
  */
+
 header('Content-Type: application/json');
 require_once '../../config/database.php';
 require_once '../../includes/middleware/auth.php';
@@ -66,7 +68,6 @@ try {
         'message' => 'Notifications marked as read',
         'affected_rows' => $stmt->rowCount()
     ]);
-
 } catch (PDOException $e) {
     error_log("Error marking notifications as read: " . $e->getMessage());
     echo json_encode([

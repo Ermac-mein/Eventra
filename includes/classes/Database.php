@@ -1,2 +1,3 @@
 <?php
+
 // Database connection class

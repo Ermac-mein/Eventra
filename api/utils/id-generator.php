@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Eventra — Entity ID Generator
  * Provides unique, human-readable, purely random custom IDs for all entities.

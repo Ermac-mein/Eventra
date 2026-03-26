@@ -1,8 +1,10 @@
 <?php
+
 /**
  * Create Event API
  * Handles event creation with all fields including scheduling, priority, tags, and links
  */
+
 header('Content-Type: application/json');
 require_once '../../config/database.php';
 require_once '../../config/env-loader.php';
@@ -49,7 +51,7 @@ try {
     $image_path = null;
     if (isset($_FILES['event_image']) && $_FILES['event_image']['error'] === UPLOAD_ERR_OK) {
         $upload_dir = "../../uploads/events/";
-        
+
         if (!is_dir($upload_dir)) {
             mkdir($upload_dir, 0777, true);
         }
@@ -60,7 +62,7 @@ try {
 
         if (move_uploaded_file($_FILES['event_image']['tmp_name'], $target_path)) {
             $image_path = "/uploads/events/" . $file_name;
-            
+
             // Register in media table (Canonical folder: "Event Images")
             try {
                 $file_size = filesize($target_path);
@@ -146,18 +148,36 @@ try {
     ) {
         http_response_code(400);
         $missing = [];
-        if (empty($event_name)) $missing[] = 'Event Name';
-        if (empty($description)) $missing[] = 'Description';
-        if (empty($event_type)) $missing[] = 'Category';
-        if (empty($event_date)) $missing[] = 'Date';
-        if (empty($event_time)) $missing[] = 'Time';
-        if (empty($phone_contact_1)) $missing[] = 'Primary Contact';
-        if (empty($state)) $missing[] = 'State';
-        if (empty($address)) $missing[] = 'Address';
-        if (empty($image_path)) $missing[] = 'Event Image (Banner)';
+        if (empty($event_name)) {
+            $missing[] = 'Event Name';
+        }
+        if (empty($description)) {
+            $missing[] = 'Description';
+        }
+        if (empty($event_type)) {
+            $missing[] = 'Category';
+        }
+        if (empty($event_date)) {
+            $missing[] = 'Date';
+        }
+        if (empty($event_time)) {
+            $missing[] = 'Time';
+        }
+        if (empty($phone_contact_1)) {
+            $missing[] = 'Primary Contact';
+        }
+        if (empty($state)) {
+            $missing[] = 'State';
+        }
+        if (empty($address)) {
+            $missing[] = 'Address';
+        }
+        if (empty($image_path)) {
+            $missing[] = 'Event Image (Banner)';
+        }
 
         echo json_encode([
-            'success' => false, 
+            'success' => false,
             'message' => 'All required fields must be filled: ' . implode(', ', $missing)
         ]);
         exit;
@@ -236,7 +256,6 @@ try {
             'status' => $status
         ]
     ]);
-
 } catch (Throwable $e) {
     if (strpos($e->getMessage(), 'Image upload failed') !== false || strpos($e->getMessage(), 'required fields') !== false) {
         http_response_code(400);

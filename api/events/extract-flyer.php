@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Extract Event Data from Flyer Image
  * Uses Tesseract OCR to extract text from an uploaded flyer image,
@@ -6,6 +7,7 @@
  *
  * Requires: tesseract-ocr installed on server (apt-get install tesseract-ocr)
  */
+
 header('Content-Type: application/json');
 require_once '../../config/database.php';
 require_once '../../includes/middleware/auth.php';
@@ -95,7 +97,6 @@ try {
         'extracted_text' => $extractedText,
         'fields'         => $parsed
     ]);
-
 } catch (Exception $e) {
     @unlink($tmpImage);
     echo json_encode(['success' => false, 'message' => 'OCR processing error: ' . $e->getMessage()]);
@@ -116,13 +117,15 @@ function parseEventTextFromOCR(string $text): array
         '/\bENTRV\b/i'     => 'ENTRY',
         '/\bTICKEI\b/i'    => 'TICKET',
         '/\bVENOE\b/i'     => 'VENUE',
-        '/\|/'             => 'I', 
-        '/0/'              => 'O'  
+        '/\|/'             => 'I',
+        '/0/'              => 'O'
     ];
-    
+
     $cleanText = $text;
     foreach ($errorMap as $pattern => $replacement) {
-        if ($pattern === '/0/') continue; 
+        if ($pattern === '/0/') {
+            continue;
+        }
         $cleanText = preg_replace($pattern, $replacement, $cleanText);
     }
 
@@ -141,7 +144,7 @@ function parseEventTextFromOCR(string $text): array
 
     // --- STAGE 2: Refined Event Name Detection ---
     $eventKeywords = [
-        'Trade Fair', 'Festival', 'Concert', 'Summit', 'Conference', 'Night', 'Show', 'Expo', 
+        'Trade Fair', 'Festival', 'Concert', 'Summit', 'Conference', 'Night', 'Show', 'Expo',
         'Gala', 'Tour', 'Workshop', 'Meetup', 'Celebration', 'Carnival', 'Exhibition'
     ];
     // Blacklist: These are operational titles, not the event name itself
@@ -161,19 +164,28 @@ function parseEventTextFromOCR(string $text): array
         $score = 0;
         $isBlacklisted = false;
         foreach ($blacklist as $bl) {
-            if (stripos($line, $bl) !== false) { $isBlacklisted = true; break; }
+            if (stripos($line, $bl) !== false) {
+                $isBlacklisted = true;
+                break;
+            }
         }
-        if ($isBlacklisted) $score -= 10;
+        if ($isBlacklisted) {
+            $score -= 10;
+        }
 
         foreach ($eventKeywords as $kw) {
-            if (stripos($line, $kw) !== false) $score += 20;
+            if (stripos($line, $kw) !== false) {
+                $score += 20;
+            }
         }
 
         if ($handle && stripos($line, explode(' ', $handle)[0]) !== false) {
             $score += 30; // High priority if it matches the social handle brand
         }
 
-        if (mb_strtoupper($line) === $line && strlen($line) > 5) $score += 10;
+        if (mb_strtoupper($line) === $line && strlen($line) > 5) {
+            $score += 10;
+        }
 
         if ($score > $bestScore && strlen(preg_replace('/[^a-z0-9]/i', '', $line)) > 3) {
             $bestScore = $score;
@@ -205,10 +217,14 @@ function parseEventTextFromOCR(string $text): array
         $hour = intval($m[1]);
         $min = isset($m[2]) ? intval($m[2]) : 0;
         $ampm = strtoupper($m[3]);
-        
-        if ($ampm === 'PM' && $hour < 12) $hour += 12;
-        if ($ampm === 'AM' && $hour === 12) $hour = 0;
-        
+
+        if ($ampm === 'PM' && $hour < 12) {
+            $hour += 12;
+        }
+        if ($ampm === 'AM' && $hour === 12) {
+            $hour = 0;
+        }
+
         $result['event_time'] = sprintf("%02d:%02d", $hour, $min);
     } elseif (preg_match('/\b([01]?\d|2[0-3]):([0-5]\d)\b/', $fullText, $m)) {
         $result['event_time'] = sprintf("%02d:%02d", $m[1], $m[2]);
@@ -217,7 +233,7 @@ function parseEventTextFromOCR(string $text): array
     // --- STAGE 5 & 6 & 7: Venue & Address & State ---
     $venueKeywords = ['Venue', 'Location', 'Place', 'Holding at', 'Center', 'Hall', 'Arena', 'Hotel', 'Club', 'Stadium', 'Plaza', 'Park', 'Auditorium', 'Theatre'];
     $addressKeywords = ['Street', 'Road', 'Rd', 'Avenue', 'Ave', 'Drive', 'Close', 'Lane', 'Way', 'Boulevard', 'Layout', 'Estate', 'Junction', 'Crescent'];
-    
+
     $detectedVenue = '';
     $detectedStreet = '';
 
@@ -227,13 +243,13 @@ function parseEventTextFromOCR(string $text): array
                 if (preg_match('/' . $kw . '[:\-\s]+(.*)/i', $line, $vm)) {
                     $detectedVenue = trim($vm[1]);
                 } else {
-                    $detectedVenue = isset($lines[$i+1]) ? $lines[$i+1] : $line;
+                    $detectedVenue = isset($lines[$i + 1]) ? $lines[$i + 1] : $line;
                 }
                 break 2;
             }
         }
     }
-    
+
     foreach ($lines as $line) {
         foreach ($addressKeywords as $kw) {
             if (stripos($line, $kw) !== false) {
@@ -267,9 +283,9 @@ function parseEventTextFromOCR(string $text): array
     // --- STAGE 8: Phone Contact Detection ---
     $contactKeywords = ['Call', 'Contact', 'Enquiries', 'Info', 'WhatsApp', 'RSVP'];
     $phonePattern = '/(?:\+?234|0)[789]\d{9,10}/';
-    
+
     if (preg_match_all($phonePattern, str_replace([' ', '-'], '', $fullText), $pm)) {
-        $result['phone'] = $pm[0][0]; 
+        $result['phone'] = $pm[0][0];
     } else {
         foreach ($lines as $line) {
             foreach ($contactKeywords as $kw) {
@@ -290,7 +306,9 @@ function parseEventTextFromOCR(string $text): array
         $pricePattern = '/(?:₦|N|#|\$|NGN|ENTRY|PRICE)[:\s]*([\d,]+(?:\.\d{2})?)/i';
         if (preg_match($pricePattern, $fullText, $m)) {
             $val = str_replace(',', '', $m[1]);
-            if (is_numeric($val)) $result['price'] = $val;
+            if (is_numeric($val)) {
+                $result['price'] = $val;
+            }
         }
     }
 

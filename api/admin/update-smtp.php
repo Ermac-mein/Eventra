@@ -1,9 +1,11 @@
 <?php
+
 /**
  * Update SMTP Settings API (Admin only)
  * Allows admins to update email configuration via the admin panel.
  * Updates the .env file SMTP fields.
  */
+
 header('Content-Type: application/json');
 require_once '../../config/database.php';
 require_once '../../includes/middleware/auth.php';

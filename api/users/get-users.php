@@ -1,8 +1,10 @@
 <?php
+
 /**
  * Get Users API
  * Retrieves users who have interacted with the client's events
  */
+
 header('Content-Type: application/json');
 require_once '../../config/database.php';
 require_once '../../includes/middleware/auth.php';
@@ -49,10 +51,10 @@ try {
 
     // Calculate basic stats for this client
     $total_distinct_users = count($users);
-    
+
     // Engaged users are those with more than 1 payment (optional refinement)
     // For now, let's just use the count of users who bought tickets
-    
+
     echo json_encode([
         'success' => true,
         'users' => $users,
@@ -62,7 +64,6 @@ try {
             'engaged_users' => $total_distinct_users
         ]
     ]);
-
 } catch (PDOException $e) {
     http_response_code(500);
     echo json_encode(['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);

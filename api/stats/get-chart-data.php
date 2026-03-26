@@ -1,8 +1,10 @@
 <?php
+
 /**
  * Get Chart Data API
  * Provides time-series data for dashboard charts
  */
+
 header('Content-Type: application/json');
 require_once '../../config/database.php';
 require_once '../../includes/middleware/auth.php';
@@ -119,7 +121,6 @@ try {
                 'data' => $revenue_data
             ]
         ]);
-
     } elseif ($user_role === 'client') {
         // Resolve real_client_id (it's just user_id for clients now)
         $real_client_id = $user_id;
@@ -189,7 +190,6 @@ try {
     } else {
         echo json_encode(['success' => false, 'message' => 'Invalid role for chart data']);
     }
-
 } catch (PDOException $e) {
     http_response_code(500);
     error_log("Chart data error: " . $e->getMessage());
