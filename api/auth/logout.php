@@ -35,6 +35,8 @@ try {
         // Update role-specific status to 'offline'
         if ($role === 'client') {
             $pdo->prepare("UPDATE clients SET status = 'offline' WHERE client_auth_id = ?")->execute([$auth_id]);
+        } elseif ($role === 'admin') {
+            $pdo->prepare("UPDATE admins SET status = 'offline' WHERE admin_auth_id = ?")->execute([$auth_id]);
         } elseif ($role === 'user') {
             $pdo->prepare("UPDATE users SET status = 'offline' WHERE user_auth_id = ?")->execute([$auth_id]);
         }

@@ -85,11 +85,14 @@ try {
         // Reset failed attempts on success
         $pdo->prepare("UPDATE auth_accounts SET failed_attempts = 0, last_login_at = NOW(), is_online = 1 WHERE id = ?")->execute([$user['id']]);
 
-        // Update role-specific status to 'online' (preserving 'pending' logic: only update if not pending?
-        // User said: "Do not override 'pending' except on first successful login; after that only online/offline."
-        // Actually, if they are logging in, they are no longer pending.
-        // Rely on auth_accounts.is_online (updated above) as the source of truth for online status
-        // Role-specific 'status' columns do not exist in the current schema for clients/users
+        // Update role-specific status to 'online' when user logs in
+        if ($userRole === 'admin') {
+            $pdo->prepare("UPDATE admins SET status = 'online' WHERE admin_auth_id = ?")->execute([$user['id']]);
+        } elseif ($userRole === 'client') {
+            $pdo->prepare("UPDATE clients SET status = 'online' WHERE client_auth_id = ?")->execute([$user['id']]);
+        } elseif ($userRole === 'user') {
+            $pdo->prepare("UPDATE users SET status = 'online' WHERE user_auth_id = ?")->execute([$user['id']]);
+        }
 
         // Generate alphanumeric access token
         $token = bin2hex(random_bytes(32));

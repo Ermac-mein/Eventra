@@ -12,15 +12,17 @@ require_once '../../includes/middleware/auth.php';
 $auth_id = checkAuth(); // any role
 
 try {
-    // Update auth_accounts for real-time status tracking used by admin dashboard
+    // Update auth_accounts for real-time status tracking
     $pdo->prepare("UPDATE auth_accounts SET last_seen = NOW(), is_online = 1 WHERE id = ?")->execute([$auth_id]);
 
-    // Role-specific status sync
+    // Role-specific status sync - maintain online status
     $role = $_SESSION['role'] ?? $_SESSION['user_role'] ?? 'user';
-    if ($role === 'user') {
-        $pdo->prepare("UPDATE users SET status = 'online' WHERE user_auth_id = ? AND status != 'online'")->execute([$auth_id]);
+    if ($role === 'admin') {
+        $pdo->prepare("UPDATE admins SET status = 'online' WHERE admin_auth_id = ?")->execute([$auth_id]);
     } elseif ($role === 'client') {
-        $pdo->prepare("UPDATE clients SET status = 'online' WHERE client_auth_id = ? AND status != 'online'")->execute([$auth_id]);
+        $pdo->prepare("UPDATE clients SET status = 'online' WHERE client_auth_id = ?")->execute([$auth_id]);
+    } elseif ($role === 'user') {
+        $pdo->prepare("UPDATE users SET status = 'online' WHERE user_auth_id = ?")->execute([$auth_id]);
     }
 
     echo json_encode(['success' => true, 'ts' => time()]);
