@@ -27,6 +27,13 @@ try {
         $stmt = $pdo->prepare("UPDATE auth_accounts SET is_online = 0, last_seen = NOW() WHERE id = ?");
         $stmt->execute([$auth_id]);
 
+        // Update role-specific status to 'offline'
+        if ($role === 'client') {
+            $pdo->prepare("UPDATE clients SET status = 'offline' WHERE client_auth_id = ?")->execute([$auth_id]);
+        } elseif ($role === 'user') {
+            $pdo->prepare("UPDATE users SET status = 'offline' WHERE user_auth_id = ?")->execute([$auth_id]);
+        }
+
         // Delete auth tokens
         $stmt = $pdo->prepare("DELETE FROM auth_tokens WHERE auth_id = ?");
         $stmt->execute([$auth_id]);

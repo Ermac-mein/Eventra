@@ -53,10 +53,16 @@ async function loadDashboardStats() {
         if (totalEventsEl) totalEventsEl.textContent = stats.total_events || 0;
 
         const activeUsersEl = document.getElementById('activeUsersCount');
-        if (activeUsersEl) activeUsersEl.textContent = stats.total_users || 0;
+        if (activeUsersEl) activeUsersEl.textContent = stats.active_users || 0;
 
-        const totalClientsEl = document.getElementById('totalClientsCount');
-        if (totalClientsEl) totalClientsEl.textContent = stats.total_clients || 0;
+        const checkedInEl = document.getElementById('userCheckedInCount');
+        if (checkedInEl) checkedInEl.textContent = stats.user_checked_in || 0;
+
+        const verifiedClientsEl = document.getElementById('clientsVerifiedCount');
+        if (verifiedClientsEl) verifiedClientsEl.textContent = stats.clients_verified || 0;
+
+        const unverifiedClientsEl = document.getElementById('clientsUnverifiedCount');
+        if (unverifiedClientsEl) unverifiedClientsEl.textContent = stats.clients_unverified || 0;
 
         const totalRevenueEl = document.getElementById('totalRevenue');
         if (totalRevenueEl) totalRevenueEl.textContent = '₦' + parseFloat(stats.total_revenue || 0).toLocaleString();

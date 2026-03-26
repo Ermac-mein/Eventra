@@ -85,66 +85,58 @@ if ($search) {
     $searchParams = [$like, $like, $like, $like];
 }
 
-// ─── Scope: user vs admin ──────────────────────────────────────────────────
+// ─── Scope: user vs admin vs client ─────────────────────────────────────────
 $scopeWhere = '';
 $scopeParams = [];
-if (!$isAdmin) {
-    // Resolve user profile ID
-    $authId = $_SESSION['client_id'] ?? $_SESSION['user_id'] ?? null;
-    if ($sessionRole === 'user') {
-        $scopeWhere = ' AND p.user_id = ?';
-        $scopeParams[] = $authId;
-    }
+
+if ($sessionRole === 'user') {
+    $userId = $_SESSION['user_id'] ?? null;
+    $scopeWhere = ' AND p.user_id = ?';
+    $scopeParams[] = $userId;
+} elseif ($sessionRole === 'client') {
+    $clientAuthId = $_SESSION['auth_id'] ?? null;
+    $scopeWhere = ' AND e.client_id = (SELECT id FROM clients WHERE client_auth_id = ?)';
+    $scopeParams[] = $clientAuthId;
 }
 
-// ─── Build Query ───────────────────────────────────────────────────────────
+// ─── Build Queries ──────────────────────────────────────────────────────────
 $params = array_merge($scopeParams, $dateParams, $statusParams, $searchParams);
 
 $sql = "
     SELECT
-        p.id,
-        p.custom_id,
-        p.reference,
-        p.amount,
-        p.status,
-        p.paid_at,
-        p.created_at,
-        e.event_name,
-        e.event_date,
-        COALESCE(u.name, 'Guest') AS buyer_name,
-        COALESCE(au.email, '') AS buyer_email,
-        GROUP_CONCAT(t.barcode SEPARATOR ', ') AS ticket_barcodes,
-        COUNT(t.id) AS ticket_count,
-        c.name AS client_name,
-        e.image_path AS event_image,
-        u.custom_id AS user_custom_id,
-        c.custom_id AS client_custom_id
+        p.id, p.custom_id, p.reference, p.amount, p.status, p.paid_at, p.created_at,
+        e.event_name, e.event_date,
+        c.business_name AS client_name, c.custom_id AS client_custom_id,
+        u.name AS buyer_name, u.custom_id AS user_custom_id,
+        au.email AS buyer_email,
+        (SELECT COUNT(*) FROM tickets t WHERE t.payment_id = p.id) AS ticket_count
     FROM payments p
     LEFT JOIN events e ON p.event_id = e.id
+    LEFT JOIN clients c ON e.client_id = c.id
     LEFT JOIN users u ON p.user_id = u.id
     LEFT JOIN auth_accounts au ON u.user_auth_id = au.id
-    LEFT JOIN tickets t ON t.payment_id = p.id
-    LEFT JOIN clients c ON e.client_id = c.id
     WHERE 1=1
-    $scopeWhere
-    $dateWhere
-    $statusWhere
-    $searchWhere
-    GROUP BY p.id
+    $scopeWhere $dateWhere $statusWhere $searchWhere
     ORDER BY $orderBy
     LIMIT $limit OFFSET $offset
 ";
 
 $countSql = "
-    SELECT COUNT(DISTINCT p.id) as total
+    SELECT COUNT(*) as total FROM payments p
+    LEFT JOIN events e ON p.event_id = e.id
+    WHERE 1=1 $scopeWhere $dateWhere $statusWhere $searchWhere
+";
+
+// Stats query
+$statsSql = "
+    SELECT 
+        COUNT(*) as total_payments,
+        COUNT(CASE WHEN p.status = 'paid' THEN 1 END) as successful_payments,
+        COUNT(CASE WHEN p.status = 'failed' THEN 1 END) as failed_payments,
+        SUM(CASE WHEN p.status = 'paid' THEN p.amount ELSE 0 END) as total_revenue
     FROM payments p
     LEFT JOIN events e ON p.event_id = e.id
-    LEFT JOIN users u ON p.user_id = u.id
-    WHERE 1=1
-    $scopeWhere
-    $dateWhere
-    $statusWhere
-    $searchWhere
+    WHERE 1=1 $scopeWhere
 ";
 
 try {
@@ -156,30 +148,32 @@ try {
     $countStmt->execute($params);
     $total = (int) $countStmt->fetchColumn();
 
-    // Compute relative time
+    $statsStmt = $pdo->prepare($statsSql);
+    $statsStmt->execute($scopeParams);
+    $stats = $statsStmt->fetch(PDO::FETCH_ASSOC);
+
+    // Format data
     foreach ($payments as &$p) {
         $p['amount'] = (float) $p['amount'];
         $created = strtotime($p['created_at']);
         $diff = time() - $created;
-
-        if ($diff < 60)
-            $p['relative_time'] = 'Just now';
-        elseif ($diff < 3600)
-            $p['relative_time'] = floor($diff / 60) . ' min ago';
-        elseif ($diff < 86400)
-            $p['relative_time'] = floor($diff / 3600) . ' hr ago';
-        elseif ($diff < 604800)
-            $p['relative_time'] = floor($diff / 86400) . ' days ago';
-        else
-            $p['relative_time'] = date('M d, Y', $created);
+        if ($diff < 60) $p['relative_time'] = 'Just now';
+        elseif ($diff < 3600) $p['relative_time'] = floor($diff / 60) . ' min ago';
+        elseif ($diff < 86400) $p['relative_time'] = floor($diff / 3600) . ' hr ago';
+        else $p['relative_time'] = date('M d, Y', $created);
     }
 
     echo json_encode([
         'success' => true,
         'payments' => $payments,
+        'stats' => [
+            'total' => (int)($stats['total_payments'] ?? 0),
+            'successful' => (int)($stats['successful_payments'] ?? 0),
+            'failed' => (int)($stats['failed_payments'] ?? 0),
+            'revenue' => (float)($stats['total_revenue'] ?? 0)
+        ],
         'total' => $total,
         'page' => $page,
-        'limit' => $limit,
         'pages' => (int) ceil($total / $limit),
     ]);
 } catch (PDOException $e) {

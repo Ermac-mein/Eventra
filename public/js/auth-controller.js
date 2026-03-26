@@ -238,7 +238,7 @@ class AuthController {
         try {
             const basePath = getBasePath();
             const role = this.getPortalIntent();
-            const endpoint = `${basePath}api/${role}/auth/google-login`;
+            const endpoint = `${basePath}api/${role}/auth/google-login.php`;
             
             const res = await apiFetch(endpoint, {
                 method: 'POST',

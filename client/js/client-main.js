@@ -60,14 +60,12 @@ function updateGlobalAvatar(user) {
             parent.classList.add('avatar-wrapper');
         }
 
-        if (user.profile_pic) {
-            avatar.style.backgroundImage = `url(${user.profile_pic})`;
-        } else {
-            // Fallback to UI Avatars
-            const name = user.name || user.business_name || 'User';
-            const defaultAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random&color=fff`;
-            avatar.style.backgroundImage = `url(${defaultAvatar})`;
-        }
+        const name = user.name || user.business_name || 'User';
+        const profileUrl = typeof getProfileImg === 'function' 
+            ? getProfileImg(user.profile_pic, name)
+            : (user.profile_pic || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(name));
+            
+        avatar.style.backgroundImage = `url(${profileUrl})`;
         avatar.style.backgroundSize = 'cover';
         avatar.style.backgroundPosition = 'center';
 

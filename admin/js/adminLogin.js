@@ -284,7 +284,48 @@ document.addEventListener('DOMContentLoaded', () => {
         return JSON.parse(jsonPayload);
     };
 
-    // Event Image Slider Logic removed to stop showing client details
+    // Event Image Slider Logic
+    async function initSlider() {
+        const sliderContainer = document.querySelector('.slider-images');
+        
+        if (!sliderContainer) return;
+
+        try {
+            const response = await apiFetch('/api/events/get-events.php?status=published&limit=10');
+            const data = await response.json();
+
+            if (data.success && data.events.length > 0) {
+                const events = data.events.filter(e => e.image_path);
+                if (events.length === 0) return;
+
+                // Inject images
+                sliderContainer.innerHTML = events.map((event, index) => `
+                    <img src="${event.image_path}" 
+                         alt="${escapeHTML(event.event_name)}" 
+                         class="slider-img ${index === 0 ? 'active' : ''}" 
+                         data-index="${index}">
+                `).join('');
+
+                let currentIndex = 0;
+                
+                const updateSlider = () => {
+                    const images = document.querySelectorAll('.slider-img');
+                    if (images.length === 0) return;
+                    
+                    images[currentIndex].classList.remove('active');
+                    currentIndex = (currentIndex + 1) % images.length;
+                    images[currentIndex].classList.add('active');
+                };
+
+                // Cycle every 5 seconds
+                setInterval(updateSlider, 5000);
+            }
+        } catch (error) {
+            console.error('Slider init error:', error);
+        }
+    }
+
+    initSlider();
 });
 
 // Password Recovery Flow

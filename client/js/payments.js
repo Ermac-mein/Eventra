@@ -602,7 +602,18 @@ function exportPayments(format) {
         ...(status && { status }),
         ...(search && { search }),
     });
-    window.open(`/api/payments/export-payments.php?${params}`, '_blank');
+
+    Swal.fire({
+        title: 'Exporting Data',
+        text: `Your ${format.toUpperCase()} report is being generated and will download shortly.`,
+        icon: 'success',
+        timer: 2500,
+        timerProgressBar: true,
+        showConfirmButton: false,
+        willOpen: () => {
+            window.open(`/api/payments/export-payments.php?${params}`, '_blank');
+        }
+    });
 }
 
 // ─── Helpers ───────────────────────────────────────────────────────────────

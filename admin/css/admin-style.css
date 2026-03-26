@@ -365,6 +365,12 @@ body {
     overflow-x: auto;
     position: relative;
     padding-bottom: 10px; /* Space for bottom scrollbar */
+    -webkit-overflow-scrolling: touch; /* Smooth scroll on iOS */
+}
+
+.table-container table {
+    min-width: 850px;
+    width: 100%;
 }
 
 .table-header {

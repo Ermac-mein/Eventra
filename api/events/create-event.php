@@ -48,8 +48,7 @@ try {
     // 2. Handle file upload if present using standardized path
     $image_path = null;
     if (isset($_FILES['event_image']) && $_FILES['event_image']['error'] === UPLOAD_ERR_OK) {
-        $folder_name = 'Event Images';
-        $upload_dir = "../../uploads/media/client_{$real_client_id}/{$folder_name}/";
+        $upload_dir = "../../uploads/events/";
         
         if (!is_dir($upload_dir)) {
             mkdir($upload_dir, 0777, true);
@@ -60,13 +59,14 @@ try {
         $target_path = $upload_dir . $file_name;
 
         if (move_uploaded_file($_FILES['event_image']['tmp_name'], $target_path)) {
-            $image_path = "/uploads/media/client_{$real_client_id}/{$folder_name}/" . $file_name;
+            $image_path = "/uploads/events/" . $file_name;
             
-            // Register in media table
+            // Register in media table (Canonical folder: "Event Images")
             try {
                 $file_size = filesize($target_path);
                 $mime_type = mime_content_type($target_path);
 
+                $folder_name = 'Event Images';
                 $stmt = $pdo->prepare("SELECT id FROM media_folders WHERE client_id = ? AND name = ? AND is_deleted = 0 LIMIT 1");
                 $stmt->execute([$real_client_id, $folder_name]);
                 $folder_id = $stmt->fetchColumn() ?: null;

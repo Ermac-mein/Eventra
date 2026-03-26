@@ -45,14 +45,13 @@ try {
         exit;
     }
 
-    // LOCKING: Prevent deletion if there are payments/attendees
-    $stmt = $pdo->prepare("SELECT attendee_count FROM events WHERE id = ?");
+    // LOCKING: Prevent deletion if there are payments
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM payments WHERE event_id = ? AND status = 'paid'");
     $stmt->execute([$event_id]);
-    $attendee_count = $stmt->fetchColumn();
+    $payment_count = $stmt->fetchColumn();
 
-    if ($attendee_count > 0) {
-        http_response_code(403);
-        echo json_encode(['success' => false, 'message' => 'This event cannot be deleted because tickets have already been sold.']);
+    if ($payment_count > 0) {
+        echo json_encode(['success' => false, 'message' => 'This event cannot be deleted because tickets have already been sold (Payments found).']);
         exit;
     }
 

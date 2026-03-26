@@ -27,7 +27,7 @@ try {
             u.id,
             u.custom_id,
             u.name,
-            a.email,
+            aa.email,
             u.phone,
             u.state,
             u.city,
@@ -35,34 +35,31 @@ try {
             u.dob,
             u.gender,
             u.profile_pic,
-            a.created_at,
-            'active' as status,
-            c.business_name as client_name
+            aa.created_at,
+            'active' as status
         FROM users u
-        JOIN users a ON u.user_auth_id = a.id
+        JOIN auth_accounts aa ON u.user_auth_id = aa.id
         JOIN payments p ON u.id = p.user_id
         JOIN events e ON p.event_id = e.id
-        JOIN clients c ON e.client_id = c.id
         WHERE e.client_id = ? AND p.status = 'paid'
-        ORDER BY a.created_at DESC
+        ORDER BY aa.created_at DESC
     ");
     $stmt->execute([$real_client_id]);
     $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    // Calculate basic stats
-    $total_users = count($users);
-    $engaged_users = count(array_filter($users, function ($u) {
-        // Simple heuristic for engagement: exists in this list
-        return true;
-    }));
-
+    // Calculate basic stats for this client
+    $total_distinct_users = count($users);
+    
+    // Engaged users are those with more than 1 payment (optional refinement)
+    // For now, let's just use the count of users who bought tickets
+    
     echo json_encode([
         'success' => true,
         'users' => $users,
         'stats' => [
-            'active_users' => $total_users,
-            'engaged_users' => $engaged_users,
-            'registered_users' => $total_users
+            'total_users' => $total_distinct_users,
+            'active_users' => $total_distinct_users,
+            'engaged_users' => $total_distinct_users
         ]
     ]);
 

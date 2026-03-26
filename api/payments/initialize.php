@@ -1,15 +1,5 @@
 <?php
-/**
- * Initialize Payment API — Marketplace Checkout
- *
- * POST body: { event_id: int, quantity?: int }
- *
- * Flow:
- *  1. Validate event is published & organizer has a subaccount_code
- *  2. Create a pending order in the orders table
- *  3. Call Paystack /transaction/initialize with subaccount split
- *  4. Return { authorization_url, reference, order_id }
- */
+
 header('Content-Type: application/json');
 require_once '../../config/database.php';
 require_once '../../config/payment.php';
@@ -31,7 +21,12 @@ if (!$event_id) {
 
 try {
     // ── Fetch user profile ───────────────────────────────────────────────────
-    $uStmt = $pdo->prepare("SELECT id AS user_id, name, email FROM users WHERE id = ?");
+    $uStmt = $pdo->prepare("
+        SELECT u.id AS user_id, u.name, a.email 
+        FROM users u 
+        JOIN auth_accounts a ON u.user_auth_id = a.id 
+        WHERE u.id = ?
+    ");
     $uStmt->execute([$auth_id]);
     $user = $uStmt->fetch(PDO::FETCH_ASSOC);
 
@@ -44,6 +39,7 @@ try {
     // ── Fetch event + organizer subaccount ─────────────────────────────────
     $eStmt = $pdo->prepare("
         SELECT e.id, e.event_name, e.price, e.status, e.max_capacity, e.attendee_count,
+               e.event_date, e.event_time, e.city, e.state,
                e.client_id AS organizer_id,
                c.subaccount_code, c.verification_status
         FROM events e
@@ -65,8 +61,12 @@ try {
     }
 
     if (empty($event['subaccount_code'])) {
-        echo json_encode(['success' => false, 'message' => 'The organizer has not set up payment details yet. Please check back later.']);
-        exit;
+        // NOTE: Only block paid events — free events don't need a subaccount
+        $unit_price_check = (float)$event['price'];
+        if ($unit_price_check > 0) {
+            echo json_encode(['success' => false, 'message' => 'The organizer has not set up payment details yet. Please check back later.']);
+            exit;
+        }
     }
 
     // Capacity check
@@ -81,15 +81,94 @@ try {
     // ── Calculate amount ─────────────────────────────────────────────────────
     $unit_price  = (float)$event['price'];
     $total       = $unit_price * $quantity;
-    $amount_kobo = (int)round($total * 100); // Paystack expects kobo
-
-    if ($amount_kobo <= 0) {
-        echo json_encode(['success' => false, 'message' => 'This is a free event. Ticket booking handled separately.']);
-        exit;
-    }
+    $amount_kobo = (int)round($total * 100);
 
     // ── Generate unique reference ────────────────────────────────────────────
-    $reference = 'EVT-' . $event_id . '-' . strtoupper(substr(uniqid(), -8));
+    $reference = ($amount_kobo <= 0 ? 'FREE-' : 'EVT-') . $event_id . '-' . strtoupper(substr(uniqid(), -8));
+
+    if ($amount_kobo <= 0) {
+        // --- FREE EVENT PATH ---
+        try {
+            $pdo->beginTransaction();
+
+            // 1. Create success order
+            $oStmt = $pdo->prepare("
+                INSERT INTO orders (user_id, event_id, organizer_id, subaccount_code, amount, transaction_reference, payment_status, payment_method)
+                VALUES (?, ?, ?, ?, 0, ?, 'success', 'free')
+            ");
+            $oStmt->execute([$user['user_id'], $event_id, $event['organizer_id'], $event['subaccount_code'], $reference]);
+            $order_id = $pdo->lastInsertId();
+
+            // 2. Create success payment
+            require_once '../../api/utils/id-generator.php';
+            $paymentCustomId = generatePaymentId($pdo);
+            $payStmt = $pdo->prepare("
+                INSERT INTO payments (event_id, user_id, custom_id, reference, amount, status, paid_at)
+                VALUES (?, ?, ?, ?, 0, 'paid', NOW())
+            ");
+            $payStmt->execute([$event_id, $user['user_id'], $paymentCustomId, $reference]);
+            $payment_id = $pdo->lastInsertId();
+
+            // 3. Create ticket(s)
+            require_once '../../includes/helpers/ticket-helper.php';
+            require_once '../../includes/helpers/email-helper.php';
+            require_once '../../api/utils/notification-helper.php';
+
+            $tickets = [];
+            for ($i = 0; $i < $quantity; $i++) {
+                $ticketCustomId = generateTicketId($pdo);
+                $barcode = 'TKT-FREE-' . strtoupper(substr(uniqid(), -8));
+                
+                $pdo->prepare("
+                    INSERT INTO tickets (user_id, event_id, payment_id, custom_id, barcode, status)
+                    VALUES (?, ?, ?, ?, ?, 'valid')
+                ")->execute([$user['user_id'], $event_id, $payment_id, $ticketCustomId, $barcode]);
+                $ticket_id = $pdo->lastInsertId();
+
+                $ticketData = [
+                    'barcode' => $barcode,
+                    'event_id' => $event_id,
+                    'user_id' => $user['user_id'],
+                    'order_id' => $order_id,
+                    'event_name' => $event['event_name'],
+                    'event_date' => $event['event_date'],
+                    'event_time' => $event['event_time'],
+                    'user_name' => $user['name']
+                ];
+                $qrPath = generateTicketQRCode($ticketData);
+                $pdo->prepare("UPDATE tickets SET qr_code_path = ? WHERE id = ?")
+                    ->execute([str_replace(__DIR__ . '/../../', '', $qrPath), $ticket_id]);
+                
+                $tickets[] = ['barcode' => $barcode, 'id' => $ticket_id];
+            }
+
+            // 4. Update attendee count
+            $pdo->prepare("UPDATE events SET attendee_count = attendee_count + ? WHERE id = ?")
+                ->execute([$quantity, $event_id]);
+
+            $pdo->commit();
+
+            // 5. Notifications
+            createPaymentSuccessNotification($auth_id, $event['event_name'], 0);
+            createTicketIssuedNotification($auth_id, $event['event_name'], $tickets[0]['barcode']);
+
+            echo json_encode([
+                'success' => true,
+                'message' => 'Free ticket claimed successfully!',
+                'reference' => $reference,
+                'order_id' => (int)$order_id,
+                'is_free' => true
+            ]);
+            exit;
+
+        } catch (Exception $e) {
+            if ($pdo->inTransaction()) $pdo->rollBack();
+            error_log('[initialize.php] Free checkout error: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'message' => 'Failed to process free ticket.']);
+            exit;
+        }
+    }
 
     $pdo->beginTransaction();
 

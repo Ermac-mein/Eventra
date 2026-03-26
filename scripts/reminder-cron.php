@@ -19,11 +19,12 @@ try {
     // For now, let's assume we send reminders to all paid ticket holders for events starting in 24h.
 
     $stmt = $pdo->query("
-        SELECT e.id as event_id, e.event_name, e.event_date, e.event_time, u.phone, u.name, u.email, t.id as ticket_id
+        SELECT e.id as event_id, e.event_name, e.event_date, e.event_time, u.phone, u.name, a.email, t.id as ticket_id
         FROM events e
         JOIN payments p ON e.id = p.event_id
         JOIN tickets t ON p.id = t.payment_id
         JOIN users u ON p.user_id = u.id
+        JOIN auth_accounts a ON u.user_auth_id = a.id
         WHERE p.status = 'paid'
         AND e.event_date = DATE_ADD(CURDATE(), INTERVAL 1 DAY)
         AND t.reminder_sent = 0

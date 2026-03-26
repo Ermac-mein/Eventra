@@ -117,34 +117,77 @@ function updateEventsTable(events) {
     const tbody = document.getElementById('eventsTableBody');
     if (!tbody) return;
 
-    // Restore default table headers for active view
+    // Update table headers based on current tab
     const thead = document.querySelector('.table-card table thead tr');
     if (thead) {
-        thead.innerHTML = `
-            <th style="width: 40px;"><input type="checkbox" id="selectAll"></th>
-            <th>Event ID</th>
-            <th style="cursor: pointer;" onclick="sortEvents('event_name')">Event Name ${getSortIcon('event_name')}</th>
-            <th style="cursor: pointer;" onclick="sortEvents('event_date')">Date ${getSortIcon('event_date')}</th>
-            <th>Category</th>
-            <th style="cursor: pointer;" onclick="sortEvents('price')">Price ${getSortIcon('price')}</th>
-            <th style="cursor: pointer;" onclick="sortEvents('priority')">Priority ${getSortIcon('priority')}</th>
-            <th class="text-center">Attendees</th>
-            <th>Status</th>
-            <th class="text-center">Actions</th>
-        `;
-        lucide.createIcons();
+        if (currentTab === 'trash') {
+            thead.innerHTML = `
+                <th style="width: 40px;"><input type="checkbox" id="selectAll"></th>
+                <th>Event ID</th>
+                <th>Event Name</th>
+                <th>Category</th>
+                <th>Date</th>
+                <th>Price</th>
+                <th>Deleted On</th>
+                <th class="text-center">Actions</th>
+            `;
+        } else {
+            thead.innerHTML = `
+                <th style="width: 40px;"><input type="checkbox" id="selectAll"></th>
+                <th>Event ID</th>
+                <th style="cursor: pointer;" onclick="sortEvents('event_name')">Event Name ${getSortIcon('event_name')}</th>
+                <th style="cursor: pointer;" onclick="sortEvents('event_date')">Date ${getSortIcon('event_date')}</th>
+                <th>Category</th>
+                <th style="cursor: pointer;" onclick="sortEvents('price')">Price ${getSortIcon('price')}</th>
+                <th style="cursor: pointer;" onclick="sortEvents('priority')">Priority ${getSortIcon('priority')}</th>
+                <th class="text-center">Attendees</th>
+                <th>Status</th>
+                <th class="text-center">Actions</th>
+            `;
+        }
+        if (window.lucide) lucide.createIcons();
     }
 
     if (events.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="12" style="text-align: center; padding: 2rem; color: var(--client-text-muted);">No events yet. Create your first event!</td></tr>';
+        const colCount = currentTab === 'trash' ? 8 : 10;
+        tbody.innerHTML = `<tr><td colspan="${colCount}" style="text-align: center; padding: 2rem; color: var(--client-text-muted);">${currentTab === 'trash' ? '🎉 Trash is empty!' : 'No events yet. Create your first event!'}</td></tr>`;
         return;
     }
 
     tbody.innerHTML = events.map(event => {
         const user = storage.getUser();
-        const clientNameSlug = (user.name || '').toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-');
-        const shareLink = `${window.location.origin}/public/pages/event-details.html?event=${event.tag}&client=${clientNameSlug}`;
+        const clientNameSlug = (user?.name || '').toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-');
         
+        if (currentTab === 'trash') {
+            const deletedAt = event.deleted_at ? new Date(event.deleted_at).toLocaleDateString() : '—';
+            return `
+            <tr data-id="${event.id}">
+                <td><input type="checkbox" class="event-checkbox" data-id="${event.id}"></td>
+                <td style="font-family:monospace;font-size:0.8rem;color:#ef4444;font-weight:600;">${event.custom_id || '—'}</td>
+                <td><div style="font-weight: 600;">${event.event_name}</div></td>
+                <td>${event.event_type}</td>
+                <td>${new Date(event.event_date).toLocaleDateString()}</td>
+                <td>${parseFloat(event.price) === 0 ? 'Free' : `₦${parseFloat(event.price).toLocaleString()}`}</td>
+                <td><span style="color:#ef4444;">${deletedAt}</span></td>
+                <td class="text-center">
+                    <div style="display: flex; gap: 0.5rem; justify-content: center;">
+                        <button onclick="restoreEvent(${event.id})" 
+                                class="action-icon-btn" 
+                                title="Restore Event" 
+                                style="background: none; border: none; cursor: pointer; font-size: 1.2rem; padding: 0.25rem 0.5rem; transition: transform 0.2s;">
+                            🔄
+                        </button>
+                        <button onclick="permanentDeleteEvent(${event.id})" 
+                                class="action-icon-btn" 
+                                title="Delete Permanently" 
+                                style="background: none; border: none; cursor: pointer; font-size: 1.2rem; padding: 0.25rem 0.5rem; transition: transform 0.2s;">
+                            💀
+                        </button>
+                    </div>
+                </td>
+            </tr>`;
+        }
+
         return `
         <tr onclick="window.previewEvent(${event.id})" 
             style="cursor: pointer;"

@@ -87,9 +87,9 @@ try {
     $results['users'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     // --- 4. SEARCH MEDIA ---
-    $mediaSql = "SELECT id, filename as title, CONCAT(file_type, ' • ', status) as subtitle, file_size, 'file' as item_type
-                 FROM media_files
-                 WHERE filename LIKE ? AND deleted_at IS NULL";
+    $mediaSql = "SELECT id, file_name as title, CONCAT(file_type, ' • ', file_size, ' bytes') as subtitle, file_size, 'file' as item_type
+                 FROM media
+                 WHERE file_name LIKE ? AND is_deleted = 0";
     
     if ($role === 'client') {
         $mediaSql .= " AND client_id = (SELECT id FROM clients WHERE client_auth_id = ?)";

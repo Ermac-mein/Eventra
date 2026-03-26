@@ -73,7 +73,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     <td>
                         <div style="font-weight:600;">${escapeHTML(event.event_name)}</div>
                         <div style="font-size:.75rem;color:#64748b;">by ${escapeHTML(event.client_name || 'N/A')}</div>
-                        ${p.client_custom_id ? `<div style="font-size:.7rem;color:#94a3b8;font-family:monospace;">${escapeHTML(p.client_custom_id)}</div>` : ''}
+                        ${event.client_custom_id ? `<div style="font-size:.7rem;color:#94a3b8;font-family:monospace;">${escapeHTML(event.client_custom_id)}</div>` : ''}
                     </td>
                     <td><span class="priority-badge ${escapeHTML(event.priority || 'low')}">${escapeHTML((event.priority || 'Low').toUpperCase())}</span></td>
                     <td>${escapeHTML(dateStr)}</td>

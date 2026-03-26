@@ -75,7 +75,13 @@ function getProfileImg(path, name = '') {
   // Add cache header for local images only
   const timestamp = Date.now();
   const separator = finalPath.includes('?') ? '&' : '?';
-  return `${finalPath}${separator}t=${timestamp}`;
+  const urlPath = `${finalPath}${separator}t=${timestamp}`;
+  
+  // Ensure absolute URL if it starts with /
+  if (urlPath.startsWith('/')) {
+      return window.location.origin + urlPath;
+  }
+  return urlPath;
 }
 
 /**

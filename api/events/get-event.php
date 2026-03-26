@@ -15,9 +15,11 @@ if (!$event_id) {
 
 try {
     $stmt = $pdo->prepare("
-        SELECT e.*, u.name as client_name, u.email as client_email
+        SELECT e.*, c.name as client_name, c.business_name, a.email as client_email,
+               c.verification_status, c.profile_pic as client_profile_pic
         FROM events e
-        LEFT JOIN clients u ON e.client_id = u.id
+        LEFT JOIN clients c ON e.client_id = c.id
+        LEFT JOIN auth_accounts a ON c.client_auth_id = a.id
         WHERE e.id = ?
     ");
     $stmt->execute([$event_id]);

@@ -34,12 +34,13 @@ function fetchOrder(PDO $pdo, string $reference): ?array
         SELECT o.*,
                e.event_name, e.event_date, e.event_time, e.address, e.location, e.image_path,
                u.id AS user_id, u.name AS user_name,
-               u.email AS user_email, u.phone AS user_phone,
+               a.email AS user_email, u.phone AS user_phone,
                c.id AS organizer_auth_id,
                c.email AS organizer_email
         FROM orders o
         JOIN events  e  ON o.event_id    = e.id
         JOIN users   u  ON o.user_id     = u.id
+        JOIN auth_accounts a ON u.user_auth_id = a.id
         JOIN clients c  ON o.organizer_id = c.id
         WHERE o.transaction_reference = ?
     ");
@@ -70,12 +71,16 @@ function processSuccessfulPayment(PDO $pdo, array $order, array $psData): void
             $order['id'],
         ]);
 
-        // Increment event attendee count
-        $pdo->prepare("
-            UPDATE events SET attendee_count = attendee_count + 1 WHERE id = ?
-        ")->execute([$order['event_id']]);
+        // 0. Extract quantity from metadata
+        $metadata = $psData['metadata'] ?? [];
+        $quantity = max(1, (int)($metadata['quantity'] ?? 1));
 
-        // Check if ticket already exists (idempotency) via payment reference
+        // Increment event attendee count by quantity
+        $pdo->prepare("
+            UPDATE events SET attendee_count = attendee_count + ? WHERE id = ?
+        ")->execute([$quantity, $order['event_id']]);
+
+        // Check if tickets already exist (idempotency) via payment reference
         $tStmt = $pdo->prepare("
             SELECT t.id, t.barcode 
             FROM tickets t 
@@ -83,9 +88,9 @@ function processSuccessfulPayment(PDO $pdo, array $order, array $psData): void
             WHERE p.reference = ?
         ");
         $tStmt->execute([$order['transaction_reference']]);
-        $existingTicket = $tStmt->fetch(PDO::FETCH_ASSOC);
+        $existingTickets = $tStmt->fetchAll(PDO::FETCH_ASSOC);
 
-        if (!$existingTicket) {
+        if (empty($existingTickets)) {
             // Load ID Generator
             require_once '../../api/utils/id-generator.php';
 
@@ -107,52 +112,51 @@ function processSuccessfulPayment(PDO $pdo, array $order, array $psData): void
             ]);
             $payment_id = $pdo->lastInsertId();
 
-            // 2. Generate barcode and custom_id for ticket
-            $barcode = 'TKT-' . strtoupper(uniqid());
-            $ticketCustomId = generateTicketId($pdo);
+            // 2. Loop to generate multiple tickets
+            $barcodes = [];
+            for ($i = 0; $i < $quantity; $i++) {
+                $barcode = 'TKT-' . strtoupper(substr(uniqid(), -8)) . ($i > 0 ? "-$i" : "");
+                $ticketCustomId = generateTicketId($pdo);
 
-            // 3. Insert ticket with actual payment_id and custom_id
-            $pdo->prepare("
-                INSERT INTO tickets (user_id, event_id, payment_id, custom_id, barcode, status)
-                VALUES (?, ?, ?, ?, ?, 'valid')
-            ")->execute([
-                $order['user_id'],
-                $order['event_id'],
-                $payment_id,
-                $ticketCustomId,
-                $barcode,
-            ]);
-            $ticket_id = $pdo->lastInsertId();
+                $pdo->prepare("
+                    INSERT INTO tickets (user_id, event_id, payment_id, custom_id, barcode, status)
+                    VALUES (?, ?, ?, ?, ?, 'valid')
+                ")->execute([
+                    $order['user_id'],
+                    $order['event_id'],
+                    $payment_id,
+                    $ticketCustomId,
+                    $barcode,
+                ]);
+                $ticket_id = $pdo->lastInsertId();
 
-            // Generate PDF + QR
-            $ticketData = [
-                'barcode'        => $barcode,
-                'event_id'       => $order['event_id'],
-                'user_id'        => $order['user_id'],
-                'order_id'       => $order['id'],
-                'event_name'     => $order['event_name'],
-                'event_date'     => $order['event_date'],
-                'event_time'     => $order['event_time'],
-                'location'       => $order['location'] ?? $order['address'],
-                'address'        => $order['address'],
-                'user_name'      => $order['user_name'],
-                'payment_status' => 'paid',
-                'event_image'    => $order['image_path'] ?? null,
-            ];
+                $ticketData = [
+                    'barcode'        => $barcode,
+                    'event_id'       => $order['event_id'],
+                    'user_id'        => $order['user_id'],
+                    'order_id'       => $order['id'],
+                    'event_name'     => $order['event_name'],
+                    'event_date'     => $order['event_date'],
+                    'event_time'     => $order['event_time'],
+                    'location'       => $order['location'] ?? $order['address'],
+                    'address'        => $order['address'],
+                    'user_name'      => $order['user_name'],
+                    'payment_status' => 'paid',
+                    'event_image'    => $order['image_path'] ?? null,
+                ];
 
-            $pdfPath    = generateTicketPDF($ticketData);
-            $qrCodePath = generateTicketQRCode($ticketData);
+                $qrCodePath = generateTicketQRCode($ticketData);
+                $pdfPath    = generateTicketPDF($ticketData);
 
-            // Save paths back to ticket row
-            $pdo->prepare("
-                UPDATE tickets SET qr_code_path = ? WHERE id = ?
-            ")->execute([
-                str_replace(__DIR__ . '/../../', '', $qrCodePath),
-                $ticket_id,
-            ]);
+                $pdo->prepare("UPDATE tickets SET qr_code_path = ? WHERE id = ?")
+                    ->execute([str_replace(__DIR__ . '/../../', '', $qrCodePath), $ticket_id]);
+                
+                $barcodes[] = $barcode;
+            }
+            $barcode = $barcodes[0]; // Primary for email notified
 
         } else {
-            $barcode = $existingTicket['barcode'];
+            $barcode = $existingTickets[0]['barcode'];
             $pdfPath = __DIR__ . '/../../uploads/tickets/pdfs/ticket_' . $barcode . '.pdf';
             if (!file_exists($pdfPath)) {
                 $ticketData = [
@@ -171,7 +175,7 @@ function processSuccessfulPayment(PDO $pdo, array $order, array $psData): void
                 ];
                 $pdfPath = generateTicketPDF($ticketData);
             }
-            $barcode = $existingTicket['barcode'];
+            $barcode = $existingTickets[0]['barcode'];
         }
 
         $pdo->commit();

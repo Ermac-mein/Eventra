@@ -24,10 +24,12 @@ try {
     $total_events = $stmt->fetch()['total'];
 
     // 4. Total Online (Using auth_accounts since that's where status is stored)
-    $stmt = $pdo->query("SELECT COUNT(*) as total FROM auth_accounts WHERE is_online = 1 AND last_seen >= DATE_SUB(NOW(), INTERVAL 5 MINUTE) AND role = 'user' AND deleted_at IS NULL");
+    $stmt = $pdo->prepare("SELECT COUNT(*) as total FROM auth_accounts WHERE is_online = 1 AND last_seen >= DATE_SUB(NOW(), INTERVAL 10 MINUTE) AND role = 'user' AND deleted_at IS NULL");
+    $stmt->execute();
     $online_users = $stmt->fetch()['total'] ?? 0;
     
-    $stmt = $pdo->query("SELECT COUNT(*) as total FROM auth_accounts WHERE is_online = 1 AND last_seen >= DATE_SUB(NOW(), INTERVAL 5 MINUTE) AND role = 'client' AND deleted_at IS NULL");
+    $stmt = $pdo->prepare("SELECT COUNT(*) as total FROM auth_accounts WHERE is_online = 1 AND last_seen >= DATE_SUB(NOW(), INTERVAL 10 MINUTE) AND role = 'client' AND deleted_at IS NULL");
+    $stmt->execute();
     $online_clients = $stmt->fetch()['total'] ?? 0;
 
     // 5. Total Revenue — correctly as SUM(e.price) for all paid tickets
@@ -105,15 +107,29 @@ try {
     $stmt = $pdo->query("SELECT COUNT(*) as total FROM events WHERE status = 'restored' AND deleted_at IS NULL");
     $restored_events = $stmt->fetch()['total'] ?? 0;
 
+    // 13. User Checked-In (Tickets used today)
+    $stmt = $pdo->query("SELECT COUNT(*) as total FROM tickets WHERE used = 1 AND DATE(used_at) = CURDATE()");
+    $user_checked_in = $stmt->fetch()['total'] ?? 0;
+
+    // 14. Clients Verified/Unverified
+    $stmt = $pdo->query("SELECT COUNT(*) as total FROM clients WHERE verification_status = 'verified' AND deleted_at IS NULL");
+    $clients_verified = $stmt->fetch()['total'] ?? 0;
+
+    $stmt = $pdo->query("SELECT COUNT(*) as total FROM clients WHERE verification_status != 'verified' AND deleted_at IS NULL");
+    $clients_unverified = $stmt->fetch()['total'] ?? 0;
+
     echo json_encode([
         'success' => true,
         'stats' => [
             'total_users' => (int) $total_users,
-            'active_users' => (int) $online_users, // Now reflects online users specifically for "Active"
+            'active_users' => (int) $online_users, // "Active" reflects online users
+            'user_checked_in' => (int) $user_checked_in, // ADDED
             'online_clients' => (int) $online_clients,
             'total_clients' => (int) $total_clients,
+            'clients_verified' => (int) $clients_verified, // ADDED
+            'clients_unverified' => (int) $clients_unverified, // ADDED
             'total_events' => (int) $total_events,
-            'published_events' => (int) $total_events, // Alias
+            'published_events' => (int) $total_events,
             'total_revenue' => (float) $total_revenue,
             'platform_earnings' => (float) ($total_revenue * 0.30),
             'pending_payments' => (int) $pending_payments,
@@ -125,7 +141,7 @@ try {
         'active_clients' => $active_clients,
         'upcoming_events' => $upcoming_events,
         'past_events' => $past_events,
-        'recent_logs' => $recent_activities // Backwards compatibility for other potential users
+        'recent_logs' => $recent_activities
     ]);
 
 } catch (PDOException $e) {

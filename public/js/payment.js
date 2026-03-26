@@ -19,7 +19,25 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (paymentForm) paymentForm.style.display = 'none';
         if (statusContainer) statusContainer.style.display = 'block';
 
-        startPolling(reference);
+        // Trigger server-side verification (Idempotent)
+        (async () => {
+            const title = document.getElementById('statusTitle');
+            const msg = document.getElementById('statusMessage');
+            const icon = document.getElementById('statusIcon');
+
+            if (title) title.textContent = 'Verifying Payment...';
+            if (msg) msg.textContent = 'Confirming your transaction...';
+            if (icon) icon.textContent = '⏳';
+
+            try {
+                const verifyRes = await apiFetch(`/api/payments/verify-payment.php?reference=${reference}`);
+                // Proceed to polling regardless of immediate result, get-order will handle the final state
+                startPolling(reference);
+            } catch (err) {
+                console.error('Verification trigger failed', err);
+                startPolling(reference);
+            }
+        })();
         return;
     }
 

@@ -52,7 +52,10 @@ if (strpos($uri, '/api/') === 0) {
         'admin/login'  => 'admin/login.php',
         'auth/login'   => 'auth/login.php',
         'admin/auth/check-session' => 'auth/check-session.php',
-        'client/auth/check-session' => 'auth/check-session.php'
+        'client/auth/check-session' => 'auth/check-session.php',
+        'user/auth/google-login'   => 'auth/google-handler.php',
+        'client/auth/google-login' => 'auth/google-handler.php',
+        'admin/auth/google-login'  => 'auth/google-handler.php'
     ];
 
     $targetFile = $mappings[$cleanPath] ?? ($cleanPath . '.php');

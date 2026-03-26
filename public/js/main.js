@@ -14,7 +14,13 @@ let swiperInstances = {}; // Store Swiper instances
 
 // Pagination state
 let currentPage = 1;
-const itemsPerPage = 14;
+function getItemsPerPage() {
+    const width = window.innerWidth;
+    if (width >= 1024) return 16;
+    if (width >= 768) return 8;
+    return 6;
+}
+let itemsPerPage = getItemsPerPage();
 let filteredDiscoveryEvents = [];
 
 // Load events from API
@@ -23,7 +29,7 @@ async function loadEvents() {
   if (globalSearch && globalSearch.value.trim() !== '') return; // Don't refresh data while search is active
 
   try {
-    const response = await apiFetch('/api/events/get-events.php');
+    const response = await apiFetch('/api/events/get-events.php?limit=500');
     const result = await response.json();
     if (result.success && result.events) {
       // Deduplicate events by ID and filter for published status
@@ -281,7 +287,8 @@ function initUserIcon() {
     if (authController.state === authController.states.AUTHENTICATED && user) {
       // Update icon
       if (userProfileImg) {
-          userProfileImg.src = user.profile_image || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || 'User')}&background=FF5A5F&color=fff&size=128`;
+          const profilePic = getProfileImg(user.profile_image || user.profile_pic, user.name);
+          userProfileImg.src = profilePic;
           userProfileImg.title = `Logged in as ${user.name}`;
           userProfileImg.style.display = 'block';
       }
@@ -386,9 +393,12 @@ function initUserIcon() {
         return;
       }
       const modalPic = document.getElementById('modalProfilePic');
-      if (modalPic) modalPic.src = user.profile_image || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || 'User')}&background=FF5A5F&color=fff&size=128`;
+      if (modalPic) {
+          modalPic.src = getProfileImg(user.profile_image || user.profile_pic, user.name);
+      }
       
       const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.value = val || ''; };
+      setVal('profileCustomId', user.custom_id);
       setVal('profileName', user.name);
       setVal('profileEmail', user.email);
       setVal('profilePhone', user.phone);
@@ -583,7 +593,7 @@ async function performServerSearch(query) {
   try {
     const url = new URL('/api/events/search-events.php', window.location.href);
     url.searchParams.append('q', query);
-    url.searchParams.append('limit', '40');
+    url.searchParams.append('limit', '500');
 
     const response = await apiFetch(url.toString());
     const result = await response.json();
@@ -771,7 +781,7 @@ const NIGERIA_STATES = [
 ];
 
 const EVENT_CATEGORIES = [
-  'Conference', 'Workshop', 'Seminar', 'Entertainment', 'Sports', 'Exhibition', 
+  'Business', 'Conference', 'Workshop', 'Seminar', 'Entertainment', 'Sports', 'Exhibition', 
   'Networking', 'Festival', 'Social', 'Educational', 'Personal', 'Religious', 
   'Cultural', 'Community', 'Concert', 'Other'
 ];
@@ -812,6 +822,7 @@ function renderDiscovery(events = eventsData.all) {
   if (countEl) countEl.textContent = `${eventsToShow.length} events found`;
 
   // 4. Pagination Logic
+  itemsPerPage = getItemsPerPage();
   const totalPages = Math.ceil(eventsToShow.length / itemsPerPage);
   
   // Ensure currentPage is valid
@@ -823,17 +834,33 @@ function renderDiscovery(events = eventsData.all) {
   const paginatedEvents = eventsToShow.slice(start, end);
 
   // 5. Render Grid
-  container.innerHTML = paginatedEvents.map(event => `
+  let gridHtml = paginatedEvents.map(event => `
     <div class="grid-item">
         ${createEventCard(event)}
     </div>
   `).join('');
+  
+  // Fill remaining slots to make all pages equal sizes
+  const emptySlots = itemsPerPage - paginatedEvents.length;
+  for(let i=0; i<emptySlots; i++) {
+      gridHtml += `<div class="grid-item" style="visibility: hidden; pointer-events: none; height: 100%;"></div>`;
+  }
+  container.innerHTML = gridHtml;
   
   if (window.lucide) window.lucide.createIcons();
   
   // 6. Update Pagination UI
   renderPaginationUI(totalPages);
 }
+
+// Update itemsPerPage on resize
+window.addEventListener('resize', debounce(() => {
+    const newLimit = getItemsPerPage();
+    if (newLimit !== itemsPerPage) {
+        itemsPerPage = newLimit;
+        renderDiscovery();
+    }
+}, 250));
 
 function renderPaginationUI(totalPages) {
     const paginationContainer = document.getElementById('paginationContainer');

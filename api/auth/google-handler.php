@@ -4,7 +4,7 @@ header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
 header('Pragma: no-cache');
 require_once __DIR__ . '/../../config/database.php';
 require_once __DIR__ . '/../../includes/helpers/entity-resolver.php';
-require_once __DIR__ . '/api/utils/id-generator.php';
+require_once __DIR__ . '/../utils/id-generator.php';
 
 $data = json_decode(file_get_contents("php://input"), true);
 
@@ -57,8 +57,17 @@ $email = $payload['email'];
 $name = $payload['name'] ?? 'Google User';
 $profile_pic = $payload['picture'] ?? null;
 
-// Implicit Intent Resolution (from dedicated login pages)
-$intent = $data['intent'] ?? 'user';
+// Portal Intent Resolution (consistent with check-session.php)
+$headers = function_exists('getallheaders') ? getallheaders() : [];
+$portal = $_SERVER['HTTP_X_EVENTRA_PORTAL'] ?? $headers['X-Eventra-Portal'] ?? $headers['x-eventra-portal'] ?? 'user';
+
+// Support for dedicated login endpoint overrides
+if (isset($auth_intent)) {
+    $intent = $auth_intent;
+} else {
+    $intent = $data['intent'] ?? $portal;
+}
+
 if (!in_array($intent, ['client', 'user', 'admin'])) {
     $intent = 'user';
 }

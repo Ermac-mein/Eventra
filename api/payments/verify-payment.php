@@ -38,11 +38,12 @@ try {
         SELECT o.id, o.payment_status, o.amount, o.event_id, o.user_id, o.organizer_id,
                e.event_name, e.event_date, e.event_time, e.address, e.location, e.image_path,
                u.name AS user_name, u.phone AS user_phone,
-               u.email AS user_email,
+               a.email AS user_email,
                c.id AS organizer_auth_id
         FROM orders o
         JOIN events e ON o.event_id = e.id
         JOIN users u ON o.user_id = u.id
+        JOIN auth_accounts a ON u.user_auth_id = a.id
         JOIN clients c ON o.organizer_id = c.id
         WHERE o.transaction_reference = ?
           AND o.user_id = ?
@@ -112,122 +113,151 @@ try {
 
     $pdo->beginTransaction();
 
-    $pdo->prepare("
-        UPDATE orders SET payment_status = 'success', payment_method = ?, updated_at = NOW()
-        WHERE id = ? AND payment_status != 'success'
-    ")->execute([$result['data']['channel'] ?? 'card', $order['id']]);
+    try {
+        // 0. Extract quantity from metadata
+        $quantity = max(1, (int)($result['data']['metadata']['quantity'] ?? 1));
 
-    $pdo->prepare("UPDATE events SET attendee_count = attendee_count + 1 WHERE id = ?")->execute([$order['event_id']]);
-
-    // Check if ticket already exists (idempotency) via payment reference
-    $tStmt = $pdo->prepare("
-        SELECT t.id, t.barcode 
-        FROM tickets t 
-        JOIN payments p ON t.payment_id = p.id 
-        WHERE p.reference = ?
-    ");
-    $tStmt->execute([$reference]);
-    $existingTicket = $tStmt->fetch(PDO::FETCH_ASSOC);
-
-    if (!$existingTicket) {
-        // Load ID Generator
-        require_once '../../api/utils/id-generator.php';
-
-        // 1. Insert into payments table (fallback creation)
-        $paymentCustomId = generatePaymentId($pdo);
-        $payStmt = $pdo->prepare("
-            INSERT INTO payments (event_id, user_id, custom_id, reference, amount, status, paystack_response, payment_id, transaction_id, paid_at)
-            VALUES (?, ?, ?, ?, ?, 'paid', ?, ?, ?, NOW())
-        ");
-        $payStmt->execute([
-            $order['event_id'],
-            $order['user_id'],
-            $paymentCustomId,
-            $reference,
-            $order['amount'],
-            json_encode($result['data']),
-            $result['data']['id'] ?? null,
-            $result['data']['reference'] ?? null
-        ]);
-        $payment_id = $pdo->lastInsertId();
-
-        // 2. Generate ticket custom_id and barcode
-        $ticketCustomId = generateTicketId($pdo);
-        $barcode = 'TKT-' . strtoupper(uniqid());
-
-        // 3. Insert ticket linked to the actual payment_id
+        // 1. Update order status
         $pdo->prepare("
-            INSERT INTO tickets (user_id, event_id, payment_id, custom_id, barcode, status)
-            VALUES (?, ?, ?, ?, ?, 'valid')
-        ")->execute([
-            $order['user_id'],
-            $order['event_id'],
-            $payment_id,
-            $ticketCustomId,
-            $barcode
-        ]);
-        $ticket_id = $pdo->lastInsertId();
+            UPDATE orders SET payment_status = 'success', payment_method = ?, updated_at = NOW()
+            WHERE id = ? AND payment_status != 'success'
+        ")->execute([$result['data']['channel'] ?? 'card', $order['id']]);
 
-        $ticketData = [
-            'barcode'        => $barcode,
-            'event_id'       => $order['event_id'],
-            'user_id'        => $order['user_id'],
-            'event_name'     => $order['event_name'],
-            'event_date'     => $order['event_date'],
-            'event_time'     => $order['event_time'],
-            'location'       => $order['location'] ?? $order['address'],
-            'address'        => $order['address'],
-            'user_name'      => $order['user_name'],
-            'payment_status' => 'paid',
-            'custom_id'      => $ticketCustomId,
-            'event_image'    => $order['image_path'] ?? null,
-        ];
-        $pdfPath    = generateTicketPDF($ticketData);
-        $qrCodePath = generateTicketQRCode($ticketData);
-        $pdo->prepare("UPDATE tickets SET qr_code_path = ? WHERE id = ?")
-            ->execute([
-                str_replace(__DIR__ . '/../../', '', $qrCodePath),
-                $ticket_id,
+        // 2. Increment attendee count by quantity
+        $pdo->prepare("UPDATE events SET attendee_count = attendee_count + ? WHERE id = ?")
+            ->execute([$quantity, $order['event_id']]);
+
+        // 3. Handle Payment and Ticket (Idempotent)
+        $tStmt = $pdo->prepare("
+            SELECT t.id, t.barcode 
+            FROM tickets t 
+            JOIN payments p ON t.payment_id = p.id 
+            WHERE p.reference = ?
+        ");
+        $tStmt->execute([$reference]);
+        $existingTickets = $tStmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $barcode = null;
+        if (empty($existingTickets)) {
+            require_once '../../api/utils/id-generator.php';
+            $paymentCustomId = generatePaymentId($pdo);
+
+            // Save to payments table
+            $payStmt = $pdo->prepare("
+                INSERT INTO payments (event_id, user_id, custom_id, reference, amount, status, paystack_response, payment_id, transaction_id, paid_at)
+                VALUES (?, ?, ?, ?, ?, 'paid', ?, ?, ?, NOW())
+            ");
+            $payStmt->execute([
+                $order['event_id'],
+                $order['user_id'],
+                $paymentCustomId,
+                $reference,
+                $order['amount'],
+                json_encode($result['data']),
+                (string)($result['data']['id'] ?? ''),
+                (string)($result['data']['reference'] ?? '')
             ]);
+            $payment_id = $pdo->lastInsertId();
 
-        // ── Async notifications (fire-and-forget) ────────────────────────────────
-        if (!empty($pdfPath) && file_exists($pdfPath)) {
-            sendTicketEmailFull($order['user_email'], [
-                'barcode'    => $barcode,
-                'event_name' => $order['event_name'],
-                'event_date' => $order['event_date'],
-                'event_time' => $order['event_time'],
-                'location'   => $order['location'] ?? $order['address'],
-                'user_name'  => $order['user_name'],
-                'order_id'   => $order['id'],
-                'amount'     => $order['amount'],
-            ], $pdfPath);
+            // 2. Loop to generate multiple tickets
+            $barcodes = [];
+            for ($i = 0; $i < $quantity; $i++) {
+                $barcode = 'TKT-' . strtoupper(substr(uniqid(), -8)) . ($i > 0 ? "-$i" : "");
+                $ticketCustomId = generateTicketId($pdo);
+
+                $pdo->prepare("
+                    INSERT INTO tickets (user_id, event_id, payment_id, custom_id, barcode, status)
+                    VALUES (?, ?, ?, ?, ?, 'valid')
+                ")->execute([
+                    $order['user_id'],
+                    $order['event_id'],
+                    $payment_id,
+                    $ticketCustomId,
+                    $barcode
+                ]);
+                $ticket_id = $pdo->lastInsertId();
+
+                $ticketData = [
+                    'barcode'        => $barcode,
+                    'event_id'       => $order['event_id'],
+                    'user_id'        => $order['user_id'],
+                    'event_name'     => $order['event_name'],
+                    'event_date'     => $order['event_date'],
+                    'event_time'     => $order['event_time'],
+                    'location'       => $order['location'] ?? $order['address'],
+                    'user_name'      => $order['user_name'],
+                    'payment_status' => 'paid',
+                    'order_id'       => $order['id'],
+                    'amount'         => $order['amount'],
+                ];
+                
+                $qrCodePath = generateTicketQRCode($ticketData);
+                $pdfPath    = generateTicketPDF($ticketData);
+
+                $pdo->prepare("UPDATE tickets SET qr_code_path = ? WHERE id = ?")
+                    ->execute([str_replace(__DIR__ . '/../../', '', $qrCodePath), $ticket_id]);
+                
+                $barcodes[] = $barcode;
+            }
+            $barcode = $barcodes[0]; // Primary for notification
+            $ticket_id = null; // clear for transaction safety if needed elsewhere
+
+
+            // Generate QR & PDF
+            $ticketData = [
+                'barcode'        => $barcode,
+                'event_id'       => $order['event_id'],
+                'user_id'        => $order['user_id'],
+                'event_name'     => $order['event_name'],
+                'event_date'     => $order['event_date'],
+                'event_time'     => $order['event_time'],
+                'location'       => $order['location'] ?? $order['address'],
+                'user_name'      => $order['user_name'],
+                'payment_status' => 'paid',
+                'order_id'       => $order['id'],
+                'amount'         => $order['amount'],
+            ];
+            
+            $qrCodePath = generateTicketQRCode($ticketData);
+            $pdfPath    = generateTicketPDF($ticketData);
+
+            $pdo->prepare("UPDATE tickets SET qr_code_path = ? WHERE id = ?")
+                ->execute([str_replace(__DIR__ . '/../../', '', $qrCodePath), $ticket_id]);
+
+            $pdo->commit(); // COMMIT EARLY before notifications to ensure data is saved
+
+            // 4. Notifications (Non-blocking as possible)
+            try {
+                sendTicketEmailFull($order['user_email'], $ticketData, $pdfPath);
+                if (!empty($order['user_phone'])) {
+                    sendSMS($order['user_phone'], "Hi {$order['user_name']}, your ticket for {$order['event_name']} is confirmed!");
+                }
+                createPaymentSuccessNotification($auth_id, $order['event_name'], $order['amount']);
+                createTicketIssuedNotification($auth_id, $order['event_name'], $barcode);
+                createNewSaleNotification($order['organizer_auth_id'], $order['user_name'], $order['event_name'], $order['amount']);
+            } catch (Exception $e) {
+                error_log('[verify-payment.php] Notification failed: ' . $e->getMessage());
+            }
+
+        } else {
+            $pdo->commit();
+            $barcode = $existingTicket['barcode'];
         }
 
-        if (!empty($order['user_phone'])) {
-            sendSMS($order['user_phone'],
-                "Hi {$order['user_name']}, your ticket for {$order['event_name']} is confirmed! Check your email."
-            );
-        }
+        echo json_encode([
+            'success'    => true,
+            'status'     => 'success',
+            'message'    => 'Payment verified successfully.',
+            'reference'  => $reference,
+            'amount'     => (float)$order['amount'],
+            'event_name' => $order['event_name'],
+            'barcode'    => $barcode,
+        ]);
 
-        createPaymentSuccessNotification($auth_id, $order['event_name'], $order['amount']);
-        createTicketIssuedNotification($auth_id, $order['event_name'], $barcode ?? '');
-        createNewSaleNotification($order['organizer_auth_id'], $order['user_name'], $order['event_name'], $order['amount']);
-    } else {
-        $barcode = $existingTicket['barcode'];
+    } catch (Exception $e) {
+        if ($pdo->inTransaction()) $pdo->rollBack();
+        throw $e;
     }
-
-    $pdo->commit();
-
-    echo json_encode([
-        'success'    => true,
-        'status'     => 'success',
-        'message'    => 'Payment verified successfully.',
-        'reference'  => $reference,
-        'amount'     => (float)$order['amount'],
-        'event_name' => $order['event_name'],
-        'barcode'    => $barcode ?? null,
-    ]);
 
 } catch (PDOException $e) {
     if ($pdo->inTransaction()) $pdo->rollBack();

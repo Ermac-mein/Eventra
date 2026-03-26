@@ -19,12 +19,14 @@ function checkAuth($requiredRole = null) {
     $userId = $_SESSION[$role . '_id'] ?? null;
 
     if (!$userId || ($requiredRole && $role !== $requiredRole)) {
-        if (isset($_SERVER['HTTP_ACCEPT']) && strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false) {
+        // Check if it's an API request first to avoid redirect loops on AJAX calls
+        if (strpos($_SERVER['REQUEST_URI'], '/api/') !== false || (isset($_SERVER['HTTP_ACCEPT']) && strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false)) {
             http_response_code(401);
+            header('Content-Type: application/json');
             echo json_encode(['success' => false, 'message' => 'Unauthorized.']);
             exit;
         }
-        
+
         $loginPath = ($requiredRole === 'client') ? '/client/login' : (($requiredRole === 'admin') ? '/admin/login' : '/user/login');
         header("Location: $loginPath");
         exit;

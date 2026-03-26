@@ -83,7 +83,28 @@ document.addEventListener('DOMContentLoaded', async () => {
         showErrorAndRedirect('Failed to initialize checkout secure environment', 'index.html');
     }
 
-    // 3. Setup Payment Action
+    // 3. Setup Quantity Controls
+    const btnMinus = document.getElementById('qtyMinus');
+    const btnPlus = document.getElementById('qtyPlus');
+    
+    if (btnMinus && btnPlus) {
+        btnMinus.addEventListener('click', () => {
+            if (currentQuantity > 1) {
+                currentQuantity--;
+                renderEventSummary(eventData, currentQuantity);
+            }
+        });
+        btnPlus.addEventListener('click', () => {
+            if (eventData.max_capacity && (eventData.attendee_count + currentQuantity) >= eventData.max_capacity) {
+                showNotification('Max capacity reached for this event', 'warning');
+                return;
+            }
+            currentQuantity++;
+            renderEventSummary(eventData, currentQuantity);
+        });
+    }
+
+    // 4. Setup Payment Action
     const payBtn = document.getElementById('paystackBtn');
 
     if (payBtn) {
@@ -119,7 +140,21 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const result = await res.json();
                 
                 if (result.success) {
-                    // Store detailed order data in session
+                    // Free event — ticket already issued server-side
+                    if (result.is_free) {
+                        await Swal.fire({
+                            title: '🎉 Ticket Claimed!',
+                            html: `<p>Your <strong>free ticket</strong> for <em>${escapeHTML(eventData?.event_name || 'this event')}</em> has been successfully issued!</p>
+                                   <p style="font-size:0.85rem;color:#64748b;margin-top:0.75rem;">Reference: <code>${result.reference}</code></p>`,
+                            icon: 'success',
+                            confirmButtonColor: '#FF5A5F',
+                            confirmButtonText: 'Go to Events'
+                        });
+                        window.location.href = 'index.html';
+                        return;
+                    }
+
+                    // Paid event — store order and redirect to payment processor
                     const orderData = {
                         eventId: eventId,
                         quantity: currentQuantity,
@@ -179,6 +214,9 @@ function renderEventSummary(event, quantity) {
 
     const elLoc = document.getElementById('summaryLocation');
     if (elLoc) elLoc.textContent = `${event.city || ''}, ${event.state || 'Nigeria'}`.replace(/^, /, '');
+
+    const elCat = document.getElementById('summaryCategory');
+    if (elCat) elCat.textContent = event.category || event.event_type || 'General';
 
     const elDesc = document.getElementById('summaryDescription');
     if (elDesc) elDesc.textContent = event.description || '';

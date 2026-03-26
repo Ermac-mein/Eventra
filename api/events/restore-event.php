@@ -10,7 +10,7 @@ require_once '../../includes/middleware/auth.php';
 
 // Check authentication and role (client or admin)
 $user_id = checkAuth();
-$user_role = $_SESSION['role'];
+$user_role = $_SESSION['role'] ?? 'user';
 
 $data = json_decode(file_get_contents("php://input"), true);
 $event_id = $data['event_id'] ?? null;
@@ -22,7 +22,12 @@ if (!$event_id) {
 
 try {
     // Get event details before restoration
-    $stmt = $pdo->prepare("SELECT event_name, client_id, deleted_at FROM events WHERE id = ?");
+    $stmt = $pdo->prepare("
+        SELECT e.event_name, e.client_id, e.deleted_at, c.client_auth_id 
+        FROM events e 
+        JOIN clients c ON e.client_id = c.id 
+        WHERE e.id = ?
+    ");
     $stmt->execute([$event_id]);
     $event = $stmt->fetch();
 
@@ -36,21 +41,23 @@ try {
         exit;
     }
 
-    // Use user_id directly if role is client
-    $resolved_user_id = $user_id;
-
     // Check permissions (client can only restore their own events, admin can restore any)
-    if ($user_role === 'client' && $event['client_id'] != $resolved_user_id) {
+    if ($user_role === 'client' && $event['client_id'] != $user_id) {
         echo json_encode(['success' => false, 'message' => 'You do not have permission to restore this event']);
         exit;
     }
 
-    // Restore the event (set deleted_at to NULL and status to 'restored')
-    $stmt = $pdo->prepare("UPDATE events SET deleted_at = NULL, status = 'restored' WHERE id = ?");
+    // Restore the event (set deleted_at to NULL)
+    $stmt = $pdo->prepare("UPDATE events SET deleted_at = NULL WHERE id = ?");
     $stmt->execute([$event_id]);
 
-    // Notify admin about event restoration if restored by client
+    // Metadata for notifications
+    $metadata = ['event_id' => $event_id, 'event_name' => $event['event_name']];
+    $auth_id = getAuthId();
+
+    // Send notifications for restoration activity
     if ($user_role === 'client') {
+        // Client restored their event - notify admin
         $stmt = $pdo->prepare("SELECT business_name FROM clients WHERE id = ?");
         $stmt->execute([$user_id]);
         $client_info = $stmt->fetch();
@@ -59,10 +66,13 @@ try {
         $admin_id = getAdminUserId();
         if ($admin_id) {
             $message = "Event '{$event['event_name']}' has been restored by $user_name";
-            $metadata = ['event_id' => $event_id, 'event_name' => $event['event_name']];
-            $auth_id = getAuthId(); // Consistent way to get auth ID
             createNotification($admin_id, $message, 'event_restored', $auth_id, 'admin', 'client', $metadata);
         }
+    } else {
+        // Admin restored the event - notify the client owner
+        $message = "Your event '{$event['event_name']}' has been restored.";
+        $client_auth_id = $event['client_auth_id'];
+        createNotification($client_auth_id, $message, 'event_restored', $auth_id, 'client', 'admin', $metadata);
     }
 
     echo json_encode([

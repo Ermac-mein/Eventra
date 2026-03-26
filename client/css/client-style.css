@@ -418,12 +418,16 @@ body {
     background: #fff;
     border-radius: var(--client-radius);
     box-shadow: var(--client-shadow);
-    overflow: hidden;
+    overflow-x: auto;
     border: 1px solid var(--client-border);
+    -webkit-overflow-scrolling: touch;
 }
 
-.table-header { padding: 1.5rem 2rem; border-bottom: 1px solid var(--client-border); display: flex; justify-content: space-between; align-items: center; }
-table { width: 100%; border-collapse: collapse; }
+.table-card table {
+    min-width: 850px;
+    width: 100%;
+    border-collapse: collapse;
+}
 th { text-align: left; padding: 1.25rem 2rem; background: #f8fafc; font-size: 0.75rem; text-transform: uppercase; color: var(--client-text-muted); letter-spacing: 1px; font-weight: 700; }
 td { padding: 1.25rem 2rem; border-bottom: 1px solid var(--client-border); font-size: 0.95rem; color: var(--client-text-main); }
 .text-center { text-align: center; }

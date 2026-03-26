@@ -50,7 +50,7 @@ function showProfileEditModal() {
                             </div>
                             <div class="form-group">
                                 <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Phone</label>
-                                <input type="tel" name="phone" value="${escapeHTML(user.phone) || ''}" placeholder="+234..." class="form-control">
+                                <input type="tel" name="phone" value="${escapeHTML(user.phone) || ''}" placeholder="+234..." class="form-control" required>
                             </div>
                             
                             <div class="form-group modal-grid-full">
@@ -58,16 +58,16 @@ function showProfileEditModal() {
                                     <span>NIN (National Identity Number)</span>
                                     <div id="ninStatus" class="verification-status-indicator"></div>
                                 </label>
-                                <input type="text" id="ninInput" name="nin" value="${escapeHTML(user.nin) || ''}" placeholder="11-digit NIN" class="form-control" onblur="validateAndVerifyField('nin')">
+                                <input type="text" id="ninInput" name="nin" value="${escapeHTML(user.nin) || ''}" placeholder="11-digit NIN" class="form-control" onblur="validateAndVerifyField('nin')" required>
                             </div>
 
                             <div class="form-group">
                                 <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Date of Birth</label>
-                                <input type="date" name="dob" value="${escapeHTML(user.dob) || ''}" class="form-control">
+                                <input type="date" name="dob" value="${escapeHTML(user.dob) || ''}" class="form-control" required>
                             </div>
                             <div class="form-group">
                                 <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Gender</label>
-                                <select name="gender" class="form-control">
+                                <select name="gender" class="form-control" required>
                                     <option value="">Select Gender</option>
                                     <option value="male" ${user.gender === 'male' ? 'selected' : ''}>Male</option>
                                     <option value="female" ${user.gender === 'female' ? 'selected' : ''}>Female</option>
@@ -77,24 +77,24 @@ function showProfileEditModal() {
                             
                             <div class="form-group modal-grid-full">
                                 <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Address</label>
-                                <textarea name="address" rows="2" placeholder="Full address" class="form-control">${escapeHTML(user.address) || ''}</textarea>
+                                <textarea name="address" rows="2" placeholder="Full address" class="form-control" required>${escapeHTML(user.address) || ''}</textarea>
                             </div>
                             
                             <div class="form-group">
                                 <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Job Title</label>
-                                <input type="text" name="job_title" value="${escapeHTML(user.job_title) || ''}" placeholder="Event Organizer" class="form-control">
+                                <input type="text" name="job_title" value="${escapeHTML(user.job_title) || ''}" placeholder="Event Organizer" class="form-control" required>
                             </div>
                             <div class="form-group">
                                 <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Company</label>
-                                <input type="text" name="company" value="${escapeHTML(user.company) || ''}" placeholder="Company Name" class="form-control">
+                                <input type="text" name="company" value="${escapeHTML(user.company) || ''}" placeholder="Company Name" class="form-control" required>
                             </div>
                             <div class="form-group">
                                 <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">City</label>
-                                <input type="text" name="city" value="${escapeHTML(user.city) || ''}" placeholder="Lagos" class="form-control">
+                                <input type="text" name="city" value="${escapeHTML(user.city) || ''}" placeholder="Lagos" class="form-control" required>
                             </div>
                             <div class="form-group">
                                 <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">State</label>
-                                <select name="state" class="form-control">
+                                <select name="state" class="form-control" required>
                                     <option value="">Select State</option>
                                     ${getNigerianStates().map(state => 
                                         `<option value="${state}" ${user.state === state ? 'selected' : ''}>${state}</option>`
@@ -103,7 +103,7 @@ function showProfileEditModal() {
                             </div>
                             <div class="form-group modal-grid-full">
                                 <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Country</label>
-                                <input type="text" name="country" value="${escapeHTML(user.country) || ''}" placeholder="Nigeria" class="form-control">
+                                <input type="text" name="country" value="${escapeHTML(user.country) || ''}" placeholder="Nigeria" class="form-control" required>
                             </div>
                         </div>
 
@@ -113,7 +113,7 @@ function showProfileEditModal() {
                         <div class="modal-grid">
                             <div class="form-group modal-grid-full">
                                 <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Settlement Bank</label>
-                                <select id="bankSelect" name="bank_code" class="form-control" onchange="resolveAccount()">
+                                <select id="bankSelect" name="bank_code" class="form-control" onchange="resolveAccount()" required>
                                     <option value="">Select Bank</option>
                                 </select>
                                 <input type="hidden" name="bank_name" id="bankNameInput" value="${escapeHTML(user.bank_name) || ''}">
@@ -127,14 +127,14 @@ function showProfileEditModal() {
                                             : '<span style="color:#f59e0b; font-weight: bold; font-size: 0.85rem;" title="Setup Incomplete">⚠️ Incomplete Setup</span>'}
                                     </div>
                                 </label>
-                                <input type="text" id="accountNumberInput" name="account_number" value="${(user.account_number && !/^[0]*$/.test(user.account_number)) ? escapeHTML(user.account_number) : ''}" maxlength="10" placeholder="10-digit Account Number" class="form-control" oninput="this.value = this.value.replace(/[^0-9]/g, '');" onblur="resolveAccount()">
+                                <input type="text" id="accountNumberInput" name="account_number" value="${(user.account_number && !/^[0]*$/.test(user.account_number)) ? escapeHTML(user.account_number) : ''}" maxlength="10" placeholder="10-digit Account Number" class="form-control" oninput="this.value = this.value.replace(/[^0-9]/g, '');" onblur="resolveAccount()" required>
                             </div>
                             <div class="form-group modal-grid-full">
                                 <label style="font-weight: 600; margin-bottom: 0.5rem; display: flex; align-items: center; justify-content: space-between; width: 100%;">
                                     <span>BVN (11 Digits)</span>
                                     <div id="bvnStatus" class="verification-status-indicator"></div>
                                 </label>
-                                <input type="text" id="bvnInput" name="bvn" value="${escapeHTML(user.bvn) || ''}" maxlength="11" placeholder="11-digit BVN" class="form-control" oninput="this.value = this.value.replace(/[^0-9]/g, '');" onblur="validateAndVerifyField('bvn')">
+                                <input type="text" id="bvnInput" name="bvn" value="${escapeHTML(user.bvn) || ''}" maxlength="11" placeholder="11-digit BVN" class="form-control" oninput="this.value = this.value.replace(/[^0-9]/g, '');" onblur="validateAndVerifyField('bvn')" required>
                                 <small style="display: block; margin-top: 5px; color: #64748b; font-size: 0.8rem; font-style: italic;">Note: Your BVN is for identity verification only.</small>
                             </div>
                             <div class="form-group modal-grid-full">

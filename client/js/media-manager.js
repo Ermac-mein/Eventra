@@ -59,15 +59,15 @@ async function loadMedia() {
         const result = await response.json();
 
         // Update dashboard stats
-        if (result.dashboard_stats) {
+        if (result.stats) {
             const foldersEl = document.getElementById('foldersCreatedCount');
-            if (foldersEl) foldersEl.textContent = result.dashboard_stats.folders_created || 0;
+            if (foldersEl) foldersEl.textContent = result.stats.total_folders || 0;
             
             const deletedEl = document.getElementById('mediaDeletedCount');
-            if (deletedEl) deletedEl.textContent = result.dashboard_stats.folders_deleted || 0;
+            if (deletedEl) deletedEl.textContent = result.stats.total_deleted || 0;
             
             const restoredEl = document.getElementById('restoredFilesCount');
-            if (restoredEl) restoredEl.textContent = result.dashboard_stats.folders_restored || 0;
+            if (restoredEl) restoredEl.textContent = result.stats.total_files || 0;
         }
 
         const mediaGrid = document.getElementById('mediaGrid');

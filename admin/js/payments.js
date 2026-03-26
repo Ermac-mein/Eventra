@@ -81,7 +81,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 async function loadPayments() {
     const tbody = document.getElementById('paymentsTableBody');
-    const colCount = 7;
+    const colCount = 10;
     if (tbody) tbody.innerHTML = `<tr><td colspan="${colCount}" style="text-align:center;padding:2.5rem;color:#94a3b8;">Loading...</td></tr>`;
 
     if (_paymentsState.view === 'refunds') {
@@ -109,7 +109,7 @@ async function loadPayments() {
         _paymentsState.totalPages = data.pages || 1;
         renderTransactionsTable(data.payments);
         updateEventraPagination(data.total, data.page, data.limit, data.pages);
-        computeStats(data.payments, data.total);
+        computeStats(data.stats, data.total);
     } catch (err) {
         console.error('Payments load error', err);
         if (tbody) tbody.innerHTML = `<tr><td colspan="${colCount}" style="text-align:center;padding:2rem;color:#ef4444;">Error loading payments.</td></tr>`;
@@ -190,7 +190,7 @@ function renderTransactionsTable(payments) {
     if (!tbody) return;
 
     if (!payments.length) {
-        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:2.5rem;color:#94a3b8;">No payments found.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="10" style="text-align:center;padding:2.5rem;color:#94a3b8;">No payments found.</td></tr>`;
         return;
     }
 
@@ -312,15 +312,26 @@ function updateEventraPagination(total, page, limit, pages) {
     }
 }
 
-function computeStats(payments, total) {
+function computeStats(stats, total) {
     const setEl = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
-    const paid    = payments.filter(p => p.status === 'paid');
-    const failed  = payments.filter(p => p.status === 'failed');
-    const revenue = paid.reduce((s, p) => s + parseFloat(p.amount), 0);
-    setEl('statTotal',   total);
-    setEl('statPaid',    paid.length);
-    setEl('statFailed',  failed.length);
-    setEl('statRevenue', revenue === 0 ? '₦0' : `₦${revenue.toLocaleString(undefined, { minimumFractionDigits: 0 })}`);
+    // Use server-side aggregated stats for accuracy across all pages/records
+    if (stats && typeof stats === 'object' && 'total' in stats) {
+        setEl('statTotal',   stats.total   ?? total ?? 0);
+        setEl('statPaid',    stats.successful ?? 0);
+        setEl('statFailed',  stats.failed    ?? 0);
+        const rev = parseFloat(stats.revenue ?? 0);
+        setEl('statRevenue', rev === 0 ? '₦0' : `₦${rev.toLocaleString(undefined, { minimumFractionDigits: 0 })}`);
+    } else {
+        // Fallback: calculate from current page array (legacy path)
+        const arr = Array.isArray(stats) ? stats : [];
+        const paid    = arr.filter(p => p.status === 'paid');
+        const failed  = arr.filter(p => p.status === 'failed');
+        const revenue = paid.reduce((s, p) => s + parseFloat(p.amount), 0);
+        setEl('statTotal',   total);
+        setEl('statPaid',    paid.length);
+        setEl('statFailed',  failed.length);
+        setEl('statRevenue', revenue === 0 ? '₦0' : `₦${revenue.toLocaleString(undefined, { minimumFractionDigits: 0 })}`);
+    }
 }
 
 
@@ -390,9 +401,27 @@ function toggleExportMenu() {
 function exportPayments(format) {
     const menu = document.getElementById('exportMenu');
     if (menu) menu.classList.remove('open');
+
     const { sort, dateRange, status, search } = _paymentsState;
-    const params = new URLSearchParams({ format, sort, date_range: dateRange, ...(status && { status }), ...(search && { search }) });
-    window.open(`/api/payments/export-payments.php?${params}`, '_blank');
+    const params = new URLSearchParams({
+        format, sort,
+        date_range: dateRange,
+        ...(status && { status }),
+        ...(search && { search }),
+    });
+
+    Swal.fire({
+        title: 'Generating Report',
+        text: `The ${format.toUpperCase()} file is being prepared...`,
+        icon: 'info',
+        timer: 3000,
+        timerProgressBar: true,
+        showConfirmButton: false,
+        didOpen: () => {
+            Swal.showLoading();
+            window.open(`/api/payments/export-payments.php?${params}`, '_blank');
+        }
+    });
 }
 
 function formatDate(dateStr) {
