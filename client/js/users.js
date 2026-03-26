@@ -13,6 +13,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     await loadUsers(user.id);
     initializeTableSorting();
 
+    // Auto-refresh users list every 15 seconds to update stats when events are restored
+    setInterval(() => {
+        loadUsers(user.id);
+    }, 15000);
+
     // Handle search highlighting
     const urlParams = new URLSearchParams(window.location.search);
     const highlightId = urlParams.get('highlight');

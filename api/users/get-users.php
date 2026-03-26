@@ -23,10 +23,10 @@ try {
     }
     $real_client_id = $client_row['id'];
 
-    // Get unique users who have interacted with this client's events (tickets or payments)
-    // This includes all users who have created tickets, regardless of payment status
+    // Get ALL registered users (who have logged in to the system)
+    // Also calculate stats about their engagement with this client's events
     $stmt = $pdo->prepare("
-        SELECT DISTINCT 
+        SELECT 
             u.id,
             u.custom_id,
             u.name,
@@ -39,30 +39,43 @@ try {
             u.gender,
             u.profile_pic,
             aa.created_at,
-            u.status
+            u.status,
+            COALESCE(COUNT(DISTINCT t.id), 0) as ticket_count,
+            COALESCE(SUM(CASE WHEN p.status = 'paid' THEN 1 ELSE 0 END), 0) as paid_count
         FROM users u
         JOIN auth_accounts aa ON u.user_auth_id = aa.id
-        LEFT JOIN tickets t ON u.id = t.user_id
-        LEFT JOIN events e ON t.event_id = e.id
-        WHERE e.client_id = ?
+        LEFT JOIN tickets t ON u.id = t.user_id AND t.event_id IN (
+            SELECT id FROM events WHERE client_id = ?
+        )
+        LEFT JOIN payments p ON u.id = p.user_id AND p.status = 'paid' AND p.event_id IN (
+            SELECT id FROM events WHERE client_id = ?
+        )
+        GROUP BY u.id
         ORDER BY aa.created_at DESC
     ");
-    $stmt->execute([$real_client_id]);
+    $stmt->execute([$real_client_id, $real_client_id]);
     $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    // Calculate basic stats for this client
-    $total_distinct_users = count($users);
-
-    // Engaged users are those with more than 1 payment (optional refinement)
-    // For now, let's just use the count of users who bought tickets
+    // Calculate detailed stats for this client
+    $total_registered_users = count($users);
+    
+    // Active users = users who have logged in (is_online = 1)
+    $active_users = count(array_filter($users, function($user) {
+        return $user['status'] === 'online';
+    }));
+    
+    // Engaged users = users with paid tickets for this client's events
+    $engaged_users = count(array_filter($users, function($user) {
+        return (int)$user['paid_count'] > 0;
+    }));
 
     echo json_encode([
         'success' => true,
         'users' => $users,
         'stats' => [
-            'total_users' => $total_distinct_users,
-            'active_users' => $total_distinct_users,
-            'engaged_users' => $total_distinct_users
+            'registered_users' => $total_registered_users,
+            'active_users' => $active_users,
+            'engaged_users' => $engaged_users
         ]
     ]);
 } catch (PDOException $e) {
