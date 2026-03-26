@@ -23,7 +23,8 @@ try {
     }
     $real_client_id = $client_row['id'];
 
-    // Get unique users who have purchased tickets for this client's events
+    // Get unique users who have interacted with this client's events (tickets or payments)
+    // This includes all users who have created tickets, regardless of payment status
     $stmt = $pdo->prepare("
         SELECT DISTINCT 
             u.id,
@@ -38,12 +39,12 @@ try {
             u.gender,
             u.profile_pic,
             aa.created_at,
-            'active' as status
+            u.status
         FROM users u
         JOIN auth_accounts aa ON u.user_auth_id = aa.id
-        JOIN payments p ON u.id = p.user_id
-        JOIN events e ON p.event_id = e.id
-        WHERE e.client_id = ? AND p.status = 'paid'
+        LEFT JOIN tickets t ON u.id = t.user_id
+        LEFT JOIN events e ON t.event_id = e.id
+        WHERE e.client_id = ?
         ORDER BY aa.created_at DESC
     ");
     $stmt->execute([$real_client_id]);

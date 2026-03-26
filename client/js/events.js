@@ -181,7 +181,7 @@ function updateEventsTable(events) {
                                 class="action-icon-btn" 
                                 title="Delete Permanently" 
                                 style="background: none; border: none; cursor: pointer; font-size: 1.2rem; padding: 0.25rem 0.5rem; transition: transform 0.2s;">
-                            💀
+                            🗑️
                         </button>
                     </div>
                 </td>
