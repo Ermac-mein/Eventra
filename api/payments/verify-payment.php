@@ -163,6 +163,7 @@ try {
 
             // 2. Loop to generate multiple tickets
             $barcodes = [];
+            $ticket_ids = [];
             for ($i = 0; $i < $quantity; $i++) {
                 $barcode = 'TKT-' . strtoupper(substr(uniqid(), -8)) . ($i > 0 ? "-$i" : "");
                 $ticketCustomId = generateTicketId($pdo);
@@ -178,6 +179,7 @@ try {
                     $barcode
                 ]);
                 $ticket_id = $pdo->lastInsertId();
+                $ticket_ids[] = $ticket_id;
 
                 $ticketData = [
                     'barcode'        => $barcode,
@@ -202,29 +204,6 @@ try {
                 $barcodes[] = $barcode;
             }
             $barcode = $barcodes[0]; // Primary for notification
-            $ticket_id = null; // clear for transaction safety if needed elsewhere
-
-
-            // Generate QR & PDF
-            $ticketData = [
-                'barcode'        => $barcode,
-                'event_id'       => $order['event_id'],
-                'user_id'        => $order['user_id'],
-                'event_name'     => $order['event_name'],
-                'event_date'     => $order['event_date'],
-                'event_time'     => $order['event_time'],
-                'location'       => $order['location'] ?? $order['address'],
-                'user_name'      => $order['user_name'],
-                'payment_status' => 'paid',
-                'order_id'       => $order['id'],
-                'amount'         => $order['amount'],
-            ];
-
-            $qrCodePath = generateTicketQRCode($ticketData);
-            $pdfPath    = generateTicketPDF($ticketData);
-
-            $pdo->prepare("UPDATE tickets SET qr_code_path = ? WHERE id = ?")
-                ->execute([str_replace(__DIR__ . '/../../', '', $qrCodePath), $ticket_id]);
 
             $pdo->commit(); // COMMIT EARLY before notifications to ensure data is saved
 

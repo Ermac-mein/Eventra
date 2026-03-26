@@ -40,22 +40,24 @@ try {
         $stmt->execute([$real_client_id]);
         $stats['upcoming_events'] = $stmt->fetch()['count'] ?? 0;
 
-        // Total Tickets Sold for client's events
+        // Total Tickets Sold for client's events (paid status on payments table)
         $stmt = $pdo->prepare("
             SELECT COUNT(*) as count 
             FROM tickets t
             INNER JOIN events e ON t.event_id = e.id
+            INNER JOIN payments p ON t.payment_id = p.id
             WHERE e.client_id = ?
-            AND t.status = 'paid'
+            AND p.status = 'paid'
         ");
         $stmt->execute([$real_client_id]);
         $stats['tickets_sold'] = $stmt->fetch()['count'] ?? 0;
 
-        // Total Registered Users in System
+        // Total Registered Users in System (active users only)
         $stmt = $pdo->prepare("
             SELECT COUNT(*) as count 
-            FROM users 
-            WHERE is_active = 1
+            FROM users u
+            INNER JOIN auth_accounts a ON u.user_auth_id = a.id
+            WHERE a.is_active = 1 AND u.deleted_at IS NULL
         ");
         $stmt->execute();
         $stats['total_users'] = $stmt->fetch()['count'] ?? 0;
@@ -83,10 +85,22 @@ try {
         $stmt = $pdo->query("SELECT COUNT(*) as count FROM events WHERE status = 'published'");
         $stats['total_events'] = $stmt->fetch()['count'] ?? 0;
 
-        $stmt = $pdo->query("SELECT COUNT(*) as count FROM tickets WHERE status = 'paid'");
+        // Count tickets with paid status from payments table
+        $stmt = $pdo->query("
+            SELECT COUNT(*) as count 
+            FROM tickets t
+            INNER JOIN payments p ON t.payment_id = p.id
+            WHERE p.status = 'paid'
+        ");
         $stats['tickets_sold'] = $stmt->fetch()['count'] ?? 0;
 
-        $stmt = $pdo->query("SELECT COUNT(*) as count FROM users WHERE is_active = 1");
+        // Count active users from auth_accounts
+        $stmt = $pdo->query("
+            SELECT COUNT(*) as count 
+            FROM users u
+            INNER JOIN auth_accounts a ON u.user_auth_id = a.id
+            WHERE a.is_active = 1 AND u.deleted_at IS NULL
+        ");
         $stats['total_users'] = $stmt->fetch()['count'] ?? 0;
 
         $stmt = $pdo->query("
@@ -98,11 +112,13 @@ try {
     } else {
         // Regular user stats
 
+        // Count user's tickets that have been paid for
         $stmt = $pdo->prepare("
             SELECT COUNT(*) as count 
-            FROM tickets 
-            WHERE user_id = ? 
-            AND status = 'paid'
+            FROM tickets t
+            INNER JOIN payments p ON t.payment_id = p.id
+            WHERE t.user_id = ? 
+            AND p.status = 'paid'
         ");
         $stmt->execute([$user_id]);
         $stats['my_tickets'] = $stmt->fetch()['count'] ?? 0;
