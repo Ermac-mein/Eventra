@@ -1,32 +1,43 @@
 <?php
 
-header('Content-Type: application/json');
-require_once __DIR__ . '/../../config/database.php';
-require_once __DIR__ . '/../../includes/helpers/entity-resolver.php';
-
+// Parse intent FIRST to set correct session name before ANY session initialization
 $data = json_decode(file_get_contents("php://input"), true);
+$intent = $data['intent'] ?? 'client';
+
+// Set session name BEFORE database.php which might access sessions
+if (!in_array($intent, ['admin', 'client', 'user'])) {
+    header('Content-Type: application/json');
+    echo json_encode(['success' => false, 'message' => 'Invalid authentication path.']);
+    exit;
+}
+
+// Pre-initialize session with correct name to prevent auto-detection issues
+$sessionName = 'EVENTRA_USER_SESS';
+if ($intent === 'admin') {
+    $sessionName = 'EVENTRA_ADMIN_SESS';
+} elseif ($intent === 'client') {
+    $sessionName = 'EVENTRA_CLIENT_SESS';
+}
+
+session_name($sessionName);
+
+// NOW send the JSON header
+header('Content-Type: application/json');
+
+require_once __DIR__ . '/../../config/database.php';
+require_once __DIR__ . '/../../config/session-config.php';
+require_once __DIR__ . '/../../includes/helpers/entity-resolver.php';
 
 $identity = $data['email'] ?? $data['username'] ?? null;
 $password = $data['password'] ?? null;
-
-// Support for dedicated login endpoint overrides
-if (isset($auth_intent)) {
-    $intent = $auth_intent;
-} else {
-    $intent = $data['intent'] ?? 'client';
-}
 
 if (!$identity || !$password) {
     $fieldLabel = ($intent === 'admin') ? 'Username' : 'Username/Email';
     echo json_encode(['success' => false, 'message' => "$fieldLabel and password are required."]);
     exit;
 }
-$remember_me = isset($data['remember_me']) && $data['remember_me'] === true;
 
-if (!in_array($intent, ['admin', 'client', 'user'])) {
-    echo json_encode(['success' => false, 'message' => 'Invalid authentication path.']);
-    exit;
-}
+$remember_me = isset($data['remember_me']) && $data['remember_me'] === true;
 
 try {
     // 1. Resolve Entity (Centralized Backend Decision)
@@ -85,9 +96,9 @@ try {
         // Reset failed attempts on success
         $pdo->prepare("UPDATE auth_accounts SET failed_attempts = 0, last_login_at = NOW(), is_online = 1 WHERE id = ?")->execute([$user['id']]);
 
-        // Update role-specific status to 'online' when user logs in
+        // Update role-specific status when user logs in
         if ($userRole === 'admin') {
-            $pdo->prepare("UPDATE admins SET status = 'online' WHERE admin_auth_id = ?")->execute([$user['id']]);
+            $pdo->prepare("UPDATE admins SET status = 'active' WHERE admin_auth_id = ?")->execute([$user['id']]);
         } elseif ($userRole === 'client') {
             $pdo->prepare("UPDATE clients SET status = 'online' WHERE client_auth_id = ?")->execute([$user['id']]);
         } elseif ($userRole === 'user') {
@@ -156,6 +167,9 @@ try {
         $_SESSION['auth_token'] = $token;
         $_SESSION['last_activity'] = time();
 
+        // CRITICAL: Write session to disk before sending response
+        session_write_close();
+
         // Log success
         logSecurityEvent($user['id'], $identity, 'login_success', 'password', "Logged in as $userRole (Role ID: " . ($_SESSION[$userRole . '_id'] ?? 'N/A') . ") via portal $effectiveIntent");
 
@@ -202,6 +216,7 @@ try {
                 'token' => $token
             ]
         ]);
+        exit;
     } else {
         // Increment failed attempts
         $pdo->prepare("UPDATE auth_accounts SET failed_attempts = failed_attempts + 1 WHERE id = ?")->execute([$user['id']]);

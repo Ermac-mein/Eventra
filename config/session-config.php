@@ -37,14 +37,26 @@ if (session_status() === PHP_SESSION_NONE) {
         $headers = function_exists('getallheaders') ? getallheaders() : [];
         $portal = $_SERVER['HTTP_X_EVENTRA_PORTAL'] ?? $headers['X-Eventra-Portal'] ?? $headers['x-eventra-portal'] ?? null;
         
-        // If no header, try to detect from URI
+        // If no header, try to detect from URI and cookies
         if (!$portal) {
             $uri = $_SERVER['REQUEST_URI'] ?? '';
-            if (strpos($uri, '/admin/') !== false) $portal = 'admin';
-            elseif (strpos($uri, '/client/') !== false) $portal = 'client';
-            elseif (strpos($uri, '/api/admin/') !== false) $portal = 'admin';
-            elseif (strpos($uri, '/api/client/') !== false) $portal = 'client';
-            elseif (strpos($uri, '/api/clients/') !== false) $portal = 'client';
+            
+            // Check existing session cookies to match the right session name
+            if (isset($_COOKIE['EVENTRA_CLIENT_SESS'])) {
+                $portal = 'client';
+            } elseif (isset($_COOKIE['EVENTRA_ADMIN_SESS'])) {
+                $portal = 'admin';
+            } elseif (isset($_COOKIE['EVENTRA_USER_SESS'])) {
+                $portal = 'user';
+            } elseif (strpos($uri, '/admin/') !== false) {
+                $portal = 'admin';
+            } elseif (strpos($uri, '/client/') !== false) {
+                $portal = 'client';
+            } elseif (strpos($uri, '/api/admin/') !== false) {
+                $portal = 'admin';
+            } elseif (strpos($uri, '/api/client/') !== false || strpos($uri, '/api/clients/') !== false || strpos($uri, '/api/stats/get-client-dashboard-stats.php') !== false) {
+                $portal = 'client';
+            }
         }
 
         if ($portal === 'admin') {

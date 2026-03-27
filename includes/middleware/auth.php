@@ -10,9 +10,7 @@ require_once __DIR__ . '/../../config/database.php';
 
 function checkAuth($requiredRole = null)
 {
-    // Delegate to the new Router's logic or a dedicated service if we had one.
-    // For now, we manually check the role-specific session.
-
+    // Ensure session is started with proper role-specific session name
     if (session_status() === PHP_SESSION_NONE) {
         require_once __DIR__ . '/../../config/session-config.php';
     }

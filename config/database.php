@@ -1,7 +1,8 @@
 <?php
 // Database configuration
 require_once __DIR__ . '/env-loader.php';
-require_once __DIR__ . '/session-config.php'; // Centralized session handling
+// Session configuration is now deferred - endpoints should handle session initialization explicitly
+// require_once __DIR__ . '/session-config.php'; // DEFERRED: Moved to individual endpoints
 require_once __DIR__ . '/cors-config.php'; // CORS handling for API requests
 
 
