@@ -302,7 +302,7 @@ async function validateAndVerifyField(type) {
     updateFieldStatus(type, 'loading');
 
     try {
-        const response = await apiFetch('/api/admin/dojah-mock.php', {
+        const response = await apiFetch('/api/clients/verify-identity.php', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ type: type, number: value })
@@ -310,7 +310,7 @@ async function validateAndVerifyField(type) {
 
         const result = await response.json();
 
-        if (result.success && result.data.verified) {
+        if (result.success) {
             updateFieldStatus(type, 'success');
             showNotification(`${type.toUpperCase()} verified successfully!`, 'success');
             
@@ -327,7 +327,7 @@ async function validateAndVerifyField(type) {
             const hiddenStatus = document.getElementById(`${type}VerifiedInput`);
             if (hiddenStatus) hiddenStatus.value = 1;
         } else {
-            const errorMsg = result.data?.message || `Invalid ${type.toUpperCase()}`;
+            const errorMsg = result.message || `Invalid ${type.toUpperCase()}`;
             updateFieldStatus(type, 'error', escapeHTML(errorMsg));
             // User requested notifications only on success
             

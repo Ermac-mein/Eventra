@@ -3,6 +3,8 @@
 /**
  * Get Refund Requests API (Organizer)
  * Returns all refund requests for the organizer's events.
+ * 
+ * Standard response format with pagination-ready structure
  */
 
 header('Content-Type: application/json');
@@ -40,9 +42,16 @@ try {
     $stmt->execute($params);
     $requests = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    echo json_encode(['success' => true, 'requests' => $requests, 'total' => count($requests)]);
+    // Standardized response format
+    echo json_encode([
+        'success' => true,
+        'data' => $requests,
+        'total' => count($requests),
+        'message' => 'Refund requests retrieved successfully.'
+    ]);
 } catch (PDOException $e) {
     error_log('[get-refund-requests.php] DB error: ' . $e->getMessage());
     http_response_code(500);
     echo json_encode(['success' => false, 'message' => 'Failed to fetch refund requests.']);
 }
+

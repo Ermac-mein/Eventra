@@ -177,7 +177,9 @@ async function loadPayments() {
                 return;
             }
 
-            renderRefundsTable(data.requests);
+            // Handle both new format (data.data) and legacy format (data.requests) for compatibility
+            const refunds = data.data || data.requests || [];
+            renderRefundsTable(refunds);
             // Pagination not implemented for refunds in this version (usually smaller set)
             const info = document.getElementById('paginationInfo');
             if (info) info.textContent = `Total ${data.total} refund requests`;

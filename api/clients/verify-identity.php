@@ -39,7 +39,9 @@ try {
         exit;
     }
 
-    // Call Mock service (simulating real verification)
+    // Call real verification service or mock for development
+    // For production, replace with actual DOJAH/BVN provider integration
+    // For now, use the mock endpoint for development/testing
     $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http';
     $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
     $mockUrl = "$protocol://$host/api/admin/dojah-mock.php";
@@ -59,9 +61,11 @@ try {
     $verified = false;
     if ($httpCode === 200 && $result) {
         $resp = json_decode($result, true);
+        // Response structure from dojah-mock.php
         $verified = ($resp['success'] && ($resp['data']['verified'] ?? false));
     } else {
         // Fallback mock logic if endpoint unreachable
+        // This ensures verification works even during development
         $last_digit = substr($number, -1);
         $verified = ($last_digit === '1');
     }
