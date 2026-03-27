@@ -11,7 +11,7 @@ require_once '../../config/payment.php';
 require_once '../../includes/middleware/auth.php';
 require_once '../../api/utils/id-generator.php';
 
-// Check authentication via standardized middlewar// Check authentication
+// Check authentication via standardized middleware
 $user_id = checkAuth('user');
 
 $data = json_decode(file_get_contents("php://input"), true);
@@ -19,9 +19,6 @@ $event_id = $data['event_id'] ?? null;
 $quantity = (int) ($data['quantity'] ?? 1);
 $payment_reference = $data['payment_reference'] ?? null;
 $referred_by_client_name = $data['referred_by_client'] ?? null;
-
-// Use auth_id directly as user_id
-$user_id = $auth_id;
 
 if (!$event_id || $quantity < 1) {
     echo json_encode(['success' => false, 'message' => 'Invalid event ID or quantity']);
