@@ -277,8 +277,13 @@ async function apiFetch(url, options = {}) {
   try {
     const response = await fetch(url, options);
     
+    // Validate Response Type before handling 401
+    const contentType = response.headers.get("content-type");
+    const isJson = contentType && contentType.includes("application/json");
+    
     // Handle 401 (Unauthorized) indicating session expiration
-    if (response.status === 401) {
+    // BUT: Only redirect if this is NOT a JSON API response (let API caller handle JSON errors)
+    if (response.status === 401 && !isJson) {
       // Skip redirect for login endpoints themselves
       if (!url.includes('/login') && !url.includes('google-handler.php') && !url.includes('check-session')) {
         const path = window.location.pathname;
@@ -304,10 +309,6 @@ async function apiFetch(url, options = {}) {
         return null;
       }
     }
-
-    // Validate Response Type before parsing
-    const contentType = response.headers.get("content-type");
-    const isJson = contentType && contentType.includes("application/json");
 
     if (!response.ok) {
       if (isJson) {

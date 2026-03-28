@@ -116,6 +116,7 @@ function processSuccessfulPayment(PDO $pdo, array $order, array $psData): void
 
             // 2. Loop to generate multiple tickets
             $barcodes = [];
+            $pdfPaths = [];
             for ($i = 0; $i < $quantity; $i++) {
                 $barcode = 'TKT-' . strtoupper(bin2hex(random_bytes(6))) . ($i > 0 ? "-$i" : "");
                 $ticketCustomId = generateTicketId($pdo);
@@ -149,6 +150,7 @@ function processSuccessfulPayment(PDO $pdo, array $order, array $psData): void
 
                 $qrCodePath = generateTicketQRCode($ticketData);
                 $pdfPath    = generateTicketPDF($ticketData);
+                $pdfPaths[] = $pdfPath;
 
                 $pdo->prepare("UPDATE tickets SET qr_code_path = ? WHERE id = ?")
                     ->execute([str_replace(__DIR__ . '/../../', '', $qrCodePath), $ticket_id]);
@@ -182,8 +184,8 @@ function processSuccessfulPayment(PDO $pdo, array $order, array $psData): void
         $pdo->commit();
 
         // ── Send notifications (outside transaction) ──────────────────────────
-        // Email with PDF ticket
-        if (file_exists($pdfPath ?? '')) {
+        // Email with PDF ticket(s)
+        if (!empty($pdfPaths)) {
             sendTicketEmailFull($order['user_email'], [
                 'barcode'    => $barcode,
                 'event_name' => $order['event_name'],
@@ -193,7 +195,7 @@ function processSuccessfulPayment(PDO $pdo, array $order, array $psData): void
                 'user_name'  => $order['user_name'],
                 'order_id'   => $order['id'],
                 'amount'     => $order['amount'],
-            ], $pdfPath);
+            ], $pdfPaths);
         }
 
         // SMS to buyer

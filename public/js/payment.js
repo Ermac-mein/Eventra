@@ -51,9 +51,26 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const { eventId, quantity, contactInfo, authorization_url } = orderData;
 
-    // 3. If we have a Paystack authorization_url, redirect immediately
+    // 3. If we have a Paystack authorization_url, show OTP before redirect
     if (authorization_url) {
-        window.location.href = authorization_url;
+        if (paymentLoading) paymentLoading.style.display = 'none';
+        if (paymentForm) paymentForm.style.display = 'none';
+        
+        // Show OTP modal
+        showOTPModal(
+            contactInfo.email,
+            contactInfo.phone,
+            (verified) => {
+                // OTP verified - proceed to Paystack
+                window.location.href = authorization_url;
+            },
+            () => {
+                // OTP cancelled - show back button
+                Swal.fire('Payment Cancelled', 'You cancelled the OTP verification.', 'info').then(() => {
+                    window.location.href = 'checkout.html?id=' + eventId + '&quantity=' + quantity;
+                });
+            }
+        );
         return;
     }
 

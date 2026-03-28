@@ -172,6 +172,7 @@ try {
             // 2. Loop to generate multiple tickets
             $barcodes = [];
             $ticket_ids = [];
+            $pdfPaths = [];
             for ($i = 0; $i < $quantity; $i++) {
                 $barcode = 'TKT-' . strtoupper(bin2hex(random_bytes(6))) . ($i > 0 ? "-$i" : "");
                 $ticketCustomId = generateTicketId($pdo);
@@ -205,6 +206,7 @@ try {
 
                 $qrCodePath = generateTicketQRCode($ticketData);
                 $pdfPath    = generateTicketPDF($ticketData);
+                $pdfPaths[] = $pdfPath;
 
                 $pdo->prepare("UPDATE tickets SET qr_code_path = ? WHERE id = ?")
                     ->execute([str_replace(__DIR__ . '/../../', '', $qrCodePath), $ticket_id]);
@@ -217,7 +219,7 @@ try {
 
             // 4. Notifications (Non-blocking as possible)
             try {
-                sendTicketEmailFull($order['user_email'], $ticketData, $pdfPath);
+                sendTicketEmailFull($order['user_email'], $ticketData, $pdfPaths);
                 if (!empty($order['user_phone'])) {
                     sendSMS($order['user_phone'], "Hi {$order['user_name']}, your ticket for {$order['event_name']} is confirmed!");
                 }

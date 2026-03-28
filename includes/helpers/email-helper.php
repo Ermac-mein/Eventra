@@ -116,7 +116,7 @@ function sendTicketEmail($to, $userName, $eventName, $barcode, $pdfPath = null)
  * @param string $pdfPath     Absolute path to generated PDF ticket
  * @return array
  */
-function sendTicketEmailFull(string $to, array $ticketData, string $pdfPath = ''): array
+function sendTicketEmailFull(string $to, array $ticketData, $pdfPath = ''): array
 {
     $barcode   = $ticketData['barcode']   ?? '';
     $eventName = htmlspecialchars($ticketData['event_name'] ?? 'Your Event');
@@ -126,6 +126,21 @@ function sendTicketEmailFull(string $to, array $ticketData, string $pdfPath = ''
     $venue     = htmlspecialchars($ticketData['location'] ?? 'See event details');
     $amount    = '₦' . number_format((float)($ticketData['amount'] ?? 0), 2);
     $year      = date('Y');
+
+    // Handle both single PDF and array of PDFs
+    $attachments = [];
+    if (!empty($pdfPath)) {
+        if (is_array($pdfPath)) {
+            $attachments = $pdfPath; // Array of paths
+        } else {
+            $attachments = [$pdfPath]; // Single path
+        }
+    }
+    
+    // Filter out non-existent files
+    $attachments = array_filter($attachments, function($filePath) {
+        return !empty($filePath) && file_exists($filePath);
+    });
 
     // Build download URL from APP_URL env or fallback
     $appUrl      = rtrim($_ENV['APP_URL'] ?? '', '/');
@@ -177,6 +192,5 @@ function sendTicketEmailFull(string $to, array $ticketData, string $pdfPath = ''
     </div>
     ";
 
-    $attachments = ($pdfPath && file_exists($pdfPath)) ? [$pdfPath] : [];
     return sendEmail($to, $subject, $body, $attachments);
 }
