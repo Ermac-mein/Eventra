@@ -114,6 +114,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
+                    intent: 'admin',
                     username: usernameInput.value,
                     password: passwordInput.value,
                     remember_me: rememberMeInput?.checked || false,

@@ -88,7 +88,6 @@ try {
         JOIN clients c ON e.client_id = c.id
         WHERE e.status = 'published' AND e.event_date >= CURDATE()
         ORDER BY e.event_date ASC
-        LIMIT 10
     ");
     $upcoming_events = $stmt->fetchAll(PDO::FETCH_ASSOC);
 

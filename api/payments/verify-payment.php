@@ -173,7 +173,7 @@ try {
             $barcodes = [];
             $ticket_ids = [];
             for ($i = 0; $i < $quantity; $i++) {
-                $barcode = 'TKT-' . strtoupper(substr(uniqid(), -8)) . ($i > 0 ? "-$i" : "");
+                $barcode = 'TKT-' . strtoupper(bin2hex(random_bytes(6))) . ($i > 0 ? "-$i" : "");
                 $ticketCustomId = generateTicketId($pdo);
 
                 $pdo->prepare("
