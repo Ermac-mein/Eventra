@@ -16,9 +16,9 @@ let swiperInstances = {}; // Store Swiper instances
 let currentPage = 1;
 function getItemsPerPage() {
     const width = window.innerWidth;
-    if (width >= 1024) return 16;
-    if (width >= 768) return 8;
-    return 6;
+    if (width >= 1024) return 21;
+    if (width >= 768) return 21;
+    return 21;
 }
 let itemsPerPage = getItemsPerPage();
 let filteredDiscoveryEvents = [];

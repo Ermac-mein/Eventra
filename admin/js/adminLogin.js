@@ -300,7 +300,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 // Inject images
                 sliderContainer.innerHTML = events.map((event, index) => `
-                    <img src="${event.image_path}" 
+                    <img src="/${event.image_path}" 
                          alt="${escapeHTML(event.event_name)}" 
                          class="slider-img ${index === 0 ? 'active' : ''}" 
                          data-index="${index}">

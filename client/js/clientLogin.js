@@ -250,7 +250,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 // Inject images (using high quality placeholder or actual path)
                 sliderContainer.innerHTML = events.map((event, index) => `
-                    <img src="${event.image_path}" 
+                    <img src="/${event.image_path}" 
                          alt="${event.event_name}" 
                          class="slider-img ${index === 0 ? 'active' : ''}" 
                          data-index="${index}">
