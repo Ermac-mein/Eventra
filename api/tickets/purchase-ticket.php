@@ -12,7 +12,18 @@ require_once '../../includes/middleware/auth.php';
 require_once '../../api/utils/id-generator.php';
 
 // Check authentication via standardized middleware
-$user_id = checkAuth('user');
+$auth_id = checkAuth('user');
+
+// Get the actual user table ID using auth_id
+$stmt = $pdo->prepare("SELECT id FROM users WHERE user_auth_id = ?");
+$stmt->execute([$auth_id]);
+$user_id = $stmt->fetchColumn();
+
+if (!$user_id) {
+    http_response_code(404);
+    echo json_encode(['success' => false, 'message' => 'User profile not found']);
+    exit;
+}
 
 $data = json_decode(file_get_contents("php://input"), true);
 $event_id = $data['event_id'] ?? null;
@@ -27,18 +38,35 @@ if (!$event_id || $quantity < 1) {
 
 // 0. OTP Verification Check (Secure Requirement)
 if ($payment_reference && $payment_reference !== 'free') {
-    if (!isset($_SESSION['otp_verified_ref']) || $_SESSION['otp_verified_ref'] !== $payment_reference) {
+    $otp_verified = false;
+
+    if (isset($_SESSION['otp_verified_ref']) && $_SESSION['otp_verified_ref'] === $payment_reference) {
+        $otp_verified = true;
+    } else {
         // Double check database if session expired but OTP was valid
-        $stmt = $pdo->prepare("SELECT id FROM payment_otps WHERE user_id = ? AND payment_reference = ? AND attempts < 5 AND expires_at > NOW() ORDER BY created_at DESC LIMIT 1");
+        // Check that OTP was verified and not expired
+        $stmt = $pdo->prepare(
+            "SELECT id FROM payment_otps 
+             WHERE user_id = ? AND payment_reference = ? 
+             AND verified_at IS NOT NULL 
+             AND expires_at > NOW() 
+             AND attempts < 5 
+             ORDER BY verified_at DESC LIMIT 1"
+        );
         $stmt->execute([$user_id, $payment_reference]);
-        if (!$stmt->fetch()) {
-            http_response_code(403);
-            echo json_encode(['success' => false, 'message' => 'OTP verification required before payment confirmation.']);
-            exit;
+        if ($stmt->fetch()) {
+            $otp_verified = true;
         }
     }
-    // Clear session flag after use to prevent reuse if necessary,
-    // but keep it for the duration of this request
+
+    if (!$otp_verified) {
+        http_response_code(403);
+        echo json_encode(['success' => false, 'message' => 'OTP verification required before payment confirmation.']);
+        exit;
+    }
+
+    // Clear session flag after use to prevent reuse in subsequent requests
+    unset($_SESSION['otp_verified_ref']);
 }
 
 try {

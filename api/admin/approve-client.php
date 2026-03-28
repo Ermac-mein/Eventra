@@ -25,7 +25,41 @@ if (!$client_id || !in_array($status, [0, 1], true)) {
 try {
     $verification_status = $status ? 'verified' : 'rejected';
 
-    // Update verification_status and persist admin_notes
+    // 1. If approving, check that client has payment setup (bank details + subaccount code)
+    if ($status) {
+        $checkPaymentStmt = $pdo->prepare("
+            SELECT account_number, bank_code, subaccount_code 
+            FROM clients 
+            WHERE id = ? AND deleted_at IS NULL
+        ");
+        $checkPaymentStmt->execute([$client_id]);
+        $paymentInfo = $checkPaymentStmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$paymentInfo) {
+            echo json_encode([
+                'success' => false,
+                'message' => 'Client not found or has been deleted.'
+            ]);
+            exit;
+        }
+
+        // Ensure payment setup is complete before approving
+        if (empty($paymentInfo['account_number']) || empty($paymentInfo['bank_code'])) {
+            echo json_encode([
+                'success' => false,
+                'message' => 'Cannot approve: Client has not completed payment setup. Ensure they have valid bank details and a Paystack subaccount.'
+            ]);
+            exit;
+        }
+
+        // If no subaccount_code, admin should have created one or client needs to
+        if (empty($paymentInfo['subaccount_code'])) {
+            // Log warning but allow approval - subaccount will be created on first event publish
+            error_log("[approve-client.php] Warning: Client {$client_id} approved without subaccount_code. Will be created on first event publish.");
+        }
+    }
+
+    // 2. Update verification_status and persist admin_notes
     if ($status) {
         $stmt = $pdo->prepare("
             UPDATE clients 
@@ -89,7 +123,12 @@ try {
 
         echo json_encode([
             'success' => true,
-            'message' => "Client profile successfully " . strtolower($status_text)
+            'message' => "Client profile successfully " . strtolower($status_text),
+            'client' => [
+                'id' => $client['id'],
+                'name' => $client['business_name'] ?: $client['name'],
+                'verification_status' => $verification_status
+            ]
         ]);
     } else {
         echo json_encode(['success' => false, 'message' => 'Client not found or no changes made.']);

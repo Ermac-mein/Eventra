@@ -25,7 +25,7 @@ try {
         SELECT u.id AS user_id, u.name, a.email 
         FROM users u 
         JOIN auth_accounts a ON u.user_auth_id = a.id 
-        WHERE u.id = ?
+        WHERE u.user_auth_id = ?
     ");
     $uStmt->execute([$auth_id]);
     $user = $uStmt->fetch(PDO::FETCH_ASSOC);

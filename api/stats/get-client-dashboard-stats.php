@@ -16,13 +16,11 @@ try {
     // 1. Resolve real_client_id from session (standardized role-id)
     $real_client_id = $_SESSION['client_id'] ?? $auth_id;
 
-    // 2. Client Revenue — correctly calculated as SUM(event_price × tickets_sold)
-    //    Revenue = Σ(e.price * ticket_count) per event, then summed across all events.
+    // 2. Client Revenue — SUM actual payment amounts (not event prices)
     $stmt = $pdo->prepare("
-        SELECT COALESCE(SUM(e.price), 0) AS total
-        FROM tickets t
-        JOIN payments p ON t.payment_id = p.id
-        JOIN events e   ON p.event_id   = e.id
+        SELECT COALESCE(SUM(p.amount), 0) AS total
+        FROM payments p
+        JOIN events e ON p.event_id = e.id
         WHERE e.client_id = ? AND p.status = 'paid'
     ");
     $stmt->execute([$real_client_id]);
@@ -80,7 +78,7 @@ try {
     $stmt = $pdo->prepare("
         SELECT e.id, e.event_name, e.event_date, e.status, e.image_path, e.price,
                COUNT(t.id) as tickets_sold, 
-               COALESCE(SUM(e.price), 0) as revenue,
+               COALESCE(SUM(p.amount), 0) as revenue,
                CASE WHEN e.price = 0 OR e.price IS NULL THEN 'Free' ELSE CONCAT('₦', FORMAT(e.price, 0)) END as price_display
         FROM events e
         LEFT JOIN payments p ON e.id = p.event_id AND p.status = 'paid'

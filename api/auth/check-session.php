@@ -102,7 +102,7 @@ try {
         SELECT a.id, a.email, a.role, a.is_active
         FROM auth_accounts a
         JOIN auth_tokens t ON a.id = t.auth_id
-        WHERE t.token = ? AND a.id = ? AND t.expires_at > NOW()
+        WHERE t.token = ? AND a.id = ? AND t.expires_at > NOW() AND t.revoked = 0
     ");
     $stmt->execute([$token, $authId]);
     $account = $stmt->fetch(PDO::FETCH_ASSOC);

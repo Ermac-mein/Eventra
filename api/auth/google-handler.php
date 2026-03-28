@@ -117,7 +117,9 @@ try {
                 ON DUPLICATE KEY UPDATE name = VALUES(name), profile_pic = VALUES(profile_pic)
             ");
             // Check if custom_id already exists for this client (UPSERT case)
-            $existingCustomId = $pdo->query("SELECT custom_id FROM clients WHERE client_auth_id = " . (int)$user['id'])->fetchColumn();
+            $existingStmt = $pdo->prepare("SELECT custom_id FROM clients WHERE client_auth_id = ?");
+            $existingStmt->execute([$user['id']]);
+            $existingCustomId = $existingStmt->fetchColumn();
             $customId = $existingCustomId ?: generateClientId($pdo);
             $stmt->execute([$user['id'], $customId, $name, $email, $name, $profile_pic]);
         } else {
@@ -127,7 +129,9 @@ try {
                 ON DUPLICATE KEY UPDATE name = VALUES(name), profile_pic = VALUES(profile_pic)
             ");
             // Check if custom_id already exists for this user (UPSERT case)
-            $existingCustomId = $pdo->query("SELECT custom_id FROM users WHERE user_auth_id = " . (int)$user['id'])->fetchColumn();
+            $existingStmt = $pdo->prepare("SELECT custom_id FROM users WHERE user_auth_id = ?");
+            $existingStmt->execute([$user['id']]);
+            $existingCustomId = $existingStmt->fetchColumn();
             $customId = $existingCustomId ?: generateUserId($pdo);
             $stmt->execute([$user['id'], $customId, $name, $profile_pic]);
         }

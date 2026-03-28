@@ -55,8 +55,8 @@ try {
 
     // 5. Verify OTP hash
     if (password_verify($otp, $record['otp_hash'])) {
-        // Mark as verified (single-use: set verified_at)
-        $stmt = $pdo->prepare("UPDATE payment_otps SET verified_at = NOW(), attempts = attempts + 1 WHERE id = ?");
+        // Mark as verified (single-use: set verified_at) - do NOT increment attempts on success
+        $stmt = $pdo->prepare("UPDATE payment_otps SET verified_at = NOW() WHERE id = ?");
         $stmt->execute([$record['id']]);
 
         // Store verification in session for cross-request validation

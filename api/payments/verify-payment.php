@@ -32,8 +32,16 @@ if (!$reference) {
 }
 
 try {
-    // ── Check if user exists ───────────────────────────────────────────────────
-    $user_id = $auth_id;
+    // ── Get actual user ID from users table ───────────────────────────────────
+    $stmt = $pdo->prepare("SELECT id FROM users WHERE user_auth_id = ?");
+    $stmt->execute([$auth_id]);
+    $user_id = $stmt->fetchColumn();
+
+    if (!$user_id) {
+        http_response_code(404);
+        echo json_encode(['success' => false, 'message' => 'User profile not found']);
+        exit;
+    }
 
     // ── Check existing order ─────────────────────────────────────────────────
     $oStmt = $pdo->prepare("
@@ -221,7 +229,7 @@ try {
             }
         } else {
             $pdo->commit();
-            $barcode = $existingTicket['barcode'];
+            $barcode = $existingTickets[0]['barcode'];  // Fixed: use $existingTickets[0] not $existingTicket
         }
 
         echo json_encode([

@@ -34,12 +34,10 @@ try {
     $stmt->execute();
     $online_clients = $stmt->fetch()['total'] ?? 0;
 
-    // 5. Total Revenue — correctly as SUM(e.price) for all paid tickets
+    // 5. Total Revenue — SUM actual payment amounts (not event prices)
     $stmt = $pdo->query("
-        SELECT COALESCE(SUM(e.price), 0) AS total
-        FROM tickets t
-        JOIN events e   ON t.event_id   = e.id
-        JOIN payments p ON t.payment_id = p.id
+        SELECT COALESCE(SUM(p.amount), 0) AS total
+        FROM payments p
         WHERE p.status = 'paid'
     ");
     $total_revenue = $stmt->fetch()['total'];
@@ -70,14 +68,14 @@ try {
     ");
     $top_users = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    // 9. Active Clients (by events)
+    // 9. Active Clients (by events) - only verified clients
     $stmt = $pdo->query("
         SELECT c.id, c.business_name as name, c.profile_pic, c.company, c.state, a.email, a.is_online,
                IF(a.is_online = 1, 'active', 'offline') as status,
-               (SELECT COUNT(*) FROM events WHERE client_id = c.id) as event_count
+               (SELECT COUNT(*) FROM events WHERE client_id = c.id AND deleted_at IS NULL) as event_count
         FROM clients c
         JOIN auth_accounts a ON c.client_auth_id = a.id
-        WHERE c.deleted_at IS NULL
+        WHERE c.deleted_at IS NULL AND c.verification_status = 'verified'
         ORDER BY event_count DESC
         LIMIT 5
     ");
@@ -136,7 +134,7 @@ try {
             'platform_earnings' => (float) ($total_revenue * 0.30),
             'pending_payments' => (int) $pending_payments,
             'restored_events' => (int) $restored_events,
-            'total_clients_events' => (int) $pdo->query("SELECT COUNT(*) FROM events WHERE deleted_at IS NULL")->fetchColumn()
+            'total_clients_events' => (int) $total_events  // Use same published events count
         ],
         'recent_activities' => $recent_activities,
         'top_users' => $top_users,

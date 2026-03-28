@@ -9,9 +9,20 @@ require_once '../../config/database.php';
 require_once '../../config/payment.php';
 require_once '../../includes/middleware/auth.php';
 
-// Check authentication
-$auth_id = $_SESSION['auth_id'] ?? checkAuth('client');
-$client_id = $_SESSION['client_id']; // This is clients.id starting from 1
+// Check authentication using proper middleware
+$auth_id = checkAuth('client');
+
+// Get client_id from database using auth_id
+$stmt = $pdo->prepare("SELECT id FROM clients WHERE client_auth_id = ?");
+$stmt->execute([$auth_id]);
+$client_id = $stmt->fetchColumn();
+
+if (!$client_id) {
+    http_response_code(404);
+    echo json_encode(['success' => false, 'message' => 'Client profile not found']);
+    exit;
+}
+
 $name = $_POST['name'];
 $business_name = $_POST['business_name'];
 $phone = $_POST['phone'];

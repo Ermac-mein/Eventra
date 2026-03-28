@@ -6,17 +6,11 @@
 
 header('Content-Type: application/json');
 require_once '../../config/database.php';
+require_once '../../includes/middleware/auth.php';
 
-// Check authentication
-$role = $_SESSION['user_role'] ?? $_SESSION['role'] ?? null;
-if (!isset($_SESSION['user_id']) || $role !== 'user') {
-    http_response_code(401);
-    echo json_encode(['success' => false, 'message' => 'Unauthorized']);
-    exit;
-}
-
-$user_auth_id = $_SESSION['auth_id'];
-$user_id = $_SESSION['user_id'];
+// Check authentication using proper middleware
+$user_auth_id = checkAuth('user');
+$user_id = $user_auth_id;
 $name = $_POST['name'];
 $phone = $_POST['phone'];
 $address = $_POST['address'];

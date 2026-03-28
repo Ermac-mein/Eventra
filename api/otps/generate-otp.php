@@ -37,6 +37,17 @@ if (!in_array($channel, ['email', 'sms'])) {
     exit;
 }
 
+// Validate required contact fields for the selected channel
+if ($channel === 'email' && empty($user['email'])) {
+    echo json_encode(['success' => false, 'message' => 'Your email address is missing. Please update your profile with a valid email before using email OTP.']);
+    exit;
+}
+
+if ($channel === 'sms' && empty($user['phone'])) {
+    echo json_encode(['success' => false, 'message' => 'Your phone number is missing. Please update your profile with a valid phone number before using SMS OTP.']);
+    exit;
+}
+
 // Ensure fresh verification session
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -45,8 +56,8 @@ unset($_SESSION['otp_verified_ref']);
 unset($_SESSION['otp_verified_at']);
 
 try {
-    // 1. Rate limit check (max 3 OTPs per 5 minutes per user)
-    $stmt = $pdo->prepare("SELECT COUNT(*) FROM payment_otps WHERE user_id = ? AND created_at > DATE_SUB(NOW(), INTERVAL 5 MINUTE)");
+    // 1. Rate limit check (max 3 OTPs per 5 minutes per user, only counting unverified)
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM payment_otps WHERE user_id = ? AND created_at > DATE_SUB(NOW(), INTERVAL 5 MINUTE) AND verified_at IS NULL");
     $stmt->execute([$user_id]);
     if ($stmt->fetchColumn() >= 3) {
         echo json_encode(['success' => false, 'message' => 'Too many OTP requests. Please wait a few minutes before trying again.']);

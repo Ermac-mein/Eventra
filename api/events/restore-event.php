@@ -10,9 +10,22 @@ require_once '../../config/database.php';
 require_once '../utils/notification-helper.php';
 require_once '../../includes/middleware/auth.php';
 
-// Check authentication and role (client or admin)
-$user_id = checkAuth();
+// Check authentication and determine role/ID mapping
 $user_role = $_SESSION['role'] ?? 'user';
+
+// For clients: $_SESSION['client_id'] = clients table ID
+// For admins: $_SESSION['admin_id'] = admins table ID
+if ($user_role === 'client') {
+    $client_id = checkAuth('client');
+    $user_id = $client_id;
+} elseif ($user_role === 'admin') {
+    $admin_id = checkAuth('admin');
+    $user_id = $admin_id;
+} else {
+    http_response_code(401);
+    echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+    exit;
+}
 
 $data = json_decode(file_get_contents("php://input"), true);
 $event_id = $data['event_id'] ?? null;

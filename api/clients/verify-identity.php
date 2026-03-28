@@ -14,6 +14,17 @@ require_once '../../includes/middleware/auth.php';
 
 $client_auth_id = clientMiddleware();
 
+// Get the actual client ID from the clients table using the auth_id
+$stmt = $pdo->prepare("SELECT id FROM clients WHERE client_auth_id = ?");
+$stmt->execute([$client_auth_id]);
+$client_id = $stmt->fetchColumn();
+
+if (!$client_id) {
+    http_response_code(404);
+    echo json_encode(['success' => false, 'message' => 'Client profile not found']);
+    exit;
+}
+
 $data = json_decode(file_get_contents('php://input'), true) ?? [];
 $type = strtolower(trim($data['type'] ?? ''));
 $number = trim($data['number'] ?? '');
@@ -29,7 +40,7 @@ try {
 
     // Fetch existing client to cross-check against account_name
     $stmt = $pdo->prepare("SELECT id, account_name FROM clients WHERE id = ?");
-    $stmt->execute([$client_auth_id]);
+    $stmt->execute([$client_id]);
     $client = $stmt->fetch(PDO::FETCH_ASSOC);
 
     if (!$client) {

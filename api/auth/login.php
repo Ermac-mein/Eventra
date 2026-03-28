@@ -78,13 +78,13 @@ try {
         exit;
     }
 
-    if (password_verify($password, $user['password'])) {
-        // Enforce account locking
-        if ($user['locked_until'] && strtotime($user['locked_until']) > time()) {
-            echo json_encode(['success' => false, 'message' => 'Account is temporarily locked. Please try again later.']);
-            exit;
-        }
+    // Check account lock BEFORE password verification (timing attack prevention)
+    if ($user['locked_until'] && strtotime($user['locked_until']) > time()) {
+        echo json_encode(['success' => false, 'message' => 'Account is temporarily locked. Please try again later.']);
+        exit;
+    }
 
+    if (password_verify($password, $user['password'])) {
         // 3. Enforce Auth Policy
         $policy = getAuthPolicy($userRole, 'password', $user);
         if (!$policy['allowed']) {

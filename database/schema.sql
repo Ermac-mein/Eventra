@@ -126,6 +126,7 @@ CREATE TABLE IF NOT EXISTS clients (
     country VARCHAR(100) DEFAULT NULL,
     profile_pic VARCHAR(255) DEFAULT NULL,
     admin_notes TEXT DEFAULT NULL,
+    status ENUM('online', 'offline', 'pending') DEFAULT 'pending',
     metadata JSON DEFAULT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -153,6 +154,7 @@ CREATE TABLE IF NOT EXISTS users (
     state VARCHAR(100) DEFAULT NULL,
     country VARCHAR(100) DEFAULT NULL,
     profile_pic VARCHAR(255) DEFAULT NULL,
+    status ENUM('online', 'offline', 'pending') DEFAULT 'pending',
     metadata JSON DEFAULT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -430,7 +432,8 @@ CREATE TABLE IF NOT EXISTS payment_otps (
     attempts INT DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     INDEX (user_id),
-    INDEX (payment_reference)
+    INDEX (payment_reference),
+    CONSTRAINT fk_payment_otps_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
 
 -- =============================================================================
