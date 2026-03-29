@@ -32,7 +32,8 @@ CREATE TABLE IF NOT EXISTS auth_accounts (
     UNIQUE KEY uq_provider_id (provider_id),
     KEY idx_auth_role_active (role, is_active),
     KEY idx_auth_deleted (deleted_at),
-    KEY idx_auth_last_seen (last_seen)
+    KEY idx_auth_last_seen (last_seen),
+    KEY idx_auth_online_status (is_online, last_seen, role, deleted_at)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
 
 -- =============================================================================
@@ -204,6 +205,8 @@ CREATE TABLE IF NOT EXISTS events (
     PRIMARY KEY (id),
     UNIQUE KEY uq_event_custom_id (custom_id),
     KEY idx_event_client (client_id),
+    KEY idx_event_client_status_deleted (client_id, status, deleted_at),
+    KEY idx_event_status_deleted (status, deleted_at),
     CONSTRAINT fk_event_client FOREIGN KEY (client_id) REFERENCES clients (id) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
 
@@ -255,6 +258,9 @@ CREATE TABLE IF NOT EXISTS payments (
     PRIMARY KEY (id),
     UNIQUE KEY uq_payment_reference (reference),
     UNIQUE KEY uq_payment_custom_id (custom_id),
+    KEY idx_payment_user_status (user_id, status),
+    KEY idx_payment_event_status (event_id, status),
+    KEY idx_payment_user_event (user_id, event_id),
     CONSTRAINT fk_payment_event FOREIGN KEY (event_id) REFERENCES events (id) ON DELETE CASCADE,
     CONSTRAINT fk_payment_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
@@ -284,6 +290,8 @@ CREATE TABLE IF NOT EXISTS tickets (
     UNIQUE KEY uq_ticket_custom_id (custom_id),
     KEY idx_tickets_user (user_id),
     KEY idx_tickets_event (event_id),
+    KEY idx_ticket_event_status_used (event_id, status, used),
+    KEY idx_ticket_user_event (user_id, event_id),
     CONSTRAINT fk_ticket_payment FOREIGN KEY (payment_id) REFERENCES payments (id) ON DELETE CASCADE,
     CONSTRAINT fk_ticket_event FOREIGN KEY (event_id) REFERENCES events (id) ON DELETE CASCADE,
     CONSTRAINT fk_ticket_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,

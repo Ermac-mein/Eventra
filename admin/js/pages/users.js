@@ -171,7 +171,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     await loadUsers();
 
+    // Auto-refresh every 60s (reduced from 10s) to decrease database load
+    // Visibility check prevents unnecessary queries when tab is in background
     setInterval(() => {
         if (document.visibilityState === 'visible') loadUsers();
-    }, 10000);
+    }, 60000);
 });

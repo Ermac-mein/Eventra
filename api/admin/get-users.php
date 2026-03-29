@@ -3,6 +3,7 @@
 /**
  * Get All Users API for Admin
  * Retrieves all registered users with role 'user'
+ * OPTIMIZED: Eliminated N+1 queries and triple-nested subqueries
  */
 
 header('Content-Type: application/json');
@@ -32,16 +33,21 @@ try {
     $count_stmt->execute($params);
     $total_records = $count_stmt->fetchColumn();
 
-    // Get users
+    // Get users with optimized queries using JOINs instead of subqueries
     $sql = "SELECT p.id, p.custom_id, p.name, a.email, p.profile_pic, p.phone, 
             p.gender, p.dob, p.address, p.city, p.state, p.country,
             a.is_active, a.is_online,
             IF(a.is_online = 1, 'active', 'inactive') as status, p.created_at, a.last_login_at, a.email_verified_at,
-            (SELECT COUNT(*) FROM tickets t JOIN payments py ON t.payment_id = py.id WHERE py.user_id = p.id AND t.used = 1) as checked_in_count,
-            (SELECT business_name FROM clients WHERE id = (SELECT client_id FROM events WHERE id = (SELECT event_id FROM tickets WHERE user_id = p.id LIMIT 1))) as client_name
+            COUNT(DISTINCT CASE WHEN t.used = 1 THEN t.id END) as checked_in_count,
+            MAX(c.business_name) as client_name
             FROM users p
             JOIN auth_accounts a ON p.user_auth_id = a.id
-            $where_clause 
+            LEFT JOIN tickets t ON p.id = t.user_id
+            LEFT JOIN payments py ON t.payment_id = py.id
+            LEFT JOIN events e ON t.event_id = e.id
+            LEFT JOIN clients c ON e.client_id = c.id
+            $where_clause
+            GROUP BY p.id
             ORDER BY p.created_at DESC 
             LIMIT ? OFFSET ?";
 
@@ -57,24 +63,24 @@ try {
     $stmt->execute();
     $users = $stmt->fetchAll();
 
-    // Get Global Summary Stats (for cards, ignore search/limit)
-    $registered_sql = "SELECT COUNT(*) FROM users WHERE deleted_at IS NULL";
-    $registered_count = $pdo->query($registered_sql)->fetchColumn();
-
-    $active_sql = "SELECT COUNT(*) FROM users u JOIN auth_accounts a ON u.user_auth_id = a.id WHERE a.is_active = 1 AND u.deleted_at IS NULL";
-    $active_count = $pdo->query($active_sql)->fetchColumn();
-
-    $online_sql = "SELECT COUNT(*) FROM users u JOIN auth_accounts a ON u.user_auth_id = a.id WHERE a.is_online = 1 AND u.deleted_at IS NULL";
-    $online_count = $pdo->query($online_sql)->fetchColumn();
+    // Get Global Summary Stats (combined into single query)
+    $summary_sql = "SELECT 
+        (SELECT COUNT(*) FROM users WHERE deleted_at IS NULL) as total_registered,
+        (SELECT COUNT(*) FROM users u JOIN auth_accounts a ON u.user_auth_id = a.id WHERE a.is_active = 1 AND u.deleted_at IS NULL) as total_active,
+        (SELECT COUNT(*) FROM users u JOIN auth_accounts a ON u.user_auth_id = a.id WHERE a.is_online = 1 AND u.deleted_at IS NULL) as total_checked_in";
+    
+    $summary_stmt = $pdo->prepare($summary_sql);
+    $summary_stmt->execute();
+    $summary = $summary_stmt->fetch();
 
     echo json_encode([
         'success' => true,
         'users' => $users,
         'total' => $total_records,
         'summary' => [
-            'total_registered' => (int) $registered_count,
-            'total_active' => (int) $active_count,
-            'total_checked_in' => (int) $online_count // Mapping online users to "Checked-In" card as per user request
+            'total_registered' => (int) $summary['total_registered'],
+            'total_active' => (int) $summary['total_active'],
+            'total_checked_in' => (int) $summary['total_checked_in']
         ]
     ]);
 } catch (PDOException $e) {

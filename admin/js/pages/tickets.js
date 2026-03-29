@@ -33,12 +33,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
     
-    // Auto-refresh every 30s
+    // Auto-refresh every 60s (reduced from 30s) to decrease database load
+    // Visibility check prevents unnecessary queries when tab is in background
     setInterval(() => {
         if (document.visibilityState === 'visible') {
             loadTickets();
         }
-    }, 30000);
+    }, 60000);
 });
 
 async function loadTickets() {

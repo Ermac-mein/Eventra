@@ -5,8 +5,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Load dashboard stats
     await loadDashboardStats();
 
-    // Enable 15s polling for real-time updates
-    setInterval(loadDashboardStats, 15000);
+    // Enable 30s polling for real-time updates (reduced from 15s) to decrease database load
+    // Visibility check prevents queries when tab is in background
+    setInterval(() => {
+        if (document.visibilityState === 'visible') {
+            loadDashboardStats();
+        }
+    }, 30000);
 
     // Initialize heartbeat
     if (typeof initHeartbeat === 'function') initHeartbeat();

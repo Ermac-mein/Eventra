@@ -10,13 +10,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Load dashboard stats
     await loadDashboardStats();
 
-    // Set up polling for dashboard data (auto-population of cards) - 5s for real-time feel
+    // Set up polling for dashboard data (auto-population of cards) - increased to 30s to reduce database load
+    // Only refresh if the tab is visible to save resources
     setInterval(async () => {
-        // Only refresh if the tab is visible to save resources
         if (document.visibilityState === 'visible') {
             await loadDashboardStats();
         }
-    }, 5000);
+    }, 30000);
 });
 
 async function loadAdminProfile() {

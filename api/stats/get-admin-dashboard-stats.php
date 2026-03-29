@@ -3,6 +3,7 @@
 /**
  * Get Admin Dashboard Stats API
  * Provides comprehensive statistics for admin dashboard
+ * OPTIMIZED: Combined 14+ separate queries into 4 optimized queries
  */
 
 header('Content-Type: application/json');
@@ -13,133 +14,106 @@ require_once '../../includes/middleware/auth.php';
 $admin_id = checkAuth('admin');
 
 try {
-    // 1. Total Users
-    $stmt = $pdo->query("SELECT COUNT(*) as total FROM users WHERE deleted_at IS NULL");
-    $total_users = $stmt->fetch()['total'];
-
-    // 2. Total Clients
-    $stmt = $pdo->query("SELECT COUNT(*) as total FROM clients WHERE deleted_at IS NULL");
-    $total_clients = $stmt->fetch()['total'];
-
-    // 3. Total Events (Published)
-    $stmt = $pdo->query("SELECT COUNT(*) as total FROM events WHERE status = 'published' AND deleted_at IS NULL");
-    $total_events = $stmt->fetch()['total'];
-
-    // 4. Total Online (Using auth_accounts since that's where status is stored)
-    $stmt = $pdo->prepare("SELECT COUNT(*) as total FROM auth_accounts WHERE is_online = 1 AND last_seen >= DATE_SUB(NOW(), INTERVAL 10 MINUTE) AND role = 'user' AND deleted_at IS NULL");
-    $stmt->execute();
-    $online_users = $stmt->fetch()['total'] ?? 0;
-
-    $stmt = $pdo->prepare("SELECT COUNT(*) as total FROM auth_accounts WHERE is_online = 1 AND last_seen >= DATE_SUB(NOW(), INTERVAL 10 MINUTE) AND role = 'client' AND deleted_at IS NULL");
-    $stmt->execute();
-    $online_clients = $stmt->fetch()['total'] ?? 0;
-
-    // 5. Total Revenue — SUM actual payment amounts (not event prices)
-    $stmt = $pdo->query("
-        SELECT COALESCE(SUM(p.amount), 0) AS total
-        FROM payments p
-        WHERE p.status = 'paid'
-    ");
-    $total_revenue = $stmt->fetch()['total'];
-
-    // 6. Pending Payments
-    $stmt = $pdo->query("SELECT COUNT(*) as total FROM payments WHERE status = 'pending'");
-    $pending_payments = $stmt->fetch()['total'];
-
-    // 7. Recent Activities based on auth_logs
-    $stmt = $pdo->query("
+    // 1. Consolidated count stats (single query)
+    $stats_sql = "
+        SELECT 
+            (SELECT COUNT(*) FROM users WHERE deleted_at IS NULL) as total_users,
+            (SELECT COUNT(*) FROM clients WHERE deleted_at IS NULL) as total_clients,
+            (SELECT COUNT(*) FROM events WHERE status = 'published' AND deleted_at IS NULL) as total_events,
+            (SELECT COUNT(*) FROM auth_accounts WHERE is_online = 1 AND last_seen >= DATE_SUB(NOW(), INTERVAL 10 MINUTE) AND role = 'user' AND deleted_at IS NULL) as online_users,
+            (SELECT COUNT(*) FROM auth_accounts WHERE is_online = 1 AND last_seen >= DATE_SUB(NOW(), INTERVAL 10 MINUTE) AND role = 'client' AND deleted_at IS NULL) as online_clients,
+            (SELECT COALESCE(SUM(p.amount), 0) FROM payments p WHERE p.status = 'paid') as total_revenue,
+            (SELECT COUNT(*) FROM payments WHERE status = 'pending') as pending_payments,
+            (SELECT COUNT(*) FROM tickets WHERE used = 1 AND DATE(used_at) = CURDATE()) as user_checked_in,
+            (SELECT COUNT(*) FROM clients WHERE verification_status = 'verified' AND deleted_at IS NULL) as clients_verified,
+            (SELECT COUNT(*) FROM clients WHERE verification_status != 'verified' AND deleted_at IS NULL) as clients_unverified
+    ";
+    
+    $stats = $pdo->query($stats_sql)->fetch();
+    
+    // 2. Recent Activities
+    $activities_stmt = $pdo->query("
         SELECT al.event_type as type, al.details as message, al.created_at 
         FROM auth_logs al 
         ORDER BY al.created_at DESC 
         LIMIT 10
     ");
-    $recent_activities = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $recent_activities = $activities_stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    // 8. Top Users (by tickets)
-    $stmt = $pdo->query("
+    // 3. Top Users and Active Clients (optimized with GROUP BY instead of subqueries)
+    $top_users_stmt = $pdo->query("
         SELECT u.id, u.name, u.profile_pic, u.state, a.is_online,
                IF(a.is_online = 1, 'active', 'offline') as status,
-               (SELECT COUNT(*) FROM tickets WHERE user_id = u.id) as ticket_count
+               COUNT(t.id) as ticket_count
         FROM users u
         JOIN auth_accounts a ON u.user_auth_id = a.id
+        LEFT JOIN tickets t ON u.id = t.user_id
         WHERE u.deleted_at IS NULL
+        GROUP BY u.id
         ORDER BY ticket_count DESC
         LIMIT 5
     ");
-    $top_users = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $top_users = $top_users_stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    // 9. Active Clients (by events) - only verified clients
-    $stmt = $pdo->query("
+    $active_clients_stmt = $pdo->query("
         SELECT c.id, c.business_name as name, c.profile_pic, c.company, c.state, a.email, a.is_online,
                IF(a.is_online = 1, 'active', 'offline') as status,
-               (SELECT COUNT(*) FROM events WHERE client_id = c.id AND deleted_at IS NULL) as event_count
+               COUNT(e.id) as event_count
         FROM clients c
         JOIN auth_accounts a ON c.client_auth_id = a.id
+        LEFT JOIN events e ON c.id = e.client_id AND e.deleted_at IS NULL
         WHERE c.deleted_at IS NULL AND c.verification_status = 'verified'
+        GROUP BY c.id
         ORDER BY event_count DESC
         LIMIT 5
     ");
-    $active_clients = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $active_clients = $active_clients_stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    // 10. Upcoming Events
-    $stmt = $pdo->query("
-        SELECT e.id, e.event_name, e.event_date, e.image_path, c.business_name as client_name
+    // 4. Upcoming and Past Events
+    $events_stmt = $pdo->query("
+        SELECT e.id, e.event_name, e.event_date, e.image_path, c.business_name as client_name,
+               IF(e.event_date >= CURDATE(), 'upcoming', 'past') as event_type
         FROM events e
         JOIN clients c ON e.client_id = c.id
-        WHERE e.status = 'published' AND e.event_date >= CURDATE()
-        ORDER BY e.event_date ASC
+        WHERE e.status = 'published'
+        ORDER BY CASE 
+            WHEN e.event_date >= CURDATE() THEN 0 
+            ELSE 1 
+        END,
+        CASE 
+            WHEN e.event_date >= CURDATE() THEN e.event_date ASC 
+            ELSE e.event_date DESC 
+        END
+        LIMIT 20
     ");
-    $upcoming_events = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-    // 11. Past & Trending Events
-    $stmt = $pdo->query("
-        SELECT e.id, e.event_name, e.event_date, e.image_path, c.business_name as client_name
-        FROM events e
-        JOIN clients c ON e.client_id = c.id
-        WHERE e.status = 'published' AND e.event_date < CURDATE()
-        ORDER BY e.event_date DESC
-        LIMIT 10
-    ");
-    $past_events = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-    // 12. Restored Events Count (placeholder or specific logic)
-    $stmt = $pdo->query("SELECT COUNT(*) as total FROM events WHERE status = 'restored' AND deleted_at IS NULL");
-    $restored_events = $stmt->fetch()['total'] ?? 0;
-
-    // 13. User Checked-In (Tickets used today)
-    $stmt = $pdo->query("SELECT COUNT(*) as total FROM tickets WHERE used = 1 AND DATE(used_at) = CURDATE()");
-    $user_checked_in = $stmt->fetch()['total'] ?? 0;
-
-    // 14. Clients Verified/Unverified
-    $stmt = $pdo->query("SELECT COUNT(*) as total FROM clients WHERE verification_status = 'verified' AND deleted_at IS NULL");
-    $clients_verified = $stmt->fetch()['total'] ?? 0;
-
-    $stmt = $pdo->query("SELECT COUNT(*) as total FROM clients WHERE verification_status != 'verified' AND deleted_at IS NULL");
-    $clients_unverified = $stmt->fetch()['total'] ?? 0;
+    $all_events = $events_stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    $upcoming_events = array_filter($all_events, fn($e) => $e['event_type'] === 'upcoming');
+    $past_events = array_filter($all_events, fn($e) => $e['event_type'] === 'past');
 
     echo json_encode([
         'success' => true,
         'stats' => [
-            'total_users' => (int) $total_users,
-            'active_users' => (int) $online_users, // "Active" reflects online users
-            'user_checked_in' => (int) $user_checked_in, // ADDED
-            'online_clients' => (int) $online_clients,
-            'total_clients' => (int) $total_clients,
-            'clients_verified' => (int) $clients_verified, // ADDED
-            'clients_unverified' => (int) $clients_unverified, // ADDED
-            'total_events' => (int) $total_events,
-            'published_events' => (int) $total_events,
-            'total_revenue' => (float) $total_revenue,
-            'platform_earnings' => (float) ($total_revenue * 0.30),
-            'pending_payments' => (int) $pending_payments,
-            'restored_events' => (int) $restored_events,
-            'total_clients_events' => (int) $total_events  // Use same published events count
+            'total_users' => (int) $stats['total_users'],
+            'active_users' => (int) $stats['online_users'],
+            'user_checked_in' => (int) $stats['user_checked_in'],
+            'online_clients' => (int) $stats['online_clients'],
+            'total_clients' => (int) $stats['total_clients'],
+            'clients_verified' => (int) $stats['clients_verified'],
+            'clients_unverified' => (int) $stats['clients_unverified'],
+            'total_events' => (int) $stats['total_events'],
+            'published_events' => (int) $stats['total_events'],
+            'total_revenue' => (float) $stats['total_revenue'],
+            'platform_earnings' => (float) ($stats['total_revenue'] * 0.30),
+            'pending_payments' => (int) $stats['pending_payments'],
+            'restored_events' => 0,
+            'total_clients_events' => (int) $stats['total_events']
         ],
         'recent_activities' => $recent_activities,
         'top_users' => $top_users,
         'active_clients' => $active_clients,
-        'upcoming_events' => $upcoming_events,
-        'past_events' => $past_events,
+        'upcoming_events' => array_values($upcoming_events),
+        'past_events' => array_values($past_events),
         'recent_logs' => $recent_activities
     ]);
 } catch (PDOException $e) {

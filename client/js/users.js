@@ -13,10 +13,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     await loadUsers(user.id);
     initializeTableSorting();
 
-    // Auto-refresh users list every 15 seconds to update stats when events are restored
+    // Auto-refresh users list every 60s (reduced from 15s) to decrease database load
+    // Visibility check prevents queries when tab is in background
     setInterval(() => {
-        loadUsers(user.id);
-    }, 15000);
+        if (document.visibilityState === 'visible') {
+            loadUsers(user.id);
+        }
+    }, 60000);
 
     // Handle search highlighting
     const urlParams = new URLSearchParams(window.location.search);
