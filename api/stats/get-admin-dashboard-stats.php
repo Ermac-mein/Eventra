@@ -29,19 +29,26 @@ try {
             (SELECT COUNT(*) FROM clients WHERE verification_status != 'verified' AND deleted_at IS NULL) as clients_unverified
     ";
     
-    $stats = $pdo->query($stats_sql)->fetch();
+    $stmt = $pdo->prepare($stats_sql);
+    $stmt->execute();
+    $stats = $stmt->fetch(PDO::FETCH_ASSOC);
+    
+    if (!$stats) {
+        throw new Exception('Failed to fetch stats');
+    }
     
     // 2. Recent Activities
-    $activities_stmt = $pdo->query("
+    $activities_stmt = $pdo->prepare("
         SELECT al.event_type as type, al.details as message, al.created_at 
         FROM auth_logs al 
         ORDER BY al.created_at DESC 
         LIMIT 10
     ");
+    $activities_stmt->execute();
     $recent_activities = $activities_stmt->fetchAll(PDO::FETCH_ASSOC);
 
     // 3. Top Users and Active Clients (optimized with GROUP BY instead of subqueries)
-    $top_users_stmt = $pdo->query("
+    $top_users_stmt = $pdo->prepare("
         SELECT u.id, u.name, u.profile_pic, u.state, a.is_online,
                IF(a.is_online = 1, 'active', 'offline') as status,
                COUNT(t.id) as ticket_count
@@ -53,9 +60,10 @@ try {
         ORDER BY ticket_count DESC
         LIMIT 5
     ");
+    $top_users_stmt->execute();
     $top_users = $top_users_stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    $active_clients_stmt = $pdo->query("
+    $active_clients_stmt = $pdo->prepare("
         SELECT c.id, c.business_name as name, c.profile_pic, c.company, c.state, a.email, a.is_online,
                IF(a.is_online = 1, 'active', 'offline') as status,
                COUNT(e.id) as event_count
@@ -67,10 +75,11 @@ try {
         ORDER BY event_count DESC
         LIMIT 5
     ");
+    $active_clients_stmt->execute();
     $active_clients = $active_clients_stmt->fetchAll(PDO::FETCH_ASSOC);
 
     // 4. Upcoming and Past Events
-    $events_stmt = $pdo->query("
+    $events_stmt = $pdo->prepare("
         SELECT e.id, e.event_name, e.event_date, e.image_path, c.business_name as client_name,
                IF(e.event_date >= CURDATE(), 'upcoming', 'past') as event_type
         FROM events e
@@ -86,6 +95,7 @@ try {
         END
         LIMIT 20
     ");
+    $events_stmt->execute();
     $all_events = $events_stmt->fetchAll(PDO::FETCH_ASSOC);
     
     $upcoming_events = array_filter($all_events, fn($e) => $e['event_type'] === 'upcoming');

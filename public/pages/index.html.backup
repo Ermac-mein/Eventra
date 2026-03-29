@@ -426,14 +426,6 @@
                 </div>
 
                 <div class="event-details-footer">
-                <div class="event-quantity-section" style="display: flex; align-items: center; gap: 1.5rem; margin-bottom: 1rem; padding: 1rem 0; border-top: 1px solid #eee;">
-                    <div class="quantity-selector" style="display: flex; align-items: center; gap: 0.5rem;">
-                        <label for="ticketQuantity" style="font-weight: 600;">Qty:</label>
-                        <button class="qty-btn-minus" onclick="decreaseQuantity()" style="width: 36px; height: 36px; border: 1px solid #ddd; background: #f5f5f5; border-radius: 4px; cursor: pointer;">−</button>
-                        <input type="number" id="ticketQuantity" value="1" min="1" max="10" readonly style="width: 50px; text-align: center; border: 1px solid #ddd; border-radius: 4px; padding: 0.5rem;">
-                        <button class="qty-btn-plus" onclick="increaseQuantity()" style="width: 36px; height: 36px; border: 1px solid #ddd; background: #f5f5f5; border-radius: 4px; cursor: pointer;">+</button>
-                    </div>
-                </div>
                     <div class="event-price-display">
                         <div class="event-price-label">Ticket Price</div>
                         <div id="modalEventPrice" class="event-price-amount">Free</div>

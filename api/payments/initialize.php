@@ -6,7 +6,7 @@ require_once '../../config/payment.php';
 require_once '../../includes/middleware/auth.php';
 
 // Must be a logged-in user
-$auth_id = checkAuth('user');
+$user_id_or_auth_id = checkAuth('user');
 
 // ── Input ────────────────────────────────────────────────────────────────────
 $body     = json_decode(file_get_contents('php://input'), true) ?? [];
@@ -20,21 +20,47 @@ if (!$event_id) {
 }
 
 try {
-    // ── Fetch user profile ───────────────────────────────────────────────────
+    // ── Determine actual auth_id and user_id ──────────────────────────────────
+    // checkAuth returns auth_accounts.id if token-based, or users.id if session-based
+    // We need both to properly complete the order
+    
+    $auth_id = null;
+    $user_id = null;
+    $user_email = null;
+    $user_name = null;
+    
+    // First, assume it's an auth_accounts.id from Bearer token
     $uStmt = $pdo->prepare("
-        SELECT u.id AS user_id, u.name, a.email 
+        SELECT u.id AS user_id, u.name, a.id AS auth_id, a.email 
         FROM users u 
         JOIN auth_accounts a ON u.user_auth_id = a.id 
-        WHERE u.user_auth_id = ?
+        WHERE a.id = ?
     ");
-    $uStmt->execute([$auth_id]);
+    $uStmt->execute([$user_id_or_auth_id]);
     $user = $uStmt->fetch(PDO::FETCH_ASSOC);
+
+    if (!$user) {
+        // Try as users.id from session
+        $uStmt = $pdo->prepare("
+            SELECT u.id AS user_id, u.name, a.id AS auth_id, a.email 
+            FROM users u 
+            JOIN auth_accounts a ON u.user_auth_id = a.id 
+            WHERE u.id = ?
+        ");
+        $uStmt->execute([$user_id_or_auth_id]);
+        $user = $uStmt->fetch(PDO::FETCH_ASSOC);
+    }
 
     if (!$user) {
         http_response_code(403);
         echo json_encode(['success' => false, 'message' => 'User profile not found.']);
         exit;
     }
+
+    $auth_id = $user['auth_id'];
+    $user_id = $user['user_id'];
+    $user_email = $user['email'];
+    $user_name = $user['name'];
 
     // ── Fetch event + organizer subaccount ─────────────────────────────────
     $eStmt = $pdo->prepare("
@@ -96,7 +122,7 @@ try {
                 INSERT INTO orders (user_id, event_id, organizer_id, subaccount_code, amount, transaction_reference, payment_status, payment_method)
                 VALUES (?, ?, ?, ?, 0, ?, 'success', 'free')
             ");
-            $oStmt->execute([$user['user_id'], $event_id, $event['organizer_id'], $event['subaccount_code'], $reference]);
+            $oStmt->execute([$user_id, $event_id, $event['organizer_id'], $event['subaccount_code'], $reference]);
             $order_id = $pdo->lastInsertId();
 
             // 2. Create success payment
@@ -106,7 +132,7 @@ try {
                 INSERT INTO payments (event_id, user_id, custom_id, reference, amount, status, paid_at)
                 VALUES (?, ?, ?, ?, 0, 'paid', NOW())
             ");
-            $payStmt->execute([$event_id, $user['user_id'], $paymentCustomId, $reference]);
+            $payStmt->execute([$event_id, $user_id, $paymentCustomId, $reference]);
             $payment_id = $pdo->lastInsertId();
 
             // 3. Create ticket(s)
@@ -122,18 +148,18 @@ try {
                 $pdo->prepare("
                     INSERT INTO tickets (user_id, event_id, payment_id, custom_id, barcode, status)
                     VALUES (?, ?, ?, ?, ?, 'valid')
-                ")->execute([$user['user_id'], $event_id, $payment_id, $ticketCustomId, $barcode]);
+                ")->execute([$user_id, $event_id, $payment_id, $ticketCustomId, $barcode]);
                 $ticket_id = $pdo->lastInsertId();
 
                 $ticketData = [
                     'barcode' => $barcode,
                     'event_id' => $event_id,
-                    'user_id' => $user['user_id'],
+                    'user_id' => $user_id,
                     'order_id' => $order_id,
                     'event_name' => $event['event_name'],
                     'event_date' => $event['event_date'],
                     'event_time' => $event['event_time'],
-                    'user_name' => $user['name']
+                    'user_name' => $user_name
                 ];
                 $qrPath = generateTicketQRCode($ticketData);
                 $pdo->prepare("UPDATE tickets SET qr_code_path = ? WHERE id = ?")
@@ -180,7 +206,7 @@ try {
         VALUES (?, ?, ?, ?, ?, ?, 'pending')
     ");
     $oStmt->execute([
-        $user['user_id'],
+        $user_id,
         $event_id,
         $event['organizer_id'],
         $event['subaccount_code'],
@@ -195,7 +221,7 @@ try {
     $callbackUrl = "{$protocol}://{$host}/public/pages/payment.html?reference={$reference}";
 
     $paystackPayload = [
-        'email'         => $user['email'],
+        'email'         => $user_email,
         'amount'        => $amount_kobo,
         'reference'     => $reference,
         'subaccount'    => $event['subaccount_code'],
@@ -206,8 +232,8 @@ try {
             'event_id'   => $event_id,
             'event_name' => $event['event_name'],
             'quantity'   => $quantity,
-            'user_id'    => $user['user_id'],
-            'user_name'  => $user['name'],
+            'user_id'    => $user_id,
+            'user_name'  => $user_name,
         ],
     ];
 

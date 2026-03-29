@@ -8,8 +8,28 @@ header('Content-Type: application/json');
 require_once '../../config/database.php';
 require_once '../../includes/middleware/auth.php';
 
-checkAuth();
-$user_id = getAuthId();
+// Get auth_id (this now handles both Bearer token and session)
+$auth_id_or_user_id = checkAuth('user');
+
+// Determine the actual user_id from auth_id
+$user_id = null;
+$stmt = $pdo->prepare("SELECT id FROM users WHERE user_auth_id = ?");
+$stmt->execute([$auth_id_or_user_id]);
+$user_id = $stmt->fetchColumn();
+
+if (!$user_id) {
+    // Try if it was a user_id passed directly (from session)
+    $stmt = $pdo->prepare("SELECT id FROM users WHERE id = ?");
+    $stmt->execute([$auth_id_or_user_id]);
+    $user_id = $stmt->fetchColumn();
+}
+
+if (!$user_id) {
+    http_response_code(403);
+    echo json_encode(['success' => false, 'message' => 'User not found']);
+    exit;
+}
+
 $data = json_decode(file_get_contents("php://input"), true);
 
 if (!isset($data['event_id'])) {

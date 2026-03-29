@@ -38,6 +38,33 @@ try {
     // Remove password from response
     unset($user['password']);
 
+    // Add profile_id (the actual users/clients/admins table ID)
+    // The 'id' in merged data is from auth_accounts, we need the profile table ID
+    $userRole = strtolower($user['role'] ?? '');
+    if ($userRole === 'user') {
+        // For users, the 'id' in users table is the profile_id
+        $stmt = $pdo->prepare("SELECT id as profile_id FROM users WHERE user_auth_id = ?");
+        $stmt->execute([$user['id']]);
+        $profileData = $stmt->fetch();
+        if ($profileData) {
+            $user['profile_id'] = $profileData['profile_id'];
+        }
+    } elseif ($userRole === 'client') {
+        $stmt = $pdo->prepare("SELECT id as profile_id FROM clients WHERE client_auth_id = ?");
+        $stmt->execute([$user['id']]);
+        $profileData = $stmt->fetch();
+        if ($profileData) {
+            $user['profile_id'] = $profileData['profile_id'];
+        }
+    } elseif ($userRole === 'admin') {
+        $stmt = $pdo->prepare("SELECT id as profile_id FROM admins WHERE admin_auth_id = ?");
+        $stmt->execute([$user['id']]);
+        $profileData = $stmt->fetch();
+        if ($profileData) {
+            $user['profile_id'] = $profileData['profile_id'];
+        }
+    }
+
     // Ensure profile_pic has leading slash for absolute path parsing
     if (!empty($user['profile_pic']) && strpos($user['profile_pic'], '/') !== 0) {
         $user['profile_pic'] = '/' . $user['profile_pic'];

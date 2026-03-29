@@ -108,6 +108,11 @@ async function loadEvents() {
       
       // Categorized Rendering with Cross-Category Deduplication
       renderAllCategories();
+      
+      // Update cart with favorites
+      if (typeof updateCartUI === 'function') {
+        updateCartUI();
+      }
 
       // Initialize Hero Background with a random event
       initHeroBackground();
@@ -777,7 +782,7 @@ const NIGERIA_STATES = [
   'Abia', 'Adamawa', 'Akwa Ibom', 'Anambra', 'Bauchi', 'Bayelsa', 'Benue', 'Borno', 
   'Cross River', 'Delta', 'Ebonyi', 'Edo', 'Ekiti', 'Enugu', 'Gombe', 'Imo', 'Jigawa', 
   'Kaduna', 'Kano', 'Katsina', 'Kebbi', 'Kogi', 'Kwara', 'Lagos', 'Nasarawa', 'Niger', 
-  'Ogun', 'Ondo', 'Osun', 'Oyo', 'Plateau', 'Rivers', 'Sokoto', 'Taraba', 'Yobe', 'Zamfara', 'FCT'
+  'Ogun', 'Ondo', 'Osun', 'Oyo', 'Plateau', 'Sokoto', 'Taraba', 'Yobe', 'Zamfara', 'FCT'
 ];
 
 const EVENT_CATEGORIES = [
@@ -1095,7 +1100,7 @@ function shareEvent(e, eventId, title = 'Check out this event!', text = 'I found
   }
 }
 
-// Favorite toggle function
+// Favorite toggle function with API
 async function toggleFavorite(e, eventId) {
     if(e) e.stopPropagation();
     if (!isAuthenticated()) {
@@ -1106,7 +1111,7 @@ async function toggleFavorite(e, eventId) {
         const response = await apiFetch('/api/events/favorite.php', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ event_id: eventId })
+            body: JSON.stringify({ event_id: eventId || window.currentModalEventId })
         });
         const result = await response.json();
         if (result.success) {
@@ -1125,7 +1130,8 @@ async function toggleFavorite(e, eventId) {
                 eventsData.favorites = eventsData.all.filter(e => parseInt(e.is_favorite) === 1);
                 
                 // Update UI components
-                const cards = document.querySelectorAll(`.event-card[data-id="${eventId}"]`);
+                const targetId = eventId || window.currentModalEventId;
+                const cards = document.querySelectorAll(`.event-card[data-id="${targetId}"]`);
                 cards.forEach(cardItem => {
                     const favIcon = cardItem.querySelector('.favorite-btn');
                     if (favIcon) {
@@ -1136,6 +1142,9 @@ async function toggleFavorite(e, eventId) {
                         }
                     }
                 });
+
+                // Update modal button state
+                updateFavoriteButtonState(targetId);
 
                 if (typeof updateCartUI === 'function') {
                     updateCartUI();
@@ -1150,9 +1159,27 @@ async function toggleFavorite(e, eventId) {
     }
 }
 
-// Smooth scroll for navigation
-function initSmoothScroll() {
-  const links = document.querySelectorAll('a[href^="#"]');
+function updateFavoriteButtonState(eventId) {
+  const btn = document.getElementById('addToFavoritesBtn');
+  if (!btn) return;
+
+  // Check if event is marked as favorite in eventsData
+  let isFavorite = false;
+  if (typeof eventsData !== 'undefined') {
+      const event = eventsData.all?.find(e => e.id == eventId);
+      isFavorite = event && parseInt(event.is_favorite) === 1;
+  }
+
+  if (isFavorite) {
+    btn.textContent = '❤️ Remove from Favorites';
+    btn.style.background = '#ff6b6b';
+    btn.style.color = 'white';
+  } else {
+    btn.textContent = '❤️ Add to Favorites';
+    btn.style.background = 'white';
+    btn.style.color = '#ff6b6b';
+  }
+}
   links.forEach(link => {
     link.addEventListener('click', (e) => {
       const href = link.getAttribute('href');
@@ -1359,11 +1386,22 @@ function showEventModal(eventId) {
       buyTicketBtn.style.background = ''; // Revert to default
       buyTicketBtn.style.cursor = 'pointer';
       buyTicketBtn.onclick = () => {
+        const quantity = document.getElementById('ticketQuantity').value || '1';
         closeEventModal();
-        window.location.href = `checkout.html?id=${event.id}&quantity=1`;
+        window.location.href = `checkout.html?id=${event.id}&quantity=${quantity}`;
       };
     }
   }
+
+  // Store current event ID for quantity/favorite functions
+  window.currentModalEventId = eventId;
+
+  // Initialize quantity
+  const qtyInput = document.getElementById('ticketQuantity');
+  if (qtyInput) qtyInput.value = 1;
+
+  // Update favorite button state
+  updateFavoriteButtonState(eventId);
 
   // Show modal
   modal.classList.add('active');
@@ -1385,6 +1423,28 @@ function viewEventDetails(tag) {
   closeEventModal();  // Close modal first
   window.location.href = `pages/event-details.html?event=${tag}`;
 }
+
+// Quantity control functions
+function increaseQuantity() {
+  const qtyInput = document.getElementById('ticketQuantity');
+  if (qtyInput) {
+    const currentValue = parseInt(qtyInput.value) || 1;
+    if (currentValue < 10) {
+      qtyInput.value = currentValue + 1;
+    }
+  }
+}
+
+function decreaseQuantity() {
+  const qtyInput = document.getElementById('ticketQuantity');
+  if (qtyInput) {
+    const currentValue = parseInt(qtyInput.value) || 1;
+    if (currentValue > 1) {
+      qtyInput.value = currentValue - 1;
+    }
+  }
+}
+
 
 
 // Run when DOM is loaded
