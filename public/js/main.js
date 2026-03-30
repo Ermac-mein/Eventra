@@ -29,7 +29,7 @@ async function loadEvents() {
   if (globalSearch && globalSearch.value.trim() !== '') return; // Don't refresh data while search is active
 
   try {
-    const response = await apiFetch('/api/events/get-events.php?limit=500');
+    const response = await apiFetch('/api/events/get-events.php?limit=150&offset=0');
     const result = await response.json();
     if (result.success && result.events) {
       // Deduplicate events by ID and filter for published status
@@ -348,6 +348,12 @@ function initUserIcon() {
         if (loginModal) {
           loginModal.style.display = 'flex';
           setTimeout(() => loginModal.classList.add('show'), 10);
+          // Re-render Google button when modal is shown
+          setTimeout(() => {
+            if (authController.googleInitialized) {
+              authController.renderGoogleButton('googleSignInContainer');
+            }
+          }, 50);
         }
       }
     });
@@ -505,28 +511,54 @@ async function initGoogleAuth() {
     if (authController.state === authController.states.AUTHENTICATED) return;
 
     try {
-        const basePath = getBasePath();
+        console.log('[Main] Fetching Google config...');
         const response = await apiFetch('/api/config/get-google-config.php');
         const data = await response.json();
+        
+        console.log('[Main] Google config response:', data.success ? 'success' : 'failed');
 
         if (data.success && data.client_id) {
-            // Poll for Google SDK
-            let attempts = 0;
-            const checkGoogle = setInterval(() => {
-                if (typeof google !== 'undefined') {
-                    clearInterval(checkGoogle);
-                    authController.initGoogle(data.client_id, 'googleSignInContainer');
-                } else {
+            console.log('[Main] Waiting for Google SDK to load...');
+            
+            // Use a Promise-based approach with timeout
+            const googleLoadPromise = new Promise((resolve) => {
+                let attempts = 0;
+                const maxAttempts = 100; // 10 seconds with 100ms intervals
+                
+                const checkGoogle = () => {
                     attempts++;
-                    if (attempts > 50) {
-                        clearInterval(checkGoogle);
-                        console.error('Google GSI script not loaded');
+                    console.log(`[Main] Google SDK check attempt ${attempts}/${maxAttempts}`);
+                    
+                    if (typeof google !== 'undefined' && google.accounts && google.accounts.id) {
+                        console.log('[Main] Google SDK fully loaded and ready');
+                        if (intervalId) clearInterval(intervalId);
+                        resolve(true);
+                    } else {
+                        if (attempts >= maxAttempts) {
+                            console.error('[Main] Google GSI script not loaded after 10 seconds');
+                            if (intervalId) clearInterval(intervalId);
+                            resolve(false);
+                        }
                     }
-                }
-            }, 100);
+                };
+                
+                checkGoogle(); // Check immediately
+                const intervalId = setInterval(checkGoogle, 100);
+            });
+            
+            const googleLoaded = await googleLoadPromise;
+            
+            if (googleLoaded) {
+                console.log('[Main] Initializing Google with AuthController...');
+                authController.initGoogle(data.client_id, 'googleSignInContainer');
+            } else {
+                console.error('[Main] Google SDK failed to load, not initializing');
+            }
+        } else {
+            console.error('[Main] No client_id in response:', data);
         }
     } catch (error) {
-        console.error('Google Auth Init Error:', error);
+        console.error('[Main] Google Auth Init Error:', error);
     }
 }
 
@@ -598,7 +630,7 @@ async function performServerSearch(query) {
   try {
     const url = new URL('/api/events/search-events.php', window.location.href);
     url.searchParams.append('q', query);
-    url.searchParams.append('limit', '500');
+    url.searchParams.append('limit', '200');
 
     const response = await apiFetch(url.toString());
     const result = await response.json();
@@ -691,7 +723,9 @@ function createEventCard(event, index) {
   
   const eventTime = escapeHTML(event.event_time) || '12:00:00';
   const isFavorite = event.is_favorite ? 'active' : '';
-  const eventName = escapeHTML(event.event_name);
+  // Remove # and numbers from event name (e.g., "Tech Conference #1" -> "Tech Conference")
+  const cleanEventName = event.event_name.replace(/\s*#\d+$/, '');
+  const eventName = escapeHTML(cleanEventName);
   const category = escapeHTML(event.category || event.event_type) || 'Event';
   const desc = escapeHTML(event.description || '');
   const organizer = escapeHTML(event.organizer_name || event.client_name || 'Eventra');
@@ -749,7 +783,6 @@ function createEventCard(event, index) {
       <div class="event-footer" style="padding: 0 1.5rem 1.5rem 1.5rem;">
         <div class="event-price">${price}</div>
         <div class="event-card-actions">
-           ${!isPassed ? `
           <button class="card-action-btn fav-btn ${isFavorite}" onclick="toggleFavorite(event, ${event.id}); event.stopPropagation();" title="Favorite">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="${isFavorite ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2">
               <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
@@ -760,7 +793,6 @@ function createEventCard(event, index) {
               <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><polyline points="16 6 12 2 8 6"></polyline><line x1="12" y1="2" x2="12" y2="15"></line>
             </svg>
           </button>
-          ` : ''}
         </div>
       </div>
     </div>
@@ -844,12 +876,6 @@ function renderDiscovery(events = eventsData.all) {
         ${createEventCard(event)}
     </div>
   `).join('');
-  
-  // Fill remaining slots to make all pages equal sizes
-  const emptySlots = itemsPerPage - paginatedEvents.length;
-  for(let i=0; i<emptySlots; i++) {
-      gridHtml += `<div class="grid-item" style="visibility: hidden; pointer-events: none; height: 100%;"></div>`;
-  }
   container.innerHTML = gridHtml;
   
   if (window.lucide) window.lucide.createIcons();
@@ -1133,7 +1159,7 @@ async function toggleFavorite(e, eventId) {
                 const targetId = eventId || window.currentModalEventId;
                 const cards = document.querySelectorAll(`.event-card[data-id="${targetId}"]`);
                 cards.forEach(cardItem => {
-                    const favIcon = cardItem.querySelector('.favorite-btn');
+                    const favIcon = cardItem.querySelector('.fav-btn');
                     if (favIcon) {
                         if (result.is_favorite) {
                             favIcon.classList.add('active');
@@ -1179,19 +1205,6 @@ function updateFavoriteButtonState(eventId) {
     btn.style.background = 'white';
     btn.style.color = '#ff6b6b';
   }
-}
-  links.forEach(link => {
-    link.addEventListener('click', (e) => {
-      const href = link.getAttribute('href');
-      if (href !== '#') {
-        e.preventDefault();
-        const target = document.querySelector(href);
-        if (target) {
-          target.scrollIntoView({ behavior: 'smooth' });
-        }
-      }
-    });
-  });
 }
 
 // Header scroll effect
@@ -1281,6 +1294,13 @@ async function init() {
   }, 60000);
 }
 
+// Initialize when DOM is ready
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', init);
+} else {
+  init();
+}
+
 // Event modal functionality
 function initEventModal() {
   const modal = document.getElementById('eventDetailsModal');
@@ -1328,7 +1348,7 @@ function showEventModal(eventId) {
       modalImage.loading = 'lazy';
       modalImage.onerror = () => { modalImage.src = fallback; };
   }
-  if (document.getElementById('modalEventTitle')) document.getElementById('modalEventTitle').textContent = event.event_name;
+  if (document.getElementById('modalEventTitle')) document.getElementById('modalEventTitle').textContent = event.event_name.replace(/\s*#\d+$/, '');
   if (document.getElementById('modalEventOrganizer')) {
       const orgContainer = document.getElementById('modalEventOrganizer');
       orgContainer.style.display = 'flex';
@@ -1388,7 +1408,7 @@ function showEventModal(eventId) {
       buyTicketBtn.onclick = () => {
         const quantity = document.getElementById('ticketQuantity').value || '1';
         closeEventModal();
-        window.location.href = `checkout.html?id=${event.id}&quantity=${quantity}`;
+        window.location.href = `/public/pages/checkout.html?id=${event.id}&quantity=${quantity}`;
       };
     }
   }
@@ -1443,15 +1463,6 @@ function decreaseQuantity() {
       qtyInput.value = currentValue - 1;
     }
   }
-}
-
-
-
-// Run when DOM is loaded
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', init);
-} else {
-  init();
 }
 
 // Make shareEvent available globally
@@ -1590,7 +1601,7 @@ function updateCartUI() {
                 <div class="cart-item" onclick="event.stopPropagation(); showEventModal(${event.id})">
                     <img src="${eventImage}" alt="${escapeHTML(event.event_name)}" class="cart-item-img" onerror="this.src='${fallback}'">
                     <div class="cart-item-info">
-                        <div class="cart-item-title">${escapeHTML(event.event_name)}</div>
+                        <div class="cart-item-title">${escapeHTML(event.event_name.replace(/\s*#\d+$/, ''))}</div>
                         <div style="font-size: 0.75rem; color: #64748b; margin-bottom: 0.25rem;">${eventDate} • ${escapeHTML(event.city || 'Online')}</div>
                         <div class="cart-item-price">${price}</div>
                     </div>
@@ -1660,7 +1671,7 @@ function proceedToPayment(e, eventId) {
     // If eventId is provided, proceed with that specific event
     // Otherwise, proceed with the first event in the list (legacy/simple behavior)
     const targetId = eventId || favorites[0].id;
-    window.location.href = `checkout.html?id=${targetId}&quantity=1`;
+    window.location.href = `/public/pages/checkout.html?id=${targetId}&quantity=1`;
 }
 
 // Make functions global

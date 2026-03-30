@@ -165,9 +165,14 @@ class AuthController {
      * @param {string} containerId 
      */
     initGoogle(clientId, containerId = 'googleSignInContainer') {
-        if (!clientId) return;
+        if (!clientId) {
+            console.error('[AuthController] No client ID provided for Google initialization');
+            return;
+        }
 
         try {
+            console.log('[AuthController] Initializing Google with clientId:', clientId.substring(0, 20) + '...');
+            
             google.accounts.id.initialize({
                 client_id: clientId,
                 callback: (res) => this.handleGoogleResponse(res),
@@ -178,6 +183,7 @@ class AuthController {
             });
 
             this.googleInitialized = true;
+            console.log('[AuthController] Google initialized successfully, rendering button');
             this.renderGoogleButton(containerId);
         } catch (error) {
             console.error('[AuthController] Google Init Error:', error);
@@ -190,17 +196,72 @@ class AuthController {
      */
     renderGoogleButton(containerId) {
         const container = document.getElementById(containerId);
-        if (!container || !this.googleInitialized) return;
+        if (!container) {
+            console.warn('[AuthController] Container not found:', containerId);
+            return;
+        }
+        if (!this.googleInitialized) {
+            console.warn('[AuthController] Google not initialized yet');
+            return;
+        }
 
-        google.accounts.id.renderButton(container, {
-            type: 'standard',
-            theme: 'outline',
-            size: 'large',
-            text: 'signin_with',
-            shape: 'rectangular',
-            logo_alignment: 'left',
-            width: '400'
-        });
+        try {
+            console.log('[AuthController] Starting button render process...');
+            console.log('[AuthController] Container element:', container);
+            console.log('[AuthController] Container visibility:', {
+                display: window.getComputedStyle(container).display,
+                visibility: window.getComputedStyle(container).visibility,
+                opacity: window.getComputedStyle(container).opacity,
+                width: container.offsetWidth,
+                height: container.offsetHeight
+            });
+            
+            // Clear any existing content EXCEPT if it contains rendered content already
+            const hasExistingButton = container.querySelector('[data-testid="button"]') || container.querySelector('.gis-button');
+            if (!hasExistingButton) {
+                container.innerHTML = '';
+            }
+            
+            console.log('[AuthController] Container cleared, ready for button render');
+            
+            // Render the button
+            google.accounts.id.renderButton(container, {
+                type: 'standard',
+                theme: 'outline',
+                size: 'large',
+                text: 'signin_with',
+                shape: 'rectangular',
+                logo_alignment: 'left'
+            });
+            
+            // Wait a bit for the button to be rendered and check
+            setTimeout(() => {
+                console.log('[AuthController] Google button render call completed');
+                console.log('[AuthController] Container after render:', {
+                    innerHTML: container.innerHTML.substring(0, 100),
+                    children: container.children.length,
+                    display: window.getComputedStyle(container).display,
+                    width: container.offsetWidth,
+                    height: container.offsetHeight,
+                    hasButton: container.querySelector('button') !== null,
+                    hasIframe: container.querySelector('iframe') !== null
+                });
+                
+                // If button didn't render, try the prompt method as fallback
+                if (!container.querySelector('button') && !container.querySelector('iframe')) {
+                    console.warn('[AuthController] Button did not render via renderButton, trying prompt instead');
+                    try {
+                        google.accounts.id.prompt((notification) => {
+                            console.log('[AuthController] Prompt notification:', notification);
+                        });
+                    } catch (err) {
+                        console.error('[AuthController] Prompt fallback error:', err);
+                    }
+                }
+            }, 100);
+        } catch (error) {
+            console.error('[AuthController] Error rendering Google button:', error);
+        }
     }
 
     /**

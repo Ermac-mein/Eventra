@@ -1446,6 +1446,27 @@ body {
   display: flex;
   justify-content: center;
   margin-bottom: 1.5rem;
+  width: 100%;
+  min-height: 50px;
+  align-items: center;
+  overflow: visible;
+}
+
+.google-btn-wrapper > div {
+  display: flex !important;
+  justify-content: center;
+  width: 100%;
+}
+
+.google-btn-wrapper button {
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+}
+
+.google-btn-wrapper iframe {
+  display: block !important;
+  max-width: 100%;
 }
 
 .modal-divider {
@@ -2687,3 +2708,35 @@ body {
     transition: all 0.5s ease;
 }
 
+
+/* Performance Optimizations */
+.event-card {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+.events-grid {
+  contain: layout style paint;
+}
+
+.event-image {
+  will-change: auto;
+  backface-visibility: hidden;
+}
+
+.swiper-slide {
+  transform: translateZ(0);
+}
+
+/* Reduce animations on slower devices */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* Font loading optimization */
+@font-face {
+  font-display: swap;
+}
