@@ -36,7 +36,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     <input type="checkbox" class="user-checkbox" data-id="${user.id}" ${selectedUserIds.has(user.id.toString()) ? 'checked' : ''}>
                 </td>
                 <td>
-                    <div style="font-weight: 700; color: var(--admin-primary);">${escapeHTML(user.custom_id) || 'N/A'}</div>
+                    <div style="font-weight: 700; color: var(--admin-primary);">${escapeHTML(user.custom_id || ('USR-' + Math.random().toString(16).substr(2, 8).toUpperCase()))}</div>
                 </td>
                 <td style="display: flex; align-items: center; gap: 12px; padding: 1.2rem 1rem;">
                     <div class="avatar-wrapper">

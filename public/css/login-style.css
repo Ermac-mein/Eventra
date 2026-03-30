@@ -366,11 +366,27 @@ body {
   margin-top: 0.5rem;
   display: flex;
   justify-content: center;
+  align-items: center;
+  min-height: 50px;
+  visibility: visible;
+  opacity: 1;
+  pointer-events: auto;
+  z-index: 10;
+  position: relative;
 }
 
 #googleSignInContainer {
   width: 100% !important;
   max-width: 320px;
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+  position: relative;
+  z-index: 10;
+  min-height: 50px;
 }
 .google-signin {
   width: 100%;
@@ -401,6 +417,35 @@ body {
 .google-icon {
   width: 20px;
   height: 20px;
+}
+
+/* GSI Button and Iframe Styles */
+#googleContainer > div,
+#googleSignInContainer > div {
+  width: 100% !important;
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+}
+
+#googleContainer iframe,
+#googleSignInContainer iframe {
+  display: block !important;
+  width: auto !important;
+  height: auto !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  max-width: 100%;
+}
+
+#googleContainer button,
+#googleSignInContainer button {
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
 }
 
 /* Error Message */

@@ -24,7 +24,7 @@ if (!is_dir($session_path)) {
 ini_set('session.save_path', $session_path);
 
 // Default timeout (can be overridden by roles)
-$timeout_duration = 1800; // 30 mins default
+$timeout_duration = 28800; // 8 hours default (extended from 30 mins to prevent unexpected logouts during work sessions)
 
 ini_set('session.cookie_lifetime', 0); // Session cookie (expires on browser close)
 ini_set('session.gc_maxlifetime', $timeout_duration);

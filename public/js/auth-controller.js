@@ -198,6 +198,7 @@ class AuthController {
         const container = document.getElementById(containerId);
         if (!container) {
             console.warn('[AuthController] Container not found:', containerId);
+            this.showButtonFallback(containerId);
             return;
         }
         if (!this.googleInitialized) {
@@ -208,10 +209,11 @@ class AuthController {
         try {
             console.log('[AuthController] Starting button render process...');
             console.log('[AuthController] Container element:', container);
+            const computedStyle = window.getComputedStyle(container);
             console.log('[AuthController] Container visibility:', {
-                display: window.getComputedStyle(container).display,
-                visibility: window.getComputedStyle(container).visibility,
-                opacity: window.getComputedStyle(container).opacity,
+                display: computedStyle.display,
+                visibility: computedStyle.visibility,
+                opacity: computedStyle.opacity,
                 width: container.offsetWidth,
                 height: container.offsetHeight
             });
@@ -224,44 +226,56 @@ class AuthController {
             
             console.log('[AuthController] Container cleared, ready for button render');
             
-            // Render the button
-            google.accounts.id.renderButton(container, {
-                type: 'standard',
-                theme: 'outline',
-                size: 'large',
-                text: 'signin_with',
-                shape: 'rectangular',
-                logo_alignment: 'left'
-            });
-            
-            // Wait a bit for the button to be rendered and check
-            setTimeout(() => {
-                console.log('[AuthController] Google button render call completed');
-                console.log('[AuthController] Container after render:', {
-                    innerHTML: container.innerHTML.substring(0, 100),
-                    children: container.children.length,
-                    display: window.getComputedStyle(container).display,
-                    width: container.offsetWidth,
-                    height: container.offsetHeight,
-                    hasButton: container.querySelector('button') !== null,
-                    hasIframe: container.querySelector('iframe') !== null
+            // Render the button with error handling
+            try {
+                google.accounts.id.renderButton(container, {
+                    type: 'standard',
+                    theme: 'outline',
+                    size: 'large',
+                    text: 'signin_with',
+                    shape: 'rectangular',
+                    logo_alignment: 'left'
                 });
                 
-                // If button didn't render, try the prompt method as fallback
-                if (!container.querySelector('button') && !container.querySelector('iframe')) {
-                    console.warn('[AuthController] Button did not render via renderButton, trying prompt instead');
-                    try {
-                        google.accounts.id.prompt((notification) => {
-                            console.log('[AuthController] Prompt notification:', notification);
-                        });
-                    } catch (err) {
-                        console.error('[AuthController] Prompt fallback error:', err);
+                // Verify the button was actually rendered
+                let renderAttempt = 0;
+                const verifyRender = setInterval(() => {
+                    renderAttempt++;
+                    const hasButton = container.querySelector('button') !== null;
+                    const hasIframe = container.querySelector('iframe') !== null;
+                    
+                    if (hasButton || hasIframe) {
+                        clearInterval(verifyRender);
+                        console.log('[AuthController] Google button successfully rendered');
+                    } else if (renderAttempt > 10) {
+                        clearInterval(verifyRender);
+                        console.warn('[AuthController] Button did not render via renderButton after 10 attempts');
+                        this.showButtonFallback(containerId);
                     }
-                }
-            }, 100);
+                }, 50);
+            } catch (renderError) {
+                console.error('[AuthController] renderButton error:', renderError);
+                this.showButtonFallback(containerId);
+            }
         } catch (error) {
             console.error('[AuthController] Error rendering Google button:', error);
+            this.showButtonFallback(containerId);
         }
+    }
+
+    /**
+     * Show fallback message if Google button fails
+     */
+    showButtonFallback(containerId) {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+        
+        container.innerHTML = `
+            <div style="padding: 12px; background: rgba(255,255,255,0.1); border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); text-align: center;">
+                <p style="color: #fff; font-size: 0.9rem; margin: 0;">Google Sign-In unavailable — try again</p>
+            </div>
+        `;
+        console.warn('[AuthController] Showing fallback message for container:', containerId);
     }
 
     /**
@@ -285,8 +299,8 @@ class AuthController {
         
         showNotification('Verifying with Google...', 'info');
 
-        // Transition container to loading state
-        const container = document.getElementById('googleSignInContainer');
+        // Find the container - could be googleSignInContainer or googleContainer
+        let container = document.getElementById('googleSignInContainer') || document.getElementById('googleContainer');
         if (container) {
             container.innerHTML = `
                 <div class="auth-loading-spinner" style="display: flex; align-items: center; justify-content: center; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 8px;">
@@ -333,9 +347,12 @@ class AuthController {
             this.setState(this.states.ERROR);
             
             setTimeout(() => {
-                this.syncSession(); 
-                const container = document.getElementById('googleSignInContainer');
-                if (container) this.renderGoogleButton('googleSignInContainer');
+                this.syncSession();
+                // Re-render button in whichever container exists
+                const containerId = document.getElementById('googleSignInContainer') ? 'googleSignInContainer' : 'googleContainer';
+                if (document.getElementById(containerId)) {
+                    this.renderGoogleButton(containerId);
+                }
             }, 2000);
         }
     }

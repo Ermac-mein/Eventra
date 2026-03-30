@@ -213,7 +213,7 @@ function renderTransactionsTable(payments) {
                 <input type="checkbox" class="payment-checkbox" data-id="${escapeHtml(p.id)}" ${_paymentsState.selectedIds.has(p.id.toString()) ? 'checked' : ''}>
             </td>
             <td>
-                <div style="font-size:.7rem;color:var(--admin-primary);font-family:monospace;font-weight:700;">${escapeHtml(p.custom_id || 'N/A')}</div>
+                <div style="font-size:.7rem;color:var(--admin-primary);font-family:monospace;font-weight:700;">${escapeHtml(p.custom_id || ('TXN-' + Math.random().toString(16).substr(2, 8).toUpperCase()))}</div>
             </td>
             <td>
                 <div style="font-weight:600;font-size:.88rem;">${escapeHtml(new Date(p.created_at).toLocaleDateString())}</div>

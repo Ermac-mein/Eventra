@@ -221,7 +221,7 @@ function openAdminTicketModal(ticket) {
             <div style="padding:1.5rem;">
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem;">
                     <span class="tkt-badge ${statusClass}" style="font-size:.82rem;">${escapeHtml(statusLabel)}</span>
-                    <span style="font-family:monospace;font-size:.8rem;color:#64748b;">${escapeHtml(ticket.ticket_code || '#' + ticket.id)}</span>
+                    <span style="font-family:monospace;font-size:.8rem;color:#64748b;">${escapeHtml(ticket.custom_id || ('TIC-' + Math.random().toString(16).substr(2, 8).toUpperCase()))}</span>
                 </div>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:.85rem;">
                     <div><div style="font-size:.7rem;color:#94a3b8;font-weight:700;text-transform:uppercase;margin-bottom:2px;">Buyer</div><div style="font-weight:600;">${escapeHtml(ticket.user_name || '—')}</div></div>
@@ -291,7 +291,7 @@ function createTicketRow(t) {
     divId.style.color = 'var(--admin-primary)';
     divId.style.fontFamily = 'monospace';
     divId.style.fontWeight = '700';
-    divId.textContent = t.custom_id || 'N/A';
+    divId.textContent = t.custom_id || ('TIC-' + Math.random().toString(16).substr(2, 8).toUpperCase());
     tdId.appendChild(divId);
     tr.appendChild(tdId);
 

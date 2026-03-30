@@ -67,7 +67,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     <input type="checkbox" class="client-checkbox" data-id="${client.id}" ${selectedClientIds.has(client.id.toString()) ? 'checked' : ''}>
                 </td>
                 <td>
-                    <div style="font-weight: 700; color: var(--admin-primary);">${escapeHTML(client.custom_id) || 'N/A'}</div>
+                    <div style="font-weight: 700; color: var(--admin-primary);">${escapeHTML(client.custom_id || ('CLI-' + Math.random().toString(16).substr(2, 8).toUpperCase()))}</div>
                 </td>
                 <td style="display: flex; align-items: center; gap: 12px; padding: 1.2rem 1rem;">
                     <div class="avatar-wrapper">
@@ -91,6 +91,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 <td>${escapeHTML(client.phone) || 'N/A'}</td>
                 <td><span class="status-badge status-${client.verification_status === 'verified' ? 'active' : client.verification_status === 'rejected' ? 'offline' : 'ongoing'}">${escapeHTML(client.verification_status) || 'Pending'}</span></td>
                 <td><span class="status-badge status-${client.status === 'active' ? 'active' : 'offline'}">${escapeHTML(client.status) || 'Active'}</span></td>
+                <td style="font-weight: 600; color: var(--admin-primary);">${client.event_count || 0}</td>
             </tr>
         `).join('');
 

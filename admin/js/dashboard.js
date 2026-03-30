@@ -55,9 +55,6 @@ async function loadDashboardStats() {
         const activeUsersEl = document.getElementById('activeUsersCount');
         if (activeUsersEl) activeUsersEl.textContent = stats.active_users || 0;
 
-        const checkedInEl = document.getElementById('userCheckedInCount');
-        if (checkedInEl) checkedInEl.textContent = stats.user_checked_in || 0;
-
         const verifiedClientsEl = document.getElementById('clientsVerifiedCount');
         if (verifiedClientsEl) verifiedClientsEl.textContent = stats.clients_verified || 0;
 

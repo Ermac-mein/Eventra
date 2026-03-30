@@ -99,10 +99,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     const checkGoogle = setInterval(() => {
                         if (typeof google !== 'undefined') {
                             clearInterval(checkGoogle);
-                            // Initialize without rendering a button
-                            authController.initGoogle(configData.client_id, null);
+                            // Initialize and render the button into the googleContainer
+                            authController.initGoogle(configData.client_id, 'googleContainer');
                         } else if (attempts > 50) {
                             clearInterval(checkGoogle);
+                            console.warn('Google SDK failed to load after 5 seconds');
                         }
                         attempts++;
                     }, 100);

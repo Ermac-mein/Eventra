@@ -1,0 +1,1 @@
+auth_id|i:1;admin_id|i:4;user_role|s:5:"admin";role|s:5:"admin";auth_token|s:64:"230c7633b93627e4bd416c8b5692dbce72eacccadb1b5fee26ce47603e2bb38f";last_activity|i:1774865813;csrf_token|s:64:"2d9139d5d6c6d5e663949b127684edf11b855cd97bf09450ae9ce21242d73068";
