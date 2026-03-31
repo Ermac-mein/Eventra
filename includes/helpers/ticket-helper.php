@@ -85,28 +85,34 @@ function verifyQRPayload(string $qrData): array
  */
 function generateTicketQRCode(array $ticketData): string
 {
-    // Build secure signed payload instead of raw barcode
-    $secureToken = buildSecureQRPayload($ticketData);
+    try {
+        // Build secure signed payload instead of raw barcode
+        $secureToken = buildSecureQRPayload($ticketData);
 
-    $options = new QROptions([
-        'version'    => 7,
-        'outputType' => QRCode::OUTPUT_MARKUP_SVG,
-        'eccLevel'   => QRCode::ECC_M, // Medium error correction (better for real scanning)
-    ]);
+        $options = new QROptions([
+            'version'    => 7,
+            'outputType' => QRCode::OUTPUT_MARKUP_SVG,
+            'eccLevel'   => QRCode::ECC_M,
+        ]);
 
-    $qrcode = new QRCode($options);
-    $svgData = $qrcode->render($secureToken);
+        $qrcode = new QRCode($options);
+        $svgData = $qrcode->render($secureToken);
 
-    $fileName = 'qr_' . $ticketData['barcode'] . '.svg';
-    $dir = __DIR__ . '/../../uploads/tickets/qrcodes/';
-    if (!is_dir($dir)) {
-        mkdir($dir, 0755, true);
+        $fileName = 'qr_' . $ticketData['barcode'] . '.svg';
+        $dir = __DIR__ . '/../../uploads/tickets/qrcodes/';
+        if (!is_dir($dir)) {
+            mkdir($dir, 0755, true);
+        }
+
+        $filePath = $dir . $fileName;
+        file_put_contents($filePath, $svgData);
+
+        return $filePath;
+    } catch (\Throwable $e) {
+        // QR generation failed — log and return empty string so ticket still issues
+        error_log('[Eventra] QR code generation failed for ticket ' . ($ticketData['barcode'] ?? 'unknown') . ': ' . $e->getMessage());
+        return '';
     }
-
-    $filePath = $dir . $fileName;
-    file_put_contents($filePath, $svgData);
-
-    return $filePath;
 }
 
 /**
@@ -128,8 +134,13 @@ function generateTicketPDF(array $ticketData): string
 
     // Generate secure QR code
     $qrCodePath = generateTicketQRCode($ticketData);
-    $qrCodeData = base64_encode(file_get_contents($qrCodePath));
-    $qrCodeSrc  = 'data:image/svg+xml;base64,' . $qrCodeData;
+    if ($qrCodePath && file_exists($qrCodePath)) {
+        $qrCodeData = base64_encode(file_get_contents($qrCodePath));
+        $qrCodeSrc  = 'data:image/svg+xml;base64,' . $qrCodeData;
+    } else {
+        // QR generation failed — use a blank placeholder so PDF still renders
+        $qrCodeSrc = 'data:image/svg+xml;base64,' . base64_encode('<svg xmlns="http://www.w3.org/2000/svg" width="130" height="130"><rect width="130" height="130" fill="#f3f4f6"/><text x="65" y="65" text-anchor="middle" dominant-baseline="middle" font-size="10" fill="#9ca3af">QR Unavailable</text></svg>');
+    }
 
     // Format dates
     $eventDate = !empty($ticketData['event_date'])

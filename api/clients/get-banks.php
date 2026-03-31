@@ -11,8 +11,13 @@ require_once '../../config/database.php';
 require_once '../../config/payment.php';
 require_once '../../includes/middleware/auth.php';
 
-// Must be authenticated as a client
-checkAuth('client');
+// Must be authenticated — accept any role (client, admin, or user)
+$auth_id = checkAuthOptional();
+if (!$auth_id) {
+    http_response_code(401);
+    echo json_encode(['success' => false, 'message' => 'Authentication required. Please log in.']);
+    exit;
+}
 
 
 // Check session cache (24 hour TTL)

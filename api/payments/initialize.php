@@ -87,14 +87,8 @@ try {
         exit;
     }
 
-    if (empty($event['subaccount_code'])) {
-        // NOTE: Only block paid events — free events don't need a subaccount
-        $unit_price_check = (float)$event['price'];
-        if ($unit_price_check > 0) {
-            echo json_encode(['success' => false, 'message' => 'The organizer has not set up payment details yet. Please check back later.']);
-            exit;
-        }
-    }
+    // NOTE: Only block paid events — free events don't need a subaccount
+    // We remove the block for 'subaccount_code' because payments will now fallback to the platform account.
 
     // Capacity check
     if ($event['max_capacity'] !== null) {
@@ -142,6 +136,8 @@ try {
             require_once '../../api/utils/notification-helper.php';
 
             $tickets = [];
+            $pdfPaths = [];
+            $lastTicketData = [];
             for ($i = 0; $i < $quantity; $i++) {
                 $ticketCustomId = generateTicketId($pdo);
                 $barcode = 'TKT-FREE-' . strtoupper(substr(uniqid(), -8));
@@ -160,9 +156,16 @@ try {
                     'event_name' => $event['event_name'],
                     'event_date' => $event['event_date'],
                     'event_time' => $event['event_time'],
-                    'user_name' => $user_name
+                    'location' => $event['state'] ?? 'Nigeria',
+                    'user_name' => $user_name,
+                    'payment_status' => 'paid',
+                    'amount' => 0
                 ];
                 $qrPath = generateTicketQRCode($ticketData);
+                $pdfPath = generateTicketPDF($ticketData);
+                $pdfPaths[] = $pdfPath;
+                $lastTicketData = $ticketData;
+
                 $pdo->prepare("UPDATE tickets SET qr_code_path = ? WHERE id = ?")
                     ->execute([str_replace(__DIR__ . '/../../', '', $qrPath), $ticket_id]);
 
@@ -175,16 +178,23 @@ try {
 
             $pdo->commit();
 
-            // 5. Notifications
+            // 5. Notifications & Email
+            sendTicketEmailFull($user_email, $lastTicketData, $pdfPaths);
             createPaymentSuccessNotification($auth_id, $event['event_name'], 0);
             createTicketIssuedNotification($auth_id, $event['event_name'], $tickets[0]['barcode']);
 
+            $protocol    = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') ? 'https' : 'http';
+            $host        = $_SERVER['HTTP_HOST'] ?? 'localhost';
+            $callbackUrl = "{$protocol}://{$host}/public/pages/payment.html?reference={$reference}";
+
             echo json_encode([
-                'success' => true,
-                'message' => 'Free ticket claimed successfully!',
-                'reference' => $reference,
-                'order_id' => (int)$order_id,
-                'is_free' => true
+                'success'           => true,
+                'message'           => 'Free ticket initiated successfully!',
+                'reference'         => $reference,
+                'order_id'          => (int)$order_id,
+                'amount'            => 0,
+                'authorization_url' => $callbackUrl,
+                'is_free'           => false
             ]);
             exit;
         } catch (Exception $e) {
@@ -225,8 +235,6 @@ try {
         'email'         => $user_email,
         'amount'        => $amount_kobo,
         'reference'     => $reference,
-        'subaccount'    => $event['subaccount_code'],
-        'bearer'        => 'subaccount',  // organizer bears Paystack fees
         'callback_url'  => $callbackUrl,
         'metadata'      => [
             'order_id'   => $order_id,
@@ -238,6 +246,11 @@ try {
             'user_name'  => $user_name,
         ],
     ];
+
+    if (!empty($event['subaccount_code'])) {
+        $paystackPayload['subaccount'] = $event['subaccount_code'];
+        $paystackPayload['bearer']     = 'subaccount';
+    }
 
     $ch = curl_init('https://api.paystack.co/transaction/initialize');
     curl_setopt_array($ch, [

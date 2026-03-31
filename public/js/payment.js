@@ -125,15 +125,15 @@ async function startPolling(reference) {
             if (result.success && result.order) {
                 const order = result.order;
                 
-                if (order.payment_status === 'paid') {
+                if (order.payment_status === 'paid' || order.payment_status === 'success') {
                     // SUCCESS!
                     icon.textContent = '🎉';
                     title.textContent = 'Payment Successful!';
                     msg.innerHTML = `Your tickets for <strong>${escapeHTML(order.event_name)}</strong> are ready.<br>Reference: ${escapeHTML(reference)}`;
                     
-                    if (order.tickets && order.tickets.length > 0) {
-                        const barcode = order.tickets[0].barcode;
-                        downloadBtn.href = `/api/tickets/download-ticket.php?barcode=${barcode}`;
+                    if (order.ticket && order.ticket.barcode) {
+                        const barcode = order.ticket.barcode;
+                        downloadBtn.href = `/api/tickets/download-ticket.php?code=${barcode}`;
                         downloadBtn.target = '_blank';
                         actions.style.display = 'flex';
                     }

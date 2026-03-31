@@ -45,7 +45,7 @@ async function previewEvent(eventId) {
         row.style.opacity = '1';
     }
 
-    const eventName = event.name;
+    const eventName = (event.name || '').replace(/\s*#\d+$/, '');
     const state = row.dataset.state || event.state;
     const clientName = event.client_name;
     const price = event.price;

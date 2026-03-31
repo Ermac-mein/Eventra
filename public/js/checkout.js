@@ -180,7 +180,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             } catch (err) {
                 console.error('Payment Error:', err);
-                Swal.fire('Error', 'Could not connect to payment server.', 'error');
+                const errMsg = err?.message || 'Could not connect to payment server. Please check your connection and try again.';
+                Swal.fire('Error', errMsg, 'error');
                 resetPayBtn(eventData, currentQuantity);
             }
         });
@@ -207,7 +208,7 @@ function renderEventSummary(event, quantity) {
     };
 
     const elTitle = document.getElementById('summaryTitle');
-    if (elTitle) elTitle.innerHTML = `<strong>${escapeHTML(event.event_name)}</strong>`;
+    if (elTitle) elTitle.innerHTML = `<strong>${escapeHTML((event.event_name || '').replace(/\s*#\d+$/, ''))}</strong>`;
 
     const elDate = document.getElementById('summaryDate');
     if (elDate) elDate.textContent = `${formatDate(event.event_date)} • ${event.event_time || 'TBA'}`;

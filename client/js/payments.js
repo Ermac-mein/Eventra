@@ -220,7 +220,7 @@ function renderPaymentsTable(payments) {
                 <div style="font-size:0.78rem;color:#94a3b8;">${new Date(p.created_at).toLocaleString()}</div>
             </td>
             <td style="font-family:monospace;font-size:0.8rem;color:#64748b;">${p.reference || '—'}</td>
-            <td style="font-weight:600;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escapeHtml(p.event_name || '-')}">
+            <td style="font-weight:600;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escapeHtml((p.event_name || '-').replace(/\s*#\d+$/, ''))}">
                 ${escapeHtml((p.event_name || '—').replace(/\s*#\d+$/, ''))}
             </td>
             <td>
@@ -273,7 +273,7 @@ function renderRefundsTable(requests) {
                 <div style="font-size:0.75rem;color:#64748b;">${new Date(r.created_at).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</div>
             </td>
             <td>
-                <div style="font-weight:700;color:#1e293b;">${escapeHtml(r.event_name)}</div>
+                <div style="font-weight:700;color:#1e293b;">${escapeHtml((r.event_name || '').replace(/\s*#\d+$/, ''))}</div>
                 <div style="font-size:0.85rem;color:#64748b;">Requested by: ${escapeHtml(r.user_name)}</div>
             </td>
             <td style="max-width:240px;font-size:0.9rem;line-height:1.4;">${escapeHtml(r.reason)}</td>
@@ -484,7 +484,7 @@ function openDetailModal(payment) {
 
                     <div>
                         <div style="font-size: 0.75rem; text-transform: uppercase; color: #94a3b8; font-weight: 700; margin-bottom: 0.5rem; letter-spacing: 0.5px;">Event Name</div>
-                        <div style="font-weight: 700; color: #1e293b; font-size: 1.05rem;">${escapeHtml(payment.event_name || 'N/A')}</div>
+                        <div style="font-weight: 700; color: #1e293b; font-size: 1.05rem;">${escapeHtml((payment.event_name || 'N/A').replace(/\s*#\d+$/, ''))}</div>
                     </div>
 
                     <div>

@@ -455,7 +455,7 @@ function displayEventPreview(event) {
                     
                     <div class="event-preview-content" style="background: white;">
                         <div style="margin-bottom: 2.5rem;">
-                            <h1 class="event-preview-title">${escapeHTML(event.event_name)}</h1>
+                            <h1 class="event-preview-title">${escapeHTML((event.event_name || '').replace(/\s*#\d+$/, ''))}</h1>
                             <p style="color: #6b7280; font-size: 1.1rem;">Organized by ${escapeHTML(user.name) || 'Eventra'}</p>
                         </div>
 

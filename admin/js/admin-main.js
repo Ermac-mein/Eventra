@@ -722,7 +722,7 @@ window.initPreviews = function() {
                                                     ${events.length > 0 ? events.map(ev => `
                                                         <div style="display: flex; justify-content: space-between; align-items: center; padding: 1rem; background: #f8fafc; border-radius: 12px; border: 1px solid #f1f5f9; transition: transform 0.2s;">
                                                             <div>
-                                                                <div style="font-weight: 700; font-size: 0.9rem; color: #1e293b;">${escapeHTML(ev.event_name)}</div>
+                                                                <div style="font-weight: 700; font-size: 0.9rem; color: #1e293b;">${escapeHTML((ev.event_name || "").replace(/\s*#\d+$/, ""))}</div>
                                                                 <div style="font-size: 0.75rem; color: #64748b; margin-top: 2px;">${escapeHTML(ev.event_date)}</div>
                                                             </div>
                                                             <div style="text-align: right; background: white; padding: 4px 12px; border-radius: 20px; border: 1px solid #e2e8f0;">

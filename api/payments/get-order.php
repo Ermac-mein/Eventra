@@ -31,7 +31,8 @@ try {
                t.barcode, t.qr_code_path, t.status AS ticket_status
         FROM orders o
         JOIN events e ON o.event_id = e.id
-        LEFT JOIN tickets t ON t.order_id = o.id
+        LEFT JOIN payments p ON p.reference = o.transaction_reference
+        LEFT JOIN tickets t ON t.payment_id = p.id
         WHERE o.transaction_reference = ?
           AND o.user_id = ?
     ");
