@@ -253,11 +253,15 @@ try {
         }
         throw $e;
     }
-} catch (PDOException $e) {
+} catch (Throwable $e) {
     if ($pdo->inTransaction()) {
         $pdo->rollBack();
     }
-    error_log('[verify-payment.php] DB error: ' . $e->getMessage());
+    error_log('[verify-payment.php] Fatal error: ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine());
     http_response_code(500);
-    echo json_encode(['success' => false, 'message' => 'Verification failed. Please contact support.']);
+    echo json_encode([
+        'success' => false,
+        'message' => 'Verification failed: ' . $e->getMessage(),
+        'error_info' => $e->getFile() . ':' . $e->getLine()
+    ]);
 }

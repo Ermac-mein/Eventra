@@ -249,6 +249,8 @@ CREATE TABLE IF NOT EXISTS payments (
     user_id BIGINT UNSIGNED NOT NULL,
     reference VARCHAR(191) NOT NULL,
     amount DECIMAL(12, 2) NOT NULL,
+    quantity INT UNSIGNED NOT NULL DEFAULT 1,
+    ticket_type VARCHAR(50) DEFAULT 'regular',
     status ENUM('pending', 'paid', 'failed', 'refunded') DEFAULT 'pending',
     paystack_response JSON DEFAULT NULL,
     payment_id VARCHAR(100) DEFAULT NULL,

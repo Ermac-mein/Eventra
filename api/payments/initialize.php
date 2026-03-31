@@ -287,11 +287,11 @@ try {
         'order_id'          => (int)$order_id,
         'amount'            => $total,
     ]);
-} catch (PDOException $e) {
+} catch (Throwable $e) {
     if ($pdo->inTransaction()) {
         $pdo->rollBack();
     }
-    error_log('[initialize.php] DB error: ' . $e->getMessage());
+    error_log('[initialize.php] Error: ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine());
     http_response_code(500);
-    echo json_encode(['success' => false, 'message' => 'Order creation failed. Please try again.']);
+    echo json_encode(['success' => false, 'message' => 'Initialization failed: ' . $e->getMessage()]);
 }
