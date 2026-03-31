@@ -532,6 +532,7 @@ async function initGoogleAuth() {
                 let attempts = 0;
                 const maxAttempts = 100; // 10 seconds with 100ms intervals
                 
+                let intervalId;
                 const checkGoogle = () => {
                     attempts++;
                     console.log(`[Main] Google SDK check attempt ${attempts}/${maxAttempts}`);
@@ -550,15 +551,15 @@ async function initGoogleAuth() {
                 };
                 
                 checkGoogle(); // Check immediately
-                const intervalId = setInterval(checkGoogle, 100);
+                intervalId = setInterval(checkGoogle, 100);
             });
             
             const googleLoaded = await googleLoadPromise;
             
             if (googleLoaded) {
-                console.log('[Main] Initializing Google SDK with container: googleSignInContainer');
-                // Use the actual container ID so Google can render its internal components if needed
-                authController.initGoogle(data.client_id, 'googleSignInContainer'); 
+                console.log('[Main] Initializing Google SDK in background mode');
+                // Use 'none' to preserve the custom button UI instead of overriding it
+                authController.initGoogle(data.client_id, 'none'); 
             } else {
                 console.error('[Main] Google SDK failed to load, not initializing');
             }

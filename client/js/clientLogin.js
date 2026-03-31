@@ -202,8 +202,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     attempts++;
                     if (typeof google !== 'undefined' && google.accounts && google.accounts.id) {
                         clearInterval(checkGoogle);
-                        // Initialize Google SDK with actual container ID
-                        authController.initGoogle(data.client_id, 'googleSignIn'); 
+                        // Initialize Google SDK in background mode to preserve custom button UI
+                        authController.initGoogle(data.client_id, 'none'); 
                     } else if (attempts > 50) {
                         clearInterval(checkGoogle);
                         console.error('Google SDK failed to load');

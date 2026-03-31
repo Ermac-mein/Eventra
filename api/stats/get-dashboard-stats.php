@@ -17,15 +17,16 @@ try {
     $stats = [];
 
     if ($user_role === 'client') {
-        // Resolve real_client_id (client_auth_id is now just 'id' in clients table)
-        // Wait, did I keep 'client_auth_id' or is it just 'id' now?
-        // In my migration, I kept 'id' as the PK.
-        $real_client_id = $user_id;
-
-        if (!$real_client_id) {
+        // Resolve real_client_id from clients table
+        $stmt = $pdo->prepare("SELECT id FROM clients WHERE client_auth_id = ?");
+        $stmt->execute([$user_id]);
+        $clientRow = $stmt->fetch();
+        
+        if (!$clientRow) {
             echo json_encode(['success' => false, 'message' => 'Client profile not found.']);
             exit;
         }
+        $real_client_id = $clientRow['id'];
 
         // Client-specific stats
 

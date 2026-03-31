@@ -33,7 +33,7 @@ try {
     $count_stmt->execute($params);
     $total_records = $count_stmt->fetchColumn();
 
-    // Get clients with event count using LEFT JOIN instead of correlated subquery
+    // Get clients with event count using subquery for event_count to avoid GROUP BY issues
     $sql = "SELECT p.id, p.custom_id, p.business_name as name, a.email, p.profile_pic, p.company, p.state, p.phone,
             p.nin, p.bvn, p.nin_verified, p.bvn_verified,
             p.account_name, p.account_number, p.bank_name, p.bank_code, p.subaccount_code, p.verification_status,
@@ -41,12 +41,10 @@ try {
             a.is_active, a.is_online, a.last_seen,
             IF(a.is_online = 1 AND a.last_seen >= DATE_SUB(NOW(), INTERVAL 10 MINUTE), 'active', 'inactive') as status,
             p.created_at,
-            COALESCE(COUNT(e.id), 0) as event_count
+            (SELECT COUNT(*) FROM events e WHERE e.client_id = p.id AND e.deleted_at IS NULL) as event_count
             FROM clients p
             JOIN auth_accounts a ON p.client_auth_id = a.id
-            LEFT JOIN events e ON e.client_id = p.id AND e.deleted_at IS NULL
             $where_clause
-            GROUP BY p.id
             ORDER BY p.created_at DESC
             LIMIT ? OFFSET ?";
 

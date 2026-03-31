@@ -13,8 +13,17 @@ require_once '../../includes/middleware/auth.php';
 $auth_id = checkAuth('client');
 
 try {
-    // 1. Resolve real_client_id from session (standardized role-id)
-    $real_client_id = $_SESSION['client_id'] ?? $auth_id;
+    // 1. Resolve real_client_id from session (standardized role-id) or from auth mappings
+    $real_client_id = $_SESSION['client_id'] ?? null;
+    if (!$real_client_id) {
+        $stmt = $pdo->prepare("SELECT id FROM clients WHERE client_auth_id = ?");
+        $stmt->execute([$auth_id]);
+        $clientRow = $stmt->fetch();
+        if (!$clientRow) {
+            throw new Exception("Client profile not found for authenticated user.");
+        }
+        $real_client_id = $clientRow['id'];
+    }
 
     // 2. Client Revenue — SUM actual payment amounts (not event prices)
     $stmt = $pdo->prepare("

@@ -122,13 +122,16 @@ try {
             ]
         ]);
     } elseif ($user_role === 'client') {
-        // Resolve real_client_id (it's just user_id for clients now)
-        $real_client_id = $user_id;
-
-        if (!$real_client_id) {
+        // Resolve real_client_id from clients table
+        $stmt = $pdo->prepare("SELECT id FROM clients WHERE client_auth_id = ?");
+        $stmt->execute([$user_id]);
+        $clientRow = $stmt->fetch();
+        
+        if (!$clientRow) {
             echo json_encode(['success' => false, 'message' => 'Client profile not found.']);
             exit;
         }
+        $real_client_id = $clientRow['id'];
 
         // Client chart data - ticket sales for their events
         $stmt = $pdo->prepare("
