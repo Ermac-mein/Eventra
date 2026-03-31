@@ -220,8 +220,7 @@ function openAdminTicketModal(ticket) {
             <!-- Details -->
             <div style="padding:1.5rem;">
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem;">
-                    <span class="tkt-badge ${statusClass}" style="font-size:.82rem;">${escapeHtml(statusLabel)}</span>
-                    <span style="font-family:monospace;font-size:.8rem;color:#64748b;">${escapeHtml(ticket.custom_id || ('TIC-' + Math.random().toString(16).substr(2, 8).toUpperCase()))}</span>
+                    <span style="font-family:monospace;font-size:.85rem;color:#6366f1;font-weight:700;">${escapeHtml(ticket.custom_id || ticket.id)}</span>
                 </div>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:.85rem;">
                     <div><div style="font-size:.7rem;color:#94a3b8;font-weight:700;text-transform:uppercase;margin-bottom:2px;">Buyer</div><div style="font-weight:600;">${escapeHtml(ticket.user_name || '—')}</div></div>
@@ -307,11 +306,11 @@ function createTicketRow(t) {
     // ID Cell
     const tdId = document.createElement('td');
     const divId = document.createElement('div');
-    divId.style.fontSize = '.7rem';
+    divId.style.fontSize = '.75rem';
     divId.style.color = 'var(--admin-primary)';
     divId.style.fontFamily = 'monospace';
     divId.style.fontWeight = '700';
-    divId.textContent = t.custom_id || ('TIC-' + Math.random().toString(16).substr(2, 8).toUpperCase());
+    divId.textContent = t.custom_id || t.id;
     tdId.appendChild(divId);
     tr.appendChild(tdId);
 

@@ -67,7 +67,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     <input type="checkbox" class="client-checkbox" data-id="${client.id}" ${selectedClientIds.has(client.id.toString()) ? 'checked' : ''}>
                 </td>
                 <td>
-                    <div style="font-weight: 700; color: var(--admin-primary);">${escapeHTML(client.custom_id || ('CLI-' + Math.random().toString(16).substr(2, 8).toUpperCase()))}</div>
+                    <div style="font-weight: 700; font-family: monospace; font-size: 0.85rem; color: var(--admin-primary);">${escapeHTML(client.custom_id || client.id)}</div>
                 </td>
                 <td style="display: flex; align-items: center; gap: 12px; padding: 1.2rem 1rem;">
                     <div class="avatar-wrapper">

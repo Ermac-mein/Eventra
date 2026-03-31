@@ -103,8 +103,14 @@ class AuthController {
                 this.setState(this.states.AUTHENTICATED);
                 window.dispatchEvent(new CustomEvent('auth:sync', { detail: { success: true, user: updatedUser } }));
             } else {
-                console.warn('[AuthController] Session invalid according to server:', result.message);
-                this.clearLocalState();
+                // If the message is "Not authenticated", it's expected for guests.
+                // We only "clear" if we actually thought we were logged in.
+                if (this.state !== this.states.UNAUTHENTICATED) {
+                    console.warn('[AuthController] Session invalid according to server:', result.message);
+                    this.clearLocalState();
+                } else {
+                    // console.log('[AuthController] Guest session confirmed');
+                }
             }
         } catch (error) {
             console.error('[AuthController] Session sync failed:', error);
@@ -196,13 +202,18 @@ class AuthController {
      */
     renderGoogleButton(containerId) {
         const container = document.getElementById(containerId);
-        if (!container) {
+        if (!container && containerId !== 'none') {
             console.warn('[AuthController] Container not found:', containerId);
             this.showButtonFallback(containerId);
             return;
         }
         if (!this.googleInitialized) {
             console.warn('[AuthController] Google not initialized yet');
+            return;
+        }
+
+        if (containerId === 'none') {
+            console.log('[AuthController] SDK initialized in background mode (no container)');
             return;
         }
 
@@ -281,12 +292,34 @@ class AuthController {
     /**
      * Trigger Google Login Prompt manually
      */
-    handleGoogleLoginManual() {
+    async handleGoogleLoginManual() {
         if (!this.googleInitialized) {
-            console.error('[AuthController] Google SDK not initialized');
-            return;
+            console.warn('[AuthController] Google SDK not initialized yet, waiting...');
+            // Wait up to 3 seconds for initialization
+            let attempts = 0;
+            while (!this.googleInitialized && attempts < 15) {
+                await new Promise(r => setTimeout(r, 200));
+                attempts++;
+            }
+            
+            if (!this.googleInitialized) {
+                console.error('[AuthController] Google SDK failed to initialize in time');
+                showNotification('Google Sign-In is still loading. Please try again in a moment.', 'info');
+                return;
+            }
         }
-        google.accounts.id.prompt();
+        
+        console.log('[AuthController] Triggering manual Google prompt...');
+        try {
+            google.accounts.id.prompt((notification) => {
+                console.log('[AuthController] Prompt notification:', notification.getMomentType(), notification.isNotDisplayed());
+                if (notification.isNotDisplayed()) {
+                    console.warn('[AuthController] Prompt suppressed:', notification.getNotDisplayedReason());
+                }
+            });
+        } catch (e) {
+            console.error('[AuthController] Manual prompt error:', e);
+        }
     }
 
     /**

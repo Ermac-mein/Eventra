@@ -254,19 +254,21 @@ class NotificationManager {
             const result = await response.json();
             
             if (result.success) {
-                // Update UI
+                // Update Badge and State instantly
                 this.updateNotificationBadge(0);
+                if (window.stateManager) {
+                    window.stateManager.setNotificationCount(0);
+                }
                 
-                // Remove unread styling
+                // Remove unread styling locally
                 const unreadItems = document.querySelectorAll('.notification-item.unread');
                 unreadItems.forEach(item => {
                     item.classList.remove('unread');
                     item.style.background = 'white';
                 });
 
-                if (window.stateManager) {
-                    window.stateManager.setNotificationCount(0);
-                }
+                // Refresh the drawer content to keep it in sync
+                this.fetchNotifications();
             }
         } catch (error) {
             console.error('Error marking notifications as read:', error);
@@ -284,7 +286,13 @@ class NotificationManager {
 
             const result = await response.json();
             if (result.success) {
-                this.fetchNotifications(); // Refresh
+                // Instant badge decrement for better UX
+                const badge = document.querySelector('.notification-badge');
+                if (badge && badge.textContent !== '0') {
+                    let count = parseInt(badge.textContent) || 0;
+                    if (count > 0) this.updateNotificationBadge(count - 1);
+                }
+                this.fetchNotifications(); // Full refresh
             }
         } catch (error) {
             console.error('Error marking single notification as read:', error);

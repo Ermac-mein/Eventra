@@ -13,6 +13,7 @@ let _paymentsState = {
     search: '',
     totalPages: 1,
     allPayments: [], // current loaded set for stats
+    pagination: null,
 };
 
 // ─── App Role Detection ────────────────────────────────────────────────────
@@ -105,7 +106,7 @@ function updateTableHeaders() {
     if (_paymentsState.viewMode === 'transactions') {
         theadRow.innerHTML = `
             <th style="width: 40px;"><input type="checkbox" id="selectAll"></th>
-            <th>Payment ID</th>
+            <th>ID</th>
             <th style="cursor:pointer;" onclick="changeSort('date_desc','date_asc')">Date <i data-lucide="chevron-down" style="width:14px;display:inline-block;vertical-align:middle;margin-left:4px;"></i></th>
             <th>Transaction ID</th>
             <th style="cursor:pointer;" onclick="changeSort('event','event')">Event</th>
@@ -155,9 +156,9 @@ async function loadPayments() {
 
             _paymentsState.totalPages = data.pages || 1;
             _paymentsState.allPayments = data.payments || [];
-
+            
+            updateEventraPagination(data.total, data.page, data.limit, data.pages, data.payments);
             renderPaymentsTable(data.payments);
-            renderPagination(data.total, data.page, data.limit, data.pages);
             computeStats(data.payments, data.total);
         } catch (err) {
             console.error('Payments load error', err);
@@ -213,14 +214,14 @@ function renderPaymentsTable(payments) {
         return `
         <tr class="table-row-clickable" onclick="openDetailModal(${JSON.stringify(p).replace(/"/g,'&quot;')})">
             <td><input type="checkbox" class="payment-checkbox" data-id="${p.id}"></td>
-            <td style="font-family:monospace;font-size:0.8rem;color:#635bff;font-weight:600;">${p.custom_id || '—'}</td>
+            <td style="font-family:monospace;font-size:0.85rem;color:#635bff;font-weight:700;">${p.custom_id || p.id}</td>
             <td>
                 <div style="font-weight:600;color:#1e293b;font-size:0.9rem;">${p.relative_time}</div>
                 <div style="font-size:0.78rem;color:#94a3b8;">${new Date(p.created_at).toLocaleString()}</div>
             </td>
             <td style="font-family:monospace;font-size:0.8rem;color:#64748b;">${p.reference || '—'}</td>
             <td style="font-weight:600;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escapeHtml(p.event_name || '-')}">
-                ${escapeHtml(p.event_name || '—')}
+                ${escapeHtml((p.event_name || '—').replace(/\s*#\d+$/, ''))}
             </td>
             <td>
                 <span style="font-size:0.85rem;color:#475569;font-weight:500;">${escapeHtml(p.client_name || '—')}</span>
@@ -363,41 +364,35 @@ function computeStats(payments, total) {
 }
 
 // ─── Pagination ────────────────────────────────────────────────────────────
-function renderPagination(total, page, limit, pages) {
-    const info = document.getElementById('paginationInfo');
-    const btns = document.getElementById('paginationBtns');
-    if (!info || !btns) return;
-
-    const from = total === 0 ? 0 : (page - 1) * limit + 1;
-    const to   = Math.min(page * limit, total);
-    info.textContent = `Showing ${from}–${to} of ${total} payments`;
-
-    btns.innerHTML = '';
-    const prev = document.createElement('button');
-    prev.className = 'page-btn';
-    prev.textContent = '← Prev';
-    prev.disabled = page <= 1;
-    prev.onclick = () => { _paymentsState.page--; loadPayments(); };
-    btns.appendChild(prev);
-
-    // Show nearby pages
-    const startPage = Math.max(1, page - 2);
-    const endPage   = Math.min(pages, page + 2);
-    for (let i = startPage; i <= endPage; i++) {
-        const btn = document.createElement('button');
-        btn.className = `page-btn${i === page ? ' active' : ''}`;
-        btn.textContent = i;
-        const pg = i;
-        btn.onclick = () => { _paymentsState.page = pg; loadPayments(); };
-        btns.appendChild(btn);
+function updateEventraPagination(total, page, limit, pages, data) {
+    if (!_paymentsState.pagination) {
+        _paymentsState.pagination = new EventraPagination({
+            mode: 'server',
+            totalItems: total,
+            pageSize: limit,
+            currentPage: page,
+            containerId: 'paginationContainer',
+            onPageChange: (dummyData) => {
+                // Handled via overrides below
+            }
+        });
+        
+        // Override for server-side persistence
+        const p = _paymentsState.pagination;
+        p.setPage = (newPage, smooth = true) => {
+            if (newPage < 1 || newPage > p.totalPages) return;
+            _paymentsState.page = newPage;
+            loadPayments();
+            if (smooth) window.scrollTo({ top: 0, behavior: 'smooth' });
+        };
+        p.setPageSize = (size) => {
+            _paymentsState.limit = parseInt(size);
+            _paymentsState.page = 1;
+            loadPayments();
+        };
+    } else {
+        _paymentsState.pagination.updateData(data, total, pages, page, false);
     }
-
-    const next = document.createElement('button');
-    next.className = 'page-btn';
-    next.textContent = 'Next →';
-    next.disabled = page >= pages;
-    next.onclick = () => { _paymentsState.page++; loadPayments(); };
-    btns.appendChild(next);
 }
 
 // ─── Detail Modal ──────────────────────────────────────────────────────────
@@ -446,7 +441,7 @@ function openDetailModal(payment) {
                 </div>
                 <div>
                     <h2 style="margin: 0; font-size: 1.25rem; font-weight: 700; color: #1e293b;">Transaction Details</h2>
-                    <div style="font-size: 0.85rem; color: #64748b; font-family: monospace;">${escapeHtml(payment.custom_id || 'N/A')}</div>
+                    <div style="font-size: 0.85rem; color: #64748b; font-family: monospace;">${escapeHtml(payment.custom_id || payment.id || 'N/A')}</div>
                 </div>
             </div>
             <button class="modal-close-trigger" style="background: #f1f5f9; border: none; width: 32px; height: 32px; border-radius: 50%; color: #64748b; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; transition: background 0.2s;">&times;</button>

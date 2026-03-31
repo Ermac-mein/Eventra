@@ -447,8 +447,8 @@ window.initPreviews = function() {
         backdrop = document.createElement('div');
         backdrop.className = 'preview-modal-backdrop';
         backdrop.innerHTML = `
-            <div class="preview-modal" style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); margin: 0; width: 600px; max-height: 90vh; overflow-y: auto;">
-                <span class="preview-close">←</span>
+            <div class="preview-modal" style="width: 650px; max-height: 90vh; overflow-y: auto; background: white; border-radius: 20px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); position: relative; border: 1px solid var(--admin-border); overflow: hidden;">
+                <span class="preview-close" style="position: absolute; top: 1rem; right: 1rem; width: 32px; height: 32px; background: rgba(0,0,0,0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 10; font-size: 1.2rem;">&times;</span>
                 <div id="previewContent"></div>
             </div>
         `;
@@ -514,6 +514,7 @@ window.initPreviews = function() {
                         const user = data.users.find(u => u.id == row.dataset.id);
                         if (user) {
                             const profilePic = getProfileImg(user.profile_pic, user.name);
+                            const cleanName = (user.name || '').replace(/\s*#\d+$/, '');
                             content.innerHTML = `
                                 <div class="profile-preview">
                                     <div class="profile-preview-header">User Profile</div>
@@ -527,7 +528,8 @@ window.initPreviews = function() {
                                         </div>
                                     </div>
                                     <div class="profile-preview-info">
-                                        <h2>${escapeHTML(user.name)}</h2>
+                                        <h2 style="font-weight: 800;">${escapeHTML(cleanName)}</h2>
+                                        <p style="color: #6366f1; font-weight: 600; font-family: monospace; letter-spacing: 1px;">${escapeHTML(user.custom_id || user.id)}</p>
                                         <p>${escapeHTML(user.email)}</p>
                                     </div>
                                     <div class="profile-preview-details">
@@ -818,7 +820,8 @@ window.initPreviews = function() {
                 
                 // Adjust indices for events table: [0:cb, 1:ID, 2:Name, 3:Priority, 4:Date, 5:Time, 6:Category, ...]
                 const eventId = cells[1].innerText;
-                const eventName = cells[2].querySelector('div:first-child')?.innerText || cells[2].innerText;
+                const rawName = cells[2].querySelector('div:first-child')?.innerText || cells[2].innerText;
+                const eventName = rawName.replace(/\s*#\d+$/, '');
                 const priority = cells[3].innerText;
                 const date = cells[4].innerText;
                 const time = cells[5].innerText;
@@ -827,12 +830,15 @@ window.initPreviews = function() {
                 const price = cells[8].innerText;
                 const attendees = cells[9].innerText;
                 
-                const eventImage = row.dataset.image || 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=1200&fit=crop';
+                const rawImage = row.dataset.image || 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=1200&fit=crop';
+                const eventImage = (rawImage.startsWith('http') || rawImage.startsWith('data:')) 
+                    ? rawImage 
+                    : (rawImage.startsWith('/') ? '../../' + rawImage.substring(1) : '../../' + rawImage);
                 
                 html = `
                     <div class="event-preview">
-                        <div class="event-preview-image-box">
-                            <img src="${eventImage}" class="event-preview-image" alt="Event">
+                        <div class="event-preview-image-box" style="height: 250px; overflow: hidden; position: relative;">
+                            <img src="${eventImage}" class="event-preview-image" alt="Event" style="width: 100%; height: 100%; object-fit: cover;">
                             <div class="priority-badge" style="position: absolute; top: 1rem; right: 1rem; padding: 0.4rem 0.8rem; border-radius: 20px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: white; background: ${priority.toLowerCase() === 'hot' ? '#ff4757' : priority.toLowerCase() === 'trending' ? '#3742fa' : '#2ed573'};">
                                 ${escapeHTML(priority) || 'Standard'}
                             </div>
@@ -941,7 +947,13 @@ window.approveClient = async function(clientId, status, btnElement) {
                 text: data.message,
                 confirmButtonColor: '#6366f1'
             });
-            // Close preview and refresh table
+            
+            // Mark button as handled
+            btnElement.disabled = true;
+            btnElement.style.opacity = '0.5';
+            btnElement.innerText = status ? 'Approved' : 'Declined';
+            
+            // Close preview and refresh table after delay
             setTimeout(() => {
                 const closeBtn = document.querySelector('.preview-close');
                 if (closeBtn) closeBtn.click();

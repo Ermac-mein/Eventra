@@ -21,6 +21,7 @@
 
     <!-- Favicon -->
     <link rel="icon" type="image/x-icon" href="/public/favicon.ico">
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
     <link rel="stylesheet" href="../../public/css/pagination.css">
 </head>
 <body>
@@ -139,11 +140,11 @@
                     <thead>
                         <tr>
                             <th style="width: 40px;"><input type="checkbox" id="selectAll"></th>
-                            <th onclick="sortTickets(1)">Ticket ID</th>
-                            <th onclick="sortTickets(2)">Event Name</th>
+                            <th onclick="sortTickets(1)">ID</th>
+                            <th onclick="sortTickets(2)">Event</th>
                             <th onclick="sortTickets(3)">Buyer</th>
                             <th onclick="sortTickets(4)">Price</th>
-                            <th onclick="sortTickets(5)">Organiser</th>
+                            <th onclick="sortTickets(5)">Category</th>
                             <th onclick="sortTickets(6)">Date</th>
                             <th onclick="sortTickets(7)">Status</th>
                         </tr>

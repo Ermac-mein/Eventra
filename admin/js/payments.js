@@ -213,13 +213,13 @@ function renderTransactionsTable(payments) {
                 <input type="checkbox" class="payment-checkbox" data-id="${escapeHtml(p.id)}" ${_paymentsState.selectedIds.has(p.id.toString()) ? 'checked' : ''}>
             </td>
             <td>
-                <div style="font-size:.7rem;color:var(--admin-primary);font-family:monospace;font-weight:700;">${escapeHtml(p.custom_id || ('TXN-' + Math.random().toString(16).substr(2, 8).toUpperCase()))}</div>
+                <div style="font-size:.75rem;color:var(--admin-primary);font-family:monospace;font-weight:700;">${escapeHtml(p.custom_id || p.id)}</div>
             </td>
             <td>
                 <div style="font-weight:600;font-size:.88rem;">${escapeHtml(new Date(p.created_at).toLocaleDateString())}</div>
                 <div style="font-size:.74rem;color:#94a3b8;">${escapeHtml(new Date(p.created_at).toLocaleTimeString())}</div>
             </td>
-            <td style="font-weight:600;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escapeHtml(p.event_name || '')}">${escapeHtml(p.event_name || '—')}</td>
+            <td style="font-weight:600;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escapeHtml(p.event_name || '')}">${escapeHtml((p.event_name || '—').replace(/\s*#\d+$/, ''))}</td>
             <td>
                 <span style="font-size:.85rem;color:#475569;font-weight:500;">${escapeHtml(p.client_name || '—')}</span>
                 ${p.client_custom_id ? `<div style="font-size:.7rem;color:#94a3b8;font-family:monospace;">${escapeHtml(p.client_custom_id)}</div>` : ''}
@@ -359,7 +359,7 @@ function openDetailModal(payment) {
             <span class="status-badge ${badgeClass}" style="font-size:.9rem;padding:.35rem 1.2rem;">${icon} ${escapeHtml(ucfirst(payment.status))}</span>
         </div>
         <div class="detail-row"><span class="detail-label">Reference</span><span class="detail-value" style="font-family:monospace;font-size:.83rem">${escapeHtml(payment.reference || '—')}</span></div>
-        ${payment.custom_id ? `<div class="detail-row"><span class="detail-label">Transaction ID</span><span class="detail-value" style="font-family:monospace;font-size:.83rem;color:var(--admin-primary);font-weight:700;">${escapeHtml(payment.custom_id)}</span></div>` : ''}
+        <div class="detail-row"><span class="detail-label">Payment ID</span><span class="detail-value" style="font-family:monospace;font-size:.85rem;color:var(--admin-primary);font-weight:700;">${escapeHtml(payment.custom_id || payment.id)}</span></div>
         <div class="detail-row"><span class="detail-label">Amount</span><span class="detail-value">${amountDisplay}</span></div>
         <div class="detail-row"><span class="detail-label">Tickets</span><span class="detail-value">${parseInt(payment.ticket_count) || 0} ticket(s)</span></div>
         <div class="detail-row"><span class="detail-label">Buyer</span><span class="detail-value">${escapeHtml(payment.buyer_name || '—')}</span></div>

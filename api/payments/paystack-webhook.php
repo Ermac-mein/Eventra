@@ -73,9 +73,10 @@ function processSuccessfulPayment(PDO $pdo, array $order, array $psData): void
             $order['id'],
         ]);
 
-        // 0. Extract quantity from metadata
-        $metadata = $psData['metadata'] ?? [];
-        $quantity = max(1, (int)($metadata['quantity'] ?? 1));
+        // 0. Extract quantity and ticket_type from metadata
+        $metadata    = $psData['metadata'] ?? [];
+        $quantity    = max(1, (int)($metadata['quantity']    ?? 1));
+        $ticket_type = $metadata['ticket_type'] ?? 'regular';
 
         // Increment event attendee count by quantity
         $pdo->prepare("
@@ -99,8 +100,8 @@ function processSuccessfulPayment(PDO $pdo, array $order, array $psData): void
             // 1. Insert into payments table first with custom_id
             $paymentCustomId = generatePaymentId($pdo);
             $payStmt = $pdo->prepare("
-                INSERT INTO payments (event_id, user_id, custom_id, reference, amount, status, paystack_response, payment_id, transaction_id, paid_at)
-                VALUES (?, ?, ?, ?, ?, 'paid', ?, ?, ?, NOW())
+                INSERT INTO payments (event_id, user_id, custom_id, reference, amount, quantity, ticket_type, status, paystack_response, payment_id, transaction_id, paid_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, 'paid', ?, ?, ?, NOW())
             ");
             $payStmt->execute([
                 $order['event_id'],
@@ -108,6 +109,8 @@ function processSuccessfulPayment(PDO $pdo, array $order, array $psData): void
                 $paymentCustomId,
                 $order['transaction_reference'],
                 $order['amount'],
+                $quantity,
+                $ticket_type,
                 json_encode($psData),
                 $psData['id'] ?? null,
                 $psData['reference'] ?? null

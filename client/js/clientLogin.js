@@ -7,7 +7,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const togglePassword = document.getElementById('togglePassword');
     const loginButton = document.getElementById('loginButton');
     const successMessage = document.getElementById('successMessage');
-    const googleSignIn = document.getElementById('googleSignIn');
     const forgotPasswordLink = document.querySelector('.forgot-password');
 
     // Role Context (Detected from URL role/intent or body data-intent)
@@ -78,38 +77,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 window.lucide.createIcons();
             }
         });
-    }
-
-    // Google Sign In (Using Custom Themed Button)
-    if (googleSignIn) {
-        googleSignIn.addEventListener('click', () => {
-            if (window.authController) {
-                window.authController.handleGoogleLoginManual();
-            }
-        });
-
-        // Load Google Config and Initialize
-        (async () => {
-            try {
-                const configResponse = await apiFetch('/api/config/get-google-config.php');
-                const configData = await configResponse.json();
-                
-                if (configData.success && configData.client_id) {
-                    let attempts = 0;
-                    const checkGoogle = setInterval(() => {
-                        if (typeof google !== 'undefined') {
-                            clearInterval(checkGoogle);
-                            // Initialize and render the button into the googleContainer
-                            authController.initGoogle(configData.client_id, 'googleContainer');
-                        } else if (attempts > 50) {
-                            clearInterval(checkGoogle);
-                            console.warn('Google SDK failed to load after 5 seconds');
-                        }
-                        attempts++;
-                    }, 100);
-                }
-            } catch (e) { console.error('Google config error:', e); }
-        })();
     }
 
     function validateEmail(email) {
@@ -223,6 +190,44 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Unified Google Init (Handled by AuthController)
+    async function initGoogleAuth() {
+        try {
+            const response = await apiFetch('/api/config/get-google-config.php');
+            const data = await response.json();
+            
+            if (data.success && data.client_id) {
+                // Wait for Google SDK to load
+                let attempts = 0;
+                const checkGoogle = setInterval(() => {
+                    attempts++;
+                    if (typeof google !== 'undefined' && google.accounts && google.accounts.id) {
+                        clearInterval(checkGoogle);
+                        // Initialize Google SDK with actual container ID
+                        authController.initGoogle(data.client_id, 'googleSignIn'); 
+                    } else if (attempts > 50) {
+                        clearInterval(checkGoogle);
+                        console.error('Google SDK failed to load');
+                    }
+                }, 100);
+            }
+        } catch (error) {
+            console.error('Google Auth Init Error:', error);
+        }
+    }
+
+    // Google Login button click handler
+    const googleSignInBtn = document.getElementById('googleSignIn');
+    if (googleSignInBtn) {
+        googleSignInBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (window.authController) {
+                window.authController.handleGoogleLoginManual();
+            }
+        });
+    }
+
+    // Initialize Google Auth
+    initGoogleAuth();
 
     // handleCredentialResponse is now handled by AuthController.handleGoogleResponse
 

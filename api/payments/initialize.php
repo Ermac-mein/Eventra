@@ -10,8 +10,9 @@ $user_id_or_auth_id = checkAuth('user');
 
 // ── Input ────────────────────────────────────────────────────────────────────
 $body     = json_decode(file_get_contents('php://input'), true) ?? [];
-$event_id = (int)($body['event_id'] ?? $_POST['event_id'] ?? 0);
-$quantity = max(1, (int)($body['quantity'] ?? $_POST['quantity'] ?? 1));
+$event_id    = (int)($body['event_id']    ?? $_POST['event_id']    ?? 0);
+$quantity    = max(1, (int)($body['quantity']    ?? $_POST['quantity']    ?? 1));
+$ticket_type = $body['ticket_type'] ?? $_POST['ticket_type'] ?? 'regular';
 
 if (!$event_id) {
     http_response_code(400);
@@ -65,7 +66,7 @@ try {
     // ── Fetch event + organizer subaccount ─────────────────────────────────
     $eStmt = $pdo->prepare("
         SELECT e.id, e.event_name, e.price, e.status, e.max_capacity, e.attendee_count,
-               e.event_date, e.event_time, e.city, e.state,
+               e.event_date, e.event_time, e.state,
                e.client_id AS organizer_id,
                c.subaccount_code, c.verification_status
         FROM events e
@@ -129,10 +130,10 @@ try {
             require_once '../../api/utils/id-generator.php';
             $paymentCustomId = generatePaymentId($pdo);
             $payStmt = $pdo->prepare("
-                INSERT INTO payments (event_id, user_id, custom_id, reference, amount, status, paid_at)
-                VALUES (?, ?, ?, ?, 0, 'paid', NOW())
+                INSERT INTO payments (event_id, user_id, custom_id, reference, amount, quantity, ticket_type, status, paid_at)
+                VALUES (?, ?, ?, ?, 0, ?, ?, 'paid', NOW())
             ");
-            $payStmt->execute([$event_id, $user_id, $paymentCustomId, $reference]);
+            $payStmt->execute([$event_id, $user_id, $paymentCustomId, $reference, $quantity, $ticket_type]);
             $payment_id = $pdo->lastInsertId();
 
             // 3. Create ticket(s)
@@ -232,6 +233,7 @@ try {
             'event_id'   => $event_id,
             'event_name' => $event['event_name'],
             'quantity'   => $quantity,
+            'ticket_type'=> $ticket_type,
             'user_id'    => $user_id,
             'user_name'  => $user_name,
         ],

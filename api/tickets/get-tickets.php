@@ -35,9 +35,9 @@ try {
             p.reference,
             c.business_name AS organiser_name
         FROM tickets t
-        JOIN payments p ON t.payment_id = p.id
-        JOIN users u ON p.user_id = u.id
-        JOIN events e ON p.event_id = e.id
+        LEFT JOIN payments p ON t.payment_id = p.id
+        LEFT JOIN users u ON t.user_id = u.id
+        JOIN events e ON t.event_id = e.id
         JOIN clients c ON e.client_id = c.id
         WHERE e.client_id = ?
         ORDER BY t.created_at DESC
@@ -58,13 +58,13 @@ try {
     // Stats: revenue = SUM(e.price) per paid ticket
     $stats_stmt = $pdo->prepare("
         SELECT
-            SUM(CASE WHEN p.status = 'paid' THEN 1 ELSE 0 END)                                     AS total_tickets,
+            COUNT(t.id)                                                                            AS total_tickets,
             COALESCE(SUM(CASE WHEN p.status = 'paid' THEN e.price ELSE 0 END), 0)                  AS total_revenue,
             SUM(CASE WHEN p.status = 'pending' THEN 1 ELSE 0 END)                                  AS pending_tickets,
             SUM(CASE WHEN t.status = 'cancelled' OR p.status = 'refunded' THEN 1 ELSE 0 END)       AS cancelled_tickets
         FROM tickets t
-        JOIN payments p ON t.payment_id = p.id
-        JOIN events e   ON p.event_id = e.id
+        LEFT JOIN payments p ON t.payment_id = p.id
+        JOIN events e   ON t.event_id = e.id
         WHERE e.client_id = ?
     ");
     $stats_stmt->execute([$real_client_id]);

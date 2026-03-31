@@ -191,15 +191,15 @@ function updateTicketsTable(tickets) {
         return `
         <tr style="cursor: pointer;" onclick='showTicketPreviewModal(${JSON.stringify(ticket).replace(/'/g, "&#39;")})'>
             <td><input type="checkbox" class="ticket-checkbox" data-id="${ticket.id}"></td>
-            <td style="font-family:monospace;font-size:0.8rem;color:#635bff;font-weight:600;">
-                ${ticket.custom_id || '—'}
+            <td style="font-family:monospace;font-size:0.85rem;color:#635bff;font-weight:700;">
+                ${ticket.custom_id || ticket.id}
             </td>
-            <td>${ticket.event_name || 'N/A'}</td>
+            <td>${(ticket.event_name || 'N/A').replace(/\s*#\d+$/, '')}</td>
             <td>${ticket.buyer_name || ticket.user_name || 'N/A'}</td>
             <td>${priceDisplay}</td>
-            <td>${ticket.organiser_name || 'Direct'}</td>
+            <td><span style="font-size: 0.85rem; color: #64748b;">${ticket.category || 'General'}</span></td>
             <td>${ticket.purchase_date || ticket.created_at || 'N/A'}</td>
-            <td><span style="color: ${statusColor}; font-weight: 600;">${ticket.status ? ticket.status.toUpperCase() : 'N/A'}</span></td>
+            <td><span class="status-badge ${ticket.status === 'valid' ? 'status-paid' : ticket.status === 'used' ? 'status-refunded' : 'status-failed'}">${(ticket.status || 'N/A').toUpperCase()}</span></td>
         </tr>`;
     }).join('');
 

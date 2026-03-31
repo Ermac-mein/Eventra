@@ -16,7 +16,7 @@ try {
 
     $client_id = $_GET['client_id'] ?? null;
     $status = $_GET['status'] ?? null;
-    $limit = $_GET['limit'] ?? 10;
+    $limit = $_GET['limit'] === 'all' ? 10000 : ($_GET['limit'] ?? 10);
     $offset = $_GET['offset'] ?? 0;
     $user_role = $_SESSION['user_role'] ?? 'guest';
 

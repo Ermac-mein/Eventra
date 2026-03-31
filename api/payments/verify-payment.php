@@ -124,8 +124,10 @@ try {
     $pdo->beginTransaction();
 
     try {
-        // 0. Extract quantity from metadata
-        $quantity = max(1, (int)($result['data']['metadata']['quantity'] ?? 1));
+        // 0. Extract quantity and ticket_type from metadata
+        $metadata    = $result['data']['metadata'] ?? [];
+        $quantity    = max(1, (int)($metadata['quantity'] ?? 1));
+        $ticket_type = $metadata['ticket_type'] ?? 'regular';
 
         // 1. Update order status
         $pdo->prepare("
@@ -154,8 +156,8 @@ try {
 
             // Save to payments table
             $payStmt = $pdo->prepare("
-                INSERT INTO payments (event_id, user_id, custom_id, reference, amount, status, paystack_response, payment_id, transaction_id, paid_at)
-                VALUES (?, ?, ?, ?, ?, 'paid', ?, ?, ?, NOW())
+                INSERT INTO payments (event_id, user_id, custom_id, reference, amount, quantity, ticket_type, status, paystack_response, payment_id, transaction_id, paid_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, 'paid', ?, ?, ?, NOW())
             ");
             $payStmt->execute([
                 $order['event_id'],
@@ -163,6 +165,8 @@ try {
                 $paymentCustomId,
                 $reference,
                 $order['amount'],
+                $quantity,
+                $ticket_type,
                 json_encode($result['data']),
                 (string)($result['data']['id'] ?? ''),
                 (string)($result['data']['reference'] ?? '')

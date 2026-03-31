@@ -190,20 +190,18 @@ function showCreateEventModal() {
                                                style="width: 100%; padding: 1rem 1.25rem; border: 2px solid #e5e7eb; border-radius: 12px; font-size: 1rem; background: white; transition: all 0.3s; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
                                     </div>
 
-                                    <div class="form-group">
-                                        <label style="display: block; font-size: 0.875rem; font-weight: 600; color: #6b7280; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.5px;">Ticket Price (₦) <span style="color: #ef4444">*</span></label>
-                                        <div style="display: flex; gap: 1rem; align-items: center;">
-                                            <input type="number" name="price" id="priceInput" required placeholder="5000" min="0" step="0.01" 
-                                                   style="flex: 1; padding: 1rem 1.25rem; border: 2px solid #e5e7eb; border-radius: 12px; font-size: 1rem; background: white; transition: all 0.3s; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
+                                    <div class="form-group" id="priceInputGroup">
+                                        <label style="display: block; font-size: 0.875rem; font-weight: 600; color: #6b7280; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.5px;">Event Type</label>
+                                        <div style="display: flex; align-items: center; min-height: 52px;">
                                             <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; user-select: none; font-weight: 600; color: #6b7280; background: white; padding: 0.75rem 1.25rem; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); border: 2px solid #e5e7eb;">
-                                                <input type="checkbox" id="freeEventCheckbox" style="width: 1.2rem; height: 1.2rem; accent-color: #8b5cf6;"> Free
+                                                <input type="checkbox" id="freeEventCheckbox" style="width: 1.2rem; height: 1.2rem; accent-color: #8b5cf6;"> Mark as Free Event
                                             </label>
                                         </div>
                                     </div>
                                 </div>
 
                                 <!-- Ticket Type Configuration -->
-                                <div style="background: linear-gradient(135deg, #e0f2fe, #f0f9ff); padding: 2rem; border-radius: 16px; border: 2px solid #0ea5e9;">
+                                <div id="ticketTypeConfigSection" style="background: linear-gradient(135deg, #e0f2fe, #f0f9ff); padding: 2rem; border-radius: 16px; border: 2px solid #0ea5e9;">
                                     <h4 style="margin: 0 0 1.5rem 0; font-weight: 800; color: #0369a1; font-size: 1rem; text-transform: uppercase; letter-spacing: 1px;">💳 Ticket Type Configuration</h4>
                                     <div style="display: grid; gap: 1rem; margin-bottom: 1.5rem;">
                                         <label style="display: flex; align-items: center; gap: 1rem; cursor: pointer; padding: 1rem; background: white; border-radius: 12px; border: 2px solid transparent; transition: all 0.3s;">
@@ -441,20 +439,19 @@ function showCreateEventModal() {
     // Free Event Checkbox Handler
     const freeCheckbox = document.getElementById('freeEventCheckbox');
     const priceInput = document.getElementById('priceInput');
+    const priceInputGroup = document.getElementById('priceInputGroup');
+    const ticketConfig = document.getElementById('ticketTypeConfigSection');
 
     freeCheckbox.addEventListener('change', function() {
         if (this.checked) {
-            priceInput.value = 0;
-            priceInput.readOnly = true;
-            priceInput.style.backgroundColor = '#f3f4f6';
-            priceInput.style.color = '#9ca3af';
+            // If free, hide ticket config and set hidden inputs to 0
+            if (ticketConfig) ticketConfig.style.display = 'none';
+            if (regularPriceInput) { regularPriceInput.value = 0; regularPriceInput.required = false; }
+            if (vipPriceInput) { vipPriceInput.value = 0; vipPriceInput.required = false; }
         } else {
-            priceInput.readOnly = false;
-            priceInput.value = '';
-            priceInput.placeholder = '5000';
-            priceInput.style.backgroundColor = 'white';
-            priceInput.style.color = 'inherit';
-            priceInput.focus();
+            // Restore visibility and requirements
+            if (ticketConfig) ticketConfig.style.display = 'block';
+            updateTicketTypeSections(); // Recalculate requirements
         }
     });
 
@@ -483,17 +480,9 @@ function showCreateEventModal() {
         regularPriceInput.required = (selectedMode === 'regular-only' || selectedMode === 'both');
         vipPriceInput.required = (selectedMode === 'vip-only' || selectedMode === 'both');
         
-        // Update main price input based on mode
-        if (selectedMode === 'regular-only') {
-            priceInput.value = regularPriceInput.value;
-        } else if (selectedMode === 'vip-only') {
-            priceInput.value = vipPriceInput.value;
-        } else if (selectedMode === 'both') {
-            // For both mode, use the lower of the two prices as the display price
-            const regularVal = parseFloat(regularPriceInput.value) || 0;
-            const vipVal = parseFloat(vipPriceInput.value) || 0;
-            priceInput.value = Math.min(regularVal, vipVal) || '';
-        }
+        // Update main price input if it were present, but since it's removed, we just ensure 
+        // that regular/vip prices are correctly prioritized for the backend if needed 
+        // (though backend handles them independently now).
     }
 
     ticketTypeRadios.forEach(radio => {

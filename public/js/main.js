@@ -348,15 +348,22 @@ function initUserIcon() {
         if (loginModal) {
           loginModal.style.display = 'flex';
           setTimeout(() => loginModal.classList.add('show'), 10);
-          // Re-render Google button when modal is shown
-          setTimeout(() => {
-            if (authController.googleInitialized) {
-              authController.renderGoogleButton('googleSignInContainer');
-            }
-          }, 50);
+          // Manual button is already in HTML, logical handler added in initUserIcon
         }
       }
     });
+
+    // Handle Manual Google Click (Added for restored button)
+    const googleBtn = document.getElementById('googleSignIn');
+    if (googleBtn) {
+        googleBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (window.authController) {
+                // Ensure SDK is initialized even on manual click if it wasn't before
+                window.authController.handleGoogleLoginManual();
+            }
+        });
+    }
   }
 
   // Close dropdown on click outside
@@ -549,8 +556,9 @@ async function initGoogleAuth() {
             const googleLoaded = await googleLoadPromise;
             
             if (googleLoaded) {
-                console.log('[Main] Initializing Google with AuthController...');
-                authController.initGoogle(data.client_id, 'googleSignInContainer');
+                console.log('[Main] Initializing Google SDK with container: googleSignInContainer');
+                // Use the actual container ID so Google can render its internal components if needed
+                authController.initGoogle(data.client_id, 'googleSignInContainer'); 
             } else {
                 console.error('[Main] Google SDK failed to load, not initializing');
             }
@@ -758,8 +766,8 @@ function createEventCard(event, index) {
   const shareTitle = `Eventra: ${eventName}`;
   const shareText = `Check out ${eventName} organized by ${organizer} on Eventra!`;
   
-  // Add VIP badge if both types exist
-  const vipBadge = (regularPrice > 0 && vipPrice > 0) ? '<span style="background: linear-gradient(135deg, #7c3aed, #a855f7); color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.7rem; font-weight: 700;">Regular/VIP</span>' : '';
+  // Add VIP badge if both types exist - Added margin-right to prevent overlap with heart icon
+  const vipBadge = (regularPrice > 0 && vipPrice > 0) ? '<span style="background: linear-gradient(135deg, #7c3aed, #a855f7); color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.7rem; font-weight: 700; margin-right: 12px;">Regular/VIP</span>' : '';
 
   const getPriorityIcon = (p) => {
     switch(p.toLowerCase()) {
@@ -1296,6 +1304,25 @@ function initializeSlider(gridId) {
     slide();
 }
 
+
+// Smooth scroll for all anchor links
+function initSmoothScroll() {
+  document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+    anchor.addEventListener('click', function (e) {
+      e.preventDefault();
+      const targetId = this.getAttribute('href');
+      if (targetId === '#') return;
+      
+      const targetElement = document.querySelector(targetId);
+      if (targetElement) {
+        targetElement.scrollIntoView({
+          behavior: 'smooth',
+          block: 'start'
+        });
+      }
+    });
+  });
+}
 
 // Initialize all functions
 async function init() {

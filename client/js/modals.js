@@ -124,7 +124,7 @@ function showProfileEditModal() {
                                     <div id="accountStatus" class="verification-status-indicator">
                                         ${user.subaccount_code 
                                             ? '<span style="color:#10b981; font-weight: bold;" title="Verified Subaccount">✓ Verified</span>' 
-                                            : '<span style="color:#f59e0b; font-weight: bold; font-size: 0.85rem;" title="Setup Incomplete">⚠️ Incomplete Setup</span>'}
+                                            : ''}
                                     </div>
                                 </label>
                                 <input type="text" id="accountNumberInput" name="account_number" value="${(user.account_number && !/^[0]*$/.test(user.account_number)) ? escapeHTML(user.account_number) : ''}" maxlength="10" placeholder="10-digit Account Number" class="form-control" oninput="this.value = this.value.replace(/[^0-9]/g, '');" onblur="resolveAccount()" required>
@@ -804,9 +804,54 @@ function showEditEventModal(event) {
                                 </div>
                             </div>
 
-                            <div class="form-group">
-                                <label>Ticket Price (₦) *</label>
-                                <input type="number" name="price" value="${event.price}" required min="0" step="0.01">
+                            <div class="form-group" id="editPriceInputGroup">
+                                <label style="display: block; font-weight: 600; margin-bottom: 0.5rem; ${parseFloat(event.price) === 0 ? 'display: none;' : ''}">Ticket Price (₦) *</label>
+                                <div style="display: flex; gap: 1rem; align-items: center;">
+                                    <input type="number" name="price" id="editPriceInput" value="${event.price}" required min="0" step="0.01" 
+                                           style="${parseFloat(event.price) === 0 ? 'display: none;' : ''}">
+                                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; user-select: none; font-weight: 600; color: #6b7280; background: white; padding: 0.5rem 1rem; border-radius: 8px; border: 1px solid #d1d5db;">
+                                        <input type="checkbox" id="editFreeEventCheckbox" ${parseFloat(event.price) === 0 ? 'checked' : ''} style="width: 1.1rem; height: 1.1rem; accent-color: #8b5cf6;"> Free
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="form-group" style="grid-column: 1 / -1; margin-bottom: 1.5rem; ${parseFloat(event.price) === 0 ? 'display: none;' : ''}" id="editTicketTypeConfigSection">
+                                <div style="background: linear-gradient(135deg, #e0f2fe, #f0f9ff); padding: 1.5rem; border-radius: 12px; border: 1px solid #0ea5e9;">
+                                    <h4 style="margin: 0 0 1rem 0; font-weight: 800; color: #0369a1; font-size: 0.9rem; text-transform: uppercase;">💳 Ticket Type Configuration</h4>
+                                    <div style="display: grid; gap: 0.75rem; margin-bottom: 1.5rem;">
+                                        <label style="display: flex; align-items: center; gap: 0.75rem; cursor: pointer; padding: 0.75rem; background: white; border-radius: 10px; border: 1px solid #e2e8f0;">
+                                            <input type="radio" name="ticketTypeMode" value="regular-only" ${event.ticket_type_mode === 'regular-only' ? 'checked' : ''} style="accent-color: #0369a1;">
+                                            <div>
+                                                <div style="font-weight: 700; color: #1e293b; font-size: 0.9rem;">Regular Only</div>
+                                            </div>
+                                        </label>
+                                        <label style="display: flex; align-items: center; gap: 0.75rem; cursor: pointer; padding: 0.75rem; background: white; border-radius: 10px; border: 1px solid #e2e8f0;">
+                                            <input type="radio" name="ticketTypeMode" value="vip-only" ${event.ticket_type_mode === 'vip-only' ? 'checked' : ''} style="accent-color: #0369a1;">
+                                            <div>
+                                                <div style="font-weight: 700; color: #1e293b; font-size: 0.9rem;">VIP Only</div>
+                                            </div>
+                                        </label>
+                                        <label style="display: flex; align-items: center; gap: 0.75rem; cursor: pointer; padding: 0.75rem; background: white; border-radius: 10px; border: 1px solid #e2e8f0;">
+                                            <input type="radio" name="ticketTypeMode" value="both" ${(!event.ticket_type_mode || event.ticket_type_mode === 'both') ? 'checked' : ''} style="accent-color: #0369a1;">
+                                            <div>
+                                                <div style="font-weight: 700; color: #1e293b; font-size: 0.9rem;">Both VIP & Regular</div>
+                                            </div>
+                                        </label>
+                                    </div>
+
+                                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                                        <div>
+                                            <label style="font-size: 0.75rem; font-weight: 700; color: #0369a1; text-transform: uppercase;">Regular Price (₦)</label>
+                                            <input type="number" name="regular_price" value="${event.regular_price || 0}" min="0" step="0.01">
+                                            <input type="number" name="regular_quantity" value="${event.regular_quantity || ''}" placeholder="Max Qty" style="margin-top: 5px;">
+                                        </div>
+                                        <div>
+                                            <label style="font-size: 0.75rem; font-weight: 700; color: #7c3aed; text-transform: uppercase;">VIP Price (₦)</label>
+                                            <input type="number" name="vip_price" value="${event.vip_price || 0}" min="0" step="0.01">
+                                            <input type="number" name="vip_quantity" value="${event.vip_quantity || ''}" placeholder="Max Qty" style="margin-top: 5px;">
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
 
                             <div class="form-group">
@@ -888,6 +933,30 @@ function showEditEventModal(event) {
     // Add submit handler
     editEventForm.addEventListener('submit', handleEventUpdate);
 
+    // Free Event Checkbox Handler (Edit Modal)
+    const freeCheckbox = document.getElementById('editFreeEventCheckbox');
+    const priceInput = document.getElementById('editPriceInput');
+    const priceInputGroup = document.getElementById('editPriceInputGroup');
+    const ticketConfig = document.getElementById('editTicketTypeConfigSection');
+
+    freeCheckbox.addEventListener('change', function() {
+        const pLabel = priceInputGroup.querySelector('label:not([style*="cursor: pointer"])');
+        if (this.checked) {
+            priceInput.value = 0;
+            priceInput.required = false;
+            priceInput.style.display = 'none';
+            if (pLabel) pLabel.style.display = 'none';
+            if (ticketConfig) ticketConfig.style.display = 'none';
+        } else {
+            priceInput.style.display = 'block';
+            priceInput.required = true;
+            if (parseFloat(priceInput.value) === 0) priceInput.value = '';
+            if (pLabel) pLabel.style.display = 'block';
+            if (ticketConfig) ticketConfig.style.display = 'block';
+            priceInput.focus();
+        }
+    });
+
     // Initialize Time Picker highlights if time exists
     if (event.event_time) {
         if (typeof setTimePickerValue === 'function') {
@@ -957,59 +1026,63 @@ function showTicketPreviewModal(ticket) {
     const imgSrc = ticket.event_image
         ? (ticket.event_image.startsWith('http') ? ticket.event_image : '../../' + ticket.event_image)
         : null;
-    const heroBg = imgSrc ? `url(${imgSrc})` : 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)';
-    const price = parseFloat(ticket.price || ticket.total_price || 0) === 0
-        ? 'Free'
-        : `₦${parseFloat(ticket.price || ticket.total_price || 0).toLocaleString()}`;
-    const statusColor = (ticket.status === 'confirmed' || ticket.status === 'paid' || ticket.status === 'active') ? '#10b981' : '#ef4444';
+    const heroBg = imgSrc ? `url("${imgSrc.replace(/"/g, '%22')}")` : 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)';
+    const price = parseFloat(ticket.price || ticket.total_price || 0) === 0 ? 'Free' : `₦${parseFloat(ticket.price || ticket.total_price || 0).toLocaleString()}`;
+    const statusClass = ticket.status === 'valid' ? 'tkt-active' : ticket.status === 'used' ? 'tkt-used' : 'tkt-cancelled';
+    const statusLabel = { valid: '✓ Valid', used: '👁 Used', cancelled: '✕ Cancelled' }[ticket.status] || (ticket.status ? ticket.status.toUpperCase() : 'N/A');
 
-    const modalContent = `
-        <div id="ticketPreviewModal" class="modal-backdrop active" role="dialog" aria-modal="true" aria-hidden="false">
-            <div class="modal-content" style="max-width: 520px; padding:0; border-radius:20px; overflow:hidden;">
-                <!-- Event Image Hero -->
-                <div style="height:180px; background:${heroBg}; background-size:cover; background-position:center; position:relative;">
-                    <button class="modal-close" onclick="closeTicketPreviewModal()" style="position:absolute;top:1rem;right:1rem;background:rgba(0,0,0,.4);border:none;color:white;width:34px;height:34px;border-radius:50%;font-size:1.3rem;cursor:pointer;display:flex;align-items:center;justify-content:center;">&times;</button>
-                    <div style="position:absolute;bottom:1rem;left:1.5rem;">
-                        <div style="font-size:.68rem;font-weight:700;color:rgba(255,255,255,.7);text-transform:uppercase;letter-spacing:.07em;margin-bottom:3px;">Event</div>
-                        <div style="font-size:1.2rem;font-weight:800;color:white;text-shadow:0 2px 8px rgba(0,0,0,.45);">${ticket.event_name || 'N/A'}</div>
-                    </div>
-                </div>
-                <!-- Details -->
-                <div style="padding:1.5rem; display:grid; gap:1rem;">
-                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
-                        <div>
-                            <div style="font-size:.78rem; color:#666; margin-bottom:.2rem;">🎫 Ticket ID</div>
-                            <div style="font-weight:600;">${ticket.id}</div>
-                        </div>
-                        <div>
-                            <div style="font-size:.78rem; color:#666; margin-bottom:.2rem;">👤 Buyer</div>
-                            <div style="font-weight:600;">${ticket.buyer_name || ticket.user_name || 'N/A'}</div>
-                        </div>
-                        <div>
-                            <div style="font-size:.78rem; color:#666; margin-bottom:.2rem;">💰 Price</div>
-                            <div style="font-weight:600;">${price}</div>
-                        </div>
-                        <div>
-                            <div style="font-size:.78rem; color:#666; margin-bottom:.2rem;">📆 Purchase Date</div>
-                            <div style="font-weight:600;">${ticket.purchase_date || ticket.created_at || 'N/A'}</div>
-                        </div>
-                        <div style="grid-column:1/-1;">
-                            <div style="font-size:.78rem; color:#666; margin-bottom:.2rem;">📊 Status</div>
-                            <div style="font-weight:700; color:${statusColor};">${ticket.status ? ticket.status.toUpperCase() : 'N/A'}</div>
-                        </div>
-                    </div>
-                    <button onclick="closeTicketPreviewModal()" class="btn btn-secondary" style="width:100%; margin-top:.5rem;">
-                        Close
-                    </button>
+    const modalHTML = `
+    <div id="ticketPreviewModal" style="position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:9100;backdrop-filter:blur(6px);padding:1rem;">
+        <div style="background:white;border-radius:20px;overflow:hidden;max-width:520px;width:100%;box-shadow:0 25px 60px rgba(0,0,0,.25);animation:slideUp .3s ease-out;">
+            <!-- Event Image Hero -->
+            <div style="height:160px;background:${heroBg};background-size:cover;background-position:center;position:relative;">
+                <button onclick="closeTicketPreviewModal()" style="position:absolute;top:1rem;right:1rem;background:rgba(0,0,0,.4);border:none;color:white;width:34px;height:34px;border-radius:50%;font-size:1.2rem;cursor:pointer;display:flex;align-items:center;justify-content:center;">&times;</button>
+                <div style="position:absolute;bottom:1rem;left:1.5rem;">
+                    <div style="font-size:.7rem;font-weight:700;color:rgba(255,255,255,.7);text-transform:uppercase;letter-spacing:.07em;margin-bottom:2px;">Event</div>
+                    <div style="font-size:1.25rem;font-weight:800;color:white;text-shadow:0 2px 8px rgba(0,0,0,.4);">${escapeHTML(ticket.event_name || '—')}</div>
                 </div>
             </div>
+            <!-- Details -->
+            <div style="padding:1.5rem;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem;">
+                    <span class="tkt-badge ${statusClass}" style="font-size:.82rem; padding: 4px 12px; border-radius: 20px; font-weight: 600;">${escapeHTML(statusLabel)}</span>
+                    <span style="font-family:monospace;font-size:.85rem;color:#6366f1;font-weight:700;">${escapeHTML(ticket.custom_id || ticket.id)}</span>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:.85rem;">
+                    <div><div style="font-size:.7rem;color:#94a3b8;font-weight:700;text-transform:uppercase;margin-bottom:2px;">Buyer</div><div style="font-weight:600;">${escapeHTML(ticket.buyer_name || ticket.user_name || '—')}</div></div>
+                    <div><div style="font-size:.7rem;color:#94a3b8;font-weight:700;text-transform:uppercase;margin-bottom:2px;">Price</div><div style="font-weight:700;">${price}</div></div>
+                    <div><div style="font-size:.7rem;color:#94a3b8;font-weight:700;text-transform:uppercase;margin-bottom:2px;">Category</div><div style="font-weight:600;">${escapeHTML(ticket.category || 'General')}</div></div>
+                    <div><div style="font-size:.7rem;color:#94a3b8;font-weight:700;text-transform:uppercase;margin-bottom:2px;">Date Purchased</div><div style="font-weight:600;">${ticket.purchase_date || ticket.created_at ? new Date(ticket.purchase_date || ticket.created_at).toLocaleDateString() : '—'}</div></div>
+                    <div><div style="font-size:.7rem;color:#94a3b8;font-weight:700;text-transform:uppercase;margin-bottom:2px;">Ticket Type</div><div style="font-weight:600;text-transform:capitalize;color:#6366f1;">${escapeHTML(ticket.ticket_type || 'regular')}</div></div>
+                </div>
+                <div style="background:#f8fafc;padding:1.25rem;border-radius:10px;margin:1.25rem 0;text-align:center;">
+                    <div style="font-size:.7rem;color:#94a3b8;font-weight:700;text-transform:uppercase;margin-bottom:1rem;">Barcode</div>
+                    <svg id="ticketBarcode" style="margin:0 auto;height:50px;"></svg>
+                    <div style="font-family:monospace;font-size:.75rem;color:#475569;margin-top:0.75rem;word-break:break-all;">${escapeHTML(ticket.barcode || ticket.id || '—')}</div>
+                </div>
+                <button onclick="closeTicketPreviewModal()" style="margin-top:1.5rem;width:100%;padding:.75rem;background:#6366f1;color:white;border:none;border-radius:10px;font-weight:700;cursor:pointer;font-size:.9rem;">Close</button>
+            </div>
         </div>
-    `;
+    </div>`;
 
     const existing = document.getElementById('ticketPreviewModal');
     if (existing) existing.remove();
 
-    document.body.insertAdjacentHTML('beforeend', modalContent);
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+
+    // Render barcode if library exists
+    if (typeof JsBarcode !== 'undefined') {
+        try {
+            JsBarcode("#ticketBarcode", ticket.barcode || ticket.id.toString(), {
+                format: "CODE128",
+                width: 2,
+                height: 50,
+                displayValue: false
+            });
+        } catch (e) {
+            console.warn('Barcode rendering failed:', e);
+        }
+    }
 }
 
 function closeTicketPreviewModal() {

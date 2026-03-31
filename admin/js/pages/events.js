@@ -68,10 +68,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                         <input type="checkbox" class="event-checkbox" data-id="${event.id}" ${selectedEventIds.has(event.id.toString()) ? 'checked' : ''}>
                     </td>
                     <td>
-                        <div style="font-size:.7rem;color:var(--admin-primary);font-family:monospace;font-weight:700;">${escapeHTML(event.custom_id || ('EVT-' + Math.random().toString(16).substr(2, 8).toUpperCase()))}</div>
+                        <div style="font-size:.75rem;color:var(--admin-primary);font-family:monospace;font-weight:700;">${escapeHTML(event.custom_id || event.id)}</div>
                     </td>
                     <td>
-                        <div style="font-weight:600;">${escapeHTML(event.event_name)}</div>
+                        <div style="font-weight:600;">${escapeHTML(event.event_name.replace(/\s*#\d+$/, ''))}</div>
                         <div style="font-size:.75rem;color:#64748b;">by ${escapeHTML(event.client_name || 'N/A')}</div>
                         ${event.client_custom_id ? `<div style="font-size:.7rem;color:#94a3b8;font-family:monospace;">${escapeHTML(event.client_custom_id)}</div>` : ''}
                     </td>

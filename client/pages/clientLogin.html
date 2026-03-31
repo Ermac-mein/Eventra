@@ -14,11 +14,13 @@
 
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="https://accounts.google.com/gsi/client" async defer></script>
     <script src="https://unpkg.com/lucide@latest"></script>
 
     <!-- Favicon -->
     <link rel="icon" type="image/x-icon" href="/public/favicon.ico">
+    
+    <!-- Google Sign-in -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 
 <body>
@@ -68,17 +70,14 @@
                     <!-- Submit Button -->
                     <button type="submit" id="loginButton" class="login-button">Login</button>
 
-                    <!-- Divider -->
-                    <div class="divider" id="authDivider">
-                        <span>OR</span>
-                    </div>
-
-                    <!-- Google Sign In -->
-                    <div id="googleContainer">
-                        <button type="button" id="googleSignIn" class="google-signin">
-                            <img src="https://www.gstatic.com/images/branding/product/1x/gsa_512dp.png"
-                                alt="Google Icon" class="google-icon">
-                            Sign in with Google
+                    <!-- Google Sign-in Button -->
+                    <div class="google-signin-wrapper" style="margin-top: 2rem;">
+                        <div class="divider">
+                            <span>or login with</span>
+                        </div>
+                        <button type="button" id="googleSignIn" class="google-login-btn">
+                            <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_Logo.svg" alt="Google Logo" style="width: 20px; height: 20px;">
+                            <span>Sign in with Google</span>
                         </button>
                     </div>
                 </form>

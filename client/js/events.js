@@ -72,7 +72,7 @@ window.switchEventTab = switchEventTab;
 
 async function loadEvents(clientId) {
     try {
-        const response = await apiFetch(`/api/events/get-events.php?client_id=${clientId}&limit=100`);
+        const response = await apiFetch(`/api/events/get-events.php?client_id=${clientId}&limit=all`);
         const result = await response.json();
 
         if (result.success) {
@@ -163,8 +163,8 @@ function updateEventsTable(events) {
             return `
             <tr data-id="${event.id}">
                 <td><input type="checkbox" class="event-checkbox" data-id="${event.id}"></td>
-                <td style="font-family:monospace;font-size:0.8rem;color:#ef4444;font-weight:600;">${event.custom_id || '—'}</td>
-                <td><div style="font-weight: 600;">${event.event_name}</div></td>
+                <td style="font-family:monospace;font-size:0.85rem;color:#ef4444;font-weight:700;">${event.custom_id || event.id}</td>
+                <td><div style="font-weight: 600;">${(event.event_name || '').replace(/\s*#\d+$/, '')}</div></td>
                 <td>${event.event_type}</td>
                 <td>${new Date(event.event_date).toLocaleDateString()}</td>
                 <td>${parseFloat(event.price) === 0 ? 'Free' : `₦${parseFloat(event.price).toLocaleString()}`}</td>
@@ -202,14 +202,14 @@ function updateEventsTable(events) {
             data-time="${event.event_time}"
             data-priority="${event.priority}"
             data-image="${event.image_path || ''}"
-            data-event-name="${event.event_name}"
+            data-event-name="${event.event_name.replace(/\s*#\d+$/, '')}"
             data-category="${event.event_type}"
             data-price="${parseFloat(event.price) === 0 ? 'Free' : `₦${parseFloat(event.price).toLocaleString()}`}"
             data-attendees="${event.attendee_count || 0}">
             <td><input type="checkbox" class="event-checkbox" data-id="${event.id}"></td>
-            <td style="font-family:monospace;font-size:0.8rem;color:#635bff;font-weight:600;">${event.custom_id || '—'}</td>
+            <td style="font-family:monospace;font-size:0.85rem;color:#635bff;font-weight:700;">${event.custom_id || event.id}</td>
             <td>
-                <div style="font-weight: 600;">${event.event_name}</div>
+                <div style="font-weight: 600;">${(event.event_name || '').replace(/\s*#\d+$/, '')}</div>
             </td>
             <td>${new Date(event.event_date).toLocaleDateString()}</td>
             <td>${event.event_type}</td>
@@ -692,26 +692,66 @@ async function permanentDeleteEvent(eventId) {
 window.permanentDeleteEvent = permanentDeleteEvent;
 
 // ─── PREVIEW EVENT ──────────────────────────────────────────────────────────
-
 async function previewEvent(eventId) {
     const row = document.querySelector(`tr[data-id="${eventId}"]`);
     if (!row) return;
 
-    const eventName = row.dataset.eventName;
-    const attendees = row.dataset.attendees;
-    const category = row.dataset.category;
-    const eventStatus = row.dataset.status;
-    const eventImage = row.dataset.image || 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=1200&fit=crop';
-    const tag = row.dataset.tag;
-    const description = row.dataset.description;
-    const address = row.dataset.address;
-    const date = row.dataset.date;
-    const time = row.dataset.time;
-    const priority = row.dataset.priority;
-    const price = row.dataset.price;
+    // Provide visual feedback while loading
+    row.style.opacity = '0.7';
+    
+    let event;
+    try {
+        const response = await apiFetch(`/api/events/get-event.php?id=${eventId}`);
+        const result = await response.json();
+        
+        if (result.success && result.event) {
+            const data = result.event;
+            event = {
+                id: eventId,
+                name: data.event_name,
+                custom_id: data.id, // Using DB ID as requested
+                client_name: data.client_name || 'N/A',
+                price: parseFloat(data.price) === 0 ? 'Free' : `₦${parseFloat(data.price).toLocaleString()}`,
+                attendees: data.attendee_count,
+                category: data.category || data.event_type || 'General',
+                status: data.status ? data.status.charAt(0).toUpperCase() + data.status.slice(1) : 'Draft',
+                image: data.image_path || 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=1200&fit=crop',
+                tag: data.tag || 'Standard',
+                description: data.description,
+                address: data.address,
+                state: data.state,
+                date: data.event_date,
+                time: data.event_time,
+                priority: data.priority ? data.priority.charAt(0).toUpperCase() + data.priority.slice(1) : 'Normal',
+                phone: data.phone_contact_1 || 'N/A'
+            };
+        } else {
+            throw new Error(result.message || 'Event not found');
+        }
+    } catch (e) {
+        console.error('Error fetching event preview:', e);
+        showNotification('Could not load event details.', 'error');
+        row.style.opacity = '1';
+        return;
+    } finally {
+        row.style.opacity = '1';
+    }
 
-    const clientName = row.dataset.clientName;
-    const shareLink = `${window.location.origin}/public/pages/event-details.html?event=${tag}&client=${clientName}`;
+    const eventName = event.name;
+    const price = event.price;
+    const attendees = event.attendees;
+    const category = event.category;
+    const status = event.status;
+    const eventImage = event.image;
+    const tag = event.tag;
+    const description = event.description;
+    const address = event.address;
+    const date = event.date;
+    const time = event.time;
+    const priority = event.priority;
+    const phone = event.phone;
+    const clientName = event.client_name;
+    const state = event.state;
 
     // Create Modal Backdrop (if not exists)
     let backdrop = document.querySelector('.preview-modal-backdrop');
@@ -721,9 +761,9 @@ async function previewEvent(eventId) {
         backdrop.setAttribute('role', 'dialog');
         backdrop.setAttribute('aria-modal', 'true');
         backdrop.setAttribute('aria-hidden', 'false');
-        backdrop.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 1000; backdrop-filter: blur(4px); transition: all 0.3s ease;';
+        backdrop.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 1000; backdrop-filter: blur(4px); transition: all 0.3s ease; overflow-y: auto;';
         backdrop.innerHTML = `
-            <div class="preview-modal" style="background: white; width: 95%; max-width: 650px; border-radius: 16px; overflow: hidden; position: relative; transform: translateY(20px); transition: all 0.3s ease; box-shadow: 0 20px 40px rgba(0,0,0,0.2); max-height: 90vh; display: flex; flex-direction: column;">
+            <div class="preview-modal" style="background: white; width: 95%; max-width: 650px; border-radius: 16px; overflow: hidden; position: relative; transform: translateY(20px); transition: all 0.3s ease; box-shadow: 0 20px 40px rgba(0,0,0,0.2); max-height: 90vh; display: flex; flex-direction: column; margin: auto;">
                 <button class="preview-close" aria-label="Close Preview" style="position: absolute; top: 1rem; right: 1rem; background: rgba(255,255,255,0.8); border: none; width: 32px; height: 32px; border-radius: 50%; font-size: 1.5rem; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 10; box-shadow: 0 2px 8px rgba(0,0,0,0.1); backdrop-filter: blur(4px);">×</button>
                 <div id="previewContent" style="overflow-y: auto; flex: 1;"></div>
             </div>
@@ -742,99 +782,118 @@ async function previewEvent(eventId) {
     }
 
     const content = backdrop.querySelector('#previewContent');
+    const statusColor = getStatusColor(status.toLowerCase());
+    
     content.innerHTML = `
-        <div class="event-preview">
-            <div style="height: 250px; overflow: hidden; position: relative;">
-                <img src="${eventImage.startsWith('http') ? eventImage : (eventImage.startsWith('/') ? '../..' + eventImage : '../../' + eventImage)}" style="width: 100%; height: 100%; object-fit: cover;" alt="Event">
-                <div style="position: absolute; top: 1rem; left: 1rem; background: ${getStatusColor(eventStatus.toLowerCase())}; color: white; padding: 0.5rem 1rem; border-radius: 30px; font-weight: 700; font-size: 0.75rem; text-transform: uppercase; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
-                    ${eventStatus}
+        <div class="event-preview-container" style="font-family: 'Plus Jakarta Sans', sans-serif;">
+            <!-- Hero Header -->
+            <div style="position: relative; height: 300px; border-radius: 0 0 32px 32px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.1);">
+                <img src="${eventImage.startsWith('http') ? eventImage : (eventImage.startsWith('/') ? '../..' + eventImage : '../../' + eventImage)}" style="width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s ease;" alt="Event">
+                <div style="position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.2) 50%, transparent 100%);"></div>
+                
+                <div style="position: absolute; top: 1.5rem; left: 1.5rem; display: flex; gap: 10px;">
+                    <div style="background: ${statusColor}; color: white; padding: 0.6rem 1.2rem; border-radius: 12px; font-weight: 800; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; backdrop-filter: blur(8px); box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
+                        ${status}
+                    </div>
+                    <div style="background: rgba(255,255,255,0.2); color: white; padding: 0.6rem 1.2rem; border-radius: 12px; font-weight: 800; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.3);">
+                        ID: ${event.id}
+                    </div>
+                </div>
+
+                <div style="position: absolute; bottom: 2rem; left: 2rem; right: 2rem;">
+                    <h1 style="font-size: 2.25rem; font-weight: 800; color: white; margin-bottom: 0.5rem; text-shadow: 0 2px 10px rgba(0,0,0,0.5);">${escapeHTML(eventName.replace(/\s*#\d+$/, ''))}</h1>
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <div style="width: 32px; height: 32px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; color: var(--client-primary); font-size: 0.8rem;">
+                            ${escapeHTML(clientName.charAt(0))}
+                        </div>
+                        <span style="color: rgba(255,255,255,0.9); font-weight: 600; font-size: 1rem;">Hosted by <span style="color: white; font-weight: 700;">${escapeHTML(clientName)}</span></span>
+                    </div>
                 </div>
             </div>
-            <div style="padding: 2rem;">
-                <div style="margin-bottom: 2rem;">
-                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem;">
-                        <h1 style="font-size: 1.85rem; font-weight: 800; color: #111827; line-height: 1.2; flex: 1;">${eventName}</h1>
+
+            <!-- Content Body -->
+            <div style="padding: 2.5rem;">
+                <!-- Quick Stats Grid -->
+                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 3rem;">
+                    <div style="background: #f8fafc; padding: 1.25rem; border-radius: 20px; border: 1px solid #e2e8f0; transition: all 0.3s ease;">
+                        <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">📅</div>
+                        <div style="font-size: 0.65rem; color: #94a3b8; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em;">Date</div>
+                        <div style="font-weight: 700; color: #1e293b; font-size: 0.9rem;">${new Date(date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</div>
+                    </div>
+                    <div style="background: #f8fafc; padding: 1.25rem; border-radius: 20px; border: 1px solid #e2e8f0;">
+                        <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">🕒</div>
+                        <div style="font-size: 0.65rem; color: #94a3b8; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em;">Time</div>
+                        <div style="font-weight: 700; color: #1e293b; font-size: 0.9rem;">${time.substring(0, 5)}</div>
+                    </div>
+                    <div style="background: #f8fafc; padding: 1.25rem; border-radius: 20px; border: 1px solid #e2e8f0;">
+                        <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">💎</div>
+                        <div style="font-size: 0.65rem; color: #94a3b8; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em;">Tickets</div>
+                        <div style="font-weight: 700; color: #1e293b; font-size: 0.9rem;">${escapeHTML(price)}</div>
+                    </div>
+                    <div style="background: #f8fafc; padding: 1.25rem; border-radius: 20px; border: 1px solid #e2e8f0;">
+                        <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">✨</div>
+                        <div style="font-size: 0.65rem; color: #94a3b8; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em;">Category</div>
+                        <div style="font-weight: 700; color: #1e293b; font-size: 0.9rem;">${escapeHTML(category)}</div>
                     </div>
                 </div>
 
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1.25rem; margin-bottom: 2rem;">
-                    <div style="display: flex; align-items: center; gap: 0.75rem;">
-                        <div style="width: 40px; height: 40px; background: #eef2ff; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.15rem;">📅</div>
-                        <div>
-                            <div style="font-size: 0.75rem; color: #6b7280; font-weight: 600; text-transform: uppercase;">Date</div>
-                            <div style="font-weight: 700; color: #374151;">${new Date(date).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })}</div>
+                <!-- Info Sections -->
+                <div style="display: grid; grid-template-columns: 1.5fr 1fr; gap: 2.5rem;">
+                    <div>
+                        <h3 style="font-size: 1rem; font-weight: 800; color: #1e293b; margin-bottom: 1.25rem; display: flex; align-items: center; gap: 10px;">
+                            <span style="width: 4px; height: 16px; background: var(--client-primary); border-radius: 4px;"></span>
+                            About this Event
+                        </h3>
+                        <div style="color: #475569; line-height: 1.8; font-size: 0.95rem; white-space: pre-wrap; margin-bottom: 2rem;">
+                            ${escapeHTML(description) || "The organizer hasn't provided a detailed description for this event yet."}
                         </div>
-                    </div>
-                    <div style="display: flex; align-items: center; gap: 0.75rem;">
-                        <div style="width: 40px; height: 40px; background: #fff7ed; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.15rem;">🕒</div>
-                        <div>
-                            <div style="font-size: 0.75rem; color: #6b7280; font-weight: 600; text-transform: uppercase;">Time</div>
-                            <div style="font-weight: 700; color: #374151;">${time.substring(0, 5)}</div>
-                        </div>
-                    </div>
-                    <div style="display: flex; align-items: center; gap: 0.75rem;">
-                        <div style="width: 40px; height: 40px; background: #f0fdf4; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.15rem;">🎟️</div>
-                        <div>
-                            <div style="font-size: 0.75rem; color: #6b7280; font-weight: 600; text-transform: uppercase;">Price</div>
-                            <div style="font-weight: 700; color: #374151;">${price.includes('Free') ? 'Free' : price}</div>
-                        </div>
-                    </div>
-                    <div style="display: flex; align-items: center; gap: 0.75rem;">
-                        <div style="width: 40px; height: 40px; background: #fdf2f8; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.15rem;">📂</div>
-                        <div>
-                            <div style="font-size: 0.75rem; color: #6b7280; font-weight: 600; text-transform: uppercase;">Category</div>
-                            <div style="font-weight: 700; color: #374151;">${category}</div>
-                        </div>
-                    </div>
-                </div>
 
-                <div style="margin-bottom: 2rem;">
-                    <label style="display: block; font-size: 0.85rem; color: #111827; margin-bottom: 0.75rem; text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em;">📍 Location & Address</label>
-                    <div style="background: #f9fafb; padding: 1rem; border-radius: 12px; border: 1px solid #e5e7eb; color: #4b5563; font-weight: 500;">
-                        ${address || 'No address provided'}
-                    </div>
-                </div>
-
-                <div style="margin-bottom: 2rem;">
-                    <label style="display: block; font-size: 0.85rem; color: #111827; margin-bottom: 0.75rem; text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em;">📝 Description</label>
-                    <div style="color: #4b5563; line-height: 1.6; white-space: pre-wrap; background: #f9fafb; padding: 1rem; border-radius: 12px; border: 1px solid #e5e7eb;">${description || 'No description available'}</div>
-                </div>
-
-                <div style="margin-bottom: 2rem;">
-                    <label style="display: block; font-size: 0.85rem; color: #111827; margin-bottom: 0.75rem; text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em;">👥 Attendees</label>
-                    <div style="display: flex; align-items: center; gap: 15px; background: #f9fafb; padding: 1rem; border-radius: 12px; border: 1px solid #e5e7eb;">
-                        <div style="display: flex;">
-                            ${[...Array(Math.min(parseInt(attendees), 5))].map((_, i) => `
-                                <img src="https://ui-avatars.com/api/?name=User+${i}&background=random" 
-                                     style="width: 36px; height: 36px; border-radius: 50%; border: 3px solid white; margin-left: ${i === 0 ? '0' : '-12px'}; transition: transform 0.2s;">
-                            `).join('')}
-                        </div>
-                        <span style="font-size: 1rem; color: #111827; font-weight: 700;">${attendees} people attending</span>
-                    </div>
-                </div>
-                
-                <div style="margin-top: 2rem; padding-top: 2rem; border-top: 2px solid #f3f4f6;">
-                    <div style="margin-bottom: 1.5rem;">
-                        <label style="display: block; font-size: 0.85rem; color: #111827; margin-bottom: 0.75rem; text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em;">🔗 Events Tag</label>
-                        <div style="display: flex; gap: 0.5rem; align-items: center;">
-                            <code style="background: #f3f4f6; padding: 0.75rem 1rem; border-radius: 10px; border: 1px solid #e5e7eb; font-family: 'JetBrains Mono', monospace; font-size: 0.9rem; flex: 1; color: #111827; font-weight: 600;">${tag}</code>
-                            <button onclick="copyToClipboard('${tag}', 'Tag copied!')" style="background: white; border: 1px solid #d1d5db; padding: 0.75rem; border-radius: 10px; cursor: pointer; transition: all 0.2s; font-size: 1.25rem;" title="Copy Tag">📋</button>
-                        </div>
-                    </div>
-                    <div style="margin-bottom: 2rem;">
-                        <label style="display: block; font-size: 0.85rem; color: #111827; margin-bottom: 0.75rem; text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em;">🚀 Shareable Link</label>
-                        <div style="display: flex; gap: 0.5rem; align-items: center;">
-                            <input type="text" readonly value="${shareLink}" 
-                                   style="background: #f3f4f6; padding: 0.75rem 1rem; border-radius: 10px; border: 1px solid #e5e7eb; font-family: inherit; font-size: 0.9rem; flex: 1; color: #111827; font-weight: 500;">
-                            <button onclick="copyToClipboard('${shareLink}', 'Link copied!')" style="background: #4F46E5; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 10px; cursor: pointer; transition: all 0.2s; font-size: 0.95rem; font-weight: 700; box-shadow: 0 4px 12px rgba(79, 70, 229, 0.2);">Copy Link</button>
+                        <h3 style="font-size: 1rem; font-weight: 800; color: #1e293b; margin-bottom: 1.25rem; display: flex; align-items: center; gap: 10px;">
+                            <span style="width: 4px; height: 16px; background: var(--client-primary); border-radius: 4px;"></span>
+                            Venue Location
+                        </h3>
+                        <div style="display: flex; align-items: flex-start; gap: 15px; background: #f1f5f9; padding: 1.5rem; border-radius: 20px;">
+                            <div style="font-size: 1.5rem;">📍</div>
+                            <div>
+                                <div style="font-weight: 700; color: #1e293b; margin-bottom: 0.25rem;">${escapeHTML(state) || 'Location'}</div>
+                                <div style="color: #64748b; font-size: 0.875rem;">${escapeHTML(address) || 'No specific address available'}</div>
+                            </div>
                         </div>
                     </div>
 
-                    ${eventStatus.toLowerCase() !== 'published' ? `
-                        <button onclick="publishEvent(${eventId})" class="btn" style="width: 100%; border-radius: 12px; font-weight: 700; background: #10b981; color: white; padding: 1rem; border: none; cursor: pointer; transition: all 0.2s; font-size: 1rem; display: flex; align-items: center; justify-content: center; gap: 0.5rem; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);">
-                            <span>✓</span> Publish Event Now
-                        </button>
-                    ` : ''}
+                    <div>
+                        <div style="background: #fff; border: 1.5px solid #eef2ff; padding: 2rem; border-radius: 24px; box-shadow: 0 10px 40px rgba(99, 102, 241, 0.05); margin-bottom: 2rem;">
+                            <div style="text-align: center; margin-bottom: 1.5rem;">
+                                <div style="font-size: 2.5rem; font-weight: 800; color: var(--client-primary); margin-bottom: 0.25rem;">${attendees}</div>
+                                <div style="font-size: 0.7rem; color: #94a3b8; font-weight: 800; text-transform: uppercase;">Total Attendees</div>
+                            </div>
+                            
+                            <div style="height: 6px; background: #f1f5f9; border-radius: 10px; overflow: hidden; margin-bottom: 2rem;">
+                                <div style="width: 65%; height: 100%; background: var(--client-primary); border-radius: 10px;"></div>
+                            </div>
+
+                            <div style="display: flex; flex-direction: column; gap: 12px;">
+                                <div style="display: flex; justify-content: space-between; font-size: 0.875rem;">
+                                    <span style="color: #64748b; font-weight: 600;">Priority</span>
+                                    <span style="color: #1e293b; font-weight: 700; text-transform: uppercase;">${escapeHTML(priority) || 'Normal'}</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; font-size: 0.875rem;">
+                                    <span style="color: #64748b; font-weight: 600;">Type</span>
+                                    <span style="color: #1e293b; font-weight: 700;">${escapeHTML(tag) || 'Standard'}</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; font-size: 0.875rem;">
+                                    <span style="color: #64748b; font-weight: 600;">Contact</span>
+                                    <span style="color: #1e293b; font-weight: 700;">${escapeHTML(phone) || '—'}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        ${status.toLowerCase() !== 'published' ? `
+                            <button onclick="publishEvent(${eventId})" style="width: 100%; padding: 1.25rem; background: #10b981; color: white; border: none; border-radius: 18px; font-weight: 800; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 12px; transition: all 0.3s ease; box-shadow: 0 10px 20px rgba(16, 185, 129, 0.2);">
+                                🚀 Publish Event Now
+                            </button>
+                        ` : ''}
+                    </div>
                 </div>
             </div>
         </div>
