@@ -129,6 +129,13 @@ try {
     $visibility = $_POST['visibility'] ?? 'all states';
     $price = $_POST['price'] ?? 0.00;
 
+    // New pricing fields
+    $ticket_type_mode = $_POST['ticketTypeMode'] ?? 'both';
+    $regular_price = !empty($_POST['regular_price']) ? floatval($_POST['regular_price']) : 0.00;
+    $vip_price = !empty($_POST['vip_price']) ? floatval($_POST['vip_price']) : 0.00;
+    $regular_quantity = !empty($_POST['regular_quantity']) ? intval($_POST['regular_quantity']) : null;
+    $vip_quantity = !empty($_POST['vip_quantity']) ? intval($_POST['vip_quantity']) : null;
+
     // Validate priority
     $allowed_priorities = ['nearby', 'hot', 'trending', 'upcoming', 'featured'];
     $priority_input = $_POST['priority'] ?? 'nearby';
@@ -189,17 +196,18 @@ try {
     $base_url = $_ENV['APP_URL'] ?? 'http://localhost:8000';
     $external_link = $base_url . '/public/pages/event-details.html?event=' . $tag . '&client=' . $client_name;
 
-    // Insert event
+    // Insert event with new pricing fields
     $stmt = $pdo->prepare("
         INSERT INTO events (
             client_id, custom_id, event_name, description, event_type, event_date, event_time,
             phone_contact_1, phone_contact_2, state, address, visibility, tag,
-            external_link, price, image_path, priority, status, scheduled_publish_time, category
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            external_link, price, regular_price, vip_price, regular_quantity, vip_quantity, 
+            image_path, priority, status, scheduled_publish_time, category
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ");
 
     $stmt->execute([
-        $real_client_id, // Use the correct foreign key
+        $real_client_id,
         $custom_id,
         $event_name,
         $description,
@@ -214,6 +222,10 @@ try {
         $tag,
         $external_link,
         $price,
+        $regular_price,
+        $vip_price,
+        $regular_quantity,
+        $vip_quantity,
         $image_path,
         $priority,
         $status,

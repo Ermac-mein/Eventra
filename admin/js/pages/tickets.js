@@ -228,7 +228,12 @@ function openAdminTicketModal(ticket) {
                     <div><div style="font-size:.7rem;color:#94a3b8;font-weight:700;text-transform:uppercase;margin-bottom:2px;">Price</div><div style="font-weight:700;">${price}</div></div>
                     <div><div style="font-size:.7rem;color:#94a3b8;font-weight:700;text-transform:uppercase;margin-bottom:2px;">Category</div><div style="font-weight:600;">${escapeHtml(ticket.category || 'General')}</div></div>
                     <div><div style="font-size:.7rem;color:#94a3b8;font-weight:700;text-transform:uppercase;margin-bottom:2px;">Date Purchased</div><div style="font-weight:600;">${ticket.created_at ? new Date(ticket.created_at).toLocaleDateString() : '—'}</div></div>
-                    <div style="grid-column:1/-1;"><div style="font-size:.7rem;color:#94a3b8;font-weight:700;text-transform:uppercase;margin-bottom:2px;">Barcode</div><div style="font-family:monospace;font-size:.82rem;color:#475569;">${escapeHtml(ticket.barcode || '—')}</div></div>
+                    <div><div style="font-size:.7rem;color:#94a3b8;font-weight:700;text-transform:uppercase;margin-bottom:2px;">Ticket Type</div><div style="font-weight:600;text-transform:capitalize;color:#6366f1;">${escapeHtml(ticket.ticket_type || 'regular')}</div></div>
+                </div>
+                <div style="background:#f8fafc;padding:1.25rem;border-radius:10px;margin:1.25rem 0;text-align:center;">
+                    <div style="font-size:.7rem;color:#94a3b8;font-weight:700;text-transform:uppercase;margin-bottom:1rem;">Barcode</div>
+                    <svg id="ticketBarcode" style="margin:0 auto;height:50px;"></svg>
+                    <div style="font-family:monospace;font-size:.75rem;color:#475569;margin-top:0.75rem;word-break:break-all;">${escapeHtml(ticket.barcode || '—')}</div>
                 </div>
                 <button onclick="document.getElementById('adminTicketModal').remove()" style="margin-top:1.5rem;width:100%;padding:.75rem;background:#6366f1;color:white;border:none;border-radius:10px;font-weight:700;cursor:pointer;font-size:.9rem;">Close</button>
             </div>
@@ -239,6 +244,21 @@ function openAdminTicketModal(ticket) {
     template.innerHTML = html.trim();
     const modalEl = template.content.firstElementChild;
     document.body.appendChild(modalEl);
+    
+    // Render barcode with jsbarcode library
+    if (ticket.barcode && typeof JsBarcode !== 'undefined') {
+        try {
+            JsBarcode("#ticketBarcode", ticket.barcode, {
+                format: "CODE128",
+                width: 2,
+                height: 50,
+                displayValue: false
+            });
+        } catch (e) {
+            console.warn('Barcode rendering failed:', e);
+        }
+    }
+    
     document.addEventListener('keydown', function esc(e) { if (e.key === 'Escape') { modalEl?.remove(); document.removeEventListener('keydown', esc); } });
 }
 

@@ -7,6 +7,7 @@
 
 header('Content-Type: application/json');
 require_once __DIR__ . '/../../config/database.php';
+require_once __DIR__ . '/../utils/notification-helper.php';
 
 // Ensure centralized session configuration is used
 if (session_status() === PHP_SESSION_NONE) {
@@ -28,6 +29,36 @@ try {
     }
 
     if ($auth_id) {
+        // Create logout notification based on role
+        if ($role === 'client') {
+            // Notify admin about client logout
+            $stmt = $pdo->prepare("SELECT business_name FROM clients WHERE client_auth_id = ?");
+            $stmt->execute([$auth_id]);
+            $clientData = $stmt->fetch();
+            $clientName = $clientData['business_name'] ?? 'Client';
+            
+            $adminId = getAdminUserId();
+            if ($adminId) {
+                $message = "Client '{$clientName}' has logged out";
+                createNotification($adminId, $message, 'client_logout', $auth_id, 'admin', 'client');
+            }
+        } elseif ($role === 'admin') {
+            // Create admin logout notification
+            createAdminLogoutNotification($auth_id);
+        } elseif ($role === 'user') {
+            // Notify admin about user logout
+            $stmt = $pdo->prepare("SELECT name FROM users WHERE user_auth_id = ?");
+            $stmt->execute([$auth_id]);
+            $userData = $stmt->fetch();
+            $userName = $userData['name'] ?? 'User';
+            
+            $adminId = getAdminUserId();
+            if ($adminId) {
+                $message = "User '{$userName}' has logged out";
+                createNotification($adminId, $message, 'user_logout', $auth_id, 'admin', 'user');
+            }
+        }
+
         // Update status to offline (only mark is_online = 0, NOT is_active!)
         $stmt = $pdo->prepare("UPDATE auth_accounts SET is_online = 0, last_seen = NOW() WHERE id = ?");
         $stmt->execute([$auth_id]);

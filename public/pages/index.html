@@ -424,6 +424,27 @@
                     <p id="modalEventDescription"></p>
                 </div>
 
+                <!-- Ticket Type Selector -->
+                <div id="ticketTypeSection" style="display: none; background: linear-gradient(135deg, #f0f9ff, #e0f2fe); padding: 1.5rem; border-radius: 12px; border: 2px solid #0ea5e9; margin-bottom: 1.5rem;">
+                    <h4 style="margin: 0 0 1rem 0; font-weight: 700; color: #0369a1;">💳 Choose Ticket Type</h4>
+                    <div style="display: grid; gap: 0.75rem;">
+                        <label style="display: flex; align-items: center; gap: 1rem; cursor: pointer; padding: 0.75rem; background: white; border-radius: 8px; border: 2px solid transparent; transition: all 0.2s;">
+                            <input type="radio" name="selectedTicketType" value="regular" style="width: 1rem; height: 1rem; accent-color: #0369a1; cursor: pointer;">
+                            <div>
+                                <div style="font-weight: 600; color: #1e293b;">Regular Ticket</div>
+                                <div style="font-size: 0.8rem; color: #64748b;" id="regularTicketPrice">₦0</div>
+                            </div>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 1rem; cursor: pointer; padding: 0.75rem; background: white; border-radius: 8px; border: 2px solid transparent; transition: all 0.2s;">
+                            <input type="radio" name="selectedTicketType" value="vip" style="width: 1rem; height: 1rem; accent-color: #7c3aed; cursor: pointer;">
+                            <div>
+                                <div style="font-weight: 600; color: #1e293b;">✨ VIP Ticket</div>
+                                <div style="font-size: 0.8rem; color: #64748b;" id="vipTicketPrice">₦0</div>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
                 <div class="event-details-footer">
                 <div class="event-quantity-section" style="display: flex; align-items: center; gap: 1.5rem; margin-bottom: 1rem; padding: 1rem 0; border-top: 1px solid #eee;">
                     <div class="quantity-selector" style="display: flex; align-items: center; gap: 0.5rem;">

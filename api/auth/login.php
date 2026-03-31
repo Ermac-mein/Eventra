@@ -181,6 +181,9 @@ try {
                 createClientLoginNotification($admin_id, $user['id'], $user['name'] ?? 'Client', $identity);
             } elseif ($userRole === 'user') {
                 createUserLoginNotification($admin_id, $user['id'], $user['name'] ?? 'User', $identity);
+            } elseif ($userRole === 'admin') {
+                // Create admin login notification for themselves
+                createAdminLoginNotification($user['id']);
             }
         }
 

@@ -84,15 +84,10 @@ try {
                IF(e.event_date >= CURDATE(), 'upcoming', 'past') as event_type
         FROM events e
         JOIN clients c ON e.client_id = c.id
-        WHERE e.status = 'published'
-        ORDER BY CASE 
-            WHEN e.event_date >= CURDATE() THEN 0 
-            ELSE 1 
-        END,
-        CASE 
-            WHEN e.event_date >= CURDATE() THEN e.event_date ASC 
-            ELSE e.event_date DESC 
-        END
+        WHERE e.status = 'published' AND e.deleted_at IS NULL
+        ORDER BY IF(e.event_date >= CURDATE(), 0, 1) ASC,
+                 IF(e.event_date >= CURDATE(), e.event_date, 0) ASC,
+                 IF(e.event_date >= CURDATE(), 0, e.event_date) DESC
         LIMIT 20
     ");
     $events_stmt->execute();
@@ -126,7 +121,7 @@ try {
         'past_events' => array_values($past_events),
         'recent_logs' => $recent_activities
     ]);
-} catch (PDOException $e) {
+} catch (Exception $e) {
     http_response_code(500);
     echo json_encode(['success' => false, 'message' => 'Failed to fetch admin stats.']);
 }

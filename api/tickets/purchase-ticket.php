@@ -28,11 +28,18 @@ if (!$user_id) {
 $data = json_decode(file_get_contents("php://input"), true);
 $event_id = $data['event_id'] ?? null;
 $quantity = (int) ($data['quantity'] ?? 1);
+$ticket_type = $data['ticket_type'] ?? 'regular'; // Support VIP/Regular ticket types
 $payment_reference = $data['payment_reference'] ?? null;
 $referred_by_client_name = $data['referred_by_client'] ?? null;
 
 if (!$event_id || $quantity < 1) {
     echo json_encode(['success' => false, 'message' => 'Invalid event ID or quantity']);
+    exit;
+}
+
+// Validate ticket type
+if (!in_array($ticket_type, ['regular', 'vip'])) {
+    echo json_encode(['success' => false, 'message' => 'Invalid ticket type. Must be regular or vip']);
     exit;
 }
 
@@ -89,8 +96,13 @@ try {
         exit;
     }
 
-    // 2. Calculate total price
-    $total_price = (float) $event['price'] * $quantity;
+    // 2. Calculate total price (support VIP/Regular pricing)
+    $total_price = 0;
+    if ($ticket_type === 'vip') {
+        $total_price = (float) ($event['vip_price'] ?? $event['price']) * $quantity;
+    } else {
+        $total_price = (float) ($event['regular_price'] ?? $event['price']) * $quantity;
+    }
 
     // 3. Referral Logic
     $referred_by_id = null;
@@ -149,20 +161,20 @@ try {
         $transaction_id = (string)$paystackResult->data->gateway_response;
         $customId = generatePaymentId($pdo);
 
-        $stmt = $pdo->prepare("INSERT INTO payments (event_id, user_id, custom_id, reference, amount, status, paystack_response, payment_id, transaction_id, paid_at) VALUES (?, ?, ?, ?, ?, 'paid', ?, ?, ?, NOW())");
-        $stmt->execute([$event_id, $user_id, $customId, $payment_reference, $total_price, $gatewayResponse, $paystack_id, $transaction_id]);
+        $stmt = $pdo->prepare("INSERT INTO payments (event_id, user_id, custom_id, reference, amount, status, paystack_response, payment_id, transaction_id, ticket_type, quantity, paid_at) VALUES (?, ?, ?, ?, ?, 'paid', ?, ?, ?, ?, ?, NOW())");
+        $stmt->execute([$event_id, $user_id, $customId, $payment_reference, $total_price, $gatewayResponse, $paystack_id, $transaction_id, $ticket_type, $quantity]);
         $payment_id = $pdo->lastInsertId();
     } else {
         // Free ticket
         $ref = 'FREE-' . strtoupper(bin2hex(random_bytes(8)));
         $customId = generatePaymentId($pdo);
-        $stmt = $pdo->prepare("INSERT INTO payments (event_id, user_id, custom_id, reference, amount, status, paystack_response, payment_id, transaction_id, paid_at) VALUES (?, ?, ?, ?, ?, 'paid', '{\"status\": \"free\"}', ?, ?, NOW())");
-        $stmt->execute([$event_id, $user_id, $customId, $ref, 0, 'free_' . uniqid(), 'free_' . uniqid()]);
+        $stmt = $pdo->prepare("INSERT INTO payments (event_id, user_id, custom_id, reference, amount, status, paystack_response, payment_id, transaction_id, ticket_type, quantity, paid_at) VALUES (?, ?, ?, ?, ?, 'paid', '{\"status\": \"free\"}', ?, ?, ?, ?, NOW())");
+        $stmt->execute([$event_id, $user_id, $customId, $ref, 0, 'free_' . uniqid(), 'free_' . uniqid(), $ticket_type, $quantity]);
         $payment_id = $pdo->lastInsertId();
     }
 
     // 5. Insert tickets with full identity binding
-    $stmt = $pdo->prepare("INSERT INTO tickets (user_id, event_id, payment_id, custom_id, barcode, ticket_code, status, used, created_at) VALUES (?, ?, ?, ?, ?, ?, 'valid', 0, NOW())");
+    $stmt = $pdo->prepare("INSERT INTO tickets (user_id, event_id, payment_id, custom_id, barcode, ticket_code, ticket_type, status, used, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, 'valid', 0, NOW())");
     $tickets_generated = [];
 
     for ($i = 0; $i < $quantity; $i++) {
@@ -170,7 +182,7 @@ try {
         $barcode = 'EVT-' . strtoupper(bin2hex(random_bytes(12)));
         $ticket_code = strtoupper(bin2hex(random_bytes(4))); // Short human-readable code
         $customId = generateTicketId($pdo);
-        $stmt->execute([$user_id, $event_id, $payment_id, $customId, $barcode, $ticket_code]);
+        $stmt->execute([$user_id, $event_id, $payment_id, $customId, $barcode, $ticket_code, $ticket_type]);
         $tickets_generated[] = $barcode;
     }
 

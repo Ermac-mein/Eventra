@@ -17,6 +17,21 @@ document.addEventListener('DOMContentLoaded', async () => {
             await loadDashboardStats();
         }
     }, 30000);
+
+    // Set up faster polling for recent activities (15 seconds) to show real-time updates
+    setInterval(async () => {
+        if (document.visibilityState === 'visible') {
+            try {
+                const response = await apiFetch('/api/stats/get-admin-dashboard-stats.php');
+                const result = await response.json();
+                if (result.success && result.recent_activities) {
+                    loadRecentActivities(result.recent_activities);
+                }
+            } catch (error) {
+                console.error('Error refreshing activities:', error);
+            }
+        }
+    }, 15000);
 });
 
 async function loadAdminProfile() {
@@ -30,6 +45,18 @@ async function loadAdminProfile() {
             
             // Store updated user data
             storage.setUser(adminUser);
+            
+            // Update profile picture in header
+            const userAvatarEl = document.querySelector('.user-avatar');
+            if (userAvatarEl) {
+                const profileImg = typeof getProfileImg === 'function' 
+                    ? getProfileImg(adminUser.profile_pic, adminUser.name)
+                    : `https://ui-avatars.com/api/?name=${encodeURIComponent(adminUser.name || 'Admin')}&background=6366f1&color=fff&size=128&bold=true`;
+                
+                userAvatarEl.style.backgroundImage = `url('${profileImg}')`;
+                userAvatarEl.style.backgroundSize = 'cover';
+                userAvatarEl.style.backgroundPosition = 'center';
+            }
         }
     } catch (error) {
         console.error('Error loading profile:', error);

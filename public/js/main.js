@@ -699,8 +699,32 @@ function escapeHTML(str) {
 
 // Create event card
 function createEventCard(event, index) {
-  const pVal = parseFloat(event.price || 0);
-  const price = pVal === 0 ? 'Free' : `₦${pVal.toLocaleString()}`;
+  // Handle pricing - prefer new fields if available
+  let price = 'Free';
+  let priceDisplay = '';
+  
+  const regularPrice = parseFloat(event.regular_price || 0);
+  const vipPrice = parseFloat(event.vip_price || 0);
+  const legacyPrice = parseFloat(event.price || 0);
+  
+  if (regularPrice > 0 && vipPrice > 0) {
+    // Both regular and VIP available
+    priceDisplay = `₦${regularPrice.toLocaleString()} - ₦${vipPrice.toLocaleString()}`;
+  } else if (regularPrice > 0) {
+    // Only regular price
+    priceDisplay = `₦${regularPrice.toLocaleString()}`;
+  } else if (vipPrice > 0) {
+    // Only VIP price
+    priceDisplay = `✨ ₦${vipPrice.toLocaleString()}`;
+  } else if (legacyPrice > 0) {
+    // Fallback to legacy price field
+    priceDisplay = `₦${legacyPrice.toLocaleString()}`;
+  } else {
+    // Free event
+    priceDisplay = 'Free';
+  }
+  
+  price = priceDisplay;
   
   // Security: Sanitize and Path Priority
   const relPath = event.image_path ? event.image_path.replace(/^\/+/, '') : null;
@@ -733,6 +757,9 @@ function createEventCard(event, index) {
   const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(full_address || 'Nigeria')}`;
   const shareTitle = `Eventra: ${eventName}`;
   const shareText = `Check out ${eventName} organized by ${organizer} on Eventra!`;
+  
+  // Add VIP badge if both types exist
+  const vipBadge = (regularPrice > 0 && vipPrice > 0) ? '<span style="background: linear-gradient(135deg, #7c3aed, #a855f7); color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.7rem; font-weight: 700;">Regular/VIP</span>' : '';
 
   const getPriorityIcon = (p) => {
     switch(p.toLowerCase()) {
@@ -781,7 +808,10 @@ function createEventCard(event, index) {
       </div>
 
       <div class="event-footer" style="padding: 0 1.5rem 1.5rem 1.5rem;">
-        <div class="event-price">${price}</div>
+        <div style="display: flex; align-items: center; justify-content: space-between;">
+          <div class="event-price">${price}</div>
+          ${vipBadge}
+        </div>
         <div class="event-card-actions">
           <button class="card-action-btn fav-btn ${isFavorite}" onclick="toggleFavorite(event, ${event.id}); event.stopPropagation();" title="Favorite">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="${isFavorite ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2">
@@ -1370,6 +1400,41 @@ function showEventModal(eventId) {
   const modalPrice = !event.price || parseFloat(event.price) === 0 ? 'Free' : `₦${parseFloat(event.price).toLocaleString()}`;
   if (document.getElementById('modalEventPrice')) document.getElementById('modalEventPrice').textContent = modalPrice;
 
+  // Handle VIP/Regular pricing in modal
+  const regularPrice = parseFloat(event.regular_price || 0);
+  const vipPrice = parseFloat(event.vip_price || 0);
+  const ticketTypeSection = document.getElementById('ticketTypeSection');
+  
+  if (ticketTypeSection) {
+    if (regularPrice > 0 && vipPrice > 0) {
+      // Both types available - show selector
+      ticketTypeSection.style.display = 'block';
+      const regularRadio = document.querySelector('input[name="selectedTicketType"][value="regular"]');
+      const vipRadio = document.querySelector('input[name="selectedTicketType"][value="vip"]');
+      
+      if (regularRadio) regularRadio.checked = true;
+      
+      // Update price display when ticket type changes
+      document.querySelectorAll('input[name="selectedTicketType"]').forEach(radio => {
+        radio.onchange = () => updateTicketPriceDisplay(event, radio.value);
+      });
+      
+      updateTicketPriceDisplay(event, 'regular');
+    } else if (regularPrice > 0) {
+      // Only regular - hide selector
+      ticketTypeSection.style.display = 'none';
+      if (document.getElementById('modalEventPrice')) {
+        document.getElementById('modalEventPrice').textContent = `₦${regularPrice.toLocaleString()}`;
+      }
+    } else if (vipPrice > 0) {
+      // Only VIP - hide selector
+      ticketTypeSection.style.display = 'none';
+      if (document.getElementById('modalEventPrice')) {
+        document.getElementById('modalEventPrice').textContent = `✨ ₦${vipPrice.toLocaleString()}`;
+      }
+    }
+  }
+
   // Priority badge
   const priorityBadge = document.getElementById('modalPriorityBadge');
   if (event.priority) {
@@ -1407,8 +1472,9 @@ function showEventModal(eventId) {
       buyTicketBtn.style.cursor = 'pointer';
       buyTicketBtn.onclick = () => {
         const quantity = document.getElementById('ticketQuantity').value || '1';
+        const ticketType = document.querySelector('input[name="selectedTicketType"]:checked')?.value || 'regular';
         closeEventModal();
-        window.location.href = `/public/pages/checkout.html?id=${event.id}&quantity=${quantity}`;
+        window.location.href = `/public/pages/checkout.html?id=${event.id}&quantity=${quantity}&ticket_type=${ticketType}`;
       };
     }
   }
@@ -1684,4 +1750,30 @@ if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', updateCartUI);
 } else {
     updateCartUI();
+}
+
+// Helper function to update ticket price display based on selected type
+function updateTicketPriceDisplay(event, ticketType) {
+  const regularPrice = parseFloat(event.regular_price || 0);
+  const vipPrice = parseFloat(event.vip_price || 0);
+  
+  // Update the main price display
+  const priceElement = document.getElementById('modalEventPrice');
+  if (ticketType === 'regular' && priceElement) {
+    priceElement.textContent = regularPrice > 0 ? `₦${regularPrice.toLocaleString()}` : 'Free';
+  } else if (ticketType === 'vip' && priceElement) {
+    priceElement.textContent = vipPrice > 0 ? `✨ ₦${vipPrice.toLocaleString()}` : 'Free';
+  }
+  
+  // Update individual ticket type prices in the selector
+  const regularPriceDisplay = document.getElementById('regularTicketPrice');
+  const vipPriceDisplay = document.getElementById('vipTicketPrice');
+  
+  if (regularPriceDisplay && regularPrice > 0) {
+    regularPriceDisplay.textContent = `₦${regularPrice.toLocaleString()}`;
+  }
+  
+  if (vipPriceDisplay && vipPrice > 0) {
+    vipPriceDisplay.textContent = `₦${vipPrice.toLocaleString()}`;
+  }
 }

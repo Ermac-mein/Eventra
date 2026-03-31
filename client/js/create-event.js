@@ -202,6 +202,58 @@ function showCreateEventModal() {
                                     </div>
                                 </div>
 
+                                <!-- Ticket Type Configuration -->
+                                <div style="background: linear-gradient(135deg, #e0f2fe, #f0f9ff); padding: 2rem; border-radius: 16px; border: 2px solid #0ea5e9;">
+                                    <h4 style="margin: 0 0 1.5rem 0; font-weight: 800; color: #0369a1; font-size: 1rem; text-transform: uppercase; letter-spacing: 1px;">💳 Ticket Type Configuration</h4>
+                                    <div style="display: grid; gap: 1rem; margin-bottom: 1.5rem;">
+                                        <label style="display: flex; align-items: center; gap: 1rem; cursor: pointer; padding: 1rem; background: white; border-radius: 12px; border: 2px solid transparent; transition: all 0.3s;">
+                                            <input type="radio" name="ticketTypeMode" value="regular-only" class="ticket-type-radio" style="width: 1.2rem; height: 1.2rem; accent-color: #0369a1; cursor: pointer;">
+                                            <div>
+                                                <div style="font-weight: 700; color: #1e293b;">Regular Only</div>
+                                                <div style="font-size: 0.8rem; color: #64748b;">Offer only standard tickets</div>
+                                            </div>
+                                        </label>
+                                        <label style="display: flex; align-items: center; gap: 1rem; cursor: pointer; padding: 1rem; background: white; border-radius: 12px; border: 2px solid transparent; transition: all 0.3s;">
+                                            <input type="radio" name="ticketTypeMode" value="vip-only" class="ticket-type-radio" style="width: 1.2rem; height: 1.2rem; accent-color: #0369a1; cursor: pointer;">
+                                            <div>
+                                                <div style="font-weight: 700; color: #1e293b;">VIP Only</div>
+                                                <div style="font-size: 0.8rem; color: #64748b;">Offer only premium VIP tickets</div>
+                                            </div>
+                                        </label>
+                                        <label style="display: flex; align-items: center; gap: 1rem; cursor: pointer; padding: 1rem; background: white; border-radius: 12px; border: 2px solid transparent; transition: all 0.3s;">
+                                            <input type="radio" name="ticketTypeMode" value="both" class="ticket-type-radio" style="width: 1.2rem; height: 1.2rem; accent-color: #0369a1; cursor: pointer;" checked>
+                                            <div>
+                                                <div style="font-weight: 700; color: #1e293b;">Both VIP & Regular</div>
+                                                <div style="font-size: 0.8rem; color: #64748b;">Offer both ticket types with different prices</div>
+                                            </div>
+                                        </label>
+                                    </div>
+
+                                    <!-- Regular Price Section -->
+                                    <div id="regularPriceSection" style="display: block; margin-bottom: 1.5rem;">
+                                        <label style="display: block; font-size: 0.875rem; font-weight: 600; color: #0369a1; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.5px;">Regular Ticket Price (₦)</label>
+                                        <input type="number" name="regular_price" id="regularPriceInput" placeholder="5000" min="0" step="0.01" 
+                                               style="width: 100%; padding: 1rem 1.25rem; border: 2px solid #0ea5e9; border-radius: 12px; font-size: 1rem; background: white; transition: all 0.3s; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
+                                        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; user-select: none; font-weight: 600; color: #64748b; margin-top: 0.75rem;">
+                                            <input type="number" name="regular_quantity" id="regularQuantityInput" placeholder="Unlimited" min="1" 
+                                                   style="flex: 1; padding: 0.75rem 1rem; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 0.9rem;">
+                                            <span style="white-space: nowrap;">Max tickets (optional)</span>
+                                        </label>
+                                    </div>
+
+                                    <!-- VIP Price Section -->
+                                    <div id="vipPriceSection" style="display: block;">
+                                        <label style="display: block; font-size: 0.875rem; font-weight: 600; color: #7c3aed; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.5px;">✨ VIP Ticket Price (₦)</label>
+                                        <input type="number" name="vip_price" id="vipPriceInput" placeholder="10000" min="0" step="0.01" 
+                                               style="width: 100%; padding: 1rem 1.25rem; border: 2px solid #c4b5fd; border-radius: 12px; font-size: 1rem; background: #faf5ff; transition: all 0.3s; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
+                                        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; user-select: none; font-weight: 600; color: #64748b; margin-top: 0.75rem;">
+                                            <input type="number" name="vip_quantity" id="vipQuantityInput" placeholder="Unlimited" min="1" 
+                                                   style="flex: 1; padding: 0.75rem 1rem; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 0.9rem;">
+                                            <span style="white-space: nowrap;">Max tickets (optional)</span>
+                                        </label>
+                                    </div>
+                                </div>
+
                                 <!-- Additional Fields -->
                                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
                                     <div class="form-group">
@@ -413,6 +465,47 @@ function showCreateEventModal() {
         
         // Ensure priority fields are visible regardless of status
     });
+
+    // Ticket Type Mode Handler
+    const ticketTypeRadios = document.querySelectorAll('.ticket-type-radio');
+    const regularPriceSection = document.getElementById('regularPriceSection');
+    const vipPriceSection = document.getElementById('vipPriceSection');
+    const regularPriceInput = document.getElementById('regularPriceInput');
+    const vipPriceInput = document.getElementById('vipPriceInput');
+
+    function updateTicketTypeSections() {
+        const selectedMode = document.querySelector('input[name="ticketTypeMode"]:checked')?.value || 'both';
+        
+        regularPriceSection.style.display = (selectedMode === 'regular-only' || selectedMode === 'both') ? 'block' : 'none';
+        vipPriceSection.style.display = (selectedMode === 'vip-only' || selectedMode === 'both') ? 'block' : 'none';
+        
+        // Update required attribute
+        regularPriceInput.required = (selectedMode === 'regular-only' || selectedMode === 'both');
+        vipPriceInput.required = (selectedMode === 'vip-only' || selectedMode === 'both');
+        
+        // Update main price input based on mode
+        if (selectedMode === 'regular-only') {
+            priceInput.value = regularPriceInput.value;
+        } else if (selectedMode === 'vip-only') {
+            priceInput.value = vipPriceInput.value;
+        } else if (selectedMode === 'both') {
+            // For both mode, use the lower of the two prices as the display price
+            const regularVal = parseFloat(regularPriceInput.value) || 0;
+            const vipVal = parseFloat(vipPriceInput.value) || 0;
+            priceInput.value = Math.min(regularVal, vipVal) || '';
+        }
+    }
+
+    ticketTypeRadios.forEach(radio => {
+        radio.addEventListener('change', updateTicketTypeSections);
+    });
+
+    // Sync prices when regular/vip price inputs change
+    regularPriceInput.addEventListener('change', updateTicketTypeSections);
+    vipPriceInput.addEventListener('change', updateTicketTypeSections);
+
+    // Initial update
+    updateTicketTypeSections();
 }
 
 function closeCreateEventModal() {

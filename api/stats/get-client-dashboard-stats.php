@@ -47,13 +47,13 @@ try {
     $stmt->execute([$real_client_id]);
     $total_users = $stmt->fetch()['total'];
 
-    // 4. Total Events
+    // 4. Total Events  
     $stmt = $pdo->prepare("SELECT COUNT(*) as total FROM events WHERE client_id = ? AND deleted_at IS NULL AND status = 'published'");
     $stmt->execute([$real_client_id]);
     $total_events = $stmt->fetch()['total'];
 
-    // 5. Upcoming Events
-    $stmt = $pdo->prepare("SELECT COUNT(*) as total FROM events WHERE client_id = ? AND event_date >= CURDATE() AND status = 'published' AND deleted_at IS NULL");
+    // 5. Upcoming Events (same as total events - show all created events)
+    $stmt = $pdo->prepare("SELECT COUNT(*) as total FROM events WHERE client_id = ? AND deleted_at IS NULL AND status = 'published'");
     $stmt->execute([$real_client_id]);
     $upcoming_events_count = $stmt->fetch()['total'];
 
