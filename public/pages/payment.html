@@ -297,56 +297,7 @@
         </aside>
     </main>
 
-    <!-- OTP Selection Modal -->
-    <div id="otpSelectModal" class="modal-overlay">
-        <div class="modal-card">
-            <h3 style="text-align: center; margin-bottom: 1rem; font-weight: 700;">Choose OTP Channel</h3>
-            <p style="text-align: center; color: #64748b; margin-bottom: 2rem;">Where should we send your verification code?</p>
-            
-            <div style="display: grid; gap: 1rem;">
-                <button class="channel-btn" id="channelEmail" style="display: flex; align-items: center; gap: 1rem; padding: 1.25rem; border: 2px solid #e2e8f0; border-radius: 1rem; background: white; cursor: pointer; text-align: left; width: 100%;">
-                    <div style="background: rgba(255, 90, 95, 0.1); padding: 0.5rem; border-radius: 0.5rem;">📧</div>
-                    <div>
-                        <div style="font-weight: 600;">Email Address</div>
-                        <div style="font-size: 0.8rem; color: #94a3b8;" id="summaryEmail">...</div>
-                    </div>
-                </button>
-                
-                <button class="channel-btn" id="channelSms" style="display: flex; align-items: center; gap: 1rem; padding: 1.25rem; border: 2px solid #e2e8f0; border-radius: 1rem; background: white; cursor: pointer; text-align: left; width: 100%;">
-                    <div style="background: rgba(59, 130, 246, 0.1); padding: 0.5rem; border-radius: 0.5rem;">📱</div>
-                    <div>
-                        <div style="font-weight: 600;">Phone Number</div>
-                        <div style="font-size: 0.8rem; color: #94a3b8;" id="summaryPhone">...</div>
-                    </div>
-                </button>
-            </div>
-            
-            <button onclick="document.getElementById('otpSelectModal').style.display='none'" style="margin-top: 1.5rem; background: none; border: none; color: #64748b; width: 100%; cursor: pointer; font-weight: 500;">Cancel</button>
-        </div>
-    </div>
-
-    <!-- OTP Input Modal -->
-    <div id="otpInputModal" class="modal-overlay">
-        <div class="modal-card">
-            <h3 style="text-align: center; margin-bottom: 0.5rem; font-weight: 700;">Verification Required</h3>
-            <p style="text-align: center; color: #64748b; margin-bottom: 1.5rem;">Enter the 6-digit code sent to your <span id="activeChannel">channel</span></p>
-            
-            <div class="otp-grid">
-                <input type="text" class="otp-input" maxlength="1" pattern="\d*">
-                <input type="text" class="otp-input" maxlength="1" pattern="\d*">
-                <input type="text" class="otp-input" maxlength="1" pattern="\d*">
-                <input type="text" class="otp-input" maxlength="1" pattern="\d*">
-                <input type="text" class="otp-input" maxlength="1" pattern="\d*">
-                <input type="text" class="otp-input" maxlength="1" pattern="\d*">
-            </div>
-
-            <button class="pay-btn" id="verifyOtpBtn">Verify & Complete</button>
-            
-            <div style="text-align: center; margin-top: 2rem;">
-                <button id="resendOtpBtn" style="background: none; border: none; color: var(--primary-color); font-weight: 600; cursor: pointer;">Resend Code</button>
-            </div>
-        </div>
-    </div>
+    <!-- OTP Modals (Removed: handled dynamically by otp-modal.js) -->
 
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>

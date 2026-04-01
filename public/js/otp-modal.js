@@ -212,13 +212,19 @@ function showOTPModal(userEmail, userPhone, onVerified, onCancel) {
 
             if (result.success) {
                 showNotification('Identity verified! Redirecting to payment...', 'success');
+                
+                // Capture callback before clearing state
+                const onVerified = window.otpState.onVerified;
                 closeOTPModal();
-                if (window.otpState && window.otpState.onVerified) {
-                    window.otpState.onVerified(result.token || true);
+                
+                if (typeof onVerified === 'function') {
+                    onVerified(result.token || true);
                 }
             } else {
-                otpError.textContent = result.message || 'Invalid OTP. Please try again.';
-                otpError.style.display = 'block';
+                if (otpError) {
+                    otpError.textContent = result.message || 'Invalid OTP. Please try again.';
+                    otpError.style.display = 'block';
+                }
                 if (verifyBtn) {
                     verifyBtn.disabled = false;
                     verifyBtn.innerHTML = 'Verify & Continue';
@@ -226,8 +232,10 @@ function showOTPModal(userEmail, userPhone, onVerified, onCancel) {
             }
         } catch (error) {
             console.error('Verify OTP error:', error);
-            otpError.textContent = 'Error verifying OTP';
-            otpError.style.display = 'block';
+            if (otpError) {
+                otpError.textContent = 'Error verifying OTP';
+                otpError.style.display = 'block';
+            }
             if (verifyBtn) {
                 verifyBtn.disabled = false;
                 verifyBtn.innerHTML = 'Verify & Continue';

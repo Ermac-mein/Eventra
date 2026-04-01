@@ -105,11 +105,12 @@ class AuthController {
             } else {
                 // If the message is "Not authenticated", it's expected for guests.
                 // We only "clear" if we actually thought we were logged in.
-                if (this.state !== this.states.UNAUTHENTICATED) {
+                if (this.state !== this.states.UNAUTHENTICATED && this.state !== this.states.INITIALIZING) {
                     console.warn('[AuthController] Session invalid according to server:', result.message);
                     this.clearLocalState();
-                } else {
-                    // console.log('[AuthController] Guest session confirmed');
+                } else if (this.state === this.states.INITIALIZING) {
+                    // First load as guest, just set state
+                    this.setState(this.states.UNAUTHENTICATED);
                 }
             }
         } catch (error) {
