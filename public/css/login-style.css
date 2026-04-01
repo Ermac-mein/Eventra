@@ -369,6 +369,13 @@ body {
   transform: translateY(0);
 }
 
+.google-icon {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
 /* Divider enhancements */
 .divider {
   display: flex;
