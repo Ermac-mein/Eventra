@@ -170,18 +170,33 @@ function showOTPModal(userEmail, userPhone, onVerified, onCancel) {
 
     // Verify OTP
     window.verifyOTP = async function() {
+        // Guard: Ensure otpState and modal elements exist
+        if (!window.otpState) {
+            console.warn('OTP Modal not properly initialized');
+            return;
+        }
+
         const inputs = document.querySelectorAll('.otp-input');
+        const otpError = document.getElementById('otpError');
+        
+        if (!inputs.length || !otpError) {
+            console.warn('OTP input elements not found');
+            return;
+        }
+
         const otpCode = Array.from(inputs).map(input => input.value).join('');
 
         if (otpCode.length !== 6 || !/^\d+$/.test(otpCode)) {
-            document.getElementById('otpError').textContent = 'Please enter a valid 6-digit code';
-            document.getElementById('otpError').style.display = 'block';
+            otpError.textContent = 'Please enter a valid 6-digit code';
+            otpError.style.display = 'block';
             return;
         }
 
         const verifyBtn = document.querySelector('[onclick="verifyOTP()"]');
-        verifyBtn.disabled = true;
-        verifyBtn.innerHTML = '<span class="btn-spinner"></span> Verifying...';
+        if (verifyBtn) {
+            verifyBtn.disabled = true;
+            verifyBtn.innerHTML = '<span class="btn-spinner"></span> Verifying...';
+        }
 
         try {
             const response = await apiFetch('/api/otps/verify-otp.php', {
@@ -198,19 +213,25 @@ function showOTPModal(userEmail, userPhone, onVerified, onCancel) {
             if (result.success) {
                 showNotification('Identity verified! Redirecting to payment...', 'success');
                 closeOTPModal();
-                window.otpState.onVerified(result.token || true);
+                if (window.otpState && window.otpState.onVerified) {
+                    window.otpState.onVerified(result.token || true);
+                }
             } else {
-                document.getElementById('otpError').textContent = result.message || 'Invalid OTP. Please try again.';
-                document.getElementById('otpError').style.display = 'block';
-                verifyBtn.disabled = false;
-                verifyBtn.innerHTML = 'Verify & Continue';
+                otpError.textContent = result.message || 'Invalid OTP. Please try again.';
+                otpError.style.display = 'block';
+                if (verifyBtn) {
+                    verifyBtn.disabled = false;
+                    verifyBtn.innerHTML = 'Verify & Continue';
+                }
             }
         } catch (error) {
             console.error('Verify OTP error:', error);
-            document.getElementById('otpError').textContent = 'Error verifying OTP';
-            document.getElementById('otpError').style.display = 'block';
-            verifyBtn.disabled = false;
-            verifyBtn.innerHTML = 'Verify & Continue';
+            otpError.textContent = 'Error verifying OTP';
+            otpError.style.display = 'block';
+            if (verifyBtn) {
+                verifyBtn.disabled = false;
+                verifyBtn.innerHTML = 'Verify & Continue';
+            }
         }
     };
 
@@ -227,9 +248,20 @@ function showOTPModal(userEmail, userPhone, onVerified, onCancel) {
         const inputs = document.querySelectorAll('.otp-input');
         
         function checkAndSubmit() {
+            // Guard: Only auto-submit if otpState is properly initialized and modal is visible
+            if (!window.otpState || document.getElementById('otpModalBackdrop').style.display === 'none') {
+                return;
+            }
+            
             const allFilled = Array.from(inputs).every(input => input.value && /^\d$/.test(input.value));
             if (allFilled) {
-                setTimeout(() => verifyOTP(), 300);
+                // Add slight delay to ensure all inputs are registered
+                setTimeout(() => {
+                    // Final check before submitting
+                    if (window.otpState && document.getElementById('otpModalBackdrop').style.display !== 'none') {
+                        window.verifyOTP();
+                    }
+                }, 300);
             }
         }
         
