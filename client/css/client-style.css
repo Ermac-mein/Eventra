@@ -535,36 +535,99 @@ td { padding: 1.25rem 2rem; border-bottom: 1px solid var(--client-border); font-
 /* Charts Placeholder */
 .chart-placeholder { height: 250px; display: flex; align-items: center; justify-content: center; background: #f8fafc; border-radius: 12px; position: relative; }
 
-@media (max-width: 1024px) {
-    .dashboard-grid { grid-template-columns: 1fr; }
-    .header-search { flex: 0 0 250px; }
+/* ── Enhanced Client Responsiveness ── */
+
+/* Large TV Screens */
+@media (min-width: 1921px) {
+    :root {
+        --client-sidebar-width: 350px;
+    }
+    body { font-size: 18px; }
+    .client-stats-grid { grid-template-columns: repeat(5, 1fr); }
 }
 
+/* Wide Laptops */
+@media (max-width: 1440px) {
+    .header-search { flex: 0 0 350px; }
+    .content-area { padding: 2rem 2.5rem; }
+    .header { padding: 0 2.5rem; }
+}
+
+/* Tablets & Small Laptops */
+@media (max-width: 1024px) {
+    :root {
+        --client-sidebar-width: 240px;
+    }
+    .dashboard-grid { grid-template-columns: 1fr; }
+    .header-search { flex: 0 0 250px; }
+    .client-stats-grid { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+}
+
+/* Mobile Devices */
 @media (max-width: 768px) {
     .sidebar {
         left: -100%;
-        transition: var(--transition-base);
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        width: 100%; /* Full screen sidebar on mobile for better usability */
+        max-width: 300px;
     }
 
     .sidebar.active {
         left: 0;
+        transform: translateX(0);
     }
 
     .main-layout {
         margin-left: 0;
+        width: 100%;
     }
 
     .header {
-        padding: 0 1rem;
+        padding: 0 1.25rem;
+        height: 70px;
     }
 
     .header-search {
-        display: none; /* Hide search on mobile header to save space */
+        display: none; 
+    }
+
+    .content-area {
+        padding: 1.5rem 1.25rem;
     }
 
     .client-stats-grid {
         grid-template-columns: 1fr;
+        gap: 1rem;
     }
+    
+    .page-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+    
+    .btn {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .table-card {
+        margin: 0 -1.25rem;
+        border-radius: 0;
+        border-left: none;
+        border-right: none;
+    }
+    
+    .dash-panel {
+        padding: 1.25rem;
+    }
+}
+
+/* Small Phones */
+@media (max-width: 480px) {
+    .stat-main-value { font-size: 2rem; }
+    .sidebar-logo { padding: 2rem 1.5rem; }
+    .menu-item a { padding: 0.85rem 1rem; }
 }
 
 

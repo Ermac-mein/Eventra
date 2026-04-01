@@ -20,13 +20,14 @@ if (empty($reference)) {
 }
 
 try {
-    // Resolve actual users.id from auth_id (auth_accounts.id) — same pattern as verify-payment.php
-    $userStmt = $pdo->prepare("SELECT id FROM users WHERE user_auth_id = ? LIMIT 1");
-    $userStmt->execute([$auth_id]);
-    $resolved_user_id = $userStmt->fetchColumn();
+    // checkAuth('user') returns the role-specific PK (users.id) from session
+    $resolved_user_id = $auth_id;
 
-    if (!$resolved_user_id) {
-        error_log("[get-order.php] User profile not found for auth account ID: $auth_id");
+    // Verify user exists (optional safety)
+    $userStmt = $pdo->prepare("SELECT id FROM users WHERE id = ? LIMIT 1");
+    $userStmt->execute([$resolved_user_id]);
+    if (!$userStmt->fetch()) {
+        error_log("[get-order.php] User profile not found for ID: $resolved_user_id");
         http_response_code(404);
         echo json_encode(['success' => false, 'message' => 'User profile not found. Please complete your registration.']);
         exit;

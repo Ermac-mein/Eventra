@@ -19,15 +19,21 @@ function sendSMS($phoneNumber, $message)
         return ['success' => false, 'message' => 'Twilio credentials not configured'];
     }
 
-    // Basic validation for phone number format (must start with +)
-    // If it starts with 0, we assume Nigeria (+234) for this implementation
+    // ── Phone Number Normalization ──────────────────────────────────────────
+    // Strip all non-numeric characters EXCEPT the plus sign
+    $phoneNumber = preg_replace('/[^\d+]/', '', $phoneNumber);
+
     if (strpos($phoneNumber, '0') === 0 && strlen($phoneNumber) === 11) {
+        // standard Nigeria local format: 080... -> +23480...
         $phoneNumber = '+234' . substr($phoneNumber, 1);
-    } elseif (strpos($phoneNumber, '+') !== 0) {
-        // If no + and not 0-prefixed 11 digits, we might need more complex logic
-        // For now, let's assume it needs a +
+    } elseif (strpos($phoneNumber, '234') === 0 && (strlen($phoneNumber) === 13 || strlen($phoneNumber) === 12)) {
+        // standard Nigeria international format without +: 23480... -> +23480...
         $phoneNumber = '+' . $phoneNumber;
+    } elseif (strpos($phoneNumber, '+') !== 0) {
+        // Fallback: strictly ensure it starts with + for international routing
+        $phoneNumber = '+' . ltrim($phoneNumber, '+');
     }
+    // ──────────────────────────────────────────────────────────────────────────
 
     $data = [
         'To' => $phoneNumber,

@@ -32,25 +32,28 @@ if (!$reference) {
 }
 
 try {
-    // ── Get actual user ID from users table ───────────────────────────────────
-    $stmt = $pdo->prepare("SELECT id FROM users WHERE user_auth_id = ?");
+    // checkAuth('user') returns the users.id (role-specific PK)
+    $stmt = $pdo->prepare("SELECT id, user_auth_id FROM users WHERE id = ?");
     $stmt->execute([$auth_id]);
-    $user_id = $stmt->fetchColumn();
+    $user_row = $stmt->fetch();
 
-    if (!$user_id) {
-        error_log("[verify-payment.php] Auth account ID $auth_id found, but no matching entry in 'users' table.");
+    if (!$user_row) {
+        error_log("[verify-payment.php] User profile not found for ID: $auth_id");
         http_response_code(404);
-        echo json_encode(['success' => false, 'message' => 'User profile not found. Please ensure your profile is complete.']);
+        echo json_encode(['success' => false, 'message' => 'User profile not found. Please complete your registration.']);
         exit;
     }
+
+    $user_id = $user_row['id'];
+    $user_auth_accounts_id = $user_row['user_auth_id'];
 
     // ── Check existing order ─────────────────────────────────────────────────
     $oStmt = $pdo->prepare("
         SELECT o.id, o.payment_status, o.amount, o.event_id, o.user_id, o.organizer_id,
                e.event_name, e.event_date, e.event_time, e.address, e.location, e.image_path,
                u.name AS user_name, u.phone AS user_phone,
-               a.email AS user_email,
-               c.id AS organizer_auth_id
+               a.id AS user_auth_accounts_id, a.email AS user_email,
+               c.client_auth_id AS organizer_auth_id
         FROM orders o
         JOIN events e ON o.event_id = e.id
         JOIN users u ON o.user_id = u.id
@@ -228,8 +231,8 @@ try {
                 if (!empty($order['user_phone'])) {
                     sendSMS($order['user_phone'], "Hi {$order['user_name']}, your ticket for {$order['event_name']} is confirmed!");
                 }
-                createPaymentSuccessNotification($auth_id, $order['event_name'], $order['amount']);
-                createTicketIssuedNotification($auth_id, $order['event_name'], $barcode);
+                createPaymentSuccessNotification($user_auth_accounts_id, $order['event_name'], $order['amount']);
+                createTicketIssuedNotification($user_auth_accounts_id, $order['event_name'], $barcode);
                 createNewSaleNotification($order['organizer_auth_id'], $order['user_name'], $order['event_name'], $order['amount']);
             } catch (Exception $e) {
                 error_log('[verify-payment.php] Notification failed: ' . $e->getMessage());

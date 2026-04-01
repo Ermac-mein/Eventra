@@ -69,7 +69,7 @@ function ensureSubaccount($pdo, $client_auth_id, $bank_code, $account_number, $b
         'business_name' => $business_name,
         'settlement_bank' => $bank_code,
         'account_number' => $account_number,
-        'percentage_charge' => 0.0,
+        'percentage_charge' => 30.0, // Platform takes 30% commission
     ];
 
     if ($existing_subaccount_code) {

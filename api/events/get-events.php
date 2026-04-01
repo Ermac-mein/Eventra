@@ -24,10 +24,19 @@ try {
     $where_clauses = [];
     $params = [];
 
-    // Filter by client_id if provided
-    if ($client_id) {
-        // If the requester is a client, the frontend is passing their auth_id.
-        // We should ensure we are filtering by the actual client.id (PK)
+    // Enforce Client Isolation:
+    // Clients can only see their own events. Users/Admins can see all (or filter by client_id).
+    if ($user_role === 'client') {
+        $forced_client_id = $_SESSION['client_id'] ?? null;
+        if ($forced_client_id) {
+            $where_clauses[] = "e.client_id = ?";
+            $params[] = $forced_client_id;
+        } else {
+            // Safety fallback: if session is inconsistent, show nothing
+            $where_clauses[] = "1 = 0";
+        }
+    } elseif ($client_id) {
+        // Filter by client_id if provided (for Admin/Public view)
         $stmt = $pdo->prepare("SELECT id FROM clients WHERE client_auth_id = ? OR id = ?");
         $stmt->execute([$client_id, $client_id]);
         $resolved_client = $stmt->fetch();
@@ -36,7 +45,6 @@ try {
             $where_clauses[] = "e.client_id = ?";
             $params[] = $resolved_client['id'];
         } else {
-            // If no client found, return empty set
             $where_clauses[] = "1 = 0";
         }
     }

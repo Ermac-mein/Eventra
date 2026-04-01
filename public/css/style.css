@@ -2737,9 +2737,6 @@ body {
 }
 
 /* Font loading optimization */
-@font-face {
-  font-display: swap;
-}
 
 /* Google Sign In Button - Ported for Homepage Modal */
 .google-signin {
@@ -2782,4 +2779,112 @@ body {
 .centered-modal .modal-card h2, 
 .centered-modal .modal-card p {
     color: white;
+}
+
+/* ── Enhanced Responsiveness (TV, Tablets, Mobile) ── */
+
+/* TV Screens & Large Displays (4K/UHD) */
+@media (min-width: 1921px) {
+    :root {
+        --container-max-width: 1600px;
+        --header-height: 100px;
+    }
+    body { font-size: 18px; }
+    .hero { height: 800px; }
+    .hero-title { font-size: 5rem; }
+    .event-card { min-height: 550px; }
+}
+
+/* Large Desktops & Laptops */
+@media (max-width: 1440px) {
+    :root {
+        --container-max-width: 1200px;
+    }
+}
+
+/* Tablets (iPad, etc.) */
+@media (max-width: 1024px) {
+    :root {
+        --container-padding: 2rem;
+    }
+    .hero { height: 500px; }
+    .search-wrapper-enhanced {
+        flex-direction: column;
+        padding: 1.5rem;
+    }
+    .search-input-group {
+        width: 100%;
+        border-bottom: 1px solid #eee;
+        padding-bottom: 1rem;
+        padding-left: 0;
+    }
+    .search-button-modern {
+        width: 100%;
+        justify-content: center;
+    }
+    .events-grid {
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 1.5rem;
+    }
+}
+
+/* Mobile Devices (Phones) */
+@media (max-width: 768px) {
+    :root {
+        --container-padding: 1.25rem;
+        --header-height: 70px;
+    }
+    .hero-title { font-size: 2.5rem; }
+    .hero-subtitle { font-size: 1rem; }
+    .main-content { padding: 2rem 1.25rem; }
+    .section-title { font-size: 1.25rem; }
+    
+    /* Navigation */
+    .logo img { height: 32px; }
+    .logo { font-size: 20px; }
+    
+    /* Search */
+    .hero-search-overlay {
+        bottom: 1rem;
+    }
+    .search-input-modern {
+        font-size: 0.95rem;
+    }
+    
+    /* Event Cards */
+    .event-card {
+        min-height: auto;
+    }
+    .event-image-container {
+        height: 180px;
+    }
+    .event-content {
+        padding: 1.25rem;
+    }
+    
+    /* Pagination */
+    .pagination-container {
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+    .page-numbers {
+        order: 3;
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+/* Extra Small Devices */
+@media (max-width: 480px) {
+    .hero-title { font-size: 2rem; }
+    .search-button-modern span { display: none; }
+    .search-button-modern::after { content: 'Search'; }
+    .event-title { font-size: 1.1rem; }
+}
+
+/* Landscape Mode Adjustments */
+@media (max-height: 500px) and (orientation: landscape) {
+    .hero { height: 100vh; }
+    .hero-content { margin-bottom: 0.5rem; }
+    .nav-menu { overflow-y: auto; }
 }

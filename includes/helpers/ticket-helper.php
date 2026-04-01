@@ -169,124 +169,198 @@ function generateTicketPDF(array $ticketData): string
     $html = "
     <html>
     <head>
+        <meta charset='UTF-8'>
         <style>
-            * { box-sizing: border-box; margin: 0; padding: 0; }
-            body { font-family: 'Helvetica', sans-serif; color: #1f2937; background: #f9fafb; }
-            .ticket-wrapper { padding: 20px; }
-            .ticket {
+            @page { margin: 0; padding: 0; }
+            * { box-sizing: border-box; }
+            body { 
+                font-family: 'Helvetica', 'Arial', sans-serif; 
+                margin: 0; 
+                padding: 0; 
+                background-color: #f3f4f6; 
+                color: #1f2937;
+                line-height: 1.4;
+            }
+            .container {
                 width: 100%;
-                border: 2px solid #7c3aed;
-                border-radius: 12px;
-                overflow: hidden;
-                background: #ffffff;
-                box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+                height: 100%;
+                padding: 30px;
+                display: block;
             }
-            .ticket-header {
-                background: linear-gradient(135deg, #7c3aed, #4c1d95);
-                color: white;
-                padding: 18px 25px;
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-            }
-            .ticket-header h1 { font-size: 20px; letter-spacing: 3px; font-weight: 900; }
-            .ticket-header .ticket-badge {
-                background: rgba(255,255,255,0.2);
-                padding: 4px 12px;
+            .ticket {
+                width: 700px;
+                margin: 0 auto;
+                background-color: #ffffff;
+                border: 1px solid #e5e7eb;
                 border-radius: 20px;
-                font-size: 11px;
-                letter-spacing: 1px;
+                overflow: hidden;
+                position: relative;
+                box-shadow: 0 10px 25px rgba(0,0,0,0.1);
             }
-            .ticket-hero {
-                height: 120px;
-                background: " . ($eventImgSrc ? "url($eventImgSrc)" : "#7c3aed") . ";
+            .ticket::before, .ticket::after {
+                content: '';
+                position: absolute;
+                top: 72%;
+                width: 30px;
+                height: 30px;
+                background-color: #f3f4f6;
+                border-radius: 50%;
+                z-index: 10;
+            }
+            .ticket::before { left: -15px; }
+            .ticket::after { right: -15px; }
+
+            .header {
+                background-color: #7c3aed;
+                padding: 25px 40px;
+                color: #ffffff;
+                text-align: center;
+            }
+            .header img { height: 35px; }
+            .header h1 { 
+                margin: 0; 
+                font-size: 28px; 
+                letter-spacing: 5px; 
+                font-weight: 800;
+                text-transform: uppercase;
+            }
+            .header p { 
+                margin: 5px 0 0; 
+                font-size: 11px; 
+                opacity: 0.8; 
+                letter-spacing: 2px;
+            }
+
+            .hero {
+                height: 150px;
+                background: " . ($eventImgSrc ? "url($eventImgSrc)" : "linear-gradient(90deg, #7c3aed, #4c1d95)") . ";
                 background-size: cover;
                 background-position: center;
                 border-bottom: 2px solid #7c3aed;
             }
-            .ticket-body { display: flex; padding: 25px; gap: 20px; }
-            .ticket-info { flex: 1; }
-            .ticket-info h2 { font-size: 22px; font-weight: 800; color: #7c3aed; margin-bottom: 15px; }
-            .ticket-info table { width: 100%; border-collapse: collapse; font-size: 13px; }
-            .ticket-info table tr td { padding: 6px 0; vertical-align: top; }
-            .ticket-info table tr td:first-child { font-weight: 700; color: #6b7280; width: 90px; }
-            .ticket-info table tr td:last-child { color: #1f2937; }
-            .ticket-qr { text-align: center; padding: 10px; border-left: 2px dashed #e5e7eb; padding-left: 20px; }
-            .ticket-qr img { width: 130px; height: 130px; }
-            .ticket-qr p { font-size: 10px; color: #9ca3af; margin-top: 8px; }
-            .ticket-stub {
-                border-top: 2px dashed #7c3aed;
-                padding: 12px 25px;
-                background: #faf5ff;
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
+
+            .main {
+                padding: 30px 40px;
+                overflow: hidden;
             }
-            .ticket-id { font-family: monospace; font-size: 13px; color: #7c3aed; font-weight: 700; letter-spacing: 1px; }
-            .ticket-footer {
-                background: #f3f4f6;
-                padding: 10px 25px;
+            .event-name {
+                font-size: 32px;
+                font-weight: 900;
+                color: #111827;
+                margin-bottom: 25px;
+                text-transform: uppercase;
+            }
+            .info-grid { width: 100%; border-collapse: collapse; }
+            .info-item { vertical-align: top; padding-bottom: 20px; }
+            .info-label { 
+                font-size: 10px; 
+                color: #6b7280; 
+                text-transform: uppercase; 
+                letter-spacing: 1px; 
+                margin-bottom: 4px; 
+                font-weight: 700;
+            }
+            .info-value { font-size: 16px; font-weight: 700; color: #111827; }
+
+            .qr-col { width: 150px; text-align: right; vertical-align: top; }
+            .qr-code { 
+                display: inline-block; 
+                background: #ffffff; 
+                padding: 10px; 
+                border: 1px solid #e5e7eb; 
+                border-radius: 12px; 
+            }
+            .qr-code img { width: 130px; height: 130px; }
+
+            .stub {
+                border-top: 2px dashed #e5e7eb;
+                padding: 20px 40px;
+                background-color: #faf5ff;
+                overflow: hidden;
+            }
+            .stub-item { display: inline-block; width: 32%; }
+            .stub-label { font-size: 10px; color: #6b7280; text-transform: uppercase; margin-bottom: 3px; font-weight: 700; }
+            .stub-value { font-size: 14px; font-weight: 700; color: #7c3aed; font-family: monospace; }
+
+            .footer {
+                padding: 12px;
+                text-align: center;
                 font-size: 10px;
                 color: #9ca3af;
-                text-align: center;
+                background: #ffffff;
+                border-top: 1px solid #f3f4f6;
             }
         </style>
     </head>
     <body>
-        <div class='ticket-wrapper'>
+        <div class='container'>
             <div class='ticket'>
-                <div class='ticket-header'>
+                <div class='header'>
                     <h1>EVENTRA</h1>
-                    <span class='ticket-badge'>OFFICIAL TICKET</span>
+                    <p>OFFICIAL EVENT ACCESS PASS</p>
                 </div>
-                " . ($eventImgSrc ? "<div class='ticket-hero'></div>" : "") . "
-                <div class='ticket-body'>
-                    <div class='ticket-info'>
-                        <h2>{$eventName}</h2>
-                        <table>
-                            <tr>
-                                <td>📅 Date</td>
-                                <td>{$eventDate}</td>
-                            </tr>
-                            <tr>
-                                <td>⏰ Time</td>
-                                <td>{$eventTime}</td>
-                            </tr>
-                            <tr>
-                                <td>📍 Venue</td>
-                                <td>" . htmlspecialchars($venue) . "</td>
-                            </tr>
-                            <tr>
-                                <td>👤 Attendee</td>
-                                <td>" . htmlspecialchars($userName) . "</td>
-                            </tr>
-                            <tr>
-                                <td>🎟 Ticket ID</td>
-                                <td><strong>{$ticketId}</strong></td>
-                            </tr>
-                            <tr>
-                                <td>📦 Order</td>
-                                <td>#" . ($ticketData['order_id'] ?? 'N/A') . "</td>
-                            </tr>
-                        </table>
+                " . ($eventImgSrc ? "<div class='hero'></div>" : "") . "
+                <div class='main'>
+                    <table style='width:100%'>
+                        <tr>
+                            <td style='vertical-align:top;'>
+                                <div class='event-name'>{$eventName}</div>
+                                <table class='info-grid'>
+                                    <tr>
+                                        <td class='info-item' style='width:150px;'>
+                                            <div class='info-label'>Date</div>
+                                            <div class='info-value'>{$eventDate}</div>
+                                        </td>
+                                        <td class='info-item'>
+                                            <div class='info-label'>Time</div>
+                                            <div class='info-value'>{$eventTime}</div>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td class='info-item' colspan='2'>
+                                            <div class='info-label'>Venue</div>
+                                            <div class='info-value'>" . htmlspecialchars($venue) . "</div>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td class='info-item'>
+                                            <div class='info-label'>Attendee</div>
+                                            <div class='info-value'>" . htmlspecialchars($userName) . "</div>
+                                        </td>
+                                        <td class='info-item'>
+                                            <div class='info-label'>Ticket Type</div>
+                                            <div class='info-value'>" . ucfirst($ticketData['ticket_type'] ?? 'Standard') . "</div>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                            <td class='qr-col'>
+                                <div class='qr-code'>
+                                    <img src='{$qrCodeSrc}' alt='QR'>
+                                </div>
+                                <div style='font-size:9px; color:#9ca3af; margin-top:10px; text-align:center;'>
+                                    SCAN TO VALIDATE ENTRY
+                                </div>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+                <div class='stub'>
+                    <div class='stub-item'>
+                        <div class='stub-label'>Ticket Ref</div>
+                        <div class='stub-value'>{$ticketId}</div>
                     </div>
-                    <div class='ticket-qr'>
-                        <img src='{$qrCodeSrc}' alt='QR Code'>
-                        <p>Scan to validate<br>entry at venue</p>
+                    <div class='stub-item' style='text-align:center;'>
+                        <div class='stub-label'>Order Status</div>
+                        <div class='stub-value' style='color:#10b981'>PAID / CONFIRMED</div>
+                    </div>
+                    <div class='stub-item' style='text-align:right;'>
+                        <div class='stub-label'>Issued On</div>
+                        <div class='stub-value' style='font-size:12px; color:#4b5563; font-family:sans-serif;'>{$generatedAt}</div>
                     </div>
                 </div>
-                <div class='ticket-stub'>
-                    <div>
-                        <div style='font-size:10px; color:#9ca3af; margin-bottom:3px;'>TICKET CODE</div>
-                        <div class='ticket-id'>{$ticketId}</div>
-                    </div>
-                    <div style='text-align:right;'>
-                        <div style='font-size:10px; color:#9ca3af; margin-bottom:3px;'>ISSUED</div>
-                        <div style='font-size:11px; color:#4b5563;'>{$generatedAt}</div>
-                    </div>
-                </div>
-                <div class='ticket-footer'>
-                    Valid for one-time entry only &bull; Non-refundable &bull; Non-transferable &bull; &copy; " . date('Y') . " Eventra
+                <div class='footer'>
+                    This ticket is valid for one-time admission &bull; Powered by Eventra System &bull; &copy; " . date('Y') . " Eventra
                 </div>
             </div>
         </div>

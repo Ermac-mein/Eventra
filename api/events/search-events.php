@@ -14,9 +14,20 @@ try {
     $priority = $_GET['priority'] ?? null;
     $category = $_GET['category'] ?? null;
 
-    // Build search query
-    $where_clauses = ["e.status = 'published'", "e.deleted_at IS NULL"];
+    // Build search query base
+    $user_role = $_SESSION['user_role'] ?? 'guest';
+    $where_clauses = ["e.deleted_at IS NULL"];
     $params = [];
+
+    // Role-based filtering
+    if ($user_role === 'client') {
+        // Clients only see their own events (drafts, published, etc.)
+        $where_clauses[] = "e.client_id = ?";
+        $params[] = $_SESSION['client_id'] ?? 0;
+    } else {
+        // Guests/Users only see published events
+        $where_clauses[] = "e.status = 'published'";
+    }
 
     // Unified Search logic
     if (!empty($q)) {
@@ -49,9 +60,8 @@ try {
         $params[] = $category;
     }
 
-    // Check if user is logged in for favorites
+    // Identify user for favorites subquery
     $user_id = null;
-    $user_role = $_SESSION['user_role'] ?? 'guest';
     if ($user_role === 'admin') {
         $user_id = $_SESSION['admin_id'] ?? null;
     } elseif ($user_role === 'client') {
