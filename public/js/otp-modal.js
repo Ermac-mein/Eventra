@@ -149,6 +149,7 @@ function showOTPModal(userEmail, userPhone, onVerified, onCancel) {
 
             if (result.success) {
                 window.otpState.timestamp = Date.now();
+                window.otpState.payment_reference = result.payment_reference;
                 showNotification(`OTP sent to ${selectedChannel === 'email' ? 'email' : 'phone'}`, 'success');
                 document.getElementById('channelSelection').style.display = 'none';
                 document.getElementById('otpInputStage').style.display = 'block';
@@ -183,12 +184,12 @@ function showOTPModal(userEmail, userPhone, onVerified, onCancel) {
         verifyBtn.innerHTML = '<span class="btn-spinner"></span> Verifying...';
 
         try {
-            const response = await apiFetch('/api/auth/verify-otp.php', {
+            const response = await apiFetch('/api/otps/verify-otp.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    otp_code: otpCode,
-                    channel: window.otpState.channel
+                    otp: otpCode,
+                    payment_reference: window.otpState.payment_reference || 'PAY-' + Date.now()
                 })
             });
 
@@ -224,6 +225,14 @@ function showOTPModal(userEmail, userPhone, onVerified, onCancel) {
     // Setup OTP Input Auto-Tab
     function setupOTPInputAutoTab() {
         const inputs = document.querySelectorAll('.otp-input');
+        
+        function checkAndSubmit() {
+            const allFilled = Array.from(inputs).every(input => input.value && /^\d$/.test(input.value));
+            if (allFilled) {
+                setTimeout(() => verifyOTP(), 300);
+            }
+        }
+        
         inputs.forEach((input, index) => {
             input.addEventListener('keyup', (e) => {
                 if (e.key === 'Backspace' && input.value === '' && index > 0) {
@@ -231,6 +240,7 @@ function showOTPModal(userEmail, userPhone, onVerified, onCancel) {
                 } else if (input.value && index < inputs.length - 1) {
                     inputs[index + 1].focus();
                 }
+                checkAndSubmit();
             });
 
             input.addEventListener('paste', (e) => {
@@ -245,6 +255,11 @@ function showOTPModal(userEmail, userPhone, onVerified, onCancel) {
                 if (digits.length >= inputs.length) {
                     inputs[inputs.length - 1].focus();
                 }
+                checkAndSubmit();
+            });
+            
+            input.addEventListener('input', (e) => {
+                checkAndSubmit();
             });
         });
     }
