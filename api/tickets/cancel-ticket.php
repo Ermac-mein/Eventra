@@ -7,16 +7,18 @@
 
 header('Content-Type: application/json');
 require_once '../../config/database.php';
+require_once '../../includes/middleware/auth.php';
 require_once '../utils/notification-helper.php';
 
 // Check authentication
-if (!isset($_SESSION['user_id'])) {
+$user_id_auth = checkAuth('user');
+$user_id = $_SESSION['user_id'] ?? null;
+
+if (!$user_id) {
     http_response_code(401);
     echo json_encode(['success' => false, 'message' => 'Unauthorized']);
     exit;
 }
-
-$user_id = $_SESSION['user_id'];
 $ticket_id = $_POST['ticket_id'] ?? null;
 
 if (!$ticket_id) {

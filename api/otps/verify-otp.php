@@ -6,14 +6,25 @@
  */
 
 header('Content-Type: application/json');
-require_once '../../config/database.php';
-require_once '../../includes/middleware/auth.php';
+require_once __DIR__ . '/../../config/database.php';
+require_once __DIR__ . '/../../includes/middleware/auth.php';
 
-// Use standardized auth middleware
-$auth_id = checkAuth('user');
+// Ensure user is authenticated
+checkAuth('user');
 
-// Use auth_id directly as user_id
-$user_id = $auth_id;
+// Get the authenticated user's auth_accounts.id
+$auth_id = getAuthId();
+
+// Resolve user_id from auth_id (user_auth_id is the foreign key to auth_accounts)
+$stmt = $pdo->prepare("SELECT id FROM users WHERE user_auth_id = ?");
+$stmt->execute([$auth_id]);
+$user_row = $stmt->fetch();
+
+if (!$user_row) {
+    echo json_encode(['success' => false, 'message' => 'User profile not found.']);
+    exit;
+}
+$user_id = $user_row['id'];
 
 $data = json_decode(file_get_contents("php://input"), true);
 $otp = $data['otp'] ?? '';

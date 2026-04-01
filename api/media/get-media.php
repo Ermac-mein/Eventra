@@ -95,23 +95,10 @@ try {
     $media_files = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     // 2. Get folders for current view
-    $f_clauses = ["client_id = ?", "is_deleted = ?"];
-    if ($folder_id) {
-        $f_clauses[] = "parent_id = ?"; // Assuming parent_id for nested folders if exists, else skip
-    } else {
-        $f_clauses[] = "parent_id IS NULL";
-    }
-    // Note: If schema doesn't have parent_id, just list all primary folders at root
-    // Checking schema: media_folders has id, client_id, name, created_at, is_deleted, parent_folder_id
-
+    // Note: media_folders doesn't support nested folders (no parent_id column)
+    // So we'll just return top-level folders for this client
     $folders_sql = "SELECT id, name, created_at FROM media_folders WHERE client_id = ? AND is_deleted = ?";
-    if (!$folder_id) {
-        $folders_sql .= " AND parent_folder_id IS NULL";
-        $f_params = [$client_id, $is_trash];
-    } else {
-        $folders_sql .= " AND parent_folder_id = ?";
-        $f_params = [$client_id, $is_trash, $folder_id];
-    }
+    $f_params = [$client_id, $is_trash];
 
     $f_stmt = $pdo->prepare($folders_sql);
     $f_stmt->execute($f_params);
