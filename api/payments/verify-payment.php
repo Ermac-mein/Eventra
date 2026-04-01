@@ -38,8 +38,9 @@ try {
     $user_id = $stmt->fetchColumn();
 
     if (!$user_id) {
+        error_log("[verify-payment.php] Auth account ID $auth_id found, but no matching entry in 'users' table.");
         http_response_code(404);
-        echo json_encode(['success' => false, 'message' => 'User profile not found']);
+        echo json_encode(['success' => false, 'message' => 'User profile not found. Please ensure your profile is complete.']);
         exit;
     }
 

@@ -104,7 +104,7 @@
 .form-group textarea:focus {
     outline: none;
     border-color: var(--client-primary);
-    box-shadow: 0 0 0 3px rgba(99, 91, 255, 0.1);
+    box-shadow: 0 0 0 3px rgba(114, 47, 55, 0.1);
 }
 
 .form-group input:disabled {
@@ -171,7 +171,7 @@
     padding: 0.5rem 1rem;
     border-radius: 6px;
     font-size: 0.85rem;
-    color: #15803d;
+    color: var(--client-emerald-dark);
     margin-top: 0.5rem;
     word-break: break-all;
 }
@@ -213,12 +213,12 @@
 
 .export-option:hover {
     background: #fff;
-    border-color: var(--client-primary);
+    border-color: var(--client-emerald);
     transform: translateY(-2px);
     box-shadow: var(--client-shadow);
 }
 
 .export-option i {
     font-size: 1.5rem;
-    color: var(--client-primary);
+    color: var(--client-emerald);
 }

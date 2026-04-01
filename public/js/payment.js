@@ -4,6 +4,12 @@
  */
 
 document.addEventListener('DOMContentLoaded', async () => {
+    // 0. Wait for AuthController to be ready to ensure tokens/session are synced
+    if (window.authController) {
+        await window.authController.init();
+        await window.authController.ready;
+    }
+
     const urlParams = new URLSearchParams(window.location.search);
     const reference = urlParams.get('reference');
     const orderData = JSON.parse(sessionStorage.getItem('pending_order'));
@@ -120,6 +126,21 @@ async function startPolling(reference) {
         pollCount++;
         try {
             const res = await apiFetch(`/api/payments/get-order.php?reference=${reference}`);
+            
+            if (!res) {
+                // apiFetch returns null on 401 redirect or abort
+                console.warn('Polling stopped: User unauthenticated or request aborted.');
+                return;
+            }
+
+            if (res.status === 404) {
+                console.error('Polling stopped: Order endpoint returned 404.');
+                icon.textContent = '❌';
+                title.textContent = 'Order Not Found';
+                msg.textContent = 'The payment verification service is currently unavailable. Please check your email for a ticket confirmation.';
+                return;
+            }
+
             const result = await res.json();
 
             if (result.success && result.order) {
@@ -127,9 +148,10 @@ async function startPolling(reference) {
                 
                 if (order.payment_status === 'paid' || order.payment_status === 'success') {
                     // SUCCESS!
+                    const cleanedName = (order.event_name || '').replace(/\s*#\d+$/, '');
                     icon.textContent = '🎉';
                     title.textContent = 'Payment Successful!';
-                    msg.innerHTML = `Your tickets for <strong>${escapeHTML(order.event_name)}</strong> are ready.<br>Reference: ${escapeHTML(reference)}`;
+                    msg.innerHTML = `Your tickets for <strong>${escapeHTML(cleanedName)}</strong> are ready.<br>Reference: ${escapeHTML(reference)}`;
                     
                     if (order.ticket && order.ticket.barcode) {
                         const barcode = order.ticket.barcode;
@@ -235,6 +257,7 @@ function renderSummary(event, qty) {
     const relPath = event.image_path ? `../../${event.image_path.replace(/^\/+/ , '')}` : null;
     const fallback = 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=600&h=400&fit=crop';
     const imgUrl = encodeURI(relPath || event.absolute_image_url || fallback);
+    const cleanEventName = (event.event_name || '').replace(/\s*#\d+$/, '');
     
     const locStr = [event.address, event.city, event.state].filter(Boolean).join(', ') || 'Location details unavailable';
 
@@ -242,7 +265,7 @@ function renderSummary(event, qty) {
         <div style="display: flex; gap: 1rem; margin-bottom: 2rem;">
             <img src="${imgUrl}" onerror="this.src='${fallback}'" style="width: 80px; height: 80px; border-radius: 1rem; object-fit: cover;">
             <div>
-                <h4 style="font-weight: 700; color: #1e293b;">${event.event_name}</h4>
+                <h4 style="font-weight: 700; color: #1e293b;">${escapeHTML(cleanEventName)}</h4>
                 <p style="font-size: 0.8rem; color: #64748b;">${locStr}</p>
             </div>
         </div>

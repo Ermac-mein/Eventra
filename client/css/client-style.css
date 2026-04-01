@@ -1,27 +1,31 @@
 :root {
     /* Client Design System - Primary Colors (Modernized) */
     --client-bg-body: #f8fafc;
-    --client-bg-sidebar: #36454f;
+    --client-bg-sidebar: #212c33;
     --client-bg-card: rgba(255, 255, 255, 0.8);
-    --client-primary: #50c878;
-    --client-primary-dark: #2ecc71;
-    --client-primary-light: #7edb9e;
-    --client-accent: #50c878;
+    --client-primary: #722f37; /* Wine */
+    --client-primary-dark: #5a252b;
+    --client-primary-light: #8b3a44;
+    --client-emerald: #059669; /* Emerald */
+    --client-emerald-dark: #047857;
+    --client-emerald-light: #34d399;
+    --client-accent: #722f37;
     --client-text-main: #1e293b;
     --client-text-muted: #64748b;
     --client-text-white: #ffffff;
     --client-border: rgba(226, 232, 240, 0.6);
     --card-blue: #3b82f6;
-    --card-green: #50c878;
+    --card-green: #059669;
     --card-red: #ef4444;
+    --card-wine: #722f37;
     
     /* Vibrant Gradients */
-    --grad-green: linear-gradient(135deg, #50c878 0%, #2ecc71 100%);
+    --grad-emerald: linear-gradient(135deg, #059669 0%, #047857 100%);
     --grad-blue: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-    --grad-purple: linear-gradient(135deg, #50c878 0%, #2ecc71 100%);
-    --grad-orange: linear-gradient(135deg, #50c878 0%, #2ecc71 100%);
+    --grad-wine: linear-gradient(135deg, #722f37 0%, #4a1d23 100%);
+    --grad-orange: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
     --grad-red: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-    --grad-indigo: linear-gradient(135deg, #50c878 0%, #2ecc71 100%);
+    --grad-indigo: linear-gradient(135deg, #722f37 0%, #5a252b 100%); /* Replaced Indigo with Wine */
     
     /* Glassmorphism & Effects */
     --glass-bg: rgba(255, 255, 255, 0.7);
@@ -38,6 +42,17 @@
     
     /* Transition */
     --transition-base: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+    /* ── Pagination overrides: wine/emerald theme for client portal only ── */
+    --pg-primary: #722f37;
+    --pg-primary-dark: #5a252b;
+    --pg-bg-active: #722f37;
+    --pg-bg-hover: #f9f1f2;
+}
+
+/* Override pagination active button shadow for client portal (wine theme) */
+.pg-btn.active {
+    box-shadow: 0 4px 12px rgba(114, 47, 55, 0.3);
 }
 
 * {
@@ -73,7 +88,7 @@ body {
     font-weight: 900;
     letter-spacing: 2px;
     text-align: left;
-    background: var(--grad-indigo);
+    background: var(--client-text-white);
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -112,9 +127,9 @@ body {
 }
 
 .menu-item.active a {
-    background: var(--grad-purple);
+    background: var(--grad-wine);
     color: #fff;
-    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+    box-shadow: 0 4px 12px rgba(114, 47, 55, 0.3);
 }
 
 .sidebar-footer {
@@ -230,7 +245,7 @@ body {
 }
 
 .verification-badge.unverified, .badge-pending {
-    background-color: #50c878;
+    background-color: var(--client-emerald);
     color: white;
 }
 
@@ -279,11 +294,11 @@ body {
 }
 
 .stat-icon { font-size: 1.5rem; transition: transform 0.3s; }
-.stat-icon.icon-purple { color: #50c878; }
+.stat-icon.icon-purple { color: var(--card-wine); }
 .stat-icon.icon-blue { color: #3b82f6; }
-.stat-icon.icon-orange { color: #50c878; }
+.stat-icon.icon-orange { color: #f59e0b; }
 .stat-icon.icon-red { color: #ef4444; }
-.stat-icon.icon-green { color: #50c878; }
+.stat-icon.icon-green { color: var(--client-emerald); }
 
 .client-stat-card:hover {
     transform: translateY(-8px);
@@ -302,10 +317,10 @@ body {
 }
 
 .client-stat-card.green { border-top: 4px solid var(--card-green); }
-.client-stat-card.purple { border-top: 4px solid var(--client-primary); }
+.client-stat-card.purple { border-top: 4px solid var(--card-wine); }
 .client-stat-card.blue { border-top: 4px solid var(--card-blue); }
 .client-stat-card.red { border-top: 4px solid var(--card-red); }
-.client-stat-card.orange { border-top: 4px solid var(--client-accent); }
+.client-stat-card.orange { border-top: 4px solid #f59e0b; }
 
 .stat-header {
     display: flex;

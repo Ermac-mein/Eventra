@@ -20,8 +20,17 @@ if (empty($reference)) {
 }
 
 try {
-    // Use auth_id directly (it is user_id from checkAuth)
-    $resolved_user_id = $auth_id;
+    // Resolve actual users.id from auth_id (auth_accounts.id) — same pattern as verify-payment.php
+    $userStmt = $pdo->prepare("SELECT id FROM users WHERE user_auth_id = ? LIMIT 1");
+    $userStmt->execute([$auth_id]);
+    $resolved_user_id = $userStmt->fetchColumn();
+
+    if (!$resolved_user_id) {
+        error_log("[get-order.php] User profile not found for auth account ID: $auth_id");
+        http_response_code(404);
+        echo json_encode(['success' => false, 'message' => 'User profile not found. Please complete your registration.']);
+        exit;
+    }
 
     // Fetch order (must belong to this user)
     $stmt = $pdo->prepare("
@@ -40,8 +49,9 @@ try {
     $order = $stmt->fetch(PDO::FETCH_ASSOC);
 
     if (!$order) {
+        error_log("[get-order.php] Order not found for reference: $reference (for user_id: $resolved_user_id)");
         http_response_code(404);
-        echo json_encode(['success' => false, 'message' => 'Order not found.']);
+        echo json_encode(['success' => false, 'message' => 'Order not found for this reference.']);
         exit;
     }
 
