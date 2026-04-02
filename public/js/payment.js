@@ -113,7 +113,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 // ─── Polling Logic ──────────────────────────────────────────────────────────
 
 let pollCount = 0;
-const maxPolls = 20; // 1 minute roughly
+let consecutiveErrors = 0;
+const maxPolls = 15; // ~45 seconds of polling
+const maxConsecutiveErrors = 3;
 
 async function startPolling(reference) {
     const icon = document.getElementById('statusIcon');
@@ -124,29 +126,26 @@ async function startPolling(reference) {
 
     const poll = async () => {
         pollCount++;
+        
         try {
             const res = await apiFetch(`/api/payments/get-order.php?reference=${reference}`);
             
             if (!res) {
-                // apiFetch returns null on 401 redirect or abort
                 console.warn('Polling stopped: User unauthenticated or request aborted.');
                 return;
             }
 
-            if (res.status === 404) {
-                console.error('Polling stopped: Order endpoint returned 404.');
-                icon.textContent = '❌';
-                title.textContent = 'Order Not Found';
-                msg.textContent = 'The payment verification service is currently unavailable. Please check your email for a ticket confirmation.';
-                return;
-            }
+            // Reset consecutive errors on any successful response (even if 404/500 is handled by apiFetch as throw)
+            // Wait, apiFetch throws for 404/500. So we only reach here for 200 OK.
+            consecutiveErrors = 0;
 
             const result = await res.json();
 
             if (result.success && result.order) {
                 const order = result.order;
+                const status = result.status || order.payment_status;
                 
-                if (order.payment_status === 'paid' || order.payment_status === 'success') {
+                if (status === 'paid' || status === 'success') {
                     // SUCCESS!
                     const cleanedName = (order.event_name || '').replace(/\s*#\d+$/, '');
                     icon.textContent = '🎉';
@@ -164,25 +163,49 @@ async function startPolling(reference) {
                     return; // Stop polling
                 } 
                 
-                if (order.payment_status === 'failed') {
+                if (status === 'failed') {
                     icon.textContent = '❌';
                     title.textContent = 'Payment Failed';
-                    msg.textContent = 'Paystack declined the transaction. Please try again.';
-                    return;
+                    msg.textContent = 'The transaction was declined. Please try again or contact support.';
+                    return; // Stop polling
+                }
+
+                // If status is 'pending', we continue polling below
+                if (pollCount % 3 === 0) {
+                    msg.textContent = 'Still waiting for confirmation from the payment gateway...';
                 }
             }
         } catch (e) {
-            console.error('Polling error', e);
+            consecutiveErrors++;
+            console.error(`Polling error (${consecutiveErrors}/${maxConsecutiveErrors}):`, e);
+
+            if (consecutiveErrors >= maxConsecutiveErrors) {
+                icon.textContent = '⚠️';
+                title.textContent = 'Connection Issue';
+                msg.textContent = 'We are having trouble reaching the server. Please refresh the page in a few moments to check your status.';
+                return; // Stop polling on repeated errors
+            }
+            
+            // For 404 Specifically (if handled by apiFetch throw)
+            if (e.message.includes('404')) {
+                // If it's early in polling, treat 404 as "not yet created"
+                if (pollCount > 8) {
+                    icon.textContent = '❓';
+                    title.textContent = 'Order Not Found';
+                    msg.textContent = 'We could not locate your order record. If you were debited, please contact support with your reference.';
+                    return;
+                }
+            }
         }
 
         if (pollCount >= maxPolls) {
-            icon.textContent = '🤔';
-            title.textContent = 'Taking a bit longer...';
-            msg.innerHTML = "We haven't received confirmation yet. If you've been debited, don't worry—your ticket will be sent to your email eventually.<br><br>You can safely close this page.";
+            icon.textContent = '⏳';
+            title.textContent = 'Verification in Progress';
+            msg.innerHTML = "Confirmation is taking longer than expected. We'll continue processing in the background. You can safely close this page and check your mail later.";
             return;
         }
 
-        setTimeout(poll, 3000); // Poll every 3 seconds
+        setTimeout(poll, 4000); // Increased delay to 4s as requested (3-5s)
     };
 
     poll();

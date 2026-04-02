@@ -6,45 +6,56 @@
  * Used by the frontend callback page after Paystack redirect.
  */
 
+// Enable full error reporting for debugging Phase
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
 header('Content-Type: application/json');
 require_once '../../config/database.php';
 require_once '../../includes/middleware/auth.php';
 
-$auth_id = checkAuth('user');
-
-$reference = trim($_GET['reference'] ?? '');
-if (empty($reference)) {
-    http_response_code(400);
-    echo json_encode(['success' => false, 'message' => 'reference is required.']);
-    exit;
-}
-
 try {
-    // checkAuth('user') returns the role-specific PK (users.id) from session
-    $resolved_user_id = $auth_id;
+    $auth_id = checkAuth('user');
 
-    // Verify user exists (optional safety)
+    // Input validation & sanitation
+    $reference = htmlspecialchars(trim($_GET['reference'] ?? ''));
+    if (empty($reference)) {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'message' => 'reference is required.']);
+        exit;
+    }
+
+    // checkAuth('user') returns the role-specific PK (users.id) from session
+    $resolved_user_id = (int)$auth_id;
+
+    // Verify user profile exists
     $userStmt = $pdo->prepare("SELECT id FROM users WHERE id = ? LIMIT 1");
     $userStmt->execute([$resolved_user_id]);
     if (!$userStmt->fetch()) {
         error_log("[get-order.php] User profile not found for ID: $resolved_user_id");
         http_response_code(404);
-        echo json_encode(['success' => false, 'message' => 'User profile not found. Please complete your registration.']);
+        echo json_encode(['success' => false, 'message' => 'User profile not found. Please log in again.']);
         exit;
     }
 
-    // Fetch order (must belong to this user)
+    /**
+     * Fetch order (must belong to this user)
+     * We use LEFT JOIN for payments and tickets to handle the case where 
+     * Paystack redirection happens before the background webhook/verification creates these entries.
+     */
     $stmt = $pdo->prepare("
-        SELECT o.id, o.event_id, o.amount, o.payment_status, o.refund_status,
-               o.transaction_reference, o.created_at,
-               e.event_name, e.event_date, e.event_time, e.location, e.address, e.image_path,
-               t.barcode, t.qr_code_path, t.status AS ticket_status
+        SELECT 
+            o.id, o.event_id, o.amount, o.payment_status, o.refund_status,
+            o.transaction_reference, o.created_at,
+            e.event_name, e.event_date, e.event_time, e.location, e.address, e.image_path,
+            t.barcode, t.qr_code_path, t.status AS ticket_status
         FROM orders o
-        JOIN events e ON o.event_id = e.id
+        INNER JOIN events e ON o.event_id = e.id
         LEFT JOIN payments p ON p.reference = o.transaction_reference
-        LEFT JOIN tickets t ON t.payment_id = p.id
+        LEFT JOIN tickets t ON (t.payment_id = p.id OR t.order_id = o.id)
         WHERE o.transaction_reference = ?
           AND o.user_id = ?
+        LIMIT 1
     ");
     $stmt->execute([$reference, $resolved_user_id]);
     $order = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -52,7 +63,7 @@ try {
     if (!$order) {
         error_log("[get-order.php] Order not found for reference: $reference (for user_id: $resolved_user_id)");
         http_response_code(404);
-        echo json_encode(['success' => false, 'message' => 'Order not found for this reference.']);
+        echo json_encode(['success' => false, 'message' => 'Order not found. Please verify your reference.']);
         exit;
     }
 
@@ -61,11 +72,19 @@ try {
     if (!empty($order['barcode'])) {
         $protocol    = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') ? 'https' : 'http';
         $host        = $_SERVER['HTTP_HOST'] ?? 'localhost';
-        $downloadUrl = "{$protocol}://{$host}/api/tickets/download-ticket.php?code={$order['barcode']}";
+        $downloadUrl = "{$protocol}://{$host}/api/tickets/download-ticket.php?code=" . urlencode($order['barcode']);
+    }
+
+    // Determine safe status
+    $status = $order['payment_status'];
+    if (empty($order['barcode']) && $status === 'success') {
+        // Logically inconsistent state: marked as success but no ticket generated yet
+        $status = 'pending';
     }
 
     echo json_encode([
         'success' => true,
+        'status'  => $status,
         'order'   => [
             'id'                    => (int)$order['id'],
             'event_id'              => (int)$order['event_id'],
@@ -86,8 +105,19 @@ try {
             ] : null,
         ],
     ]);
+
 } catch (PDOException $e) {
-    error_log('[get-order.php] DB error: ' . $e->getMessage());
+    error_log('[get-order.php] SQL/DB error: ' . $e->getMessage());
+    
     http_response_code(500);
-    echo json_encode(['success' => false, 'message' => 'Failed to retrieve order.']);
+    echo json_encode([
+        'success' => false, 
+        'message' => 'Database error occurred while retrieving your order.',
+        'debug'   => (ini_get('display_errors') == '1') ? $e->getMessage() : null
+    ]);
+} catch (Exception $e) {
+    error_log('[get-order.php] General error: ' . $e->getMessage());
+    http_response_code(500);
+    echo json_encode(['success' => false, 'message' => 'An unexpected error occurred.']);
 }
+

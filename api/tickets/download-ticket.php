@@ -9,6 +9,7 @@
 
 require_once '../../config/database.php';
 require_once '../../includes/middleware/auth.php';
+require_once '../../includes/helpers/ticket-helper.php';
 
 $auth_id = checkAuth('user');
 
@@ -24,10 +25,17 @@ try {
     // Use auth_id directly (it is user_id from checkAuth)
     $resolved_user_id = $auth_id;
 
-    // Verify ticket ownership
+    // Verify ticket ownership and fetch full data for PDF generation if needed
     $tStmt = $pdo->prepare("
-        SELECT t.barcode, t.status
+        SELECT 
+            t.barcode, t.status, t.event_id, t.user_id, t.payment_id,
+            e.event_name, e.event_date, e.event_time, e.location, e.address,
+            u.name as user_name,
+            p.status as payment_status, p.id as order_id
         FROM tickets t
+        JOIN events e ON t.event_id = e.id
+        JOIN users u ON t.user_id = u.id
+        LEFT JOIN payments p ON t.payment_id = p.id
         WHERE t.barcode = ? AND t.user_id = ?
     ");
     $tStmt->execute([$barcode, $resolved_user_id]);
@@ -44,10 +52,20 @@ try {
     $pdfPath = __DIR__ . '/../../uploads/tickets/pdfs/ticket_' . $barcode . '.pdf';
 
     if (!file_exists($pdfPath)) {
-        http_response_code(404);
-        header('Content-Type: application/json');
-        echo json_encode(['success' => false, 'message' => 'Ticket PDF not found. Please contact support.']);
-        exit;
+        try {
+            // Generate the PDF on-the-fly
+            generateTicketPDF($ticket);
+            
+            if (!file_exists($pdfPath)) {
+                throw new Exception("PDF generation failed to create file.");
+            }
+        } catch (Exception $e) {
+            error_log('[download-ticket.php] Generation error: ' . $e->getMessage());
+            http_response_code(500);
+            header('Content-Type: application/json');
+            echo json_encode(['success' => false, 'message' => 'Failed to generate ticket. Please contact support.']);
+            exit;
+        }
     }
 
     // Stream file to client

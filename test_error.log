@@ -1,0 +1,9 @@
+[01-Apr-2026 14:41:19 UTC] [Eventra] QR code generation failed for ticket EV-123456789: Class "Chillerlan\QRCode\QROptions" not found
+[01-Apr-2026 14:41:19 UTC] [Eventra] QR code generation failed for ticket EV-123456789: Class "Chillerlan\QRCode\QROptions" not found
+[01-Apr-2026 14:41:20 UTC] PHP Warning:  Undefined array key "e7cc5db99cafedbba21657f48519cea3"http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><text y="50%" x="50%" text-anchor="middle" font-size="20" font-family="Montserrat" font-weight="900" fill="black">EVENTRA" in /home/mein/Documents/Eventra/vendor/dompdf/dompdf/src/Css/Stylesheet.php on line 1496
+[01-Apr-2026 14:41:20 UTC] PHP Deprecated:  mb_strtolower(): Passing null to parameter #1 ($string) of type string is deprecated in /home/mein/Documents/Eventra/vendor/dompdf/dompdf/src/Helpers.php on line 69
+[01-Apr-2026 14:41:20 UTC] PHP Warning:  Trying to access array offset on null in /home/mein/Documents/Eventra/vendor/dompdf/dompdf/src/Helpers.php on line 105
+[01-Apr-2026 14:42:54 UTC] [Eventra] QR code generation failed for ticket EV-123456789: code length overflow. (1644 > 992 bit)
+[01-Apr-2026 14:42:54 UTC] [Eventra] QR code generation failed for ticket EV-123456789: code length overflow. (1644 > 992 bit)
+[01-Apr-2026 14:43:43 UTC] [Eventra] QR code generation failed for ticket EV-123456789: ext-gd not loaded
+[01-Apr-2026 14:43:43 UTC] [Eventra] QR code generation failed for ticket EV-123456789: ext-gd not loaded

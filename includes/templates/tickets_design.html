@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Event Ticket</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&display=swap');
+
+        @page {
+            margin: 0;
+            padding: 0;
+            size: 600pt 200pt;
+        }
+
+        body {
+            font-family: 'Montserrat', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #ffffff;
+            color: #000000;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+        @media print {
+            body { 
+                -webkit-print-color-adjust: exact; 
+                print-color-adjust: exact;
+            }
+        }
+
+        .ticket-container {
+            width: 600px;
+            height: 200px;
+            display: flex;
+            position: relative;
+            overflow: hidden;
+            border: 1px solid #000;
+            box-sizing: border-box;
+        }
+
+        /* Large Left Section */
+        .main-section {
+            width: 440px;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            background-color: #fff;
+        }
+
+        .header-branding {
+            background-color: #000;
+            color: #fff;
+            padding: 15px 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-branding h1 {
+            margin: 0;
+            font-size: 22px;
+            font-weight: 900;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        .header-branding .brand-tag {
+            font-size: 10px;
+            font-weight: 400;
+            letter-spacing: 1px;
+            opacity: 0.8;
+        }
+
+        .content-body {
+            flex: 1;
+            padding: 20px 25px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            position: relative;
+        }
+
+        .event-title {
+            font-size: 24px;
+            font-weight: 900;
+            margin: 0 0 10px 0;
+            text-transform: uppercase;
+            color: #000;
+            line-height: 1.1;
+        }
+
+        .event-details {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 5px;
+        }
+
+        .detail-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .detail-label {
+            font-size: 8px;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: #666;
+            margin-bottom: 2px;
+        }
+
+        .detail-value {
+            font-size: 14px;
+            font-weight: 700;
+            color: #000;
+        }
+
+        .attendee-info {
+            margin-top: auto;
+            border-top: 1px solid #eee;
+            padding-top: 10px;
+        }
+
+        /* Right Stub Section */
+        .stub-section {
+            width: 160px;
+            height: 100%;
+            background-color: #fff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 10px;
+            box-sizing: border-box;
+            position: relative;
+        }
+
+        /* Perforation Line */
+        .perforation {
+            position: absolute;
+            right: 160px;
+            top: 0;
+            bottom: 0;
+            width: 0;
+            border-left: 1px dashed #ccc;
+            z-index: 10;
+        }
+
+        .qr-wrapper {
+            background: #fff;
+            padding: 5px;
+            border: 1px solid #000;
+            margin-bottom: 10px;
+        }
+
+        .qr-code-img {
+            width: 90px;
+            height: 90px;
+            display: block;
+        }
+
+        .stub-details {
+            text-align: center;
+            width: 100%;
+        }
+
+        .ticket-id {
+            font-family: monospace;
+            font-size: 10px;
+            font-weight: 700;
+            margin-top: 5px;
+            letter-spacing: 1px;
+        }
+
+        .stub-text {
+            font-size: 8px;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: #000;
+            margin-top: 2px;
+        }
+
+        /* Background Placeholder */
+        .bg-placeholder {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0.05;
+            z-index: -1;
+            background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiB2aWV3Qm94PSIwIDAgMTAwIDEwMCI+PHRleHQgeT0iNTAlIiB4PSI1MCUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtc2l6ZT0iMjAiIGZvbnQtZmFtaWx5PSJNb250c2VycmF0IiBmb250LXdlaWdodD0iOTAwIiBmaWxsPSJibGFjayI+RVZFTlRSQTwvdGV4dD48L3N2Zz4=');
+            background-repeat: repeat;
+        }
+
+    </style>
+</head>
+<body>
+    <div class="ticket-container">
+        <div class="bg-placeholder"></div>
+        
+        <!-- Main Section -->
+        <div class="main-section">
+            <div class="header-branding">
+                <h1>EVENTRA</h1>
+            </div>
+            
+            <div class="content-body">
+                <div>
+                    <h2 class="event-title"><?= $event_name ?></h2>
+                    
+                    <div class="event-details">
+                        <div class="detail-item">
+                            <span class="detail-label">Date</span>
+                            <span class="detail-value"><?= $event_date ?></span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Time</span>
+                            <span class="detail-value"><?= $event_time ?></span>
+                        </div>
+                    </div>
+
+                    <div class="detail-item" style="margin-top: 10px;">
+                        <span class="detail-label">Venue / Location</span>
+                        <span class="detail-value"><?= $venue_name ?></span>
+                    </div>
+                </div>
+
+                <div class="attendee-info">
+                    <div class="detail-item">
+                        <span class="detail-label">Attendee Name</span>
+                        <span class="detail-value"><?= $attendee_name ?></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="perforation"></div>
+
+        <!-- Stub Section -->
+        <div class="stub-section">
+            <div class="qr-wrapper">
+                <img src="<?= $qr_code_image_path ?>" alt="QR Code" class="qr-code-img">
+            </div>
+            <div class="stub-details">
+                <div class="detail-label">Entry details</div>
+                <div class="stub-text">ACCESS PASS</div>
+                <div class="ticket-id">#<?= $ticket_id ?></div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
