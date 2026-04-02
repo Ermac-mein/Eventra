@@ -15,6 +15,10 @@ require_once __DIR__ . '/../../config/sms.php';
  */
 function sendSMS($phoneNumber, $message)
 {
+    if (defined('TWILIO_SMS_DISABLED') && TWILIO_SMS_DISABLED) {
+        return ['success' => false, 'message' => 'SMS service disabled. Configure TWILIO credentials in .env'];
+    }
+
     if (empty(TWILIO_SID) || empty(TWILIO_TOKEN) || empty(TWILIO_FROM)) {
         return ['success' => false, 'message' => 'Twilio credentials not configured'];
     }

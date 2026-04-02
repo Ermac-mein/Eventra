@@ -22,7 +22,7 @@ require_once '../../api/utils/notification-helper.php';
 
 $auth_id = checkAuth('user');
 
-$body      = json_decode(file_get_contents('php://input'), true) ?? [];
+$body = json_decode(file_get_contents('php://input'), true) ?? [];
 $reference = trim($body['reference'] ?? $_GET['reference'] ?? '');
 
 if (!$reference) {
@@ -31,14 +31,29 @@ if (!$reference) {
     exit;
 }
 
-try {
-    // checkAuth('user') returns the users.id (role-specific PK)
-    $stmt = $pdo->prepare("SELECT id, user_auth_id FROM users WHERE id = ?");
+/**
+ * Helper: Resolve users.id from auth_id (handles both auth_accounts.id and users.id from session)
+ */
+function resolveUserId($pdo, $auth_id)
+{
+    // Try auth_accounts.id → users.user_auth_id
+    $stmt = $pdo->prepare("SELECT id, user_auth_id FROM users WHERE user_auth_id = ? LIMIT 1");
     $stmt->execute([$auth_id]);
-    $user_row = $stmt->fetch();
+    $user = $stmt->fetch();
+    if ($user)
+        return $user;
+
+    // Fallback: direct users.id (session-based)
+    $stmt = $pdo->prepare("SELECT id, user_auth_id FROM users WHERE id = ? LIMIT 1");
+    $stmt->execute([$auth_id]);
+    return $stmt->fetch();
+}
+
+try {
+    $user_row = resolveUserId($pdo, $auth_id);
 
     if (!$user_row) {
-        error_log("[verify-payment.php] User profile not found for ID: $auth_id");
+        error_log("[verify-payment.php] User profile not found for auth_id: $auth_id");
         http_response_code(404);
         echo json_encode(['success' => false, 'message' => 'User profile not found. Please complete your registration.']);
         exit;
@@ -53,12 +68,12 @@ try {
                e.event_name, e.event_date, e.event_time, e.address, e.location, e.image_path,
                u.name AS user_name, u.phone AS user_phone,
                a.id AS user_auth_accounts_id, a.email AS user_email,
-               c.client_auth_id AS organizer_auth_id
+               COALESCE(c.client_auth_id, o.organizer_auth_id) AS organizer_auth_id
         FROM orders o
         JOIN events e ON o.event_id = e.id
         JOIN users u ON o.user_id = u.id
         JOIN auth_accounts a ON u.user_auth_id = a.id
-        JOIN clients c ON o.organizer_id = c.id
+        LEFT JOIN clients c ON o.organizer_id = c.id
         WHERE o.transaction_reference = ?
           AND o.user_id = ?
     ");
@@ -74,29 +89,29 @@ try {
     // ── Already marked success — no further action needed ────────────────────
     if ($order['payment_status'] === 'success') {
         echo json_encode([
-            'success'        => true,
-            'status'         => 'success',
-            'message'        => 'Payment already verified.',
-            'amount'         => (float)$order['amount'],
-            'event_name'     => $order['event_name'],
-            'reference'      => $reference,
+            'success' => true,
+            'status' => 'success',
+            'message' => 'Payment already verified.',
+            'amount' => (float) $order['amount'],
+            'event_name' => $order['event_name'],
+            'reference' => $reference,
         ]);
         exit;
     }
 
     // ── Verify with Paystack ─────────────────────────────────────────────────
     $url = 'https://api.paystack.co/transaction/verify/' . rawurlencode($reference);
-    $ch  = curl_init();
+    $ch = curl_init();
     curl_setopt_array($ch, [
-        CURLOPT_URL            => $url,
+        CURLOPT_URL => $url,
         CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_TIMEOUT        => 15,
-        CURLOPT_HTTPHEADER     => [
+        CURLOPT_TIMEOUT => 15,
+        CURLOPT_HTTPHEADER => [
             'Authorization: Bearer ' . PAYSTACK_SECRET_KEY,
             'Cache-Control: no-cache',
         ],
     ]);
-    $response  = curl_exec($ch);
+    $response = curl_exec($ch);
     $curlError = curl_error($ch);
 
     if ($curlError || !$response) {
@@ -105,8 +120,8 @@ try {
         exit;
     }
 
-    $result     = json_decode($response, true);
-    $psStatus   = $result['data']['status'] ?? 'unknown';
+    $result = json_decode($response, true);
+    $psStatus = $result['data']['status'] ?? 'unknown';
 
     if (!$result || !($result['status'] ?? false) || $psStatus !== 'success') {
         // Mark as failed if Paystack says it failed
@@ -116,7 +131,7 @@ try {
         }
         echo json_encode([
             'success' => false,
-            'status'  => $psStatus,
+            'status' => $psStatus,
             'message' => 'Payment not successful.',
         ]);
         exit;
@@ -129,8 +144,8 @@ try {
 
     try {
         // 0. Extract quantity and ticket_type from metadata
-        $metadata    = $result['data']['metadata'] ?? [];
-        $quantity    = max(1, (int)($metadata['quantity'] ?? 1));
+        $metadata = $result['data']['metadata'] ?? [];
+        $quantity = max(1, (int) ($metadata['quantity'] ?? 1));
         $ticket_type = $metadata['ticket_type'] ?? 'regular';
 
         // 1. Update order status
@@ -172,8 +187,8 @@ try {
                 $quantity,
                 $ticket_type,
                 json_encode($result['data']),
-                (string)($result['data']['id'] ?? ''),
-                (string)($result['data']['reference'] ?? '')
+                (string) ($result['data']['id'] ?? ''),
+                (string) ($result['data']['reference'] ?? '')
             ]);
             $payment_id = $pdo->lastInsertId();
 
@@ -189,31 +204,31 @@ try {
                     INSERT INTO tickets (user_id, event_id, payment_id, custom_id, barcode, status)
                     VALUES (?, ?, ?, ?, ?, 'valid')
                 ")->execute([
-                    $order['user_id'],
-                    $order['event_id'],
-                    $payment_id,
-                    $ticketCustomId,
-                    $barcode
-                ]);
+                            $order['user_id'],
+                            $order['event_id'],
+                            $payment_id,
+                            $ticketCustomId,
+                            $barcode
+                        ]);
                 $ticket_id = $pdo->lastInsertId();
                 $ticket_ids[] = $ticket_id;
 
                 $ticketData = [
-                    'barcode'        => $barcode,
-                    'event_id'       => $order['event_id'],
-                    'user_id'        => $order['user_id'],
-                    'event_name'     => $order['event_name'],
-                    'event_date'     => $order['event_date'],
-                    'event_time'     => $order['event_time'],
-                    'location'       => $order['location'] ?? $order['address'],
-                    'user_name'      => $order['user_name'],
+                    'barcode' => $barcode,
+                    'event_id' => $order['event_id'],
+                    'user_id' => $order['user_id'],
+                    'event_name' => $order['event_name'],
+                    'event_date' => $order['event_date'],
+                    'event_time' => $order['event_time'],
+                    'location' => $order['location'] ?? $order['address'],
+                    'user_name' => $order['user_name'],
                     'payment_status' => 'paid',
-                    'order_id'       => $order['id'],
-                    'amount'         => $order['amount'],
+                    'order_id' => $order['id'],
+                    'amount' => $order['amount'],
                 ];
 
                 $qrCodePath = generateTicketQRCode($ticketData);
-                $pdfPath    = generateTicketPDF($ticketData);
+                $pdfPath = generateTicketPDF($ticketData);
                 $pdfPaths[] = $pdfPath;
 
                 $pdo->prepare("UPDATE tickets SET qr_code_path = ? WHERE id = ?")
@@ -243,13 +258,13 @@ try {
         }
 
         echo json_encode([
-            'success'    => true,
-            'status'     => 'success',
-            'message'    => 'Payment verified successfully.',
-            'reference'  => $reference,
-            'amount'     => (float)$order['amount'],
+            'success' => true,
+            'status' => 'success',
+            'message' => 'Payment verified successfully.',
+            'reference' => $reference,
+            'amount' => (float) $order['amount'],
             'event_name' => $order['event_name'],
-            'barcode'    => $barcode,
+            'barcode' => $barcode,
         ]);
     } catch (Exception $e) {
         if ($pdo->inTransaction()) {

@@ -25,17 +25,31 @@ try {
         exit;
     }
 
-    // checkAuth('user') returns the role-specific PK (users.id) from session
-    $resolved_user_id = (int)$auth_id;
-
-    // Verify user profile exists
-    $userStmt = $pdo->prepare("SELECT id FROM users WHERE id = ? LIMIT 1");
-    $userStmt->execute([$resolved_user_id]);
-    if (!$userStmt->fetch()) {
-        error_log("[get-order.php] User profile not found for ID: $resolved_user_id");
+    // Resolve user_id dynamically from auth_id (handles both auth_accounts.id and users.id from session)
+    $resolved_user_id = resolveUserId($pdo, $auth_id);
+    if (!$resolved_user_id) {
+        error_log("[get-order.php] User profile not found for auth_id: $auth_id");
         http_response_code(404);
-        echo json_encode(['success' => false, 'message' => 'User profile not found. Please log in again.']);
+        echo json_encode(['success' => false, 'message' => 'User profile not found. Please complete registration/login.']);
         exit;
+    }
+
+    /**
+     * Helper: Resolve users.id from auth_id (auth_accounts.id or session users.id)
+     */
+    function resolveUserId($pdo, $auth_id)
+    {
+        // Try auth_accounts.id → users.user_auth_id
+        $stmt = $pdo->prepare("SELECT id FROM users WHERE user_auth_id = ? LIMIT 1");
+        $stmt->execute([$auth_id]);
+        $user = $stmt->fetch();
+        if ($user)
+            return $user['id'];
+
+        // Fallback: direct users.id (session-based)
+        $stmt = $pdo->prepare("SELECT id FROM users WHERE id = ? LIMIT 1");
+        $stmt->execute([$auth_id]);
+        return $stmt->fetch() ? $auth_id : null;
     }
 
     /**
@@ -70,8 +84,8 @@ try {
     // Build ticket download URL if ticket exists
     $downloadUrl = null;
     if (!empty($order['barcode'])) {
-        $protocol    = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') ? 'https' : 'http';
-        $host        = $_SERVER['HTTP_HOST'] ?? 'localhost';
+        $protocol = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') ? 'https' : 'http';
+        $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
         $downloadUrl = "{$protocol}://{$host}/api/tickets/download-ticket.php?code=" . urlencode($order['barcode']);
     }
 
@@ -84,23 +98,23 @@ try {
 
     echo json_encode([
         'success' => true,
-        'status'  => $status,
-        'order'   => [
-            'id'                    => (int)$order['id'],
-            'event_id'              => (int)$order['event_id'],
-            'event_name'            => $order['event_name'],
-            'event_date'            => $order['event_date'],
-            'event_time'            => $order['event_time'],
-            'location'              => $order['location'] ?? $order['address'],
-            'image_path'            => $order['image_path'],
-            'amount'                => (float)$order['amount'],
-            'payment_status'        => $order['payment_status'],
-            'refund_status'         => $order['refund_status'],
+        'status' => $status,
+        'order' => [
+            'id' => (int) $order['id'],
+            'event_id' => (int) $order['event_id'],
+            'event_name' => $order['event_name'],
+            'event_date' => $order['event_date'],
+            'event_time' => $order['event_time'],
+            'location' => $order['location'] ?? $order['address'],
+            'image_path' => $order['image_path'],
+            'amount' => (float) $order['amount'],
+            'payment_status' => $order['payment_status'],
+            'refund_status' => $order['refund_status'],
             'transaction_reference' => $order['transaction_reference'],
-            'created_at'            => $order['created_at'],
+            'created_at' => $order['created_at'],
             'ticket' => $order['barcode'] ? [
-                'barcode'      => $order['barcode'],
-                'status'       => $order['ticket_status'],
+                'barcode' => $order['barcode'],
+                'status' => $order['ticket_status'],
                 'download_url' => $downloadUrl,
             ] : null,
         ],
@@ -108,12 +122,12 @@ try {
 
 } catch (PDOException $e) {
     error_log('[get-order.php] SQL/DB error: ' . $e->getMessage());
-    
+
     http_response_code(500);
     echo json_encode([
-        'success' => false, 
+        'success' => false,
         'message' => 'Database error occurred while retrieving your order.',
-        'debug'   => (ini_get('display_errors') == '1') ? $e->getMessage() : null
+        'debug' => (ini_get('display_errors') == '1') ? $e->getMessage() : null
     ]);
 } catch (Exception $e) {
     error_log('[get-order.php] General error: ' . $e->getMessage());

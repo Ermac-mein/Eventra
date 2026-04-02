@@ -30,7 +30,7 @@ function buildSecureQRPayload(array $ticketData): string
         'eid' => $ticketData['event_id'] ?? null,                 // Event ID
         'uid' => $ticketData['user_id'] ?? null,                  // User ID
         'oid' => $ticketData['order_id'] ?? null,                 // Order ID
-        'ps'  => $ticketData['payment_status'] ?? 'paid',         // Payment status
+        'ps' => $ticketData['payment_status'] ?? 'paid',         // Payment status
         'iat' => time(),                                           // Issued at
     ];
 
@@ -90,9 +90,9 @@ function generateTicketQRCode(array $ticketData): string
         $secureToken = buildSecureQRPayload($ticketData);
 
         $options = new QROptions([
-            'version'    => QRCode::VERSION_AUTO,
+            'version' => QRCode::VERSION_AUTO,
             'outputType' => QRCode::OUTPUT_IMAGE_PNG,
-            'eccLevel'   => QRCode::ECC_M,
+            'eccLevel' => QRCode::ECC_M,
         ]);
 
         $qrcode = new QRCode($options);
@@ -130,6 +130,8 @@ function generateTicketPDF(array $ticketData): string
     $options = new Options();
     $options->set('isRemoteEnabled', true);
     $options->set('isFontSubsettingEnabled', true);
+    $options->set('defaultFont', 'Inter');
+    $options->set('dpi', 150);
     $dompdf = new Dompdf($options);
 
     // Generate secure QR code
@@ -150,18 +152,16 @@ function generateTicketPDF(array $ticketData): string
 
     // Render Template
     ob_start();
-    // Use absolute path for the template
     $templatePath = __DIR__ . '/../templates/tickets_design.html';
     if (file_exists($templatePath)) {
         include $templatePath;
     } else {
-        // Fallback or error
         throw new \Exception("Ticket template not found at: " . $templatePath);
     }
     $html = ob_get_clean();
 
     $dompdf->loadHtml($html);
-    $dompdf->setPaper([0, 0, 600, 200], 'portrait');
+    $dompdf->setPaper('A5', 'portrait');
     $dompdf->render();
 
     $fileName = 'ticket_' . $ticketData['barcode'] . '.pdf';
