@@ -68,7 +68,7 @@ try {
                e.event_name, e.event_date, e.event_time, e.address, e.location, e.image_path,
                u.name AS user_name, u.phone AS user_phone,
                a.id AS user_auth_accounts_id, a.email AS user_email,
-               COALESCE(c.client_auth_id, o.organizer_auth_id) AS organizer_auth_id
+               c.client_auth_id AS organizer_auth_id
         FROM orders o
         JOIN events e ON o.event_id = e.id
         JOIN users u ON o.user_id = u.id

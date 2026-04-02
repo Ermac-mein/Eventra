@@ -29,7 +29,7 @@ try {
     $tStmt = $pdo->prepare("
         SELECT 
             t.barcode, t.status, t.event_id, t.user_id, t.payment_id,
-            e.event_name, e.event_date, e.event_time, e.location, e.address,
+            e.event_name, e.event_date, e.event_time, e.location, e.address, e.image_path,
             u.name as user_name,
             p.status as payment_status, p.id as order_id
         FROM tickets t

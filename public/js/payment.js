@@ -55,7 +55,16 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
     }
 
-        if (paymentForm) paymentForm.style.display = 'none';\n        \n        // Show OTP modal\n        showOTPModal(\n            contactInfo.email,\n            contactInfo.phone,
+    const { eventId, quantity, contactInfo, authorization_url } = orderData;
+
+    // 3. Pending order has an authorization URL (Paid Event)
+    if (authorization_url) {
+        if (paymentForm) paymentForm.style.display = 'none';
+        
+        // Show OTP modal
+        showOTPModal(
+            contactInfo.email,
+            contactInfo.phone,
             (verified) => {
                 // OTP verified - proceed to Paystack
                 window.location.href = authorization_url;
@@ -141,6 +150,10 @@ async function startPolling(reference) {
                     icon.textContent = '🎉';
                     title.textContent = 'Payment Successful!';
                     msg.innerHTML = `Your tickets for <strong>${escapeHTML(cleanedName)}</strong> are ready.<br>Reference: ${escapeHTML(reference)}`;
+                    
+                    if (order) {
+                        renderSummary(order, 1); // Pass order object and a default quantity since order might not have it in expected format
+                    }
                     
                     if (order.ticket && order.ticket.barcode) {
                         const barcode = order.ticket.barcode;
@@ -269,17 +282,23 @@ function renderSummary(event, qty) {
     
     const relPath = event.image_path ? `../../${event.image_path.replace(/^\/+/ , '')}` : null;
     const fallback = 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=600&h=400&fit=crop';
-    const imgUrl = encodeURI(relPath || event.absolute_image_url || fallback);
+    const imgUrl = (relPath || event.absolute_image_url || fallback);
     const cleanEventName = (event.event_name || '').replace(/\s*#\d+$/, '');
     
-    const locStr = [event.address, event.city, event.state].filter(Boolean).join(', ') || 'Location details unavailable';
+    // Normalize address/location
+    let locationStr = '';
+    if (event.location || event.address) {
+        locationStr = [event.location || event.address, event.city, event.state].filter(Boolean).join(', ');
+    } else {
+        locationStr = 'Location details unavailable';
+    }
 
     container.innerHTML = `
         <div style="display: flex; gap: 1rem; margin-bottom: 2rem;">
             <img src="${imgUrl}" onerror="this.src='${fallback}'" style="width: 80px; height: 80px; border-radius: 1rem; object-fit: cover;">
             <div>
                 <h4 style="font-weight: 700; color: #1e293b;">${escapeHTML(cleanEventName)}</h4>
-                <p style="font-size: 0.8rem; color: #64748b;">${locStr}</p>
+                <p style="font-size: 0.8rem; color: #64748b;">${escapeHTML(locationStr)}</p>
             </div>
         </div>
         <div class="summary-item">
@@ -291,7 +310,7 @@ function renderSummary(event, qty) {
             <span>× ${qty}</span>
         </div>
         <div class="summary-total">
-            <span>Total Amount</span>
+            <span>Amount Paid</span>
             <span>${total === 0 ? 'FREE' : '₦' + total.toLocaleString()}</span>
         </div>
     `;

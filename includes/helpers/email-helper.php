@@ -145,49 +145,71 @@ function sendTicketEmailFull(string $to, array $ticketData, $pdfPath = ''): arra
     // Build download URL from APP_URL env or fallback
     $appUrl      = rtrim($_ENV['APP_URL'] ?? '', '/');
     $downloadUrl = $appUrl ? "{$appUrl}/api/tickets/download-ticket.php?code={$barcode}" : '';
-    $dlLink      = $downloadUrl ? "<a href='{$downloadUrl}' style='display:inline-block;margin-top:12px;padding:10px 24px;background:#7c3aed;color:white;text-decoration:none;border-radius:6px;font-weight:600;font-size:14px;'>Download PDF Ticket</a>" : '';
+    $dlLink      = $downloadUrl ? "<br><br><a href='{$downloadUrl}' style='display:inline-block;padding:10px 20px;background:#f59e0b;color:white;text-decoration:none;border-radius:6px;font-weight:600;font-size:14px;text-align:center;'>Download PDF Ticket</a>" : '';
 
     $subject = "Your Ticket for {$eventName} — Eventra";
 
     $body = "
-    <div style='font-family:Arial,sans-serif;max-width:600px;margin:auto;background:#f9fafb;padding:20px;border-radius:12px;'>
-        <!-- Header -->
-        <div style='background:linear-gradient(135deg,#7c3aed,#4c1d95);padding:24px 30px;border-radius:10px 10px 0 0;text-align:center;'>
-            <h1 style='color:white;margin:0;letter-spacing:3px;font-size:22px;'>EVENTRA</h1>
-            <p style='color:rgba(255,255,255,0.8);margin:6px 0 0;font-size:13px;'>Official Ticket Confirmation</p>
-        </div>
-
-        <!-- Body -->
-        <div style='background:white;padding:28px 30px;'>
-            <p style='font-size:16px;color:#1f2937;'>Hi <strong>{$userName}</strong>,</p>
-            <p style='color:#6b7280;font-size:15px;line-height:1.6;'>Your payment was successful and your ticket for <strong style='color:#7c3aed;'>{$eventName}</strong> has been issued. See you there!</p>
-
-            <!-- Ticket Card -->
-            <div style='border:2px solid #7c3aed;border-radius:12px;overflow:hidden;margin:24px 0;'>
-                <div style='background:#faf5ff;padding:20px 24px;'>
-                    <table style='width:100%;border-collapse:collapse;font-size:14px;'>
-                        <tr><td style='padding:6px 0;color:#6b7280;width:100px;'>📅 Date</td><td style='color:#1f2937;font-weight:600;'>{$eventDate}</td></tr>
-                        <tr><td style='padding:6px 0;color:#6b7280;'>⏰ Time</td><td style='color:#1f2937;font-weight:600;'>{$eventTime}</td></tr>
-                        <tr><td style='padding:6px 0;color:#6b7280;'>📍 Venue</td><td style='color:#1f2937;font-weight:600;'>{$venue}</td></tr>
-                        <tr><td style='padding:6px 0;color:#6b7280;'>💳 Amount</td><td style='color:#1f2937;font-weight:600;'>{$amount}</td></tr>
+    <div style='font-family:Arial,sans-serif;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);padding:40px;min-height:400px;'>
+        <div style='background:white;max-width:600px;margin:auto;border-radius:24px;overflow:hidden;border:1px solid rgba(255,255,255,0.2);'>
+            <!-- Header -->
+            <div style='background:linear-gradient(135deg,#ff5a5f,#ff8a8e);color:white;padding:32px;text-align:center;'>
+                <div style='font-size:32px;font-weight:800;letter-spacing:-0.02em;'>🎫 EVENTRA</div>
+                <div style='font-size:14px;opacity:0.9;text-transform:uppercase;letter-spacing:1px;margin-top:8px;'>Digital Entry Pass</div>
+            </div>
+            
+            <!-- Body -->
+            <div style='padding:40px;'>
+                <h1 style='font-size:28px;font-weight:800;margin-bottom:24px;color:#1f2937;line-height:1.2;'>{$eventName}</h1>
+                
+                <div style='margin-bottom:32px;'>
+                    <table style='width:100%;border-spacing:0;font-size:14px;'>
+                        <tr>
+                            <td style='padding:16px;background:#f8fafc;border-radius:16px;border-left:4px solid #ff5a5f;width:48%;'>
+                                <div style='font-size:12px;font-weight:600;color:#6b7280;text-transform:uppercase;margin-bottom:4px;'>Date</div>
+                                <div style='font-size:16px;font-weight:700;color:#1f2937;'>{$eventDate}</div>
+                            </td>
+                            <td style='width:4%;'></td>
+                            <td style='padding:16px;background:#f8fafc;border-radius:16px;border-left:4px solid #ff5a5f;width:48%;'>
+                                <div style='font-size:12px;font-weight:600;color:#6b7280;text-transform:uppercase;margin-bottom:4px;'>Time</div>
+                                <div style='font-size:16px;font-weight:700;color:#1f2937;'>{$eventTime}</div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td colspan='3' style='padding:16px;background:#f8fafc;border-radius:16px;border-left:4px solid #ff5a5f;margin-top:12px;display:block;'>
+                                <div style='font-size:12px;font-weight:600;color:#6b7280;text-transform:uppercase;margin-bottom:4px;'>Location</div>
+                                <div style='font-size:16px;font-weight:700;color:#1f2937;'>{$venue}</div>
+                            </td>
+                        </tr>
                     </table>
                 </div>
-                <div style='border-top:2px dashed #7c3aed;background:white;padding:16px 24px;display:flex;justify-content:space-between;align-items:center;'>
-                    <div>
-                        <div style='font-size:10px;color:#9ca3af;text-transform:uppercase;letter-spacing:1px;'>Ticket ID</div>
-                        <div style='font-family:monospace;font-size:16px;font-weight:700;color:#7c3aed;letter-spacing:2px;'>{$barcode}</div>
-                    </div>
+                
+                <div style='background:linear-gradient(135deg,#10b981,#059669);color:white;padding:24px;border-radius:16px;text-align:center;margin-bottom:32px;'>
+                    <div style='font-size:24px;font-weight:800;margin-bottom:4px;'>{$userName}</div>
+                    <div style='opacity:0.9;font-size:14px;'>Ticket Holder</div>
+                </div>
+                
+                <div style='text-align:center;margin-bottom:32px;'>
+                    <div style='font-size:12px;color:#6b7280;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;'>Ticket ID</div>
+                    <div style='font-size:20px;font-weight:800;color:#1f2937;letter-spacing:2px;font-family:monospace;'>{$barcode}</div>
+                </div>
+                
+                <div style='text-align:center;padding:16px;background:linear-gradient(90deg,#f3f4f6,#e5e7eb);border-radius:12px;margin-bottom:32px;'>
+                    <div style='font-size:32px;font-weight:800;font-family:monospace;letter-spacing:3px;color:#1f2937;'>{$barcode}</div>
+                </div>
+                
+                <div style='background:#fef3c7;padding:16px;border-radius:12px;border-left:4px solid #f59e0b;font-size:14px;color:#92400e;line-height:1.5;'>
+                    <strong>⚠️ Security Notice:</strong> Present this digital ticket at the venue. 
+                    Do not share or screenshot. Tampered tickets will be rejected.
+                    {$dlLink}
                 </div>
             </div>
-
-            <p style='color:#6b7280;font-size:14px;line-height:1.6;'>Your PDF ticket is attached to this email. Please present the QR code at the venue entrance for entry.</p>
-
-            {$dlLink}
-        </div>
-
-        <!-- Footer -->
-        <div style='padding:16px 30px;text-align:center;font-size:12px;color:#9ca3af;'>
-            Valid for one-time entry &bull; Non-refundable &bull; &copy; {$year} Eventra
+            
+            <!-- Footer -->
+            <div style='background:linear-gradient(135deg,#1f2937,#374151);color:white;padding:24px;text-align:center;font-size:12px;'>
+                <div>Powered by <span style='opacity:0.8;font-weight:500;'>Eventra</span></div>
+                <div style='opacity:0.7;font-size:11px;margin-top:4px;'>Valid for one-time entry &bull; Non-refundable &bull; &copy; {$year}</div>
+            </div>
         </div>
     </div>
     ";

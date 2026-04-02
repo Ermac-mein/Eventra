@@ -149,6 +149,10 @@ function generateTicketPDF(array $ticketData): string
     $venue_name = htmlspecialchars($ticketData['location'] ?? $ticketData['address'] ?? 'See event details');
     $attendee_name = htmlspecialchars($ticketData['user_name'] ?? 'Attendee');
     $ticket_id = $ticketData['barcode'];
+    
+    // Additional fields for improved design
+    $event_image_path = $ticketData['image_path'] ?? null;
+    $event_type = htmlspecialchars($ticketData['event_type'] ?? 'Digital Entry Pass');
 
     // Render Template
     ob_start();
@@ -161,7 +165,7 @@ function generateTicketPDF(array $ticketData): string
     $html = ob_get_clean();
 
     $dompdf->loadHtml($html);
-    $dompdf->setPaper('A5', 'portrait');
+    $dompdf->setPaper('A5', 'landscape');
     $dompdf->render();
 
     $fileName = 'ticket_' . $ticketData['barcode'] . '.pdf';

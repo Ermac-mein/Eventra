@@ -4,310 +4,255 @@
     <meta charset="UTF-8">
     <title>Eventra Ticket</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
-        
-        * {
+        @page {
             margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+            size: A5 landscape;
         }
         
         body {
-            font-family: 'Inter', sans-serif;
+            font-family: 'Helvetica', 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f3f4f6;
             color: #1f2937;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            padding: 40px;
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
         }
         
-        .ticket-container {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(20px);
-            border-radius: 24px;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-            border: 1px solid rgba(255, 255, 255, 0.2);
+        .ticket {
             width: 100%;
-            max-width: 600px;
-            overflow: hidden;
+            height: 100%;
+            background: white;
             position: relative;
+            overflow: hidden;
+            border: 1px solid #e5e7eb;
         }
         
-        .ticket-header {
-            background: linear-gradient(135deg, #ff5a5f, #ff8a8e);
+        /* Main Layout Table */
+        .layout-table {
+            width: 100%;
+            height: 100%;
+            border-collapse: collapse;
+        }
+        
+        /* Left Section Wrapper */
+        .left-section {
+            width: 65%;
+            position: relative;
+            background-color: #111827;
             color: white;
-            padding: 2rem;
-            text-align: center;
+            vertical-align: top;
+            padding: 0;
+            overflow: hidden;
         }
         
-        .ticket-logo {
-            font-size: 2rem;
-            font-weight: 800;
-            margin-bottom: 0.5rem;
-            letter-spacing: -0.02em;
+        /* Event Image Overlay */
+        .event-image-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
         }
         
-        .ticket-type {
-            font-size: 0.875rem;
-            opacity: 0.9;
+        .event-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            opacity: 0.4;
+        }
+        
+        .content-overlay {
+            position: relative;
+            z-index: 2;
+            padding: 40px;
+            display: block;
+        }
+        
+        .event-type-badge {
+            background: #ff5a5f;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 10px;
             text-transform: uppercase;
+            font-weight: bold;
+            display: inline-block;
+            margin-bottom: 20px;
             letter-spacing: 1px;
-        }
-        
-        .ticket-body {
-            padding: 2.5rem;
         }
         
         .event-title {
-            font-size: 1.75rem;
-            font-weight: 800;
-            margin-bottom: 1rem;
-            line-height: 1.2;
-            color: #1f2937;
+            font-size: 32px;
+            font-weight: bold;
+            margin: 0;
+            line-height: 1.1;
+            margin-bottom: 30px;
+            text-transform: uppercase;
+            color: white;
         }
         
         .event-meta {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1.25rem;
-            margin-bottom: 2rem;
+            margin-top: 20px;
         }
         
-        .meta-item {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            padding: 1rem;
-            background: linear-gradient(135deg, #f8fafc, #f1f5f9);
-            border-radius: 16px;
-            border-left: 4px solid #ff5a5f;
-        }
-        
-        .meta-icon {
-            width: 20px;
-            height: 20px;
-            flex-shrink: 0;
+        .meta-row {
+            margin-bottom: 15px;
         }
         
         .meta-label {
-            font-size: 0.75rem;
-            font-weight: 600;
-            color: #6b7280;
+            font-size: 10px;
+            color: #9ca3af;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
+            letter-spacing: 1px;
+            margin-bottom: 4px;
         }
         
         .meta-value {
-            font-size: 1rem;
-            font-weight: 700;
-            color: #1f2937;
+            font-size: 16px;
+            font-weight: bold;
         }
         
-        .attendee-section {
-            background: linear-gradient(135deg, #10b981, #059669);
-            color: white;
-            padding: 1.5rem;
-            border-radius: 16px;
-            margin-bottom: 2rem;
+        /* Right Section */
+        .right-section {
+            width: 35%;
+            background: white;
+            vertical-align: top;
+            padding: 40px 30px;
+            border-left: 2px dashed #e5e7eb;
             text-align: center;
         }
         
-        .attendee-name {
-            font-size: 1.5rem;
+        .logo {
+            font-size: 24px;
             font-weight: 800;
-            margin-bottom: 0.25rem;
+            color: #111827;
+            margin-bottom: 30px;
         }
         
-        .ticket-id-section {
-            text-align: center;
-            margin-bottom: 2rem;
-        }
-        
-        .ticket-id-label {
-            font-size: 0.75rem;
+        .attendee-label {
+            font-size: 10px;
             color: #6b7280;
             text-transform: uppercase;
             letter-spacing: 1px;
-            margin-bottom: 0.5rem;
+            margin-bottom: 8px;
         }
         
-        .ticket-id {
-            font-size: 1.25rem;
-            font-weight: 800;
-            color: #1f2937;
-            letter-spacing: 2px;
-            font-family: 'Courier New', monospace;
+        .attendee-name {
+            font-size: 20px;
+            font-weight: bold;
+            color: #111827;
+            margin-bottom: 30px;
         }
         
-        .qr-section {
-            text-align: center;
-            padding: 2rem;
-            background: #f8fafc;
-            border-radius: 20px;
-            margin-bottom: 1.5rem;
-        }
-        
-        .qr-label {
-            font-size: 0.875rem;
-            color: #6b7280;
-            margin-bottom: 1rem;
-            font-weight: 600;
+        .qr-container {
+            margin-bottom: 30px;
         }
         
         .qr-code {
             width: 140px;
             height: 140px;
             margin: 0 auto;
-            border-radius: 12px;
         }
         
-        .barcode-section {
-            text-align: center;
-            padding: 1rem;
-            background: linear-gradient(90deg, #f3f4f6, #e5e7eb);
-            border-radius: 12px;
+        .ticket-id-label {
+            font-size: 10px;
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 4px;
         }
         
-        .barcode-text {
-            font-size: 2rem;
+        .ticket-id {
+            font-size: 14px;
             font-weight: 800;
-            font-family: 'Courier New', monospace;
-            letter-spacing: 3px;
-            color: #1f2937;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            font-family: monospace;
+            color: #374151;
         }
         
-        .security-notice {
-            background: linear-gradient(135deg, #fef3c7, #fde68a);
-            padding: 1rem;
-            border-radius: 12px;
-            border-left: 4px solid #f59e0b;
-            font-size: 0.875rem;
-            color: #92400e;
-        }
-        
-        .footer {
-            background: linear-gradient(135deg, #1f2937, #374151);
-            color: white;
-            padding: 1.5rem;
-            text-align: center;
-            font-size: 0.75rem;
-        }
-        
-        .powered-by {
-            opacity: 0.8;
-            font-weight: 500;
-        }
-        
-        @media print {
-            body { background: white !important; }
-            .ticket-container { box-shadow: none !important; }
-        }
-        
-        /* Perforation Effect */
-        .ticket-container::before {
-            content: '';
+        .perforation {
             position: absolute;
             top: 0;
-            left: 0;
-            right: 0;
-            height: 4px;
-            background: repeating-linear-gradient(
-                90deg,
-                transparent,
-                transparent 2px,
-                rgba(255,90,95,0.3) 2px,
-                rgba(255,90,95,0.3) 4px
-            );
+            right: 35%;
+            bottom: 0;
+            width: 2px;
+            z-index: 5;
         }
         
-        .ticket-container::after {
-            content: '';
+        .circle-top, .circle-bottom {
             position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            height: 4px;
-            background: repeating-linear-gradient(
-                90deg,
-                transparent,
-                transparent 2px,
-                rgba(255,90,95,0.3) 2px,
-                rgba(255,90,95,0.3) 4px
-            );
+            left: -10px;
+            width: 20px;
+            height: 20px;
+            background: #f3f4f6; /* Match body background */
+            border-radius: 50%;
+            z-index: 6;
         }
+        
+        .circle-top { top: -10px; }
+        .circle-bottom { bottom: -10px; }
+        
     </style>
 </head>
 <body>
-    <div class="ticket-container">
-        <div class="ticket-header">
-            <div class="ticket-logo">🎫 EVENTRA</div>
-            <div class="ticket-type">Digital Entry Pass</div>
-        </div>
+    <div class="ticket">
+        <table class="layout-table">
+            <tr>
+                <td class="left-section">
+                    <div class="event-image-container">
+                        <?php if ($event_image_path): ?>
+                            <img src="file:///<?php echo realpath(__DIR__ . '/../../' . $event_image_path); ?>" class="event-image">
+                        <?php endif; ?>
+                    </div>
+                    <div class="content-overlay">
+                        <div class="event-type-badge"><?php echo $event_type; ?></div>
+                        <h1 class="event-title"><?php echo $event_name; ?></h1>
+                        
+                        <table width="100%">
+                            <tr>
+                                <td width="50%">
+                                    <div class="meta-row">
+                                        <div class="meta-label">Date</div>
+                                        <div class="meta-value"><?php echo $event_date; ?></div>
+                                    </div>
+                                </td>
+                                <td width="50%">
+                                    <div class="meta-row">
+                                        <div class="meta-label">Time</div>
+                                        <div class="meta-value"><?php echo $event_time; ?></div>
+                                    </div>
+                                </td>
+                            </tr>
+                        </table>
+                        
+                        <div class="meta-row">
+                            <div class="meta-label">Location / Venue</div>
+                            <div class="meta-value"><?php echo $venue_name; ?></div>
+                        </div>
+                    </div>
+                </td>
+                <td class="right-section">
+                    <div class="logo">EVENTRA</div>
+                    
+                    <div class="attendee-label">Ticket Holder</div>
+                    <div class="attendee-name"><?php echo $attendee_name; ?></div>
+                    
+                    <div class="qr-container">
+                        <?php if ($qr_code_image_path): ?>
+                            <img src="file:///<?php echo realpath($qr_code_image_path); ?>" class="qr-code">
+                        <?php else: ?>
+                            <div style="width: 140px; height: 140px; background: #e5e7eb; border-radius: 8px;"></div>
+                        <?php endif; ?>
+                    </div>
+                    
+                    <div class="ticket-id-label">Ticket ID</div>
+                    <div class="ticket-id"><?php echo $ticket_id; ?></div>
+                </td>
+            </tr>
+        </table>
         
-        <div class="ticket-body">
-            <h1 class="event-title"><?php echo $event_name; ?></h1>
-            
-            <div class="event-meta">
-                <div class="meta-item">
-                    <svg class="meta-icon" fill="none" stroke="#ff5a5f" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                    <div>
-                        <div class="meta-label">Date</div>
-                        <div class="meta-value"><?php echo $event_date; ?></div>
-                    </div>
-                </div>
-                
-                <div class="meta-item">
-                    <svg class="meta-icon" fill="none" stroke="#ff5a5f" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                    <div>
-                        <div class="meta-label">Time</div>
-                        <div class="meta-value"><?php echo $event_time; ?></div>
-                    </div>
-                </div>
-                
-                <div class="meta-item">
-                    <svg class="meta-icon" fill="none" stroke="#ff5a5f" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-                    <div>
-                        <div class="meta-label">Location</div>
-                        <div class="meta-value"><?php echo $venue_name; ?></div>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="attendee-section">
-                <div class="attendee-name"><?php echo $attendee_name; ?></div>
-                <div style="opacity: 0.9; font-size: 0.875rem;">Ticket Holder</div>
-            </div>
-            
-            <div class="ticket-id-section">
-                <div class="ticket-id-label">Ticket ID</div>
-                <div class="ticket-id"><?php echo $ticket_id; ?></div>
-            </div>
-            
-            <div class="qr-section">
-                <div class="qr-label">Scan at Entry</div>
-                <?php if ($qr_code_image_path): ?>
-                    <img src="file:///<?php echo realpath($qr_code_image_path); ?>" alt="QR Code" class="qr-code">
-                <?php else: ?>
-                    <div style="width: 140px; height: 140px; background: #e5e7eb; border-radius: 12px; margin: 0 auto; display: flex; align-items: center; justify-content: center; color: #9ca3af; font-size: 0.75rem;">QR Ready</div>
-                <?php endif; ?>
-            </div>
-            
-            <div class="barcode-section">
-                <div class="barcode-text"><?php echo $ticket_id; ?></div>
-            </div>
-            
-            <div class="security-notice">
-                <strong>⚠️ Security Notice:</strong> Present this digital ticket at the venue. 
-                Do not share or screenshot. Tampered tickets will be rejected.
-            </div>
-        </div>
-        
-        <div class="footer">
-            <div>Powered by <span class="powered-by">Eventra</span></div>
-            <div style="opacity: 0.7; font-size: 0.7rem; margin-top: 0.25rem;">Generated on <?php echo date('M d, Y \\a\\t g:i A'); ?></div>
+        <div class="perforation">
+            <div class="circle-top"></div>
+            <div class="circle-bottom"></div>
         </div>
     </div>
 </body>

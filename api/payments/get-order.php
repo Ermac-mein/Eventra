@@ -14,6 +14,24 @@ header('Content-Type: application/json');
 require_once '../../config/database.php';
 require_once '../../includes/middleware/auth.php';
 
+/**
+ * Helper: Resolve users.id from auth_id (auth_accounts.id or session users.id)
+ */
+function resolveUserId($pdo, $auth_id)
+{
+    // Try auth_accounts.id → users.user_auth_id
+    $stmt = $pdo->prepare("SELECT id FROM users WHERE user_auth_id = ? LIMIT 1");
+    $stmt->execute([$auth_id]);
+    $user = $stmt->fetch();
+    if ($user)
+        return $user['id'];
+
+    // Fallback: direct users.id (session-based)
+    $stmt = $pdo->prepare("SELECT id FROM users WHERE id = ? LIMIT 1");
+    $stmt->execute([$auth_id]);
+    return $stmt->fetch() ? $auth_id : null;
+}
+
 try {
     $auth_id = checkAuth('user');
 
@@ -35,24 +53,6 @@ try {
     }
 
     /**
-     * Helper: Resolve users.id from auth_id (auth_accounts.id or session users.id)
-     */
-    function resolveUserId($pdo, $auth_id)
-    {
-        // Try auth_accounts.id → users.user_auth_id
-        $stmt = $pdo->prepare("SELECT id FROM users WHERE user_auth_id = ? LIMIT 1");
-        $stmt->execute([$auth_id]);
-        $user = $stmt->fetch();
-        if ($user)
-            return $user['id'];
-
-        // Fallback: direct users.id (session-based)
-        $stmt = $pdo->prepare("SELECT id FROM users WHERE id = ? LIMIT 1");
-        $stmt->execute([$auth_id]);
-        return $stmt->fetch() ? $auth_id : null;
-    }
-
-    /**
      * Fetch order (must belong to this user)
      * We use LEFT JOIN for payments and tickets to handle the case where 
      * Paystack redirection happens before the background webhook/verification creates these entries.
@@ -65,7 +65,7 @@ try {
             t.barcode, t.qr_code_path, t.status AS ticket_status
         FROM orders o
         INNER JOIN events e ON o.event_id = e.id
-        LEFT JOIN payments p ON p.reference = o.transaction_reference
+        LEFT JOIN payments p ON p.reference = o.transaction_reference COLLATE utf8mb4_unicode_ci
         LEFT JOIN tickets t ON (t.payment_id = p.id OR t.order_id = o.id)
         WHERE o.transaction_reference = ?
           AND o.user_id = ?

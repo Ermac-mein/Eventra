@@ -210,6 +210,8 @@ CREATE TABLE IF NOT EXISTS events (
     CONSTRAINT fk_event_client FOREIGN KEY (client_id) REFERENCES clients (id) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
 
+ALTER TABLE events ADD COLUMN ticket_type VARCHAR(50) DEFAULT 'regular';
+
 -- =============================================================================
 -- ORDERS
 -- =============================================================================
@@ -249,8 +251,6 @@ CREATE TABLE IF NOT EXISTS payments (
     user_id BIGINT UNSIGNED NOT NULL,
     reference VARCHAR(191) NOT NULL,
     amount DECIMAL(12, 2) NOT NULL,
-    quantity INT UNSIGNED NOT NULL DEFAULT 1,
-    ticket_type VARCHAR(50) DEFAULT 'regular',
     status ENUM('pending', 'paid', 'failed', 'refunded') DEFAULT 'pending',
     paystack_response JSON DEFAULT NULL,
     payment_id VARCHAR(100) DEFAULT NULL,
@@ -266,6 +266,9 @@ CREATE TABLE IF NOT EXISTS payments (
     CONSTRAINT fk_payment_event FOREIGN KEY (event_id) REFERENCES events (id) ON DELETE CASCADE,
     CONSTRAINT fk_payment_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
+
+ALTER TABLE payments ADD COLUMN quantity INT UNSIGNED NOT NULL DEFAULT 1;
+ALTER TABLE payments ADD COLUMN ticket_type VARCHAR(50) DEFAULT 'regular';
 
 -- =============================================================================
 -- TICKETS
@@ -299,6 +302,8 @@ CREATE TABLE IF NOT EXISTS tickets (
     CONSTRAINT fk_ticket_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
     CONSTRAINT fk_ticket_order FOREIGN KEY (order_id) REFERENCES orders (id) ON DELETE SET NULL
 ) ENGINE = INNODB DEFAULT CHARSET = UTF8MB4;
+
+ALTER TABLE tickets ADD COLUMN ticket_type VARCHAR(50) DEFAULT 'regular';
 
 -- =============================================================================
 -- FAVORITES

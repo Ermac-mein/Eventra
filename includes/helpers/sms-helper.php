@@ -1,84 +1,79 @@
 <?php
 
 /**
- * SMS Helper using Twilio
+ * SMS Helper using Termii
  */
 
 require_once __DIR__ . '/../../config/sms.php';
 
 /**
- * Send an SMS using Twilio API
+ * Send an SMS using Termii API
  *
- * @param string $phoneNumber Recipient phone number in E.164 format
+ * @param string $phoneNumber Recipient phone number (without +)
  * @param string $message SMS message content
- * @return array ['success' => bool, 'message' => string, 'sid' => string|null]
+ * @return array ['success' => bool, 'message' => string, 'message_id' => string|null]
  */
 function sendSMS($phoneNumber, $message)
 {
-    if (defined('TWILIO_SMS_DISABLED') && TWILIO_SMS_DISABLED) {
-        return ['success' => false, 'message' => 'SMS service disabled. Configure TWILIO credentials in .env'];
+    if (defined('TERMII_SMS_DISABLED') && TERMII_SMS_DISABLED) {
+        return ['success' => false, 'message' => 'SMS service disabled. Configure TERMII credentials in .env'];
     }
 
-    if (empty(TWILIO_SID) || empty(TWILIO_TOKEN) || empty(TWILIO_FROM)) {
-        return ['success' => false, 'message' => 'Twilio credentials not configured'];
+    if (empty(TERMII_API_KEY) || empty(TERMII_SENDER_ID)) {
+        return ['success' => false, 'message' => 'Termii credentials not configured'];
     }
 
     // ── Phone Number Normalization ──────────────────────────────────────────
-    // Strip all non-numeric characters EXCEPT the plus sign
-    $phoneNumber = preg_replace('/[^\d+]/', '', $phoneNumber);
+    // Strip all non-numeric characters
+    $phoneNumber = preg_replace('/[^\d]/', '', $phoneNumber);
 
     if (strpos($phoneNumber, '0') === 0 && strlen($phoneNumber) === 11) {
-        // standard Nigeria local format: 080... -> +23480...
-        $phoneNumber = '+234' . substr($phoneNumber, 1);
-    } elseif (strpos($phoneNumber, '234') === 0 && (strlen($phoneNumber) === 13 || strlen($phoneNumber) === 12)) {
-        // standard Nigeria international format without +: 23480... -> +23480...
-        $phoneNumber = '+' . $phoneNumber;
-    } elseif (strpos($phoneNumber, '+') !== 0) {
-        // Fallback: strictly ensure it starts with + for international routing
-        $phoneNumber = '+' . ltrim($phoneNumber, '+');
+        // standard Nigeria local format: 080... -> 23480...
+        $phoneNumber = '234' . substr($phoneNumber, 1);
     }
     // ──────────────────────────────────────────────────────────────────────────
 
     $data = [
-        'To' => $phoneNumber,
-        'From' => TWILIO_FROM,
-        'Body' => $message
+        "to" => $phoneNumber,
+        "from" => TERMII_SENDER_ID,
+        "sms" => $message,
+        "type" => "plain",
+        "channel" => "dnd", // DND routes past Do-Not-Disturb lists
+        "api_key" => TERMII_API_KEY,
     ];
 
-    $postData = http_build_query($data);
-
     $ch = curl_init();
-    curl_setopt($ch, CURLOPT_URL, TWILIO_SMS_URL);
+    curl_setopt($ch, CURLOPT_URL, TERMII_SMS_URL);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_POST, true);
-    curl_setopt($ch, CURLOPT_POSTFIELDS, $postData);
-    curl_setopt($ch, CURLOPT_USERPWD, TWILIO_SID . ':' . TWILIO_TOKEN);
-    curl_setopt($ch, CURLOPT_HTTPAUTH, CURLAUTH_BASIC);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+    curl_setopt($ch, CURLOPT_HTTPHEADER, [
+        'Content-Type: application/json',
+        'Accept: application/json'
+    ]);
 
     $response = curl_exec($ch);
     $error = curl_error($ch);
     $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    curl_close($ch);
 
     if ($error) {
-        error_log("Twilio SMS Error: " . $error);
+        error_log("Termii SMS Error: " . $error);
         return ['success' => false, 'message' => "CURL Error: " . $error];
     }
 
     $result = json_decode($response, true);
 
-    if ($httpCode >= 200 && $httpCode < 300) {
+    if ($httpCode >= 200 && $httpCode < 300 && isset($result['message_id'])) {
         return [
             'success' => true,
             'message' => 'SMS sent successfully',
-            'sid' => $result['sid'] ?? null
+            'message_id' => $result['message_id']
         ];
     } else {
-        error_log("Twilio API Error: " . ($result['message'] ?? $response));
+        error_log("Termii API Error: " . ($result['message'] ?? $response));
         return [
             'success' => false,
-            'message' => $result['message'] ?? 'Unknown Twilio error',
-            'code' => $result['code'] ?? null
+            'message' => $result['message'] ?? 'Unknown Termii error'
         ];
     }
 }
