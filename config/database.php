@@ -49,5 +49,9 @@ try {
         exit;
     }
 
+    $show_debug = (getenv('APP_DEBUG') === 'true' || (isset($_ENV['APP_DEBUG']) && $_ENV['APP_DEBUG'] === 'true'));
+    if ($show_debug) {
+        die("Database connection failed: " . $e->getMessage());
+    }
     die("Database connection failed. Please check error/errors.log for details.");
 }
