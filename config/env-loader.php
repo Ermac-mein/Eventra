@@ -7,7 +7,7 @@
 function loadEnv($path = __DIR__ . '/../.env')
 {
     if (!file_exists($path)) {
-        throw new Exception(".env file not found at: $path");
+        return; // Skip if .env doesn't exist (e.g. in production)
     }
 
     $lines = file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
