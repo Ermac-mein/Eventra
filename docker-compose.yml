@@ -23,8 +23,8 @@ services:
       MYSQL_DATABASE: eventra_db
       MYSQL_USER: eventra
       MYSQL_PASSWORD: Eventra@@12345
-    ports:
-      - "3306:3306"
+    # ports:
+    #   - "3306:3306"
     volumes:
       - db_data:/var/lib/mysql
 
