@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    ports:
+      - "8080:80"
+    volumes:
+      - .:/var/www/html
+      # Don't overwrite the container's vendor folder with the host's,
+      # but this means changes in host vendor aren't synced unless rebuilt
+      # or by running composer install in host.
+    env_file:
+      - .env
+    depends_on:
+      - db
+  
+  db:
+    image: mysql:8.0
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: eventra_db
+      MYSQL_USER: eventra
+      MYSQL_PASSWORD: Eventra@@12345
+    ports:
+      - "3306:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+
+volumes:
+  db_data:

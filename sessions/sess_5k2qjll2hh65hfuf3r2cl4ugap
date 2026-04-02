@@ -1,1 +1,1 @@
-auth_id|i:2;client_id|i:1;user_role|s:6:"client";role|s:6:"client";auth_token|s:64:"402901509a8b97279c1394ca173daf8f86f51041bc589d4eb7f2f769864e9c30";last_activity|i:1775128779;csrf_token|s:64:"fdcd4d4fa50431ab70f04dd94d2d6056827f3168c220fd84ea270a5888fcccac";
+auth_id|i:2;client_id|i:1;user_role|s:6:"client";role|s:6:"client";auth_token|s:64:"402901509a8b97279c1394ca173daf8f86f51041bc589d4eb7f2f769864e9c30";last_activity|i:1775129499;csrf_token|s:64:"fdcd4d4fa50431ab70f04dd94d2d6056827f3168c220fd84ea270a5888fcccac";

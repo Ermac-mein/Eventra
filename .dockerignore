@@ -1,0 +1,6 @@
+.git
+.vscode
+.testfox
+vendor
+node_modules
+.env

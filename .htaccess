@@ -19,7 +19,9 @@ php_value post_max_size 15M
   AddOutputFilterByType DEFLATE text/html text/plain text/xml text/css text/javascript application/javascript application/json
   AddEncoding gzip .gz
   <FilesMatch "\.(gz)$">
-    Header set Content-Encoding gzip
+    <IfModule mod_headers.c>
+      Header set Content-Encoding gzip
+    </IfModule>
   </FilesMatch>
 </IfModule>
 
