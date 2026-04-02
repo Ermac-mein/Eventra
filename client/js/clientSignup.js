@@ -44,9 +44,18 @@ document.addEventListener('DOMContentLoaded', () => {
     // Toggle password visibility
     if (togglePassword && passwordInput) {
         togglePassword.addEventListener('click', () => {
-            const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+            const isPassword = passwordInput.getAttribute('type') === 'password';
+            const type = isPassword ? 'text' : 'password';
             passwordInput.setAttribute('type', type);
-            togglePassword.textContent = type === 'password' ? '👁️' : '👁️‍🗨️';
+            
+            // Update Icon
+            togglePassword.innerHTML = isPassword ? 
+                '<i data-lucide="eye-off" style="width: 18px; height: 18px;"></i>' : 
+                '<i data-lucide="eye" style="width: 18px; height: 18px;"></i>';
+            
+            if (window.lucide) {
+                window.lucide.createIcons();
+            }
         });
     }
 
@@ -275,7 +284,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (events.length === 0) return;
 
                 sliderContainer.innerHTML = events.map((event, index) => `
-                    <img src="${event.image_path}" 
+                    <img src="/${event.image_path}" 
                          alt="${event.event_name}" 
                          class="slider-img ${index === 0 ? 'active' : ''}" 
                          data-index="${index}">

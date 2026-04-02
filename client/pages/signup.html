@@ -13,6 +13,7 @@
     
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
 
     <!-- Favicon -->
     <link rel="icon" type="image/x-icon" href="/public/favicon.ico">
@@ -43,7 +44,7 @@
                                    placeholder="John Doe" 
                                    autocomplete="off"
                                    required>
-                            <span class="input-icon">👤</span>
+                            <span class="input-icon"><i data-lucide="user" style="width: 18px; height: 18px;"></i></span>
                         </div>
                         <div id="fullNameError" class="error-message"></div>
                     </div>
@@ -59,7 +60,7 @@
                                    placeholder="m@example.com" 
                                    autocomplete="off"
                                    required>
-                            <span class="input-icon">✉️</span>
+                            <span class="input-icon"><i data-lucide="mail" style="width: 18px; height: 18px;"></i></span>
                         </div>
                         <div id="emailError" class="error-message"></div>
                     </div>
@@ -75,7 +76,7 @@
                                    placeholder="••••••••" 
                                    autocomplete="new-password"
                                    required>
-                            <span id="togglePassword" class="toggle-password">👁️</span>
+                            <span id="togglePassword" class="toggle-password"><i data-lucide="eye" style="width: 18px; height: 18px;"></i></span>
                         </div>
                         <div id="passwordError" class="error-message"></div>
                     </div>
@@ -117,5 +118,8 @@
     <!-- Scripts -->
     <script src="../../public/js/utils.js"></script>
     <script src="../js/clientSignup.js"></script>
+    <script>
+        lucide.createIcons();
+    </script>
 </body>
 </html>
