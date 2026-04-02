@@ -152,7 +152,9 @@ function generateTicketPDF(array $ticketData): string
     
     // Additional fields for improved design
     $event_image_path = $ticketData['image_path'] ?? null;
-    $event_type = htmlspecialchars($ticketData['event_type'] ?? 'Digital Entry Pass');
+    $ticket_type = strtolower($ticketData['ticket_type'] ?? 'regular');
+    $event_type = ($ticket_type === 'vip') ? 'VIP Access Pass' : ($ticketData['event_type'] ?? 'Regular Entry Pass');
+
 
     // Render Template
     ob_start();

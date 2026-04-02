@@ -169,32 +169,32 @@
             color: #374151;
         }
         
-        .perforation {
-            position: absolute;
-            top: 0;
-            right: 35%;
-            bottom: 0;
-            width: 2px;
-            z-index: 5;
+        
+        /* VIP Ticket Styling */
+        .ticket.vip .left-section {
+            background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
+            border-left: 10px solid #d4af37; /* Gold border */
         }
         
-        .circle-top, .circle-bottom {
-            position: absolute;
-            left: -10px;
-            width: 20px;
-            height: 20px;
-            background: #f3f4f6; /* Match body background */
-            border-radius: 50%;
-            z-index: 6;
+        .ticket.vip .event-type-badge {
+            background: linear-gradient(to right, #d4af37, #f1c40f);
+            color: #111827;
         }
         
-        .circle-top { top: -10px; }
-        .circle-bottom { bottom: -10px; }
+        .ticket.vip .circle-top, .ticket.vip .circle-bottom {
+            background: #d4af37;
+        }
+
+        .ticket.vip .right-section {
+            background: #fafafa;
+        }
         
     </style>
+
 </head>
-<body>
-    <div class="ticket">
+<body class="<?php echo $ticket_type; ?>">
+    <div class="ticket <?php echo $ticket_type; ?>">
+
         <table class="layout-table">
             <tr>
                 <td class="left-section">
@@ -206,6 +206,7 @@
                     <div class="content-overlay">
                         <div class="event-type-badge"><?php echo $event_type; ?></div>
                         <h1 class="event-title"><?php echo $event_name; ?></h1>
+
                         
                         <table width="100%">
                             <tr>

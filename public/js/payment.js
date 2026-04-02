@@ -163,7 +163,9 @@ async function startPolling(reference) {
                     }
                     
                     sessionStorage.removeItem('pending_order');
+                    sessionStorage.setItem('purchase_success_redirection', 'true');
                     return; // Stop polling
+
                 } 
                 
                 if (status === 'failed') {

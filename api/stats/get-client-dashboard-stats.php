@@ -12,6 +12,16 @@ require_once '../../config/database.php';
 require_once '../../includes/middleware/auth.php';
 $auth_id = checkAuth('client');
 
+// Fallback: If session role is missing (common with Bearer token auth), fetch it
+if (!isset($_SESSION['role'])) {
+    $stmt = $pdo->prepare("SELECT role FROM auth_accounts WHERE id = ?");
+    $stmt->execute([$auth_id]);
+    $role = $stmt->fetchColumn();
+    $_SESSION['role'] = $role;
+    $_SESSION['user_role'] = $role;
+}
+
+
 try {
     // 1. Resolve real_client_id from session (standardized role-id) or from auth mappings
     $real_client_id = $_SESSION['client_id'] ?? null;

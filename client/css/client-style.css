@@ -363,7 +363,10 @@ body {
     box-shadow: var(--glass-shadow);
     border: 1px solid var(--glass-border);
     transition: var(--transition-base);
+    display: flex;
+    flex-direction: column;
 }
+
 
 .dash-panel:hover {
     box-shadow: 0 12px 40px 0 rgba(31, 38, 135, 0.1);
@@ -378,24 +381,36 @@ body {
 }
 
 .event-feed-list {
-    max-height: 480px;
+    flex: 1;
+    max-height: 650px;
     overflow-y: auto;
     padding-right: 12px;
 }
 
+.sales-list {
+    max-height: 320px;
+    overflow-y: auto;
+    padding-right: 8px;
+}
+
+
 /* Custom Scrollbar */
-.event-feed-list::-webkit-scrollbar {
+.event-feed-list::-webkit-scrollbar,
+.sales-list::-webkit-scrollbar {
     width: 6px;
 }
-.event-feed-list::-webkit-scrollbar-track {
+.event-feed-list::-webkit-scrollbar-track,
+.sales-list::-webkit-scrollbar-track {
     background: #f8fafc;
     border-radius: 10px;
 }
-.event-feed-list::-webkit-scrollbar-thumb {
+.event-feed-list::-webkit-scrollbar-thumb,
+.sales-list::-webkit-scrollbar-thumb {
     background: #e2e8f0;
     border-radius: 10px;
 }
-.event-feed-list::-webkit-scrollbar-thumb:hover {
+.event-feed-list::-webkit-scrollbar-thumb:hover,
+.sales-list::-webkit-scrollbar-thumb:hover {
     background: var(--client-primary-light);
 }
 

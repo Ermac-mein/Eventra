@@ -11,7 +11,18 @@ require_once '../../includes/middleware/auth.php';
 
 // Check authentication (allow both admin and client)
 $user_id = checkAuth();
+
+// Fallback: If session role is missing (common with Bearer token auth), fetch it
+if (!isset($_SESSION['role'])) {
+    $stmt = $pdo->prepare("SELECT role FROM auth_accounts WHERE id = ?");
+    $stmt->execute([$user_id]);
+    $role = $stmt->fetchColumn();
+    $_SESSION['role'] = $role;
+    $_SESSION['user_role'] = $role;
+}
+
 $user_role = $_SESSION['user_role'] ?? $_SESSION['role'] ?? 'client';
+
 $period = $_GET['period'] ?? '7days'; // 7days, 30days, 90days
 
 // Determine date range

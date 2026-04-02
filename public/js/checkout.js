@@ -13,9 +13,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     let currentUser = null;
 
     if (!eventId) {
+        const isFromSuccess = sessionStorage.getItem('purchase_success_redirection');
+        if (isFromSuccess) {
+            sessionStorage.removeItem('purchase_success_redirection');
+            window.location.href = 'index.html';
+            return;
+        }
         showErrorAndRedirect('No event specified for checkout', 'index.html');
         return;
     }
+
 
     // 2. Auth Check - Initialize and ensure AuthController has finished syncing
     authController.init();
