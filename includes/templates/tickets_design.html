@@ -1,259 +1,225 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Eventra Ticket</title>
+    <title>Event Ticket - <?=$event_title?></title>
     <style>
         @page {
             margin: 0;
-            size: A5 landscape;
+            size: 750px 250px;
         }
-        
         body {
-            font-family: 'Helvetica', 'Arial', sans-serif;
             margin: 0;
             padding: 0;
-            background-color: #f3f4f6;
-            color: #1f2937;
+            font-family: Helvetica, Arial, sans-serif;
+            background: #f4f4f4; /* Page background */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
         }
-        
         .ticket {
-            width: 100%;
-            height: 100%;
-            background: white;
+            width: 750px;
+            height: 250px;
+            background: #000;
+            border-radius: 12px;
+            display: flex;
             position: relative;
-            overflow: hidden;
-            border: 1px solid #e5e7eb;
-        }
-        
-        /* Main Layout Table */
-        .layout-table {
-            width: 100%;
-            height: 100%;
-            border-collapse: collapse;
-        }
-        
-        /* Left Section Wrapper */
-        .left-section {
-            width: 65%;
-            position: relative;
-            background-color: #111827;
-            color: white;
-            vertical-align: top;
-            padding: 0;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
             overflow: hidden;
         }
-        
-        /* Event Image Overlay */
-        .event-image-container {
+        /* The 'Punch' effect */
+        .ticket::before, .ticket::after {
+            content: '';
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
+            left: 70%;
+            width: 30px;
+            height: 30px;
+            background: #f4f4f4; /* Match page background */
+            border-radius: 50%;
+            z-index: 10;
+            margin-left: -15px; /* Center circle on the line */
+        }
+        .ticket::before { top: -15px; }
+        .ticket::after { bottom: -15px; }
+
+        /* Left Main Section */
+        .main-section {
+            width: 70%;
+            background: #000;
+            color: #fff;
+            padding: 30px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            position: relative;
+        }
+        /* Event Image (Optional Background) */
+        .event-bg {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            opacity: 0.2;
+            z-index: 0;
+        }
+        .event-content {
+            position: relative;
             z-index: 1;
         }
-        
-        .event-image {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            opacity: 0.4;
-        }
-        
-        .content-overlay {
-            position: relative;
-            z-index: 2;
-            padding: 40px;
-            display: block;
-        }
-        
-        .event-type-badge {
-            background: #ff5a5f;
-            color: white;
-            padding: 4px 12px;
-            border-radius: 4px;
-            font-size: 10px;
+        .event-label {
+            color: #d4af37; /* Gold/Yellow accent */
             text-transform: uppercase;
-            font-weight: bold;
-            display: inline-block;
-            margin-bottom: 20px;
-            letter-spacing: 1px;
+            font-size: 10px;
+            font-weight: 800;
+            letter-spacing: 2px;
+            margin-bottom: 5px;
         }
-        
         .event-title {
             font-size: 32px;
-            font-weight: bold;
-            margin: 0;
+            font-weight: 900;
+            text-transform: uppercase;
+            margin: 0 0 15px 0;
             line-height: 1.1;
-            margin-bottom: 30px;
+        }
+        .details-grid {
+            display: flex;
+            gap: 30px;
+        }
+        .detail-item {
+            display: flex;
+            flex-direction: column;
+        }
+        .detail-label {
+            font-size: 9px;
+            color: #888;
             text-transform: uppercase;
-            color: white;
+            margin-bottom: 3px;
         }
-        
-        .event-meta {
-            margin-top: 20px;
+        .detail-value {
+            font-size: 14px;
+            font-weight: 600;
+            color: #d4af37; /* Gold accent */
         }
-        
-        .meta-row {
-            margin-bottom: 15px;
+
+        /* Right Stub Section */
+        .stub-section {
+            width: 30%;
+            background: #fff;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border-left: 2px dashed #000;
+            position: relative;
         }
-        
-        .meta-label {
-            font-size: 10px;
-            color: #9ca3af;
+        .stub-label {
+            font-size: 9px;
+            color: #666;
             text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 4px;
+            margin-bottom: 10px;
+            font-weight: 700;
         }
-        
-        .meta-value {
-            font-size: 16px;
-            font-weight: bold;
+        .qr-code {
+            width: 110px;
+            height: 110px;
+            background: #eee;
+            display: block;
         }
-        
-        /* Right Section */
-        .right-section {
-            width: 35%;
-            background: white;
-            vertical-align: top;
-            padding: 40px 30px;
-            border-left: 2px dashed #e5e7eb;
+        .ticket-id {
+            font-size: 11px;
+            font-weight: 700;
+            color: #000;
+            margin-top: 15px;
+        }
+        .barcode-side {
+            position: absolute;
+            right: 5px;
+            top: 50%;
+            transform: translateY(-50%) rotate(90deg);
+            font-size: 8px;
+            color: #999;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            width: 150px;
             text-align: center;
         }
-        
-        .logo {
-            font-size: 24px;
-            font-weight: 800;
-            color: #111827;
-            margin-bottom: 30px;
+        .barcode-lines {
+            height: 30px;
+            width: 1px;
+            background: #000;
+            display: inline-block;
+            margin-right: 1px;
         }
-        
-        .attendee-label {
-            font-size: 10px;
-            color: #6b7280;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 8px;
-        }
-        
-        .attendee-name {
-            font-size: 20px;
-            font-weight: bold;
-            color: #111827;
-            margin-bottom: 30px;
-        }
-        
-        .qr-container {
-            margin-bottom: 30px;
-        }
-        
-        .qr-code {
-            width: 140px;
-            height: 140px;
-            margin: 0 auto;
-        }
-        
-        .ticket-id-label {
-            font-size: 10px;
-            color: #6b7280;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 4px;
-        }
-        
-        .ticket-id {
-            font-size: 14px;
-            font-weight: 800;
-            font-family: monospace;
-            color: #374151;
-        }
-        
-        
-        /* VIP Ticket Styling */
-        .ticket.vip .left-section {
-            background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
-            border-left: 10px solid #d4af37; /* Gold border */
-        }
-        
-        .ticket.vip .event-type-badge {
-            background: linear-gradient(to right, #d4af37, #f1c40f);
-            color: #111827;
-        }
-        
-        .ticket.vip .circle-top, .ticket.vip .circle-bottom {
+        .event-type-pill {
             background: #d4af37;
+            color: #000;
+            font-size: 9px;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-weight: 800;
+            display: inline-block;
+            margin-bottom: 5px;
         }
-
-        .ticket.vip .right-section {
-            background: #fafafa;
-        }
-        
     </style>
-
 </head>
-<body class="<?php echo $ticket_type; ?>">
-    <div class="ticket <?php echo $ticket_type; ?>">
+<body>
+    <div class="ticket">
+        <!-- Main Section -->
+        <div class="main-section">
+            <?php if ($event_img_base64): ?>
+            <img src="<?=$event_img_base64?>" class="event-bg">
+            <?php endif; ?>
+            
+            <div class="event-content">
+                <div class="event-type-pill"><?=$ticket_type_display?></div>
+                <div class="event-label">Event Admission Ticket</div>
+                <h1 class="event-title"><?=$event_title?></h1>
+                
+                <div class="details-grid">
+                    <div class="detail-item">
+                        <span class="detail-label">Date & Time</span>
+                        <span class="detail-value"><?=$date?></span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Location / Venue</span>
+                        <span class="detail-value"><?=$venue?></span>
+                    </div>
+                </div>
+            </div>
 
-        <table class="layout-table">
-            <tr>
-                <td class="left-section">
-                    <div class="event-image-container">
-                        <?php if ($event_image_path): ?>
-                            <img src="file:///<?php echo realpath(__DIR__ . '/../../' . $event_image_path); ?>" class="event-image">
-                        <?php endif; ?>
-                    </div>
-                    <div class="content-overlay">
-                        <div class="event-type-badge"><?php echo $event_type; ?></div>
-                        <h1 class="event-title"><?php echo $event_name; ?></h1>
+            <div class="event-content">
+                <div class="detail-label">Powered by</div>
+                <div style="font-weight: 900; font-size: 14px; letter-spacing: 1px;">EVENTRA</div>
+            </div>
+        </div>
 
-                        
-                        <table width="100%">
-                            <tr>
-                                <td width="50%">
-                                    <div class="meta-row">
-                                        <div class="meta-label">Date</div>
-                                        <div class="meta-value"><?php echo $event_date; ?></div>
-                                    </div>
-                                </td>
-                                <td width="50%">
-                                    <div class="meta-row">
-                                        <div class="meta-label">Time</div>
-                                        <div class="meta-value"><?php echo $event_time; ?></div>
-                                    </div>
-                                </td>
-                            </tr>
-                        </table>
-                        
-                        <div class="meta-row">
-                            <div class="meta-label">Location / Venue</div>
-                            <div class="meta-value"><?php echo $venue_name; ?></div>
-                        </div>
-                    </div>
-                </td>
-                <td class="right-section">
-                    <div class="logo">EVENTRA</div>
-                    
-                    <div class="attendee-label">Ticket Holder</div>
-                    <div class="attendee-name"><?php echo $attendee_name; ?></div>
-                    
-                    <div class="qr-container">
-                        <?php if ($qr_code_image_path): ?>
-                            <img src="file:///<?php echo realpath($qr_code_image_path); ?>" class="qr-code">
-                        <?php else: ?>
-                            <div style="width: 140px; height: 140px; background: #e5e7eb; border-radius: 8px;"></div>
-                        <?php endif; ?>
-                    </div>
-                    
-                    <div class="ticket-id-label">Ticket ID</div>
-                    <div class="ticket-id"><?php echo $ticket_id; ?></div>
-                </td>
-            </tr>
-        </table>
-        
-        <div class="perforation">
-            <div class="circle-top"></div>
-            <div class="circle-bottom"></div>
+        <!-- Stub Section -->
+        <div class="stub-section">
+            <div class="stub-label">Scan to Enter</div>
+            
+            <?php if ($qr_base64): ?>
+                <img src="<?=$qr_base64?>" class="qr-code">
+            <?php else: ?>
+                <div class="qr-code"></div>
+            <?php endif; ?>
+
+            <div class="ticket-id"><?=$ticket_id?></div>
+
+            <!-- Visual Barcode Decoration -->
+            <div class="barcode-side">
+                <div style="margin-bottom: 5px;">
+                    <span class="barcode-lines" style="width: 2px;"></span>
+                    <span class="barcode-lines" style="width: 1px;"></span>
+                    <span class="barcode-lines" style="width: 3px;"></span>
+                    <span class="barcode-lines" style="width: 1px;"></span>
+                    <span class="barcode-lines" style="width: 2px;"></span>
+                    <span class="barcode-lines" style="width: 1px;"></span>
+                    <span class="barcode-lines" style="width: 4px;"></span>
+                    <span class="barcode-lines" style="width: 1px;"></span>
+                    <span class="barcode-lines" style="width: 2px;"></span>
+                </div>
+                <?=$ticket_id?>
+            </div>
         </div>
     </div>
 </body>

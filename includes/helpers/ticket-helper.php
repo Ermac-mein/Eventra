@@ -17,6 +17,16 @@ use chillerlan\QRCode\QRCode;
 use chillerlan\QRCode\QROptions;
 
 /**
+ * Helper to encode an image file to Base64 for Dompdf compatibility.
+ */
+function base64_encode_image($path) {
+    if (!$path || !file_exists($path)) return '';
+    $type = pathinfo($path, PATHINFO_EXTENSION);
+    $data = file_get_contents($path);
+    return 'data:image/' . $type . ';base64,' . base64_encode($data);
+}
+
+/**
  * Generate a signed, secure QR code token for a ticket.
  * Payload: { tid, eid, uid, ps, iat, sig }
  *
@@ -153,7 +163,18 @@ function generateTicketPDF(array $ticketData): string
     // Additional fields for improved design
     $event_image_path = $ticketData['image_path'] ?? null;
     $ticket_type = strtolower($ticketData['ticket_type'] ?? 'regular');
-    $event_type = ($ticket_type === 'vip') ? 'VIP Access Pass' : ($ticketData['event_type'] ?? 'Regular Entry Pass');
+    $event_type_label = ($ticket_type === 'vip') ? 'VIP Access Pass' : ($ticketData['event_type'] ?? 'Regular Entry Pass');
+
+    // Encode images to Base64 to fix "blank PDF" issues
+    $qr_base64 = base64_encode_image($qrCodePath);
+    $event_img_base64 = $event_image_path ? base64_encode_image(__DIR__ . '/../../' . $event_image_path) : '';
+    
+    // User-requested variable names for template
+    $event_title = $event_name;
+    $date = $event_date;
+    $venue = $venue_name;
+    $ticket_id = $ticketData['barcode'];
+    $ticket_type_display = $event_type_label;
 
 
     // Render Template
@@ -167,7 +188,7 @@ function generateTicketPDF(array $ticketData): string
     $html = ob_get_clean();
 
     $dompdf->loadHtml($html);
-    $dompdf->setPaper('A5', 'landscape');
+    $dompdf->setPaper([0, 0, 750, 250], 'portrait'); // Custom narrow landscape-style box
     $dompdf->render();
 
     $fileName = 'ticket_' . $ticketData['barcode'] . '.pdf';
