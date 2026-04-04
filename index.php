@@ -22,10 +22,30 @@ file_put_contents(__DIR__ . '/logs/router.log', date('[Y-m-d H:i:s] ') . $_SERVE
 
 require_once __DIR__ . '/includes/core/Autoloader.php';
 require_once __DIR__ . '/config/database.php';
+require_once __DIR__ . '/config/session-config.php';
 
 
 // Dispatch routing
 $uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+
+// Portal entry point redirects (formerly index.php in /client and /admin)
+if ($uri === '/client' || $uri === '/client/') {
+    if (isset($_SESSION['role']) && strtolower($_SESSION['role']) === 'client') {
+        header('Location: /client/pages/clientDashboard.html');
+    } else {
+        header('Location: /client/pages/clientLogin.html');
+    }
+    exit;
+}
+
+if ($uri === '/admin' || $uri === '/admin/') {
+    if (isset($_SESSION['role']) && strtolower($_SESSION['role']) === 'admin') {
+        header('Location: /admin/pages/adminDashboard.html');
+    } else {
+        header('Location: /admin/pages/adminLogin.html');
+    }
+    exit;
+}
 
 // Legacy portal redirects
 $legacyRedirects = [
