@@ -164,6 +164,20 @@ function generateTicketPDF(array $ticketData): string
     $event_image_path = $ticketData['image_path'] ?? null;
     $ticket_type = strtolower($ticketData['ticket_type'] ?? 'regular');
     $event_type_label = ($ticket_type === 'vip') ? 'VIP Access Pass' : ($ticketData['event_type'] ?? 'Regular Entry Pass');
+    
+    // Price information
+    $price_value = $ticketData['price'] ?? $ticketData['amount'] ?? null;
+    $payment_status = $ticketData['payment_status'] ?? 'paid';
+    if ($payment_status === 'free' || $price_value === 0 || $price_value === '0') {
+        $price_display = 'FREE';
+    } elseif ($price_value) {
+        $price_display = '₦' . number_format((float)$price_value, 2);
+    } else {
+        $price_display = null;
+    }
+    
+    // State/Location information
+    $state = htmlspecialchars($ticketData['state'] ?? $ticketData['location_state'] ?? '');
 
     // Encode images to Base64 to fix "blank PDF" issues
     $qr_base64 = base64_encode_image($qrCodePath);
@@ -172,9 +186,12 @@ function generateTicketPDF(array $ticketData): string
     // User-requested variable names for template
     $event_title = $event_name;
     $date = $event_date;
+    $time = $event_time;
     $venue = $venue_name;
+    $user_name = $attendee_name;
     $ticket_id = $ticketData['barcode'];
     $ticket_type_display = $event_type_label;
+    $price = $price_display;
 
 
     // Render Template
@@ -188,7 +205,7 @@ function generateTicketPDF(array $ticketData): string
     $html = ob_get_clean();
 
     $dompdf->loadHtml($html);
-    $dompdf->setPaper([0, 0, 750, 250], 'portrait'); // Custom narrow landscape-style box
+    $dompdf->setPaper('A4', 'portrait');
     $dompdf->render();
 
     $fileName = 'ticket_' . $ticketData['barcode'] . '.pdf';

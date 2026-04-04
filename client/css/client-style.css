@@ -1880,3 +1880,553 @@ td { padding: 1.25rem 2rem; border-bottom: 1px solid var(--client-border); font-
 .event-tab:hover {
     filter: brightness(0.92);
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════ */
+/* RESPONSIVE DESIGN - MOBILE FIRST APPROACH                                  */
+/* ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ─── MOBILE: 320px - 767px ─────────────────────────────────────────────── */
+@media (max-width: 767px) {
+    :root {
+        --client-sidebar-width: 0;
+        --client-header-height: 70px;
+        --client-radius: 12px;
+    }
+
+    * {
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+    }
+
+    /* Sidebar - Hidden on mobile, toggle with hamburger */
+    .sidebar {
+        width: 100%;
+        height: auto;
+        max-height: 100vh;
+        position: fixed;
+        bottom: 0;
+        top: auto;
+        left: 0;
+        right: 0;
+        z-index: 1001;
+        background: var(--client-bg-sidebar);
+        transform: translateY(100%);
+        transition: transform 0.3s ease;
+        box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.2);
+        border-radius: 24px 24px 0 0;
+    }
+
+    .sidebar.active {
+        transform: translateY(0);
+    }
+
+    .sidebar-logo {
+        display: none;
+    }
+
+    .sidebar-menu {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0;
+        padding: 1rem;
+        justify-content: space-around;
+        align-items: center;
+    }
+
+    .menu-item {
+        margin-bottom: 0;
+        flex: 0 1 auto;
+        min-width: 60px;
+    }
+
+    .menu-item a {
+        flex-direction: column;
+        gap: 0.5rem;
+        padding: 0.75rem 0.5rem;
+        font-size: 0.75rem;
+        text-align: center;
+    }
+
+    .menu-item a i {
+        font-size: 1.5rem;
+    }
+
+    .menu-item a span {
+        display: block;
+    }
+
+    .sidebar-footer {
+        display: none;
+    }
+
+    /* Main Layout */
+    .main-layout {
+        margin-left: 0;
+        margin-bottom: 80px;
+        flex: 1;
+    }
+
+    /* Header */
+    .header {
+        padding: 0 1rem;
+        gap: 1rem;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .header-search {
+        flex: 1;
+        flex-basis: 0;
+        min-width: 0;
+    }
+
+    .header-search input {
+        padding: 0.7rem 1rem 0.7rem 2.5rem;
+        font-size: 0.9rem;
+        border-radius: 10px;
+    }
+
+    .search-icon {
+        left: 10px;
+        font-size: 1rem;
+    }
+
+    .header-actions {
+        gap: 0.75rem;
+        min-width: max-content;
+    }
+
+    .btn {
+        padding: 0.5rem 1rem;
+        font-size: 0.9rem;
+    }
+
+    .btn span {
+        display: none;
+    }
+
+    .btn i {
+        margin-right: 0;
+    }
+
+    .user-avatar {
+        width: 32px;
+        height: 32px;
+    }
+
+    /* Content Area */
+    .content-area {
+        padding: 1.5rem 1rem;
+        width: 100%;
+    }
+
+    .page-header {
+        flex-direction: column;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .page-header h1 {
+        font-size: 1.5rem !important;
+    }
+
+    /* Stats Grid */
+    .client-stats-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .client-stat-card {
+        padding: 1.5rem;
+    }
+
+    .stat-title {
+        font-size: 0.85rem;
+    }
+
+    .stat-main-value {
+        font-size: 1.5rem;
+        margin-top: 0.5rem;
+    }
+
+    /* Tables */
+    .table-card {
+        border-radius: 12px;
+        padding: 0;
+        overflow: hidden;
+        box-shadow: var(--client-shadow);
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.85rem;
+    }
+
+    table thead {
+        background: #f8fafc;
+    }
+
+    table th {
+        padding: 1rem 0.75rem;
+        text-align: left;
+        font-weight: 600;
+        border-bottom: 2px solid var(--client-border);
+    }
+
+    table td {
+        padding: 1rem 0.75rem;
+        border-bottom: 1px solid var(--client-border);
+    }
+
+    table thead th:first-child,
+    table tbody td:first-child {
+        width: 30px;
+        padding-left: 0.5rem;
+    }
+
+    /* Hide less important columns on mobile */
+    table th:nth-child(n+6),
+    table td:nth-child(n+6) {
+        display: none;
+    }
+
+    /* Modal */
+    .modal-content {
+        width: 95%;
+        max-width: calc(100% - 2rem);
+        max-height: 90vh;
+        border-radius: 16px;
+    }
+
+    .modal-header {
+        padding: 1rem 1.5rem;
+    }
+
+    /* Forms */
+    form {
+        width: 100%;
+    }
+
+    .form-group {
+        margin-bottom: 1rem;
+    }
+
+    input[type="text"],
+    input[type="email"],
+    input[type="password"],
+    textarea,
+    select {
+        width: 100%;
+        padding: 0.75rem;
+        font-size: 1rem;
+        border-radius: 10px;
+        border: 1px solid var(--client-border);
+    }
+
+    /* Cards and Panels */
+    .card, .panel {
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 1rem;
+    }
+
+    /* Dashboard Grid */
+    .dash-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+
+    /* Buttons */
+    .btn-primary, .btn-secondary {
+        padding: 0.75rem 1.5rem;
+        font-size: 0.95rem;
+        width: 100%;
+        border-radius: 10px;
+    }
+
+    /* Pagination */
+    .pagination {
+        justify-content: center;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+
+    .pg-btn {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.9rem;
+    }
+}
+
+/* ─── TABLET: 768px - 1023px ─────────────────────────────────────────── */
+@media (min-width: 768px) and (max-width: 1023px) {
+    :root {
+        --client-sidebar-width: 200px;
+    }
+
+    .sidebar {
+        width: var(--client-sidebar-width);
+        height: 100vh;
+        position: fixed;
+        bottom: auto;
+        transform: none;
+    }
+
+    .sidebar-logo {
+        padding: 2rem 1.5rem;
+        font-size: 1.5rem;
+        display: block;
+    }
+
+    .sidebar-menu {
+        padding: 0 1rem;
+        flex-wrap: nowrap;
+        flex-direction: column;
+    }
+
+    .menu-item {
+        margin-bottom: 8px;
+    }
+
+    .menu-item a {
+        flex-direction: row;
+        padding: 0.75rem 1rem;
+        gap: 12px;
+        font-size: 0.95rem;
+    }
+
+    .menu-item a i {
+        font-size: 1.1rem;
+    }
+
+    .menu-item a span {
+        display: inline;
+    }
+
+    .sidebar-footer {
+        display: block;
+        padding: 1.5rem 1rem;
+    }
+
+    .main-layout {
+        margin-left: var(--client-sidebar-width);
+        margin-bottom: 0;
+    }
+
+    .header {
+        padding: 0 2rem;
+    }
+
+    .header-search {
+        flex: 0 0 350px;
+    }
+
+    .content-area {
+        padding: 2rem;
+    }
+
+    .client-stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1.5rem;
+    }
+
+    table th:nth-child(n+7),
+    table td:nth-child(n+7) {
+        display: none;
+    }
+
+    .modal-content {
+        width: 90%;
+        max-width: 600px;
+    }
+}
+
+/* ─── DESKTOP: 1024px - 1919px ──────────────────────────────────────── */
+@media (min-width: 1024px) and (max-width: 1919px) {
+    :root {
+        --client-sidebar-width: 280px;
+    }
+
+    .sidebar {
+        width: var(--client-sidebar-width);
+    }
+
+    .main-layout {
+        margin-left: var(--client-sidebar-width);
+    }
+
+    .header {
+        padding: 0 4rem;
+    }
+
+    .header-search {
+        flex: 0 0 500px;
+    }
+
+    .content-area {
+        padding: 3rem 4rem;
+    }
+
+    .client-stats-grid {
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1.5rem;
+    }
+
+    /* All columns visible on desktop */
+    table th,
+    table td {
+        display: table-cell;
+    }
+
+    .modal-content {
+        width: 90%;
+        max-width: 800px;
+    }
+}
+
+/* ─── LARGE/TV: 1920px+ ──────────────────────────────────────────────── */
+@media (min-width: 1920px) {
+    :root {
+        --client-sidebar-width: 300px;
+        --client-header-height: 90px;
+        font-size: 18px;
+    }
+
+    .sidebar {
+        width: var(--client-sidebar-width);
+    }
+
+    .sidebar-logo {
+        padding: 3.5rem 2.5rem;
+        font-size: 2rem;
+    }
+
+    .menu-item a {
+        padding: 1.25rem 1.5rem;
+        font-size: 1.1rem;
+    }
+
+    .main-layout {
+        margin-left: var(--client-sidebar-width);
+    }
+
+    .header {
+        padding: 0 5rem;
+        height: var(--client-header-height);
+    }
+
+    .header-search input {
+        padding: 1rem 1.75rem 1rem 4rem;
+        font-size: 1.1rem;
+    }
+
+    .content-area {
+        padding: 4rem 5rem;
+    }
+
+    .client-stats-grid {
+        grid-template-columns: repeat(4, 1fr);
+        gap: 2rem;
+    }
+
+    .client-stat-card {
+        padding: 2.5rem;
+    }
+
+    .stat-main-value {
+        font-size: 2.5rem;
+    }
+
+    .page-header h1 {
+        font-size: 2rem !important;
+    }
+
+    table {
+        font-size: 1rem;
+    }
+
+    table th, table td {
+        padding: 1.25rem;
+    }
+
+    .modal-content {
+        width: 80%;
+        max-width: 1000px;
+    }
+}
+
+/* ─── LANDSCAPE MODE FIX ────────────────────────────────────────────── */
+@media (max-height: 600px) and (orientation: landscape) {
+    .header {
+        height: 60px;
+    }
+
+    .content-area {
+        padding: 1rem 2rem;
+    }
+
+    .page-header h1 {
+        font-size: 1.2rem !important;
+    }
+}
+
+/* ─── UTILITY RESPONSIVE CLASSES ────────────────────────────────────── */
+.hidden-mobile {
+    display: block;
+}
+
+.shown-mobile {
+    display: none;
+}
+
+@media (max-width: 767px) {
+    .hidden-mobile {
+        display: none !important;
+    }
+
+    .shown-mobile {
+        display: block !important;
+    }
+}
+
+.hidden-tablet {
+    display: block;
+}
+
+.shown-tablet {
+    display: none;
+}
+
+@media (min-width: 768px) and (max-width: 1023px) {
+    .hidden-tablet {
+        display: none !important;
+    }
+
+    .shown-tablet {
+        display: block !important;
+    }
+}
+
+.hidden-desktop {
+    display: block;
+}
+
+.shown-desktop {
+    display: none;
+}
+
+@media (min-width: 1024px) {
+    .hidden-desktop {
+        display: none !important;
+    }
+
+    .shown-desktop {
+        display: block !important;
+    }
+}

@@ -1060,7 +1060,13 @@ function showTicketPreviewModal(ticket) {
                     <svg id="ticketBarcode" style="margin:0 auto;height:50px;"></svg>
                     <div style="font-family:monospace;font-size:.75rem;color:#475569;margin-top:0.75rem;word-break:break-all;">${escapeHTML(ticket.barcode || ticket.id || '—')}</div>
                 </div>
-                <button onclick="closeTicketPreviewModal()" style="margin-top:1.5rem;width:100%;padding:.75rem;background:#6366f1;color:white;border:none;border-radius:10px;font-weight:700;cursor:pointer;font-size:.9rem;">Close</button>
+                <div style="display:flex;gap:.75rem;margin-top:1.5rem;">
+                    <button onclick="downloadTicketPDF('${ticket.barcode || ticket.id}')" style="flex:1;padding:.75rem;background:#059669;color:white;border:none;border-radius:10px;font-weight:700;cursor:pointer;font-size:.9rem;display:flex;align-items:center;justify-content:center;gap:.5rem;transition:all .2s;">
+                        <i data-lucide="download" style="width:16px;height:16px;"></i>
+                        Download
+                    </button>
+                    <button onclick="closeTicketPreviewModal()" style="flex:1;padding:.75rem;background:#6366f1;color:white;border:none;border-radius:10px;font-weight:700;cursor:pointer;font-size:.9rem;">Close</button>
+                </div>
             </div>
         </div>
     </div>`;
@@ -1069,6 +1075,11 @@ function showTicketPreviewModal(ticket) {
     if (existing) existing.remove();
 
     document.body.insertAdjacentHTML('beforeend', modalHTML);
+
+    // Reinitialize Lucide icons if available
+    if (typeof lucide !== 'undefined' && lucide.createIcons) {
+        lucide.createIcons();
+    }
 
     // Render barcode if library exists
     if (typeof JsBarcode !== 'undefined') {

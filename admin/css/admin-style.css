@@ -2093,3 +2093,242 @@ input:checked+.slider:before {
     color: var(--admin-text-muted);
 }
 
+
+/* ═══════════════════════════════════════════════════════════════════════════ */
+/* RESPONSIVE DESIGN FOR ADMIN PORTAL - MOBILE FIRST                           */
+/* ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ─── MOBILE: 320px - 767px ─────────────────────────────────────────────── */
+@media (max-width: 767px) {
+    :root {
+        --admin-sidebar-width: 0;
+        --admin-header-height: 70px;
+    }
+
+    * {
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+    }
+
+    /* Sidebar - Hidden on mobile */
+    .sidebar {
+        width: 100%;
+        height: auto;
+        position: fixed;
+        bottom: 0;
+        top: auto;
+        left: 0;
+        right: 0;
+        z-index: 1001;
+        transform: translateY(100%);
+        transition: transform 0.3s ease;
+        border-radius: 24px 24px 0 0;
+    }
+
+    .sidebar.active {
+        transform: translateY(0);
+    }
+
+    .sidebar-logo {
+        display: none;
+    }
+
+    .sidebar-menu {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0;
+        padding: 1rem;
+        justify-content: space-around;
+    }
+
+    .menu-item {
+        margin-bottom: 0;
+        flex: 0 1 auto;
+        min-width: 60px;
+    }
+
+    .menu-item a {
+        flex-direction: column;
+        gap: 0.5rem;
+        padding: 0.75rem 0.5rem;
+        font-size: 0.75rem;
+        text-align: center;
+    }
+
+    .menu-item a span {
+        display: block;
+    }
+
+    /* Main Layout */
+    .main-layout {
+        margin-left: 0;
+        margin-bottom: 80px;
+        flex: 1;
+    }
+
+    /* Header */
+    .header {
+        padding: 0 1rem;
+        height: 70px;
+        gap: 1rem;
+    }
+
+    .header-search {
+        flex: 1;
+    }
+
+    .header-search input {
+        padding: 0.7rem 1rem 0.7rem 2.5rem;
+        font-size: 0.9rem;
+    }
+
+    .header-actions {
+        gap: 0.75rem;
+        min-width: max-content;
+    }
+
+    .btn span {
+        display: none;
+    }
+
+    /* Content Area */
+    .content-area {
+        padding: 1.5rem 1rem;
+    }
+
+    .page-header {
+        flex-direction: column;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    /* Stats Grid */
+    .admin-stats-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+
+    /* Tables */
+    table {
+        font-size: 0.85rem;
+    }
+
+    table th, table td {
+        padding: 1rem 0.75rem;
+    }
+
+    /* Hide columns on mobile */
+    table th:nth-child(n+6),
+    table td:nth-child(n+6) {
+        display: none;
+    }
+
+    /* Modal */
+    .modal-content {
+        width: 95%;
+        border-radius: 16px;
+    }
+
+    /* Forms */
+    input[type="text"],
+    input[type="email"],
+    input[type="password"],
+    textarea,
+    select {
+        width: 100%;
+        padding: 0.75rem;
+        border-radius: 10px;
+    }
+
+    /* Buttons */
+    .btn {
+        width: 100%;
+        padding: 0.75rem 1.5rem;
+    }
+}
+
+/* ─── TABLET: 768px - 1023px ─────────────────────────────────────────── */
+@media (min-width: 768px) and (max-width: 1023px) {
+    :root {
+        --admin-sidebar-width: 200px;
+    }
+
+    .sidebar {
+        width: var(--admin-sidebar-width);
+        transform: none;
+    }
+
+    .sidebar-logo {
+        display: block;
+        padding: 2rem 1.5rem;
+        font-size: 1.5rem;
+    }
+
+    .sidebar-menu {
+        flex-direction: column;
+        padding: 0 1rem;
+    }
+
+    .main-layout {
+        margin-left: var(--admin-sidebar-width);
+        margin-bottom: 0;
+    }
+
+    .header {
+        padding: 0 2rem;
+    }
+
+    .header-search {
+        flex: 0 0 350px;
+    }
+
+    .content-area {
+        padding: 2rem;
+    }
+
+    .admin-stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    table th:nth-child(n+7),
+    table td:nth-child(n+7) {
+        display: none;
+    }
+}
+
+/* ─── DESKTOP: 1024px+ ──────────────────────────────────────────────── */
+@media (min-width: 1024px) {
+    .admin-stats-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+
+    /* All columns visible on desktop */
+    table th,
+    table td {
+        display: table-cell;
+    }
+}
+
+/* ─── UTILITY RESPONSIVE CLASSES ────────────────────────────────────── */
+.hidden-mobile {
+    display: block;
+}
+
+.shown-mobile {
+    display: none;
+}
+
+@media (max-width: 767px) {
+    .hidden-mobile {
+        display: none !important;
+    }
+
+    .shown-mobile {
+        display: block !important;
+    }
+}

@@ -250,3 +250,111 @@ function updateClientNameDisplay(user) {
     }
 }
 window.updateClientNameDisplay = updateClientNameDisplay;
+
+/**
+ * Mobile Sidebar Toggle Functionality
+ * Handles showing/hiding sidebar on mobile devices
+ */
+document.addEventListener('DOMContentLoaded', () => {
+    initMobileSidebar();
+});
+
+function initMobileSidebar() {
+    // Check if we're on a mobile device
+    function isMobile() {
+        return window.innerWidth <= 767;
+    }
+
+    // Create hamburger button if on mobile
+    if (isMobile()) {
+        createMobileMenuButton();
+    }
+
+    // Handle window resize to add/remove hamburger button
+    window.addEventListener('resize', debounce(() => {
+        const hamburger = document.getElementById('mobileMenuToggle');
+        if (isMobile() && !hamburger) {
+            createMobileMenuButton();
+        } else if (!isMobile() && hamburger) {
+            hamburger.remove();
+            closeMobileSidebar();
+        }
+    }, 250));
+
+    // Close sidebar when clicking outside
+    document.addEventListener('click', (e) => {
+        const sidebar = document.querySelector('.sidebar');
+        const hamburger = document.getElementById('mobileMenuToggle');
+        if (sidebar && hamburger && sidebar.classList.contains('active')) {
+            if (!sidebar.contains(e.target) && !hamburger.contains(e.target)) {
+                closeMobileSidebar();
+            }
+        }
+    });
+
+    // Close sidebar when clicking on a menu item (navigation)
+    const menuItems = document.querySelectorAll('.menu-item a');
+    menuItems.forEach(item => {
+        item.addEventListener('click', () => {
+            if (isMobile()) {
+                closeMobileSidebar();
+            }
+        });
+    });
+}
+
+function createMobileMenuButton() {
+    const header = document.querySelector('.header');
+    if (!header || document.getElementById('mobileMenuToggle')) return;
+
+    const hamburger = document.createElement('button');
+    hamburger.id = 'mobileMenuToggle';
+    hamburger.className = 'mobile-menu-toggle';
+    hamburger.innerHTML = '<i data-lucide="menu" style="width: 24px; height: 24px;"></i>';
+    hamburger.style.cssText = `
+        background: none;
+        border: none;
+        color: var(--client-text-main);
+        cursor: pointer;
+        font-size: 1.5rem;
+        padding: 0.5rem;
+        display: flex;
+        align-items: center;
+        margin-left: 1rem;
+    `;
+
+    hamburger.addEventListener('click', (e) => {
+        e.stopPropagation();
+        toggleMobileSidebar();
+    });
+
+    // Insert at the beginning of header (before search)
+    const headerSearch = header.querySelector('.header-search');
+    if (headerSearch) {
+        header.insertBefore(hamburger, headerSearch);
+    } else {
+        header.insertBefore(hamburger, header.firstChild);
+    }
+
+    // Reinitialize lucide icons
+    if (typeof lucide !== 'undefined' && lucide.createIcons) {
+        lucide.createIcons();
+    }
+}
+
+function toggleMobileSidebar() {
+    const sidebar = document.querySelector('.sidebar');
+    if (sidebar) {
+        sidebar.classList.toggle('active');
+    }
+}
+
+function closeMobileSidebar() {
+    const sidebar = document.querySelector('.sidebar');
+    if (sidebar) {
+        sidebar.classList.remove('active');
+    }
+}
+
+window.toggleMobileSidebar = toggleMobileSidebar;
+window.closeMobileSidebar = closeMobileSidebar;

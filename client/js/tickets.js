@@ -254,3 +254,62 @@ function updatePagination(tickets) {
     }
 }
 
+
+// Download Ticket PDF using server-side PDF
+async function downloadTicketPDF(ticketCode) {
+    if (!ticketCode) {
+        showNotification('Ticket code not found', 'error');
+        return;
+    }
+
+    try {
+        // Show loading state
+        const btn = event.target.closest('button');
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<span style="display:flex;align-items:center;gap:.5rem;"><i class="spinner" style="display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite;"></i> Downloading...</span>';
+        btn.disabled = true;
+
+        // Fetch PDF from server
+        const response = await apiFetch(`/api/tickets/download-ticket.php?code=${encodeURIComponent(ticketCode)}`);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        // Get the PDF blob
+        const blob = await response.blob();
+        
+        if (blob.size === 0) {
+            throw new Error('Downloaded file is empty');
+        }
+
+        // Create download link
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `eventra_ticket_${ticketCode}.pdf`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+
+        showNotification('Ticket downloaded successfully', 'success');
+        
+        // Restore button
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    } catch (error) {
+        console.error('Error downloading ticket:', error);
+        showNotification('Failed to download ticket. Please try again.', 'error');
+        
+        // Restore button
+        const btn = event.target.closest('button');
+        if (btn) {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }
+    }
+}
+
+// Expose function globally
+window.downloadTicketPDF = downloadTicketPDF;
