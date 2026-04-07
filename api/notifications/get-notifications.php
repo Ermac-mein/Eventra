@@ -19,6 +19,12 @@ require_once '../../includes/middleware/auth.php';
     $offset = $_GET['offset'] ?? 0;
     $is_read = $_GET['is_read'] ?? null;
 
+if (!$auth_id) {
+    http_response_code(401);
+    echo json_encode(['success' => false, 'message' => 'Unauthorized. Please log in.']);
+    exit;
+}
+
 try {
     // Auto-delete notifications older than 30 days
     $cleanup_stmt = $pdo->prepare("DELETE FROM notifications WHERE created_at < DATE_SUB(NOW(), INTERVAL 30 DAY)");

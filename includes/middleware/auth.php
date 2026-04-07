@@ -77,6 +77,23 @@ function checkAuth($requiredRole = null)
     // First, try Bearer token authentication (for API requests)
     $auth_id = validateBearerToken($requiredRole);
     if ($auth_id) {
+        // Set session variables for Bearer token auth
+        // This ensures getAuthId() and other functions work properly
+        if (session_status() === PHP_SESSION_NONE) {
+            require_once __DIR__ . '/../../config/session-config.php';
+        }
+        
+        // Get role from auth_accounts
+        $stmt = $pdo->prepare("SELECT role FROM auth_accounts WHERE id = ?");
+        $stmt->execute([$auth_id]);
+        $roleResult = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if ($roleResult) {
+            $_SESSION['auth_id'] = $auth_id;
+            $_SESSION['user_role'] = $roleResult['role'];
+            $_SESSION['role'] = $roleResult['role'];
+        }
+        
         return $auth_id;
     }
 

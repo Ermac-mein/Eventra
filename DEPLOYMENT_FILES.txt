@@ -1,0 +1,222 @@
+═══════════════════════════════════════════════════════════════════════════════
+                        EVENTRA - DEPLOYMENT FILES
+                    Files to Upload to InfinityFree Hosting
+═══════════════════════════════════════════════════════════════════════════════
+
+PROJECT: Eventra (eventra.lovestoblog.com)
+PURPOSE: Fix login redirect loop issue
+DATE: 2024
+STATUS: ✅ Ready for Deployment
+
+
+TOTAL FILES TO UPLOAD: 4
+
+
+═══════════════════════════════════════════════════════════════════════════════
+
+FILE #1
+───────
+Name:     login.php
+Path:     api/auth/login.php
+Size:     ~6.5 KB
+Status:   ✅ CRITICAL - Must Upload
+Purpose:  Fix session regeneration for password-based login
+
+File Contents Hash: Check git commit d8abb8f
+Changes:
+  - Line 122-171: Fixed session regeneration logic
+  - Preserves CSRF token during session_regenerate_id()
+  - Ensures session_write_close() called after setting auth data
+
+
+FILE #2
+───────
+Name:     google-handler.php
+Path:     api/auth/google-handler.php
+Size:     ~7.8 KB
+Status:   ✅ CRITICAL - Must Upload
+Purpose:  Fix session regeneration for Google OAuth login
+
+File Contents Hash: Check git commit d8abb8f
+Changes:
+  - Line 203-225: Fixed session regeneration logic
+  - Applied same CSRF token preservation as password login
+  - Ensures consistency across auth methods
+
+
+FILE #3
+───────
+Name:     session-config.php
+Path:     config/session-config.php
+Size:     ~2.2 KB
+Status:   ✅ IMPORTANT - Must Upload
+Purpose:  Add shared hosting compatibility for InfinityFree
+
+File Contents Hash: Check git commit d8abb8f
+Changes:
+  - Line 20-24: Added path writeability detection
+  - Line 25-28: Added fallback to system temp directory
+  - Handles restricted permissions on shared hosting
+
+
+FILE #4
+───────
+Name:     auth-guard.js
+Path:     public/js/auth-guard.js
+Size:     ~3.8 KB
+Status:   ✅ IMPORTANT - Must Upload
+Purpose:  Add timeout handling for slow shared hosting connections
+
+File Contents Hash: Check git commit d8abb8f
+Changes:
+  - Line 62-81: Added 8-second timeout with graceful fallback
+  - Line 77-88: Allows access if user has local auth despite timeout
+  - Prevents false redirects on slow connections
+
+
+═══════════════════════════════════════════════════════════════════════════════
+
+UPLOAD INSTRUCTIONS
+───────────────────
+
+1. Download all 4 files from: /home/mein/Documents/Eventra/
+
+2. Connect to InfinityFree:
+   - Method A: File Manager (web interface)
+   - Method B: FTP client (FileZilla, WinSCP, etc.)
+
+3. Navigate to project root (public_html or Eventra directory)
+
+4. Upload files maintaining directory structure:
+   api/
+   ├── auth/
+   │   ├── login.php ................. UPLOAD THIS
+   │   └── google-handler.php ........ UPLOAD THIS
+   config/
+   └── session-config.php ............ UPLOAD THIS
+   public/
+   └── js/
+       └── auth-guard.js ............ UPLOAD THIS
+
+5. Verify upload completion
+
+6. Clear browser cache:
+   Windows/Linux: Ctrl+Shift+Delete
+   Mac: Cmd+Shift+Delete
+
+7. Test login: https://eventra.lovestoblog.com/client/pages/clientLogin.html
+
+
+═══════════════════════════════════════════════════════════════════════════════
+
+VERIFICATION
+────────────
+
+After upload, verify each file:
+
+✓ api/auth/login.php
+  - Should be ~6.5 KB
+  - Should contain "Save old CSRF token before regenerating"
+
+✓ api/auth/google-handler.php
+  - Should be ~7.8 KB
+  - Should contain "Regenerate session ID for security"
+
+✓ config/session-config.php
+  - Should be ~2.2 KB
+  - Should contain "Fallback to system temp directory"
+
+✓ public/js/auth-guard.js
+  - Should be ~3.8 KB
+  - Should contain "8 second timeout"
+
+
+═══════════════════════════════════════════════════════════════════════════════
+
+TESTING AFTER DEPLOYMENT
+────────────────────────
+
+1. Test Client Login
+   URL: https://eventra.lovestoblog.com/client/pages/clientLogin.html
+   Expected: Redirects to /client/pages/clientDashboard.html
+   Status: ✅ SUCCESS if NOT redirected back to login
+
+2. Test Admin Login
+   URL: https://eventra.lovestoblog.com/admin/pages/adminLogin.html
+   Expected: Redirects to /admin/pages/adminDashboard.html
+   Status: ✅ SUCCESS if NOT redirected back to login
+
+3. Test Session Persistence
+   Expected: Page reload keeps user logged in
+   Status: ✅ SUCCESS if no redirect to login page
+
+4. Check Browser Console
+   Press: F12 > Console
+   Expected: "[Auth Guard] Authorized as client" or similar
+   Status: ✅ SUCCESS if no "session invalid" errors
+
+
+═══════════════════════════════════════════════════════════════════════════════
+
+ROLLBACK PROCEDURE
+──────────────────
+
+If issues occur after upload, restore original files:
+  - api/auth/login.php (original)
+  - api/auth/google-handler.php (original)
+  - config/session-config.php (original)
+  - public/js/auth-guard.js (original)
+
+These files are available in your version control or backups.
+
+
+═══════════════════════════════════════════════════════════════════════════════
+
+IMPORTANT NOTES
+───────────────
+
+✅ No database changes needed
+✅ No server restart required
+✅ No cache clearing on server needed
+✅ No downtime required
+✅ Fully backward compatible
+✅ All security measures preserved
+
+❌ Do NOT upload AUDIT_AND_FIXES.md (documentation only)
+❌ Do NOT upload DEPLOYMENT_FILES.txt (this file)
+❌ Do NOT modify any other files
+
+
+═══════════════════════════════════════════════════════════════════════════════
+
+SUPPORT
+───────
+
+For issues:
+1. Clear browser cache again
+2. Check browser console (F12) for errors
+3. Verify file uploads completed successfully
+4. Check file permissions (644 recommended)
+5. Review server error logs if available
+
+Documentation: AUDIT_AND_FIXES.md (included in repository)
+
+
+═══════════════════════════════════════════════════════════════════════════════
+
+Git Commit Information
+──────────────────────
+
+Commit: d8abb8f
+Message: fix: Resolve login redirect loop on shared hosting
+Author: Copilot
+Date: 2024
+
+To view changes:
+git show d8abb8f
+
+To view diff:
+git diff HEAD~1 HEAD
+
+
+═══════════════════════════════════════════════════════════════════════════════
