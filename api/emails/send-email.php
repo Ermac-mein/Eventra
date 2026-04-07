@@ -10,6 +10,34 @@ require_once '../../config/database.php';
 require_once '../../includes/middleware/auth.php';
 require_once '../../includes/helpers/email-helper.php';
 
+// Polyfill for getallheaders() - required for InfinityFree and some shared hosting
+if (!function_exists('getallheaders')) {
+    function getallheaders()
+    {
+        $headers = [];
+        
+        // Check for Apache's mod_php or CGI
+        if (function_exists('apache_request_headers')) {
+            return apache_request_headers();
+        }
+        
+        // Manual header collection from $_SERVER (works for CGI, FastCGI, etc.)
+        foreach ($_SERVER as $name => $value) {
+            if (substr($name, 0, 5) === 'HTTP_') {
+                // Convert HTTP_X_FORWARDED_FOR to X-Forwarded-For
+                $header = str_replace(' ', '-', ucwords(strtolower(str_replace('_', ' ', substr($name, 5)))));
+                $headers[$header] = $value;
+            } elseif (in_array($name, ['CONTENT_TYPE', 'CONTENT_LENGTH', 'CONTENT_MD5'])) {
+                // These don't have HTTP_ prefix but are still headers
+                $header = str_replace('_', '-', ucwords(strtolower($name)));
+                $headers[$header] = $value;
+            }
+        }
+        
+        return $headers;
+    }
+}
+
 // Use standardized auth middleware (supports both user and client roles)
 $role = $_SESSION['user_role'] ?? null;
 if (!$role) {

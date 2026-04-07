@@ -7,8 +7,36 @@ header('Pragma: no-cache');
 require_once __DIR__ . '/../../config/database.php';
 require_once __DIR__ . '/../../includes/helpers/entity-resolver.php';
 
+// Polyfill for getallheaders() - required for InfinityFree and some shared hosting
+if (!function_exists('getallheaders')) {
+    function getallheaders()
+    {
+        $headers = [];
+        
+        // Check for Apache's mod_php or CGI
+        if (function_exists('apache_request_headers')) {
+            return apache_request_headers();
+        }
+        
+        // Manual header collection from $_SERVER (works for CGI, FastCGI, etc.)
+        foreach ($_SERVER as $name => $value) {
+            if (substr($name, 0, 5) === 'HTTP_') {
+                // Convert HTTP_X_FORWARDED_FOR to X-Forwarded-For
+                $header = str_replace(' ', '-', ucwords(strtolower(str_replace('_', ' ', substr($name, 5)))));
+                $headers[$header] = $value;
+            } elseif (in_array($name, ['CONTENT_TYPE', 'CONTENT_LENGTH', 'CONTENT_MD5'])) {
+                // These don't have HTTP_ prefix but are still headers
+                $header = str_replace('_', '-', ucwords(strtolower($name)));
+                $headers[$header] = $value;
+            }
+        }
+        
+        return $headers;
+    }
+}
+
 // 1. Resolve Portal Intent from Headers for Correct Session Targeting
-$headers = function_exists('getallheaders') ? getallheaders() : [];
+$headers = getallheaders();
 $portal = $_SERVER['HTTP_X_EVENTRA_PORTAL'] ?? $headers['X-Eventra-Portal'] ?? $headers['x-eventra-portal'] ?? 'user';
 
 // 2. Set Role-Specific Session Name BEFORE starting session
