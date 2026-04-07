@@ -35,7 +35,10 @@
         // Check if we just logged in (session storage flag can be used if we set it in login.js)
         const justLoggedIn = sessionStorage.getItem('just_logged_in');
         if (!justLoggedIn) {
-            console.log('[Auth Guard] No local auth found, redirecting to login.');
+            console.log('[Auth Guard] No local auth found and no just_logged_in flag. Redirecting...', {
+                requiredRole,
+                currentPath
+            });
             if (requiredRole === 'admin') {
                 window.location.replace(origin + '/admin/pages/adminLogin.html');
             } else {
@@ -43,7 +46,7 @@
             }
             return;
         } else {
-            console.log('[Auth Guard] No local auth yet, but "just_logged_in" flag detected. Waiting for sync...');
+            console.log('[Auth Guard] No local auth found but "just_logged_in" flag detected. Allowing optimistic bypass...');
         }
     }
 
@@ -78,8 +81,8 @@
             // If we have local auth and just logged in, proceed (might be sync delay on shared hosting)
             const justLoggedIn = sessionStorage.getItem('just_logged_in');
             if (hasLocalAuth && justLoggedIn && (authState === 'timeout' || authState === 'unauthenticated')) {
-                console.log('[Auth Guard] Proceeding with local auth despite sync timeout/failure (shared hosting)');
-                sessionStorage.removeItem('just_logged_in');
+                console.log('[Auth Guard] Proceeding with local auth despite sync timeout/failure (handshake delay)');
+                // We DON'T remove just_logged_in yet, let it persist for one more load if needed
                 return;
             }
             
@@ -126,6 +129,8 @@
         }
 
         // On critical error OR sync failure, redirect to the role-specific login
+        console.error('[Auth Guard] Critical error or sync Failure. Redirecting...', { error });
+        
         if (requiredRole === 'admin') {
             window.location.replace(origin + '/admin/pages/adminLogin.html' + (window.location.search || '?error=auth_failed'));
         } else if (requiredRole === 'client') {

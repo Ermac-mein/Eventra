@@ -14,9 +14,9 @@
     const CHECK_INTERVAL_MS = 30 * 1000;         // check every 30 s
 
     // ── Determine correct paths regardless of page depth ──────────────────────
-    // Use root-relative paths so admin, client, and user pages all resolve correctly
-    const HEARTBEAT_URL = '/api/heartbeat.php';
-    const LOGOUT_URL = '/api/auth/logout.php';
+    const relBase = typeof getBasePath === 'function' ? getBasePath() : '../../';
+    const HEARTBEAT_URL = relBase + 'api/heartbeat.php';
+    const LOGOUT_URL = relBase + 'api/auth/logout.php';
 
     // ── Determine login page URL by role ──────────────────────────────────────
     function getLoginUrl() {
@@ -98,10 +98,16 @@
             }
         }).then(res => {
             if (res.status === 401) {
-                // Server says session is invalid — redirect to login
+                // Server explicitly says session is invalid — redirect to login
+                console.warn('[Heartbeat] Session invalid (401), logging out.');
                 doLogout('server');
+            } else if (!res.ok) {
+                console.debug('[Heartbeat] server returned non-ok status:', res.status);
             }
-        }).catch(err => console.debug('[Heartbeat] failed:', err));
+        }).catch(err => {
+            // Network errors or 404s should NOT trigger a logout to avoid false positives
+            console.debug('[Heartbeat] request failed:', err);
+        });
     }
 
     // ── Boot ────────────────────────────────────────────────────────────────────

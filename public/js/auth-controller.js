@@ -107,7 +107,16 @@ class AuthController {
                 // We only "clear" if we actually thought we were logged in.
                 if (this.state !== this.states.UNAUTHENTICATED && this.state !== this.states.INITIALIZING) {
                     console.warn('[AuthController] Session invalid according to server:', result.message);
-                    this.clearLocalState();
+                    
+                    // Resiliency: if we have local auth and just logged in, don't clear it yet.
+                    // This allows the page to load while the session might still be propagating.
+                    const justLoggedIn = sessionStorage.getItem('just_logged_in');
+                    if (justLoggedIn) {
+                        console.log('[AuthController] Preserving local state due to just_logged_in flag');
+                        this.setState(this.states.AUTHENTICATED); // Force authenticated state to avoid redirect
+                    } else {
+                        this.clearLocalState();
+                    }
                 } else if (this.state === this.states.INITIALIZING) {
                     // First load as guest, just set state
                     this.setState(this.states.UNAUTHENTICATED);
@@ -116,12 +125,14 @@ class AuthController {
         } catch (error) {
             console.error('[AuthController] Session sync failed:', error);
             
-            // CRITICAL: If sync failed, we cannot trust the optimistic state.
-            // Only keep 'authenticated' if there was a network-level abort and we already had data, 
-            // but for a "full fix", any sync failure should probably drop us to unauthenticated 
-            // to be safe, especially if the error is a parsing error (invalid JSON from server).
-            
-            this.clearLocalState();
+            // On hard failure (network, syntax), only clear if not just_logged_in
+            const justLoggedIn = sessionStorage.getItem('just_logged_in');
+            if (justLoggedIn) {
+                console.log('[AuthController] Sync failed but preserving local state due to just_logged_in');
+                this.setState(this.states.AUTHENTICATED); // Optimistic keep-alive
+            } else {
+                this.clearLocalState();
+            }
         }
     }
 

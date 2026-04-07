@@ -4,6 +4,8 @@ header('Content-Type: application/json');
 header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
 header('Cache-Control: post-check=0, pre-check=0', false);
 header('Pragma: no-cache');
+error_reporting(0); // Suppress warnings for clean JSON output
+ini_set('display_errors', 0);
 require_once __DIR__ . '/../../config/database.php';
 require_once __DIR__ . '/../../includes/helpers/entity-resolver.php';
 
@@ -37,7 +39,19 @@ if (!function_exists('getallheaders')) {
 
 // 1. Resolve Portal Intent from Headers for Correct Session Targeting
 $headers = getallheaders();
-$portal = $_SERVER['HTTP_X_EVENTRA_PORTAL'] ?? $headers['X-Eventra-Portal'] ?? $headers['x-eventra-portal'] ?? 'user';
+$portal = $_SERVER['HTTP_X_EVENTRA_PORTAL'] ?? $headers['X-Eventra-Portal'] ?? $headers['x-eventra-portal'] ?? null;
+
+// Fallback: detect from Referer for reliability on client-side redirects
+if (!$portal) {
+    $referer = $_SERVER['HTTP_REFERER'] ?? '';
+    if (strpos($referer, '/admin/') !== false) {
+        $portal = 'admin';
+    } elseif (strpos($referer, '/client/') !== false) {
+        $portal = 'client';
+    } else {
+        $portal = 'user';
+    }
+}
 
 // 2. Set Role-Specific Session Name BEFORE starting session
 $expectedSessionName = 'EVENTRA_USER_SESS';
