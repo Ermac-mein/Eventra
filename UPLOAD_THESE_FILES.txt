@@ -1,0 +1,103 @@
+╔════════════════════════════════════════════════════════════════════════════════════════╗
+║                    COPY THESE EXACT FILE PATHS TO INFINITYFREE                        ║
+║                   (Upload in this order for best results)                             ║
+╚════════════════════════════════════════════════════════════════════════════════════════╝
+
+STEP 1: UPLOAD THESE 3 CRITICAL FILES FIRST
+═══════════════════════════════════════════════════════════════════════════════════════
+
+1. includes/middleware/auth.php
+   └─ Local path: /home/mein/Documents/Eventra/includes/middleware/auth.php
+   └─ Server path: /public_html/includes/middleware/auth.php
+   └─ Why: Core auth middleware - fixes all API 500 errors
+
+2. api/auth/login.php
+   └─ Local path: /home/mein/Documents/Eventra/api/auth/login.php
+   └─ Server path: /public_html/api/auth/login.php
+   └─ Why: Fixes login redirect loop
+
+3. api/auth/check-session.php
+   └─ Local path: /home/mein/Documents/Eventra/api/auth/check-session.php
+   └─ Server path: /public_html/api/auth/check-session.php
+   └─ Why: Fixes session validation errors
+
+STEP 2: UPLOAD THESE 2 SUPPORTING FILES
+═══════════════════════════════════════════════════════════════════════════════════════
+
+4. config/session-config.php
+   └─ Local path: /home/mein/Documents/Eventra/config/session-config.php
+   └─ Server path: /public_html/config/session-config.php
+   └─ Why: Session management for shared hosting
+
+5. api/auth/google-handler.php
+   └─ Local path: /home/mein/Documents/Eventra/api/auth/google-handler.php
+   └─ Server path: /public_html/api/auth/google-handler.php
+   └─ Why: OAuth/Google login support
+
+STEP 3: UPLOAD THESE 2 OPTIONAL FILES (HIGHLY RECOMMENDED)
+═══════════════════════════════════════════════════════════════════════════════════════
+
+6. public/js/auth-guard.js
+   └─ Local path: /home/mein/Documents/Eventra/public/js/auth-guard.js
+   └─ Server path: /public_html/public/js/auth-guard.js
+   └─ Why: Frontend auth protection with timeout handling
+
+7. api/emails/send-email.php
+   └─ Local path: /home/mein/Documents/Eventra/api/emails/send-email.php
+   └─ Server path: /public_html/api/emails/send-email.php
+   └─ Why: Email functionality (receipts, tickets)
+
+═══════════════════════════════════════════════════════════════════════════════════════
+UPLOAD VIA FTP INSTRUCTIONS
+═══════════════════════════════════════════════════════════════════════════════════════
+
+1. Connect to InfinityFree via FTP (or use File Manager)
+2. Navigate to the /public_html directory
+3. Upload each file listed above to its "Server path" location
+4. Maintain the same directory structure (e.g., api/auth/, includes/middleware/)
+5. Set file permissions to 644 (readable by web server)
+6. Verify timestamps are updated (not old)
+
+═══════════════════════════════════════════════════════════════════════════════════════
+QUICK TEST AFTER UPLOAD
+═══════════════════════════════════════════════════════════════════════════════════════
+
+1. Open browser
+2. Go to: https://eventra.lovestoblog.com/client/pages/clientLogin.html
+3. Login with test account
+4. Verify dashboard loads (NOT redirect to login)
+5. Click sidebar buttons (Events, Tickets, Payments, etc.)
+6. Verify no redirect to login
+7. Check browser console (F12) for errors - should be none or only warnings
+
+═══════════════════════════════════════════════════════════════════════════════════════
+FILE LISTING FOR REFERENCE
+═══════════════════════════════════════════════════════════════════════════════════════
+
+Priority 1 (Upload First):
+□ includes/middleware/auth.php
+□ api/auth/login.php
+□ api/auth/check-session.php
+
+Priority 2 (Upload Next):
+□ config/session-config.php
+□ api/auth/google-handler.php
+
+Priority 3 (Upload Last):
+□ public/js/auth-guard.js
+□ api/emails/send-email.php
+
+═══════════════════════════════════════════════════════════════════════════════════════
+
+These 7 files contain all the fixes for:
+✅ Login redirect loop
+✅ Dashboard API 500 errors
+✅ Bearer token authentication
+✅ getallheaders() function missing
+✅ Sidebar navigation issues
+✅ Session persistence
+✅ Network timeout handling
+
+All files are ready and tested. Total upload size: ~150KB
+
+═══════════════════════════════════════════════════════════════════════════════════════
