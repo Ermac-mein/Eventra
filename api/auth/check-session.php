@@ -56,7 +56,9 @@ if (!$token) {
 
 // Fallback to Role detection from header if session role is not set
 if (!$sessionRole) {
-    $sessionRole = $portal; // Already resolved from portal header above
+    if ($portal && $portal !== 'user') {
+        $sessionRole = $portal;
+    }
 }
 
 // Token-only fallback: rebuild $authId and $user_id from the token when session is missing

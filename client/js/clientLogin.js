@@ -149,27 +149,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Isolate session storage by role
                 if (window.storage) window.storage.setUser(result.user);
 
-                // Premium Feedback
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Welcome Back!',
-                        text: `Logging you in as ${result.user.name}...`,
-                        timer: 1500,
-                        showConfirmButton: false,
-                        background: 'rgba(30, 41, 59, 0.95)',
-                        color: '#fff',
-                        backdrop: 'rgba(15, 23, 42, 0.8)'
-                    });
-                } else if (successMessage) {
-                    successMessage.classList.add('show');
-                    successMessage.textContent = 'Login successful! Redirecting...';
-                }
+                // Signal a fresh login to help the auth-guard be more patient
+                sessionStorage.setItem('just_logged_in', 'true');
                 
                 setTimeout(() => {
                     const redirectUrl = result.redirect || '/client/pages/clientDashboard.html';
                     console.log("Redirecting to:", redirectUrl);
-                    window.location.href = redirectUrl;
+                    
+                    // Use unified redirect handler if available for consistency
+                    if (window.authController && typeof window.authController.handleRedirect === 'function') {
+                        window.authController.handleRedirect(redirectUrl);
+                    } else {
+                        window.location.href = redirectUrl;
+                    }
                 }, 1600);
             } else {
                 // Clear any stale state on failure

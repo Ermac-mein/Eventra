@@ -48,13 +48,9 @@ if (session_status() === PHP_SESSION_NONE) {
                 $portal = 'admin';
             } elseif (isset($_COOKIE['EVENTRA_USER_SESS'])) {
                 $portal = 'user';
-            } elseif (strpos($uri, '/admin/') !== false) {
+            } elseif (strpos($uri, '/admin/') !== false || strpos($uri, '/api/admin/') !== false) {
                 $portal = 'admin';
-            } elseif (strpos($uri, '/client/') !== false) {
-                $portal = 'client';
-            } elseif (strpos($uri, '/api/admin/') !== false) {
-                $portal = 'admin';
-            } elseif (strpos($uri, '/api/client/') !== false || strpos($uri, '/api/clients/') !== false || strpos($uri, '/api/stats/get-client-dashboard-stats.php') !== false) {
+            } elseif (strpos($uri, '/client/') !== false || strpos($uri, '/api/client/') !== false || strpos($uri, '/api/clients/') !== false || strpos($uri, '/api/stats/get-client-dashboard-stats.php') !== false) {
                 $portal = 'client';
             }
         }

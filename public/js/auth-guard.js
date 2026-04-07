@@ -26,14 +26,25 @@
     if (!requiredRole) return; // Not a protected area
 
     // FAST synchronous check before rendering body
-    const hasLocalAuth = window.storage && window.storage.getUser() && window.storage.getToken();
+    const user = window.storage ? window.storage.getUser() : null;
+    const token = window.storage ? window.storage.getToken() : null;
+    const hasLocalAuth = !!(user && token);
+    
+    // If we have no local auth AND we are not in the middle of a login flow redirect
     if (!hasLocalAuth) {
-        if (requiredRole === 'admin') {
-            window.location.replace(origin + '/admin/pages/adminLogin.html');
+        // Check if we just logged in (session storage flag can be used if we set it in login.js)
+        const justLoggedIn = sessionStorage.getItem('just_logged_in');
+        if (!justLoggedIn) {
+            console.log('[Auth Guard] No local auth found, redirecting to login.');
+            if (requiredRole === 'admin') {
+                window.location.replace(origin + '/admin/pages/adminLogin.html');
+            } else {
+                window.location.replace(origin + '/client/pages/clientLogin.html');
+            }
+            return;
         } else {
-            window.location.replace(origin + '/client/pages/clientLogin.html');
+            console.log('[Auth Guard] No local auth yet, but "just_logged_in" flag detected. Waiting for sync...');
         }
-        return;
     }
 
     // 2. Visual loading overlay removed so users can proceed to dashboards instantly.
@@ -76,6 +87,10 @@
 
         // 6. Success — hide loading overlay
         console.log(`[Auth Guard] Authorized as ${requiredRole}`);
+        
+        // Clear flag if it was set
+        sessionStorage.removeItem('just_logged_in');
+        
         if (loadingOverlay) {
             loadingOverlay.classList.add('hidden');
             setTimeout(() => loadingOverlay.remove(), 600);
