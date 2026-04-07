@@ -126,6 +126,7 @@ try {
             $expectedSessionName = 'EVENTRA_CLIENT_SESS';
         }
 
+        // Ensure correct session name before operations
         if (session_name() !== $expectedSessionName) {
             if (session_status() === PHP_SESSION_ACTIVE) {
                 session_write_close();
@@ -133,13 +134,23 @@ try {
             session_name($expectedSessionName);
         }
 
+        // Start session if not already started
         if (session_status() === PHP_SESSION_NONE) {
             session_start();
         }
 
-        if (session_name() === $expectedSessionName && session_status() === PHP_SESSION_ACTIVE) {
-             session_regenerate_id(true);
-             $_SESSION = [];
+        // Regenerate session ID for security, but preserve critical data
+        if (session_status() === PHP_SESSION_ACTIVE) {
+            // Save old CSRF token before regenerating
+            $oldCsrfToken = $_SESSION['csrf_token'] ?? null;
+            
+            // Regenerate session ID with delete_old_session = true
+            session_regenerate_id(true);
+            
+            // Restore CSRF token if it existed
+            if ($oldCsrfToken) {
+                $_SESSION['csrf_token'] = $oldCsrfToken;
+            }
         }
 
         // Strict Role-Specific Session Keys + Universal auth_id

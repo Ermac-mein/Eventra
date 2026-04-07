@@ -214,12 +214,31 @@ try {
         $expectedSessionName = 'EVENTRA_CLIENT_SESS';
     }
 
+    // Ensure correct session name before operations
     if (session_name() !== $expectedSessionName) {
-        session_write_close();
+        if (session_status() === PHP_SESSION_ACTIVE) {
+            session_write_close();
+        }
         session_name($expectedSessionName);
+    }
+
+    // Start session if not already started
+    if (session_status() === PHP_SESSION_NONE) {
         session_start();
+    }
+
+    // Regenerate session ID for security, but preserve critical data
+    if (session_status() === PHP_SESSION_ACTIVE) {
+        // Save old CSRF token before regenerating
+        $oldCsrfToken = $_SESSION['csrf_token'] ?? null;
+        
+        // Regenerate session ID with delete_old_session = true
         session_regenerate_id(true);
-        $_SESSION = [];
+        
+        // Restore CSRF token if it existed
+        if ($oldCsrfToken) {
+            $_SESSION['csrf_token'] = $oldCsrfToken;
+        }
     }
 
     // Atomic Session Data Assignment
@@ -244,6 +263,9 @@ try {
     }
 
     $_SESSION['last_activity'] = time();
+
+    // CRITICAL: Write session to disk before sending response
+    session_write_close();
 
     // Log success
     logSecurityEvent($user['id'], $email, 'login_success', 'google', "Logged in as $userRole via portal $intent");

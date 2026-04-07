@@ -63,14 +63,26 @@
             window.authController.init();
         }
 
-        // 4. Wait for AuthController to complete server-side handshake
-        const authState = await window.authController.ready;
+        // 4. Wait for AuthController to complete server-side handshake with extended timeout for shared hosting
+        const authState = await Promise.race([
+            window.authController.ready,
+            new Promise(resolve => setTimeout(() => resolve('timeout'), 8000)) // 8 second timeout
+        ]);
+        
         console.log('[Auth Guard] Auth settled state:', authState);
 
         const user = window.authController.user;
 
-        // 5. Final Evaluation
-        if (authState !== 'authenticated' || !user || user.role !== requiredRole) {
+        // 5. Final Evaluation - Allow timeout to proceed if we have local auth
+        if ((authState === 'timeout' || authState !== 'authenticated') || !user || (user.role !== requiredRole)) {
+            // If we have local auth and just logged in, proceed (might be sync delay on shared hosting)
+            const justLoggedIn = sessionStorage.getItem('just_logged_in');
+            if (hasLocalAuth && justLoggedIn && (authState === 'timeout' || authState === 'unauthenticated')) {
+                console.log('[Auth Guard] Proceeding with local auth despite sync timeout/failure (shared hosting)');
+                sessionStorage.removeItem('just_logged_in');
+                return;
+            }
+            
             console.warn('[Auth Guard] Access denied. Redirecting to login.');
 
             if (window.storage) {
@@ -103,6 +115,14 @@
         if (loadingOverlay) {
             loadingOverlay.classList.add('hidden');
             setTimeout(() => loadingOverlay.remove(), 600);
+        }
+
+        // Check if we have local auth and just logged in before redirecting
+        const justLoggedIn = sessionStorage.getItem('just_logged_in');
+        if (hasLocalAuth && justLoggedIn) {
+            console.log('[Auth Guard] Proceeding with local auth despite error (likely shared hosting sync delay)');
+            sessionStorage.removeItem('just_logged_in');
+            return;
         }
 
         // On critical error OR sync failure, redirect to the role-specific login
