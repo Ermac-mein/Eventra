@@ -1,6 +1,6 @@
-CREATE DATABASE IF NOT EXISTS eventra_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+Create Database if0_41599702_db_eventra;
 
-USE eventra_db;
+USE if0_41599702_db_eventra;
 
 SET FOREIGN_KEY_CHECKS = 0;
 
@@ -210,7 +210,7 @@ CREATE TABLE IF NOT EXISTS events (
     CONSTRAINT fk_event_client FOREIGN KEY (client_id) REFERENCES clients (id) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
 
-ALTER TABLE events ADD COLUMN ticket_type VARCHAR(50) DEFAULT 'regular';
+ALTER TABLE events ADD COLUMN IF NOT EXISTS ticket_type VARCHAR(50) DEFAULT 'regular';
 
 -- =============================================================================
 -- ORDERS
@@ -267,8 +267,8 @@ CREATE TABLE IF NOT EXISTS payments (
     CONSTRAINT fk_payment_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
 
-ALTER TABLE payments ADD COLUMN quantity INT UNSIGNED NOT NULL DEFAULT 1;
-ALTER TABLE payments ADD COLUMN ticket_type VARCHAR(50) DEFAULT 'regular';
+ALTER TABLE payments ADD COLUMN IF NOT EXISTS quantity INT UNSIGNED NOT NULL DEFAULT 1;
+ALTER TABLE payments ADD COLUMN IF NOT EXISTS ticket_type VARCHAR(50) DEFAULT 'regular';
 
 -- =============================================================================
 -- TICKETS
@@ -303,7 +303,7 @@ CREATE TABLE IF NOT EXISTS tickets (
     CONSTRAINT fk_ticket_order FOREIGN KEY (order_id) REFERENCES orders (id) ON DELETE SET NULL
 ) ENGINE = INNODB DEFAULT CHARSET = UTF8MB4;
 
-ALTER TABLE tickets ADD COLUMN ticket_type VARCHAR(50) DEFAULT 'regular';
+ALTER TABLE tickets ADD COLUMN IF NOT EXISTS ticket_type VARCHAR(50) DEFAULT 'regular';
 
 -- =============================================================================
 -- FAVORITES
@@ -339,7 +339,6 @@ CREATE TABLE IF NOT EXISTS notifications (
     CONSTRAINT fk_notif_recipient FOREIGN KEY (recipient_auth_id) REFERENCES auth_accounts (id) ON DELETE CASCADE,
     CONSTRAINT fk_notif_sender FOREIGN KEY (sender_auth_id) REFERENCES auth_accounts (id) ON DELETE SET NULL
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
-
 
 -- =============================================================================
 -- MEDIA FOLDERS

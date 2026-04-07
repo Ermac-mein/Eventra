@@ -13,8 +13,9 @@ function loadEnv($path = __DIR__ . '/../.env')
     $lines = file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
 
     foreach ($lines as $line) {
-        // Skip comments
-        if (strpos(trim($line), '#') === 0) {
+        // Skip comments and empty lines
+        $trimmedLine = trim($line);
+        if ($trimmedLine === '' || strpos($trimmedLine, '#') === 0) {
             continue;
         }
 
@@ -27,16 +28,23 @@ function loadEnv($path = __DIR__ . '/../.env')
             // Remove quotes if present
             $value = trim($value, '"\'');
 
-            // Set in $_ENV and putenv
-            $_ENV[$key] = $value;
-            putenv("$key=$value");
+            // Set variables if they aren't already set in the environment (system level)
+            if (getenv($key) === false) {
+                $_ENV[$key] = $value;
+                $_SERVER[$key] = $value;
+                putenv("$key=$value");
+            } else {
+                // System level variables take precedence
+                $_ENV[$key] = getenv($key);
+                $_SERVER[$key] = getenv($key);
+            }
         }
     }
 }
 
-// Handle system environment variables (for production like Render)
+// Handle system environment variables (for production like Render or InfinityFree)
 $envKeys = [
-    'DB_HOST', 'DB_DATABASE', 'DB_USERNAME', 'DB_PASSWORD', 'DB_PORT',
+    'DB_HOST', 'DB_DATABASE', 'DB_USERNAME', 'DB_PASSWORD', 'DB_PORT', 'DB_CONNECTION',
     'APP_URL', 'APP_ENV', 'APP_DEBUG',
     'PAYSTACK_PUBLIC_KEY', 'PAYSTACK_SECRET_KEY',
     'MAIL_HOST', 'MAIL_PORT', 'MAIL_USERNAME', 'MAIL_PASSWORD', 'MAIL_ENCRYPTION', 'MAIL_FROM_ADDRESS', 'MAIL_FROM_NAME',
@@ -46,10 +54,12 @@ $envKeys = [
 ];
 
 foreach ($envKeys as $key) {
+    // If not already in $_ENV (from .env file loading or other means)
     if (!isset($_ENV[$key]) || $_ENV[$key] === '') {
         $val = getenv($key);
         if ($val !== false) {
             $_ENV[$key] = $val;
+            $_SERVER[$key] = $val;
         }
     }
 }

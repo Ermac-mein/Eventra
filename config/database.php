@@ -7,11 +7,22 @@ require_once __DIR__ . '/cors-config.php'; // CORS handling for API requests
 
 
 
-define('DB_HOST', getenv('DB_HOST') ?: '127.0.0.1');
-define('DB_PORT', getenv('DB_PORT') ?: '3306');
-define('DB_NAME', getenv('DB_DATABASE') ?: 'eventra_db');
-define('DB_USER', getenv('DB_USERNAME') ?: 'eventra');
-define('DB_PASS', getenv('DB_PASSWORD') ?: '');
+/**
+ * Helper to get environment variable from multiple sources
+ */
+function get_env_var($key, $default = null) {
+    if (isset($_ENV[$key])) return $_ENV[$key];
+    if (isset($_SERVER[$key])) return $_SERVER[$key];
+    $val = getenv($key);
+    return ($val !== false) ? $val : $default;
+}
+
+// Database configuration
+define('DB_HOST', get_env_var('DB_HOST', '127.0.0.1'));
+define('DB_PORT', get_env_var('DB_PORT', '3306'));
+define('DB_NAME', get_env_var('DB_DATABASE', 'eventra_db'));
+define('DB_USER', get_env_var('DB_USERNAME', 'eventra'));
+define('DB_PASS', get_env_var('DB_PASSWORD', ''));
 
 try {
     $dsn = "mysql:host=" . DB_HOST . ";port=" . DB_PORT . ";dbname=" . DB_NAME . ";charset=utf8mb4";
@@ -40,20 +51,21 @@ try {
         if ($error_code == 1045) {
             $error_message = 'Database authentication failed. Please verify database credentials.';
         } elseif ($error_code == 2002) {
-            $error_message = 'Cannot connect to database server. Please ensure MySQL is running.';
+            $error_message = 'Cannot connect to database server at ' . DB_HOST . ':' . DB_PORT . '. Please ensure MySQL is running and the host is correct.';
         } elseif ($error_code == 1049) {
-            $error_message = 'Database does not exist. Please create the database first.';
+            $error_message = 'Database "' . DB_NAME . '" does not exist. Please create the database first.';
         } else {
-            $error_message = 'Database connection error. Please check server logs for details.';
+            $error_message = 'Database connection error (' . $error_code . '): ' . $e->getMessage();
         }
 
         echo json_encode(['success' => false, 'message' => $error_message]);
         exit;
     }
 
-    $show_debug = (getenv('APP_DEBUG') === 'true' || (isset($_ENV['APP_DEBUG']) && $_ENV['APP_DEBUG'] === 'true'));
+    $show_debug = (get_env_var('APP_DEBUG') === 'true');
     if ($show_debug) {
-        die("Database connection failed: " . $e->getMessage());
+        $masked_pass = strlen(DB_PASS) > 2 ? substr(DB_PASS, 0, 2) . '****' : '****';
+        die("Database connection failed for " . DB_USER . "@" . DB_HOST . " (Port: " . DB_PORT . ", DB: " . DB_NAME . "): " . $e->getMessage());
     }
     die("Database connection failed. Please check error/errors.log for details.");
 }
