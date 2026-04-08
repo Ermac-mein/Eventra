@@ -10,18 +10,7 @@ require_once '../../config/database.php';
 
 try {
     require_once '../../includes/middleware/auth.php';
-    $auth_id = checkAuth('client');
-
-    // Resolve real_client_id from auth_id
-    $client_stmt = $pdo->prepare("SELECT id FROM clients WHERE client_auth_id = ?");
-    $client_stmt->execute([$auth_id]);
-    $client_row = $client_stmt->fetch();
-
-    if (!$client_row) {
-        echo json_encode(['success' => false, 'message' => 'Client profile not found.']);
-        exit;
-    }
-    $client_id = $client_row['id'];
+    $client_id = checkAuth('client');  // checkAuth now returns client_id directly
 
     // ──────────────────────────────────────────────────────────────────────────
     // 1. Auto-create 'Event Assets' folder and Sync Logic

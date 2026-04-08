@@ -14,13 +14,7 @@ try {
     $auth_id  = checkAuth('client');
     $isAdmin  = false;
 
-    $stmt = $pdo->prepare("SELECT id FROM clients WHERE client_auth_id = ?");
-    $stmt->execute([$auth_id]);
-    $clientRow = $stmt->fetch();
-    if (!$clientRow) {
-        throw new Exception("Client profile not found for authenticated user.");
-    }
-    $real_client_id = $clientRow['id'];
+    $real_client_id = $auth_id;  // checkAuth now returns client_id directly
 
     // Get tickets with related information
     $stmt = $pdo->prepare("

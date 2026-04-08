@@ -127,7 +127,12 @@ document.addEventListener('DOMContentLoaded', () => {
             console.log("Login Result:", result);
 
             if (result.success) {
-                if (window.storage) window.storage.setUser(result.user);
+                if (window.storage) {
+                    window.storage.setUser(result.user);
+                    if (result.user.token) {
+                        window.storage.setToken(result.user.token);
+                    }
+                }
 
                 // Premium Feedback
                 if (typeof Swal !== 'undefined') {
@@ -245,7 +250,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const result = await res.json();
 
             if (result.success) {
-                if (window.storage) window.storage.setUser(result.user);
+                if (window.storage) {
+                    window.storage.setUser(result.user);
+                    if (result.user.token) {
+                        window.storage.setToken(result.user.token);
+                    }
+                }
                 
                 if (typeof Swal !== 'undefined') {
                     Swal.fire({

@@ -105,34 +105,65 @@ function checkAuth($requiredRole = null)
 {
     global $pdo;
 
+    // Ensure session is started
+    if (session_status() === PHP_SESSION_NONE) {
+        require_once __DIR__ . '/../../config/session-config.php';
+    }
+
     // First, try Bearer token authentication (for API requests)
     $auth_id = validateBearerToken($requiredRole);
     if ($auth_id) {
         // Set session variables for Bearer token auth
         // This ensures getAuthId() and other functions work properly
-        if (session_status() === PHP_SESSION_NONE) {
-            require_once __DIR__ . '/../../config/session-config.php';
-        }
         
-        // Get role from auth_accounts
-        $stmt = $pdo->prepare("SELECT role FROM auth_accounts WHERE id = ?");
+        // Get complete role and profile info from auth_accounts
+        $stmt = $pdo->prepare("SELECT id, role FROM auth_accounts WHERE id = ?");
         $stmt->execute([$auth_id]);
-        $roleResult = $stmt->fetch(PDO::FETCH_ASSOC);
+        $account = $stmt->fetch(PDO::FETCH_ASSOC);
         
-        if ($roleResult) {
+        if ($account) {
+            $role = $account['role'];
+            
+            // Set auth_id and role in session
             $_SESSION['auth_id'] = $auth_id;
-            $_SESSION['user_role'] = $roleResult['role'];
-            $_SESSION['role'] = $roleResult['role'];
+            $_SESSION['user_role'] = $role;
+            $_SESSION['role'] = $role;
+            
+            // Get the profile-specific ID (admin_id, client_id, or user_id)
+            $profileId = null;
+            if ($role === 'admin') {
+                $stmt = $pdo->prepare("SELECT id FROM admins WHERE admin_auth_id = ? LIMIT 1");
+                $stmt->execute([$auth_id]);
+                $profileId = $stmt->fetchColumn();
+                if ($profileId) {
+                    $_SESSION['admin_id'] = $profileId;
+                }
+            } elseif ($role === 'client') {
+                $stmt = $pdo->prepare("SELECT id FROM clients WHERE client_auth_id = ? LIMIT 1");
+                $stmt->execute([$auth_id]);
+                $profileId = $stmt->fetchColumn();
+                if ($profileId) {
+                    $_SESSION['client_id'] = $profileId;
+                }
+            } else { // user
+                $stmt = $pdo->prepare("SELECT id FROM users WHERE user_auth_id = ? LIMIT 1");
+                $stmt->execute([$auth_id]);
+                $profileId = $stmt->fetchColumn();
+                if ($profileId) {
+                    $_SESSION['user_id'] = $profileId;
+                }
+            }
+            
+            // Write session immediately to ensure persistence
+            session_write_close();
+            session_start();
+            
+            // Return the profile-specific ID, not the auth_id
+            return $profileId ?? $auth_id;
         }
-        
-        return $auth_id;
     }
 
     // Fall back to session-based authentication
-    if (session_status() === PHP_SESSION_NONE) {
-        require_once __DIR__ . '/../../config/session-config.php';
-    }
-
     $role = $_SESSION['role'] ?? null;
     $userId = $_SESSION[$role . '_id'] ?? null;
 

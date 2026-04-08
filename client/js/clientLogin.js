@@ -146,8 +146,13 @@ document.addEventListener('DOMContentLoaded', () => {
             console.log("Login Result:", result);
 
             if (result.success) {
-                // Isolate session storage by role
-                if (window.storage) window.storage.setUser(result.user);
+                // Isolate session storage by role - store BOTH user and token
+                if (window.storage) {
+                    window.storage.setUser(result.user);
+                    if (result.user.token) {
+                        window.storage.setToken(result.user.token);
+                    }
+                }
 
                 // Signal a fresh login to help the auth-guard be more patient
                 sessionStorage.setItem('just_logged_in', 'true');
