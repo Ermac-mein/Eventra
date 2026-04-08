@@ -1,0 +1,26 @@
+name: Deploy to eventra.lovestoblog.com
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Deploy to eventra.lovestoblog.com
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ftpupload.net
+          username: ${{ secrets.FTP_USERNAME }}
+          key: ${{ secrets.FTP_PASSWORD }}
+          port: 21
+          server-dir: /htdocs/
+          script: |
+            cd /home/mein/Documents/Eventra
+            git pull
+            
