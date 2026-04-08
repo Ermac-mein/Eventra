@@ -1,8 +1,11 @@
 document.addEventListener('DOMContentLoaded', async () => {
+    // Load cached stats immediately for better UX
+    loadCachedStats();
+
     // Load client profile
     await loadClientProfile();
 
-    // Load dashboard stats
+    // Load dashboard stats (will fetch fresh data and cache it)
     await loadDashboardStats();
 
     // Enable 30s polling for real-time updates (reduced from 15s) to decrease database load
@@ -80,26 +83,37 @@ async function loadClientProfile() {
 async function loadDashboardStats() {
     try {
         const response = await apiFetch('/api/stats/get-client-dashboard-stats.php');
+        
+        if (!response.ok) {
+            console.warn('API call failed, trying cached stats');
+            loadCachedStats();
+            return;
+        }
+
         const result = await response.json();
 
         if (!result.success) {
-            console.error('Failed to load dashboard stats');
+            console.warn('API returned error, trying cached stats');
+            loadCachedStats();
             return;
         }
 
         const stats = result.stats;
-        if (!stats) return;
+        if (!stats) {
+            loadCachedStats();
+            return;
+        }
+
+        // Cache stats to localStorage for persistence
+        cacheDashboardStats({
+            stats: stats,
+            events: result.events,
+            attendees: result.attendees,
+            timestamp: Date.now()
+        });
 
         // Update stats cards using specific IDs
-        const upcomingEventsEl = document.getElementById('upcomingEventsCount');
-        const ticketsEl = document.getElementById('ticketsCount');
-        const usersEl = document.getElementById('usersCount');
-        const mediaEl = document.getElementById('mediaCount');
-
-        if (upcomingEventsEl) upcomingEventsEl.textContent = stats.total_events !== undefined ? stats.total_events : 0;
-        if (ticketsEl) ticketsEl.textContent = stats.total_tickets !== undefined ? stats.total_tickets : 0;
-        if (usersEl) usersEl.textContent = stats.total_users !== undefined ? stats.total_users : 0;
-        if (mediaEl) mediaEl.textContent = stats.total_media !== undefined ? stats.total_media : 0;
+        displayStatsCards(stats);
 
         // Load upcoming events / performance breakdown
         loadUpcomingEvents(result.events);
@@ -109,7 +123,57 @@ async function loadDashboardStats() {
 
     } catch (error) {
         console.error('Error loading stats:', error);
+        loadCachedStats();
     }
+}
+
+function cacheDashboardStats(data) {
+    try {
+        if (window.storage) {
+            window.storage.set('dashboard_stats', data);
+        } else {
+            localStorage.setItem('dashboard_stats', JSON.stringify(data));
+        }
+    } catch (error) {
+        console.error('Error caching stats:', error);
+    }
+}
+
+function loadCachedStats() {
+    try {
+        let cachedData = null;
+        
+        if (window.storage) {
+            cachedData = window.storage.get('dashboard_stats');
+        } else {
+            const cached = localStorage.getItem('dashboard_stats');
+            cachedData = cached ? JSON.parse(cached) : null;
+        }
+
+        if (!cachedData || !cachedData.stats) {
+            console.warn('No cached stats available');
+            return;
+        }
+
+        // Display cached stats
+        displayStatsCards(cachedData.stats);
+        loadUpcomingEvents(cachedData.events || []);
+        loadRecentTickets(cachedData.attendees || []);
+    } catch (error) {
+        console.error('Error loading cached stats:', error);
+    }
+}
+
+function displayStatsCards(stats) {
+    const upcomingEventsEl = document.getElementById('upcomingEventsCount');
+    const ticketsEl = document.getElementById('ticketsCount');
+    const usersEl = document.getElementById('usersCount');
+    const mediaEl = document.getElementById('mediaCount');
+
+    if (upcomingEventsEl) upcomingEventsEl.textContent = stats.total_events !== undefined ? stats.total_events : 0;
+    if (ticketsEl) ticketsEl.textContent = stats.total_tickets !== undefined ? stats.total_tickets : 0;
+    if (usersEl) usersEl.textContent = stats.total_users !== undefined ? stats.total_users : 0;
+    if (mediaEl) mediaEl.textContent = stats.total_media !== undefined ? stats.total_media : 0;
 }
 
 async function loadUpcomingEvents(events) {
