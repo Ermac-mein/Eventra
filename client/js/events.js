@@ -8,7 +8,6 @@ let eventsData = [];
 let sortConfig = { key: 'event_date', direction: 'desc' };
 let pagination = null;
 const selectedEventIds = new Set();
-
 document.addEventListener('DOMContentLoaded', async () => {
     const user = storage.getUser();
     
@@ -17,10 +16,20 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
     }
 
+    // Load cached stats first for instant feedback
+    loadCachedStats();
+
     const clientId = user.id;
 
     // Load events
     await loadEvents(clientId);
+
+    // Set polling for stats and events (every 30 seconds)
+    setInterval(() => {
+        if (document.visibilityState === 'visible') {
+            refreshStats(clientId);
+        }
+    }, 30000);
 
     // Handle search highlighting
     const urlParams = new URLSearchParams(window.location.search);
@@ -80,6 +89,8 @@ async function loadEvents(clientId) {
             if (result.stats) {
                 updateStatsCards(result.stats);
                 updateTrashBadge(result.stats.deleted_events || 0);
+                // Cache stats
+                storage.set('event_stats', result.stats);
             }
 
             // Update events table
@@ -111,6 +122,14 @@ function updateStatsCards(stats) {
     if (scheduledCard) scheduledCard.textContent = stats.scheduled_events || 0;
     if (deletedCard) deletedCard.textContent = stats.deleted_events || 0;
     if (restoredCard) restoredCard.textContent = stats.restored_events || 0;
+}
+
+function loadCachedStats() {
+    const stats = storage.get('event_stats');
+    if (stats) {
+        updateStatsCards(stats);
+        updateTrashBadge(stats.deleted_events || 0);
+    }
 }
 
 function updateEventsTable(events) {

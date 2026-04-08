@@ -146,9 +146,9 @@ try {
     $stmt->execute();
     $events = $stmt->fetchAll();
 
-    // Get statistics if client_id is provided
+    // Get statistics if client_id is provided or user is a client
     $stats = null;
-    $resolved_client_id = isset($resolved_client['id']) ? $resolved_client['id'] : null;
+    $resolved_client_id = isset($resolved_client['id']) ? $resolved_client['id'] : ($_SESSION['client_id'] ?? null);
 
     if ($resolved_client_id) {
         $stats_stmt = $pdo->prepare("
@@ -158,7 +158,7 @@ try {
                 SUM(CASE WHEN status = 'scheduled' AND deleted_at IS NULL THEN 1 ELSE 0 END) as scheduled_events,
                 SUM(CASE WHEN status = 'draft' AND deleted_at IS NULL THEN 1 ELSE 0 END) as draft_events,
                 SUM(CASE WHEN status = 'restored' AND deleted_at IS NULL THEN 1 ELSE 0 END) as restored_events,
-                SUM(CASE WHEN deleted_at IS NOT NULL THEN 1 ELSE 0 END) as deleted_events,
+                COUNT(CASE WHEN deleted_at IS NOT NULL THEN 1 END) as deleted_events,
                 IFNULL(SUM(CASE WHEN deleted_at IS NULL THEN attendee_count ELSE 0 END), 0) as total_attendees
             FROM events
             WHERE client_id = ?
