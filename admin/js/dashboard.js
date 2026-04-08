@@ -4,10 +4,13 @@
  */
 
 document.addEventListener('DOMContentLoaded', async () => {
+    // Load cached stats immediately for better UX
+    loadCachedAdminStats();
+
     // Load admin profile
     await loadAdminProfile();
 
-    // Load dashboard stats
+    // Load dashboard stats (will fetch fresh data and cache it)
     await loadDashboardStats();
 
     // Set up polling for dashboard data (auto-population of cards) - increased to 30s to reduce database load
@@ -66,40 +69,37 @@ async function loadAdminProfile() {
 async function loadDashboardStats() {
     try {
         const response = await apiFetch('/api/stats/get-admin-dashboard-stats.php');
+        
+        if (!response.ok) {
+            console.warn('API call failed, trying cached stats');
+            loadCachedAdminStats();
+            return;
+        }
+
         const result = await response.json();
 
         if (!result.success) {
-            console.error('Failed to load dashboard stats');
+            console.warn('API returned error, trying cached stats');
+            loadCachedAdminStats();
             return;
         }
 
         const stats = result.stats;
 
-        // Update stat cards using direct IDs for reliability
-        const totalEventsEl = document.getElementById('totalEventsCount');
-        if (totalEventsEl) totalEventsEl.textContent = stats.total_events || 0;
+        // Cache stats to localStorage for persistence
+        cacheAdminDashboardStats({
+            stats: stats,
+            recent_activities: result.recent_activities,
+            top_users: result.top_users,
+            active_clients: result.active_clients,
+            upcoming_events: result.upcoming_events,
+            past_events: result.past_events,
+            timestamp: Date.now()
+        });
 
-        const activeUsersEl = document.getElementById('activeUsersCount');
-        if (activeUsersEl) activeUsersEl.textContent = stats.active_users || 0;
-
-        const verifiedClientsEl = document.getElementById('clientsVerifiedCount');
-        if (verifiedClientsEl) verifiedClientsEl.textContent = stats.clients_verified || 0;
-
-        const unverifiedClientsEl = document.getElementById('clientsUnverifiedCount');
-        if (unverifiedClientsEl) unverifiedClientsEl.textContent = stats.clients_unverified || 0;
-
-        const totalRevenueEl = document.getElementById('totalRevenue');
-        if (totalRevenueEl) totalRevenueEl.textContent = '₦' + parseFloat(stats.total_revenue || 0).toLocaleString();
-
-        const platformEarningsEl = document.getElementById('platformEarnings');
-        if (platformEarningsEl) platformEarningsEl.textContent = '₦' + parseFloat(stats.platform_earnings || 0).toLocaleString();
-
-        // Update Events Showcase badges
-        const upcomingBadge = document.getElementById('upcomingEventsBadge');
-        if (upcomingBadge) upcomingBadge.textContent = result.upcoming_events.length || 0;
-        
-        const pastBadge = document.getElementById('pastEventsBadge');
-        if (pastBadge) pastBadge.textContent = result.past_events.length || 0;
+        // Display stats
+        displayAdminStatsCards(stats);
+        displayAdminEventBadges(result.upcoming_events, result.past_events);
 
         // Load recent activities
         loadRecentActivities(result.recent_activities);
@@ -121,7 +121,79 @@ async function loadDashboardStats() {
 
     } catch (error) {
         console.error('Error loading stats:', error);
+        loadCachedAdminStats();
     }
+}
+
+function cacheAdminDashboardStats(data) {
+    try {
+        if (window.storage) {
+            window.storage.set('admin_dashboard_stats', data);
+        } else {
+            localStorage.setItem('admin_dashboard_stats', JSON.stringify(data));
+        }
+    } catch (error) {
+        console.error('Error caching admin stats:', error);
+    }
+}
+
+function loadCachedAdminStats() {
+    try {
+        let cachedData = null;
+        
+        if (window.storage) {
+            cachedData = window.storage.get('admin_dashboard_stats');
+        } else {
+            const cached = localStorage.getItem('admin_dashboard_stats');
+            cachedData = cached ? JSON.parse(cached) : null;
+        }
+
+        if (!cachedData || !cachedData.stats) {
+            console.warn('No cached admin stats available');
+            return;
+        }
+
+        // Display cached stats
+        displayAdminStatsCards(cachedData.stats);
+        displayAdminEventBadges(cachedData.upcoming_events || [], cachedData.past_events || []);
+        loadRecentActivities(cachedData.recent_activities || []);
+        loadTopUsers(cachedData.top_users || []);
+        loadActiveClients(cachedData.active_clients || []);
+        loadEventsToSlider('upcomingEventsSlider', cachedData.upcoming_events || []);
+        loadEventsToSlider('pastEventsSlider', cachedData.past_events || []);
+    } catch (error) {
+        console.error('Error loading cached admin stats:', error);
+    }
+}
+
+function displayAdminStatsCards(stats) {
+    // Update stat cards using direct IDs for reliability
+    const totalEventsEl = document.getElementById('totalEventsCount');
+    if (totalEventsEl) totalEventsEl.textContent = stats.total_events || 0;
+
+    const activeUsersEl = document.getElementById('activeUsersCount');
+    if (activeUsersEl) activeUsersEl.textContent = stats.active_users || 0;
+
+    const verifiedClientsEl = document.getElementById('clientsVerifiedCount');
+    if (verifiedClientsEl) verifiedClientsEl.textContent = stats.clients_verified || 0;
+
+    const unverifiedClientsEl = document.getElementById('clientsUnverifiedCount');
+    if (unverifiedClientsEl) unverifiedClientsEl.textContent = stats.clients_unverified || 0;
+
+    const totalRevenueEl = document.getElementById('totalRevenue');
+    if (totalRevenueEl) totalRevenueEl.textContent = '₦' + parseFloat(stats.total_revenue || 0).toLocaleString();
+
+    const platformEarningsEl = document.getElementById('platformEarnings');
+    if (platformEarningsEl) platformEarningsEl.textContent = '₦' + parseFloat(stats.platform_earnings || 0).toLocaleString();
+}
+
+function displayAdminEventBadges(upcomingEvents, pastEvents) {
+    // Update Events Showcase badges
+    const upcomingBadge = document.getElementById('upcomingEventsBadge');
+    if (upcomingBadge) upcomingBadge.textContent = upcomingEvents.length || 0;
+    
+    const pastBadge = document.getElementById('pastEventsBadge');
+    if (pastBadge) pastBadge.textContent = pastEvents.length || 0;
 }
 
 function loadRecentActivities(activities) {
