@@ -127,10 +127,18 @@ document.addEventListener('DOMContentLoaded', () => {
             console.log("Login Result:", result);
 
             if (result.success) {
-                if (window.storage) {
+                if (window.storage && typeof window.storage.setToken === 'function') {
                     window.storage.setUser(result.user);
                     if (result.user.token) {
                         window.storage.setToken(result.user.token);
+                    }
+                } else {
+                    // Fallback: store directly to localStorage if storage manager not ready
+                    try {
+                        localStorage.setItem('admin_auth_token', result.user.token || '');
+                        localStorage.setItem('admin_user', JSON.stringify(result.user));
+                    } catch (e) {
+                        console.warn('Could not store token:', e);
                     }
                 }
 
@@ -250,10 +258,18 @@ document.addEventListener('DOMContentLoaded', () => {
             const result = await res.json();
 
             if (result.success) {
-                if (window.storage) {
+                if (window.storage && typeof window.storage.setToken === 'function') {
                     window.storage.setUser(result.user);
                     if (result.user.token) {
                         window.storage.setToken(result.user.token);
+                    }
+                } else {
+                    // Fallback: store directly to localStorage if storage manager not ready
+                    try {
+                        localStorage.setItem('admin_auth_token', result.user.token || '');
+                        localStorage.setItem('admin_user', JSON.stringify(result.user));
+                    } catch (e) {
+                        console.warn('Could not store token:', e);
                     }
                 }
                 

@@ -147,10 +147,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (result.success) {
                 // Isolate session storage by role - store BOTH user and token
-                if (window.storage) {
+                if (window.storage && typeof window.storage.setToken === 'function') {
                     window.storage.setUser(result.user);
                     if (result.user.token) {
                         window.storage.setToken(result.user.token);
+                    }
+                } else {
+                    // Fallback: store directly to localStorage if storage manager not ready
+                    try {
+                        localStorage.setItem('client_auth_token', result.user.token || '');
+                        localStorage.setItem('client_user', JSON.stringify(result.user));
+                    } catch (e) {
+                        console.warn('Could not store token:', e);
                     }
                 }
 

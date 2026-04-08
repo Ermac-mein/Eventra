@@ -82,6 +82,11 @@ if (typeof window.storage === 'undefined' || !window.storage) {
             return this.get(keys.token);
         },
 
+        setToken: function(token) {
+            const keys = this.getRoleKeys();
+            return this.set(keys.token, token);
+        },
+
         clearRoleSessions: function() {
              const keys = this.getRoleKeys();
              this.remove(keys.user);
