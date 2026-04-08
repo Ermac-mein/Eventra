@@ -277,14 +277,15 @@ body {
 
 /* Stats Dashboard (Colored) */
 .client-stats-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    display: flex;
+    flex-wrap: wrap;
     gap: 1.5rem;
     margin-bottom: 2rem;
     color: var(--client-text-main);
 }
 
 .client-stat-card {
+    flex: 1 1 300px; /* Stretch to fill space, minimum 300px */
     padding: 2rem;
     border-radius: var(--client-radius);
     background: white;
@@ -356,6 +357,7 @@ body {
     display: grid;
     grid-template-columns: 1.8fr 1.2fr;
     gap: 2rem;
+    align-items: stretch; /* Ensure panels are same height */
 }
 
 .dash-panel {
@@ -389,6 +391,10 @@ body {
     max-height: 850px;
     overflow-y: auto;
     padding-right: 12px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 1.25rem;
+    align-content: start;
 }
 
 .sales-list {
@@ -420,13 +426,14 @@ body {
 
 .event-feed-item {
     display: flex;
-    gap: 1.5rem;
+    flex-direction: column; /* Card style instead of row */
+    gap: 1.25rem;
     padding: 1.5rem;
     background: rgba(255, 255, 255, 0.5);
     border-radius: 16px;
-    margin-bottom: 1.25rem;
     border: 1px solid var(--client-border);
     transition: var(--transition-base);
+    height: fit-content;
 }
 
 .event-feed-item:hover { 
@@ -436,10 +443,11 @@ body {
 }
 
 .event-feed-img {
-    width: 140px;
-    height: 90px;
+    width: 100%;
+    height: 180px;
     border-radius: 12px;
     object-fit: cover;
+    margin-bottom: 0.5rem;
 }
 
 .event-feed-info { flex: 1; }
@@ -655,7 +663,7 @@ td { padding: 1.25rem 2rem; border-bottom: 1px solid var(--client-border); font-
 /* Media Specific Styles */
 .media-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
     gap: 2rem;
     margin-top: 1.5rem;
 }
