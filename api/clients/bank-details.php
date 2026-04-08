@@ -13,31 +13,51 @@ require_once '../../config/payment.php';
 require_once '../../includes/middleware/auth.php';
 require_once '../../vendor/autoload.php';
 
-$client_auth_id = clientMiddleware();
+try {
+    $client_auth_id = clientMiddleware();
 
-// ── GET: Resolve Account Only ───────────────────────────────────────────────
-if ($_SERVER['REQUEST_METHOD'] === 'GET') {
-    $bank_code      = trim($_GET['bank_code']      ?? '');
-    $account_number = trim($_GET['account_number'] ?? '');
+    // ── GET: Resolve Account Only ───────────────────────────────────────────────
+    if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+        $bank_code      = trim($_GET['bank_code']      ?? '');
+        $account_number = trim($_GET['account_number'] ?? '');
 
-    if (empty($bank_code) || empty($account_number)) {
-        http_response_code(400);
-        echo json_encode(['success' => false, 'message' => 'bank_code and account_number are required.']);
+        if (empty($bank_code) || empty($account_number)) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'bank_code and account_number are required.']);
+            exit;
+        }
+
+        if (!function_exists('paystackRequest')) {
+            http_response_code(500);
+            echo json_encode(['success' => false, 'message' => 'Payment configuration not loaded.']);
+            exit;
+        }
+
+        $resolveRes = paystackRequest('GET', "/bank/resolve?account_number={$account_number}&bank_code={$bank_code}");
+
+        if (!$resolveRes || !is_array($resolveRes)) {
+            http_response_code(500);
+            echo json_encode(['success' => false, 'message' => 'Invalid response from payment service.']);
+            exit;
+        }
+
+        if (!$resolveRes['ok'] || !($resolveRes['body']['status'] ?? false)) {
+            $errMsg = $resolveRes['body']['message'] ?? $resolveRes['error'] ?? 'Account resolution failed.';
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => $errMsg]);
+            exit;
+        }
+
+        echo json_encode([
+            'success'      => true,
+            'account_name' => $resolveRes['body']['data']['account_name'] ?? 'Unknown',
+        ]);
         exit;
     }
 
-    $resolveRes = paystackRequest('GET', "/bank/resolve?account_number={$account_number}&bank_code={$bank_code}");
-
-    if (!$resolveRes['ok'] || !($resolveRes['body']['status'] ?? false)) {
-        $errMsg = $resolveRes['body']['message'] ?? $resolveRes['error'] ?? 'Account resolution failed.';
-        echo json_encode(['success' => false, 'message' => $errMsg]);
-        exit;
-    }
-
-    echo json_encode([
-        'success'      => true,
-        'account_name' => $resolveRes['body']['data']['account_name'] ?? 'Unknown',
-    ]);
+} catch (Exception $e) {
+    http_response_code(500);
+    echo json_encode(['success' => false, 'message' => 'Error: ' . $e->getMessage()]);
     exit;
 }
 

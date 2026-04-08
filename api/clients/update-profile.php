@@ -125,6 +125,16 @@ try {
     if (!empty($bank_code) && !empty($account_number)) {
         // Resolve Account Name first if we don't have it (optional but good for business_name)
         $resolveRes = paystackRequest('GET', "/bank/resolve?account_number={$account_number}&bank_code={$bank_code}");
+        
+        // Check if resolution was successful
+        if (!$resolveRes || !is_array($resolveRes) || !($resolveRes['ok'] ?? false)) {
+            $errMsg = ($resolveRes['body']['message'] ?? $resolveRes['error'] ?? 'Account resolution failed');
+            $pdo->rollBack();
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => $errMsg]);
+            exit;
+        }
+        
         $resolved_account_name = $resolveRes['body']['data']['account_name'] ?? ($business_name ?: $name);
 
         $subRes = ensureSubaccount(
