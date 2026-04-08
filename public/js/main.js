@@ -14,12 +14,35 @@ let swiperInstances = {}; // Store Swiper instances
 
 // Pagination state
 let currentPage = 1;
+
 function getItemsPerPage() {
     const width = window.innerWidth;
-    if (width >= 1024) return 21;
-    if (width >= 768) return 21;
-    return 21;
+    
+    // Calculate grid columns based on minmax(300px, 1fr) with gap: 2rem
+    const gapSize = 32; // 2rem in pixels
+    const cardMinWidth = 300;
+    const containerPadding = (width >= 1024) ? 64 : (width >= 768) ? 40 : 32;
+    const availableWidth = width - (containerPadding * 2);
+    
+    // Calculate columns that can fit based on available width
+    let columns = Math.floor((availableWidth + gapSize) / (cardMinWidth + gapSize));
+    columns = Math.max(1, Math.min(columns, 5)); // Between 1 and 5 columns
+    
+    // Show 4-5 complete rows to fill reasonable viewport space without excessive scrolling
+    // This ensures better space utilization while keeping UX reasonable
+    let rows = 5;
+    if (width < 768) {
+        rows = 4; // Fewer rows on mobile
+    } else if (width < 1024) {
+        rows = 4; // Fewer rows on tablet
+    }
+    
+    // Calculate total items to display
+    let itemsPerPage = columns * rows;
+    
+    return itemsPerPage;
 }
+
 let itemsPerPage = getItemsPerPage();
 let filteredDiscoveryEvents = [];
 
