@@ -154,11 +154,7 @@ function checkAuth($requiredRole = null)
                 }
             }
             
-            // Write session immediately to ensure persistence
-            session_write_close();
-            session_start();
-            
-            // Return the profile-specific ID, not the auth_id
+            // Return the profile-specific ID (or auth_id if profile lookup failed)
             return $profileId ?? $auth_id;
         }
     }

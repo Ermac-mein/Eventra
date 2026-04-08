@@ -162,15 +162,39 @@ try {
             // I need to ensure the profile ID is preserved.
             $stmt = $pdo->prepare("SELECT id FROM admins WHERE admin_auth_id = ?");
             $stmt->execute([$user['id']]);
-            $_SESSION['admin_id'] = $stmt->fetchColumn();
+            $adminId = $stmt->fetchColumn();
+            if ($adminId) {
+                $_SESSION['admin_id'] = $adminId;
+            } else {
+                // Fallback to creating admin profile if it doesn't exist
+                $stmt = $pdo->prepare("INSERT INTO admins (admin_auth_id, name) VALUES (?, ?)");
+                $stmt->execute([$user['id'], $user['name'] ?? 'Admin']);
+                $_SESSION['admin_id'] = $pdo->lastInsertId();
+            }
         } elseif ($userRole === 'client') {
             $stmt = $pdo->prepare("SELECT id FROM clients WHERE client_auth_id = ?");
             $stmt->execute([$user['id']]);
-            $_SESSION['client_id'] = $stmt->fetchColumn();
+            $clientId = $stmt->fetchColumn();
+            if ($clientId) {
+                $_SESSION['client_id'] = $clientId;
+            } else {
+                // Fallback to creating client profile if it doesn't exist
+                $stmt = $pdo->prepare("INSERT INTO clients (client_auth_id, name, business_name) VALUES (?, ?, ?)");
+                $stmt->execute([$user['id'], $user['name'] ?? 'Client', $user['business_name'] ?? '']);
+                $_SESSION['client_id'] = $pdo->lastInsertId();
+            }
         } elseif ($userRole === 'user') {
             $stmt = $pdo->prepare("SELECT id FROM users WHERE user_auth_id = ?");
             $stmt->execute([$user['id']]);
-            $_SESSION['user_id'] = $stmt->fetchColumn();
+            $userId = $stmt->fetchColumn();
+            if ($userId) {
+                $_SESSION['user_id'] = $userId;
+            } else {
+                // Fallback to creating user profile if it doesn't exist
+                $stmt = $pdo->prepare("INSERT INTO users (user_auth_id, name) VALUES (?, ?)");
+                $stmt->execute([$user['id'], $user['name'] ?? 'User']);
+                $_SESSION['user_id'] = $pdo->lastInsertId();
+            }
         }
 
         $_SESSION['user_role'] = $userRole;

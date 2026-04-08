@@ -247,19 +247,43 @@ try {
     $_SESSION['user_role'] = $userRole;
     $_SESSION['role'] = $userRole; // Normalize for legacy support
 
-    // Set role-specific IDs
+    // Set role-specific IDs with fallback creation
     if ($userRole === 'admin') {
         $stmt = $pdo->prepare("SELECT id FROM admins WHERE admin_auth_id = ?");
         $stmt->execute([$user['id']]);
-        $_SESSION['admin_id'] = $stmt->fetchColumn();
+        $adminId = $stmt->fetchColumn();
+        if ($adminId) {
+            $_SESSION['admin_id'] = $adminId;
+        } else {
+            // Fallback: create admin profile if it doesn't exist
+            $stmt = $pdo->prepare("INSERT INTO admins (admin_auth_id, name) VALUES (?, ?)");
+            $stmt->execute([$user['id'], $user['name'] ?? 'Admin']);
+            $_SESSION['admin_id'] = $pdo->lastInsertId();
+        }
     } elseif ($userRole === 'client') {
         $stmt = $pdo->prepare("SELECT id FROM clients WHERE client_auth_id = ?");
         $stmt->execute([$user['id']]);
-        $_SESSION['client_id'] = $stmt->fetchColumn();
+        $clientId = $stmt->fetchColumn();
+        if ($clientId) {
+            $_SESSION['client_id'] = $clientId;
+        } else {
+            // Fallback: create client profile if it doesn't exist
+            $stmt = $pdo->prepare("INSERT INTO clients (client_auth_id, name, business_name, email, profile_pic) VALUES (?, ?, ?, ?, ?)");
+            $stmt->execute([$user['id'], $user['name'] ?? 'Client', '', $user['email'] ?? '', $user['profile_pic'] ?? '']);
+            $_SESSION['client_id'] = $pdo->lastInsertId();
+        }
     } elseif ($userRole === 'user') {
         $stmt = $pdo->prepare("SELECT id FROM users WHERE user_auth_id = ?");
         $stmt->execute([$user['id']]);
-        $_SESSION['user_id'] = $stmt->fetchColumn();
+        $userId = $stmt->fetchColumn();
+        if ($userId) {
+            $_SESSION['user_id'] = $userId;
+        } else {
+            // Fallback: create user profile if it doesn't exist
+            $stmt = $pdo->prepare("INSERT INTO users (user_auth_id, name, profile_pic) VALUES (?, ?, ?)");
+            $stmt->execute([$user['id'], $user['name'] ?? 'User', $user['profile_pic'] ?? '']);
+            $_SESSION['user_id'] = $pdo->lastInsertId();
+        }
     }
 
     $_SESSION['last_activity'] = time();

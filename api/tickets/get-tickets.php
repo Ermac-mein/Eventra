@@ -11,10 +11,16 @@ require_once '../../config/database.php';
 require_once '../../includes/middleware/auth.php';
 
 try {
-    $auth_id  = checkAuth('client');
-    $isAdmin  = false;
+    $returned_id = checkAuth('client');
 
-    $real_client_id = $auth_id;  // checkAuth now returns client_id directly
+    // Use the returned ID (should be client_id from checkAuth)
+    $real_client_id = $returned_id;
+    
+    // If we get a falsy value or 0, something went wrong
+    if (!$real_client_id) {
+        http_response_code(401);
+        throw new Exception("Authentication failed: Invalid client session");
+    }
 
     // Get tickets with related information
     $stmt = $pdo->prepare("

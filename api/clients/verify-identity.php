@@ -12,22 +12,22 @@ header('Content-Type: application/json');
 require_once '../../config/database.php';
 require_once '../../includes/middleware/auth.php';
 
-$client_auth_id = clientMiddleware();
+// Get client ID from auth check
+$client_id = clientMiddleware();
 
-// Get the actual client ID from the clients table using the auth_id
-$stmt = $pdo->prepare("SELECT id FROM clients WHERE client_auth_id = ?");
-$stmt->execute([$client_auth_id]);
-$client_id = $stmt->fetchColumn();
+// If we get here, client_id is already verified
+// clientMiddleware() would have exited if not authenticated
 
 if (!$client_id) {
-    http_response_code(404);
-    echo json_encode(['success' => false, 'message' => 'Client profile not found']);
+    http_response_code(400);
+    echo json_encode(['success' => false, 'message' => 'Invalid client authentication']);
     exit;
 }
 
 $data = json_decode(file_get_contents('php://input'), true) ?? [];
 $type = strtolower(trim($data['type'] ?? ''));
 $number = trim($data['number'] ?? '');
+
 
 if (!in_array($type, ['bvn', 'nin']) || empty($number)) {
     http_response_code(400);
