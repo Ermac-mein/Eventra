@@ -1,0 +1,287 @@
+╔════════════════════════════════════════════════════════════════════════╗
+║        COPY THESE FILES TO YOUR INFINITYFREE hosting via FTP          ║
+║                    COMPLETE FILE LIST                                 ║
+╚════════════════════════════════════════════════════════════════════════╝
+
+CRITICAL FILES (Upload First):
+═════════════════════════════════════════════════════════════════════════
+
+1. includes/middleware/auth.php
+   → Location: public_html/eventra/includes/middleware/auth.php
+   → Status: CRITICAL - Core auth with getallheaders() polyfill
+   → Must upload first
+
+2. api/auth/login.php
+   → Location: public_html/eventra/api/auth/login.php
+   → Status: CRITICAL - Fixes login redirect loop
+   → Must upload first
+
+3. api/auth/google-handler.php
+   → Location: public_html/eventra/api/auth/google-handler.php
+   → Status: CRITICAL - Fixes OAuth login issues
+   → Must upload first
+
+4. client/js/clientLogin.js
+   → Location: public_html/eventra/client/js/clientLogin.js
+   → Status: CRITICAL - Stores token in browser
+   → Must upload first
+
+5. admin/js/adminLogin.js
+   → Location: public_html/eventra/admin/js/adminLogin.js
+   → Status: CRITICAL - Stores admin token
+   → Must upload first
+
+
+RECOMMENDED FILES (Upload Next):
+═════════════════════════════════════════════════════════════════════════
+
+6. public/js/auth-guard.js
+   → Location: public_html/eventra/public/js/auth-guard.js
+   → Status: RECOMMENDED - Adds timeout handling
+   → Upload after critical files
+
+7. config/session-config.php
+   → Location: public_html/eventra/config/session-config.php
+   → Status: RECOMMENDED - Improves session compatibility
+   → Upload after critical files
+
+8. api/auth/check-session.php
+   → Location: public_html/eventra/api/auth/check-session.php
+   → Status: RECOMMENDED - Adds getallheaders() polyfill
+   → Upload after critical files
+
+9. api/clients/verify-identity.php
+   → Location: public_html/eventra/api/clients/verify-identity.php
+   → Status: RECOMMENDED - Fixes identity verification
+   → Upload after critical files
+
+10. api/tickets/get-tickets.php
+    → Location: public_html/eventra/api/tickets/get-tickets.php
+    → Status: RECOMMENDED - Better error handling
+    → Upload after critical files
+
+
+OPTIONAL FILES:
+═════════════════════════════════════════════════════════════════════════
+
+11. api/emails/send-email.php
+    → Location: public_html/eventra/api/emails/send-email.php
+    → Status: OPTIONAL - Adds polyfill for email sending
+    → Only if you use email features
+
+12. api/media/get-media.php
+    → Location: public_html/eventra/api/media/get-media.php
+    → Status: OPTIONAL - Simplified profile lookup
+    → Upload with recommended files
+
+
+UPLOAD STEPS:
+═════════════════════════════════════════════════════════════════════════
+
+Step 1: Upload CRITICAL Files (Files 1-5)
+────────────────────────────────────────
+✓ Connect to InfinityFree FTP
+✓ Navigate to public_html/eventra/
+✓ Upload the 5 critical files
+✓ Maintain directory structure
+✓ Set file permissions: 644 (readable)
+
+Step 2: Test CRITICAL Files
+────────────────────────────
+✓ Go to https://eventra.lovestoblog.com/client/pages/clientLogin.html
+✓ Login with client credentials
+✓ Should redirect to DASHBOARD (not login page)
+✓ Click sidebar buttons → should NOT logout
+✓ Check browser console (F12) → no red errors
+
+Step 3: Upload RECOMMENDED Files (Files 6-12)
+───────────────────────────────────────────
+✓ Upload remaining files from recommended list
+✓ Maintain directory structure
+✓ Set file permissions: 644
+
+Step 4: Final Testing
+─────────────────────
+✓ Test admin login
+✓ Test Google OAuth login
+✓ Check all API calls return 200 (not 500)
+✓ Verify sidebar navigation works
+✓ Test file upload (media) if used
+
+
+VERIFICATION CHECKLIST:
+═════════════════════════════════════════════════════════════════════════
+
+After uploading files:
+
+□ Login page loads (https://eventra.lovestoblog.com/client/pages/clientLogin.html)
+□ Can login with client credentials
+□ Redirected to dashboard (NOT login page)
+□ Click "Dashboard" → stays logged in
+□ Click "Tickets" → stays logged in
+□ Click "Media" → stays logged in
+□ Browser console has NO red errors (F12)
+□ Network tab shows API returns 200 OK (F12 → Network)
+□ Admin login works (admin panel)
+□ Sidebar navigation works without logout
+□ No "Client profile not found" errors
+
+
+FTP UPLOAD TIPS:
+═════════════════════════════════════════════════════════════════════════
+
+1. Use FileZilla or similar FTP client
+2. Connect to InfinityFree FTP (credentials from control panel)
+3. Host: ftp.infinityfree.net
+4. Username: Your InfinityFree username
+5. Password: Your FTP password
+6. Navigate to: public_html/eventra/
+7. Drag-drop files maintaining folder structure
+8. Right-click file → Properties → set permission 644
+9. Verify file uploaded successfully
+
+OR use InfinityFree Web File Manager:
+1. Go to InfinityFree Control Panel
+2. Click "File Manager"
+3. Navigate to public_html/eventra/
+4. Upload files one by one
+5. Maintain directory structure
+6. Set permissions to 644
+
+
+TROUBLESHOOTING:
+═════════════════════════════════════════════════════════════════════════
+
+Issue: "Still getting login redirect loop after upload"
+Fix:
+  • Clear browser cookies for eventra.lovestoblog.com
+  • Hard refresh (Ctrl+Shift+R or Cmd+Shift+R)
+  • Try private/incognito window
+  • Verify file permissions: 644
+  • Check session folder exists: /sessions/
+
+Issue: "Still getting 500 errors on API calls"
+Fix:
+  • Verify getallheaders() polyfill in includes/middleware/auth.php
+  • Check if all 5 CRITICAL files uploaded
+  • Test with newly created user account
+  • Check InfinityFree error logs
+
+Issue: "Still getting 'Client profile not found' errors"
+Fix:
+  • Login with newly created user (profile auto-creates)
+  • Verify login.php uploaded with fallback creation logic
+  • Try clearing browser cache and cookies
+
+
+DIRECTORY STRUCTURE REFERENCE:
+═════════════════════════════════════════════════════════════════════════
+
+Your InfinityFree directory should look like this:
+
+public_html/
+└── eventra/
+    ├── includes/
+    │   └── middleware/
+    │       └── auth.php              ✓ Upload
+    ├── api/
+    │   ├── auth/
+    │   │   ├── login.php             ✓ Upload
+    │   │   ├── google-handler.php    ✓ Upload
+    │   │   └── check-session.php     ✓ Upload
+    │   ├── clients/
+    │   │   └── verify-identity.php   ✓ Upload
+    │   ├── tickets/
+    │   │   └── get-tickets.php       ✓ Upload
+    │   ├── emails/
+    │   │   └── send-email.php        ⚪ Upload (optional)
+    │   └── media/
+    │       └── get-media.php         ⚪ Upload (optional)
+    ├── client/
+    │   └── js/
+    │       └── clientLogin.js        ✓ Upload
+    ├── admin/
+    │   └── js/
+    │       └── adminLogin.js         ✓ Upload
+    ├── public/
+    │   └── js/
+    │       └── auth-guard.js         ✓ Upload
+    ├── config/
+    │   └── session-config.php        ✓ Upload
+    └── sessions/                     ✓ Should exist & be writable
+
+
+FILE PERMISSIONS:
+═════════════════════════════════════════════════════════════════════════
+
+After upload, set permissions:
+
+All PHP files (.php):
+  → Permission: 644 (rw-r--r--)
+
+All directories:
+  → Permission: 755 (rwxr-xr-x)
+
+sessions/ folder:
+  → Permission: 755 (must be writable by web server)
+
+
+BEFORE YOU START:
+═════════════════════════════════════════════════════════════════════════
+
+Checklist:
+□ Downloaded all files locally
+□ Backed up current files on InfinityFree
+□ Have FTP credentials ready
+□ Have FTP client installed (FileZilla)
+□ Understand how to check browser console (F12)
+□ Understand how to check Network tab (DevTools)
+□ Have test user credentials ready
+
+
+STILL STUCK?
+═════════════════════════════════════════════════════════════════════════
+
+Read these files for help:
+
+1. UPLOAD_FILES_TO_INFINITYFREE.md
+   → Quick reference guide with step-by-step instructions
+
+2. DEPLOYMENT_GUIDE.md
+   → Detailed technical reference
+   → Includes troubleshooting section
+
+3. FILES_CHANGED_SUMMARY.txt
+   → What each file does
+   → Why each file was modified
+
+
+SUPPORT CHECKLIST:
+═════════════════════════════════════════════════════════════════════════
+
+If you get stuck:
+
+1. Did you upload all 5 CRITICAL files?
+2. Did you set file permissions to 644?
+3. Did you clear browser cache and cookies?
+4. Did you try private/incognito window?
+5. Did you hard refresh (Ctrl+Shift+R)?
+6. Did you check browser console for errors?
+7. Did you check Network tab for API responses?
+8. Did you check InfinityFree error logs?
+9. Did you try a newly created user account?
+10. Did you wait a minute after upload for server to apply changes?
+
+
+YOU'RE READY TO UPLOAD! 🚀
+═════════════════════════════════════════════════════════════════════════
+
+Good luck! If you follow these steps carefully, everything should work.
+
+Remember:
+✓ Upload 5 CRITICAL files first
+✓ Test them
+✓ Then upload RECOMMENDED files
+✓ Final test
+✓ Celebrate! 🎉
+
