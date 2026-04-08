@@ -1,6 +1,6 @@
-Create Database if0_41599702_db_eventra;
+CREATE DATABASE IF NOT EXISTS eventra_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
-USE if0_41599702_db_eventra;
+USE eventra_db;
 
 SET FOREIGN_KEY_CHECKS = 0;
 

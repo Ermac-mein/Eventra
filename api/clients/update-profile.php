@@ -10,14 +10,15 @@ require_once '../../config/payment.php';
 require_once '../../includes/middleware/auth.php';
 
 // Check authentication using proper middleware
-$auth_id = checkAuth('client');
+// checkAuth('client') returns the client profile ID, but we need the auth_id
+$client_id = checkAuth('client');
 
-// Get client_id from database using auth_id
-$stmt = $pdo->prepare("SELECT id FROM clients WHERE client_auth_id = ?");
-$stmt->execute([$auth_id]);
-$client_id = $stmt->fetchColumn();
+// Get the client_auth_id from the client_id
+$stmt = $pdo->prepare("SELECT client_auth_id FROM clients WHERE id = ?");
+$stmt->execute([$client_id]);
+$client_auth_id = $stmt->fetchColumn();
 
-if (!$client_id) {
+if (!$client_auth_id) {
     http_response_code(404);
     echo json_encode(['success' => false, 'message' => 'Client profile not found']);
     exit;
@@ -52,7 +53,7 @@ try {
     // Check if trying to update business name and if it exists
     if (!empty($business_name)) {
         $stmt = $pdo->prepare("SELECT id FROM clients WHERE business_name = ? AND client_auth_id != ? AND deleted_at IS NULL");
-        $stmt->execute([$business_name, $auth_id]);
+        $stmt->execute([$business_name, $client_auth_id]);
         if ($stmt->fetch()) {
             $pdo->rollBack();
             echo json_encode(['success' => false, 'message' => 'Business name already in use']);
@@ -88,7 +89,7 @@ try {
         JOIN auth_accounts a ON c.client_auth_id = a.id
         WHERE c.client_auth_id = ?
     ");
-    $stmt_existing->execute([$auth_id]);
+    $stmt_existing->execute([$client_auth_id]);
     $existing = $stmt_existing->fetch();
 
     if (empty($business_name) && $existing) {
@@ -139,7 +140,7 @@ try {
 
         $subRes = ensureSubaccount(
             $pdo,
-            $auth_id,
+            $client_auth_id,
             $bank_code,
             $account_number,
             $resolved_account_name,
@@ -171,7 +172,7 @@ try {
     }
 
     $query .= " WHERE client_auth_id = ?";
-    $params[] = $auth_id;
+    $params[] = $client_auth_id;
 
     $stmt = $pdo->prepare($query);
     $stmt->execute($params);
@@ -182,7 +183,7 @@ try {
         FROM clients 
         WHERE client_auth_id = ?
     ");
-    $stmt->execute([$auth_id]);
+    $stmt->execute([$client_auth_id]);
     $updated_client = $stmt->fetch(PDO::FETCH_ASSOC);
 
     // Format for frontend
@@ -202,13 +203,13 @@ try {
 
     // Notify user about profile update using helper
     require_once '../utils/notification-helper.php';
-    createNotification($auth_id, "Your profile has been updated successfully.", 'profile_updated', $auth_id, 'client', 'client');
+    createNotification($client_auth_id, "Your profile has been updated successfully.", 'profile_updated', $client_auth_id, 'client', 'client');
 
     // Notify admin about profile change for review
     $admin_id = getAdminUserId();
     if ($admin_id) {
         $client_name = $updated_client['business_name'] ?? $updated_client['name'];
-        createClientProfileUpdatedNotification($admin_id, $auth_id, $client_name);
+        createClientProfileUpdatedNotification($admin_id, $client_auth_id, $client_name);
     }
 
     $pdo->commit();
