@@ -20,9 +20,15 @@ function initializeChart() {
     if (!chartContainer) return;
 
     // Replace placeholder with canvas
-    chartContainer.innerHTML = '<canvas id="performanceChart"></canvas>';
+    chartContainer.innerHTML = '<canvas id="performanceChart" style="width: 100%; height: 100%;"></canvas>';
     
-    // Load chart data
+    // Check if we have events already loaded in the state (speed up initial render)
+    const storedEvents = window.stateManager ? window.stateManager.getState().events : null;
+    if (storedEvents && storedEvents.length > 0) {
+        renderChart(storedEvents);
+    }
+
+    // Load fresh chart data
     loadChartData();
 }
 
@@ -42,7 +48,13 @@ async function loadChartData() {
         }
     } catch (error) {
         console.error('Error loading chart data:', error);
-        renderEmptyChart();
+        // Fallback to local data aggregation if API fails
+        const events = window.stateManager ? window.stateManager.getState().events : [];
+        if (events.length > 0) {
+            renderChart(events);
+        } else {
+            renderEmptyChart();
+        }
     }
 }
 

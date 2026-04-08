@@ -403,7 +403,10 @@ function saveFormState(formId) {
 
     elements.forEach(el => {
         // Skip sensitive or unnecessary fields
-        if (el.type === 'password' || el.type === 'file' || el.type === 'hidden' || el.name === 'event_id') {
+        // Skip sensitive or unnecessary fields, but allow specific persistence fields if needed
+        const isHiddenToPersist = el.type === 'hidden' && (el.name.includes('date') || el.name.includes('time') || el.name.includes('tag'));
+        
+        if (el.type === 'password' || el.type === 'file' || (el.type === 'hidden' && !isHiddenToPersist) || el.name === 'event_id') {
             return;
         }
 

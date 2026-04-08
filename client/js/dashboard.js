@@ -166,7 +166,7 @@ async function loadRecentTickets(attendees) {
         return `
         <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #f1f4f8;">
             <div style="display: flex; gap: 12px; align-items: center;">
-                <img src="${attendee.profile_pic || `https://ui-avatars.com/api/?name=${encodeURIComponent(attendee.name)}&background=random`}" 
+                <img src="${getProfileImg(attendee.profile_pic, attendee.name)}" 
                      style="width: 35px; height: 35px; border-radius: 50%;">
                 <div>
                     <div style="font-size: 0.85rem; font-weight: 600;">${attendee.name}</div>

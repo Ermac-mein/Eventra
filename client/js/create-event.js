@@ -419,6 +419,17 @@ function showCreateEventModal() {
     // Restore saved state
     restoreFormState('createEventForm');
 
+    // Sync date display after restoration
+    const restoredDate = document.getElementById('eventDateInput')?.value;
+    if (restoredDate) {
+        const dateObj = new Date(restoredDate);
+        if (!isNaN(dateObj.getTime())) {
+            const displayOpts = { month: 'long', day: 'numeric', year: 'numeric' };
+            document.getElementById('customDateDisplay').value = dateObj.toLocaleDateString('en-US', displayOpts);
+            window.mdpSelectedDate = dateObj;
+        }
+    }
+
     // Sync time picker UI with restored value if it exists
     const restoredTime = document.getElementById('eventTimeInput')?.value;
     if (restoredTime && typeof setTimePickerValue === 'function') {
@@ -622,11 +633,15 @@ function confirmMaterialDatePicker() {
         const mm = String(window.mdpSelectedDate.getMonth() + 1).padStart(2, '0');
         const dd = String(window.mdpSelectedDate.getDate()).padStart(2, '0');
         
-        document.getElementById('eventDateInput').value = `${yyyy}-${mm}-${dd}`;
+        const dateInput = document.getElementById('eventDateInput');
+        dateInput.value = `${yyyy}-${mm}-${dd}`;
+        dateInput.dispatchEvent(new Event('input', { bubbles: true }));
         
         // Format display
         const displayOpts = { month: 'long', day: 'numeric', year: 'numeric' };
-        document.getElementById('customDateDisplay').value = window.mdpSelectedDate.toLocaleDateString('en-US', displayOpts);
+        const displayInput = document.getElementById('customDateDisplay');
+        displayInput.value = window.mdpSelectedDate.toLocaleDateString('en-US', displayOpts);
+        displayInput.dispatchEvent(new Event('input', { bubbles: true }));
     }
     closeMaterialDatePicker();
 }
