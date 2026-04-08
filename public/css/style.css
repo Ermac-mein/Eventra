@@ -826,6 +826,8 @@ body {
   background: linear-gradient(135deg, #8b5cf6, #6d28d9);
 }
 
+
+
 .fav-btn svg {
   transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), fill 0.3s ease;
 }

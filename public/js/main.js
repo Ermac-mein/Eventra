@@ -648,7 +648,7 @@ async function performServerSearch(query) {
 
     if (result.success) {
       eventsData.all = result.events;
-      renderSearchResults(result.events);
+      renderDiscovery(result.events); // Use centralized rendering with ghost filling
     }
   } catch (error) {
     if (loader) loader.style.display = 'none';
@@ -658,24 +658,8 @@ async function performServerSearch(query) {
 }
 
 function renderSearchResults(events) {
-  const grid = document.getElementById('all-events-grid');
-  if (!grid) return;
-
-  if (events.length === 0) {
-    grid.innerHTML = `
-      <div class="empty-state-container">
-        <span class="empty-state-icon">🕵️‍♂️</span>
-        <div class="empty-state-text">
-          <h3>No results found</h3>
-          <p>We couldn't find any events matching your search. Try different keywords.</p>
-        </div>
-      </div>
-    `;
-    return;
-  }
-
-  grid.innerHTML = events.map((e, i) => createEventCard(e, i)).join('');
-  if (window.lucide) window.lucide.createIcons();
+  // Now redirected to renderDiscovery for consistency and ghost filling
+  renderDiscovery(events);
 }
 
 function renderEventsGrid(gridId, events, emptyMessage) {
@@ -835,8 +819,11 @@ function createEventCard(event, index) {
         </div>
       </div>
     </div>
+    </div>
   `;
 }
+
+
 
 // Toggle Sidebar Sections
 function toggleSidebarSection(id) {
@@ -875,11 +862,8 @@ function renderDiscovery(events = eventsData.all) {
   if (!container) return;
 
   // 1. Deduplicate against categorized sections (Featured/Hot/etc.)
-  // If search is active, we don't deduplicate to show all results
-  const searchQuery = document.getElementById('globalSearch')?.value.trim();
-  const eventsToShow = (searchQuery) 
-    ? events 
-    : events.filter(e => !window.homepageSeenIds.has(e.id));
+  // REMOVED deduplication to populate grid as requested by user
+  const eventsToShow = events;
   
   filteredDiscoveryEvents = eventsToShow;
   
@@ -915,12 +899,21 @@ function renderDiscovery(events = eventsData.all) {
         ${createEventCard(event)}
     </div>
   `).join('');
+
+
+
   container.innerHTML = gridHtml;
   
   if (window.lucide) window.lucide.createIcons();
   
   // 6. Update Pagination UI
   renderPaginationUI(totalPages);
+}
+
+function getGridColumns(container) {
+    if (!container) return 3;
+    const style = window.getComputedStyle(container);
+    return style.getPropertyValue('grid-template-columns').split(' ').length;
 }
 
 // Update itemsPerPage on resize

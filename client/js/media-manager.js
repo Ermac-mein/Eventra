@@ -87,7 +87,7 @@ async function loadMedia() {
             return;
         }
 
-        mediaGrid.innerHTML = result.media.map(item => {
+        let html = result.media.map(item => {
             if (item.type === 'folder') {
                 return `
                     <div class="media-card" onclick="openFolder(${item.id}, '${item.name.replace(/'/g, "\\'")}')" style="position: relative;">
@@ -137,6 +137,10 @@ async function loadMedia() {
                 `;
             }
         }).join('');
+
+
+
+        mediaGrid.innerHTML = html;
     } catch (error) {
         console.error('Error loading media:', error);
     }
@@ -747,3 +751,11 @@ const observer = new MutationObserver((mutations) => {
     }
 });
 observer.observe(document.body, { childList: true, subtree: true });
+
+
+
+function getMediaGridColumns(container) {
+    if (!container) return 3;
+    const style = window.getComputedStyle(container);
+    return style.getPropertyValue('grid-template-columns').split(' ').length || 3;
+}
