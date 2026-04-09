@@ -52,7 +52,7 @@ function showTicketDesignPreview(eventId) {
 
                             <div>
                                 <h2 style="font-size: 1.75rem; font-weight: 800; color: #111827; margin-bottom: 0.5rem; line-height: 1.2;">${eventName}</h2>
-                                <p style="color: #7c3aed; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; font-size: 0.85rem;">Standard Admission</p>
+                                <p style="color: #2ecc71; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; font-size: 0.85rem;">Standard Admission</p>
                             </div>
 
                             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">

@@ -178,14 +178,14 @@
 
 /* Export Modal Refined */
 #exportModal .modal-content {
-    background: var(--glass-bg);
-    backdrop-filter: blur(20px);
-    border: 1px solid var(--glass-border);
+    background: white;
+    backdrop-filter: none;
+    border: 1px solid #e0e0e0;
     padding: 3rem;
     border-radius: 24px;
     width: 95%;
     max-width: 480px;
-    box-shadow: var(--glass-shadow);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
 }
 
 .export-options {

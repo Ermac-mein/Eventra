@@ -290,7 +290,7 @@ async function handleForgotPassword() {
         confirmButtonText: 'Send OTP',
         background: '#1e293b',
         color: '#fff',
-        confirmButtonColor: '#7c3aed'
+        confirmButtonColor: '#2ecc71'
     });
 
     if (!identity) return;
@@ -315,7 +315,7 @@ async function handleForgotPassword() {
                 confirmButtonText: 'Verify',
                 background: '#1e293b',
                 color: '#fff',
-                confirmButtonColor: '#7c3aed',
+                confirmButtonColor: '#2ecc71',
                 inputAttributes: {
                     maxlength: 6,
                     autocapitalize: 'off',
@@ -343,7 +343,7 @@ async function handleForgotPassword() {
                     confirmButtonText: 'Reset Password',
                     background: '#1e293b',
                     color: '#fff',
-                    confirmButtonColor: '#7c3aed',
+                    confirmButtonColor: '#2ecc71',
                     inputValidator: (value) => {
                         const passwordRegex = /^(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%^&*(),.?":{}|<>]).{8,}$/;
                         if (!value) {

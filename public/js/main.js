@@ -760,7 +760,7 @@ function createEventCard(event, index) {
   const shareText = `Check out ${eventName} organized by ${organizer} on Eventra!`;
   
   // Add VIP badge if both types exist - Added margin-right to prevent overlap with heart icon
-  const vipBadge = (regularPrice > 0 && vipPrice > 0) ? '<span style="background: linear-gradient(135deg, #7c3aed, #a855f7); color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.7rem; font-weight: 700; margin-right: 12px;">Regular/VIP</span>' : '';
+  const vipBadge = (regularPrice > 0 && vipPrice > 0) ? '<span style="background: linear-gradient(135deg, #2ecc71, #a855f7); color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.7rem; font-weight: 700; margin-right: 12px;">Regular/VIP</span>' : '';
 
   const getPriorityIcon = (p) => {
     switch(p.toLowerCase()) {

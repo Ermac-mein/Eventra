@@ -103,12 +103,12 @@ try {
         $subject = "Your Eventra Payment Verification Code";
         $body = "
             <div style='font-family: sans-serif; max-width: 500px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;'>
-                <h2 style='color: #7c3aed; margin-bottom: 0;'>Verify Your Payment</h2>
+                <h2 style='color: #2ecc71; margin-bottom: 0;'>Verify Your Payment</h2>
                 <p style='color: #6b7280; font-size: 14px;'>Eventra Payment Security</p>
                 <hr style='border: 0; border-top: 1px solid #eee; margin: 16px 0;'>
                 <p>Hello <strong>{$user['name']}</strong>,</p>
                 <p>Your one-time verification code for payment reference <strong>{$payment_reference}</strong> is:</p>
-                <div style='font-size: 36px; font-weight: 900; letter-spacing: 8px; color: #7c3aed; text-align: center; background: #f5f3ff; padding: 20px; border-radius: 10px; margin: 20px 0;'>{$otp}</div>
+                <div style='font-size: 36px; font-weight: 900; letter-spacing: 8px; color: #2ecc71; text-align: center; background: #f5f3ff; padding: 20px; border-radius: 10px; margin: 20px 0;'>{$otp}</div>
                 <p><strong>⏱ This code expires at {$expires_human} (in 5 minutes).</strong></p>
                 <p style='color: #ef4444; font-size: 13px;'>Do not share this code with anyone. Eventra will never ask for your OTP.</p>
                 <hr style='border: 0; border-top: 1px solid #eee; margin: 20px 0;'>

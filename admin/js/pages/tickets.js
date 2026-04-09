@@ -200,7 +200,7 @@ function openAdminTicketModal(ticket) {
     const imgSrc = ticket.event_image
         ? (ticket.event_image.startsWith('http') ? ticket.event_image : '../../' + ticket.event_image)
         : null;
-    const heroBg = imgSrc ? `url("${imgSrc.replace(/"/g, '%22')}")` : 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)';
+    const heroBg = imgSrc ? `url("${imgSrc.replace(/"/g, '%22')}")` : 'linear-gradient(135deg, #6366f1 0%, #2ecc71 100%)';
     const price = parseFloat(ticket.total_price) === 0 ? 'Free' : `₦${parseFloat(ticket.total_price).toLocaleString()}`;
     const statusClass = ticket.status === 'valid' ? 'tkt-active' : ticket.status === 'used' ? 'tkt-used' : 'tkt-cancelled';
     const statusLabel = { valid: '✓ Valid', used: '👁 Used', cancelled: '✕ Cancelled' }[ticket.status] || ticket.status;

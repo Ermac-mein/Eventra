@@ -314,11 +314,7 @@ function showExportModal(dataType) {
             option.parentNode.replaceChild(fresh, option);
             fresh.addEventListener('click', () => {
                 const format = fresh.getAttribute('data-format');
-                if (format === 'Excel') {
-                    exportTableToExcel(dataType);
-                } else if (format === 'PDF') {
-                    exportTableToPDF(dataType);
-                } else if (format === 'CSV') {
+                if (format === 'CSV') {
                     exportCurrentTableToCSV(dataType);
                 } else if (format === 'Selection') {
                     toggleSelectionMode();

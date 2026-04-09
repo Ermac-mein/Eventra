@@ -823,7 +823,7 @@ body {
 }
 
 .priority-upcoming {
-  background: linear-gradient(135deg, #8b5cf6, #6d28d9);
+  background: linear-gradient(135deg, #2ecc71, #6d28d9);
 }
 
 
@@ -2760,7 +2760,7 @@ body {
 }
 
 .google-signin:hover {
-  background-color: #7c3aed;
+  background-color: #2ecc71;
   border-color: #6d28d9;
   box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
   color: white;

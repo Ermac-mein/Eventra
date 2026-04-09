@@ -37,7 +37,7 @@ function showProfileEditModal() {
                         <div class="modal-grid">
                             <div class="form-group modal-grid-full">
                                 <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Client ID</label>
-                                <input type="text" value="${escapeHTML(user.custom_id) || 'Generating...'}" readonly style="width: 100%; padding: 0.75rem; border: 1px solid #e0e0e0; border-radius: 8px; background: #f8fafc; color: #7c3aed; font-weight: 700; font-family: monospace; letter-spacing: 1px;">
+                                <input type="text" value="${escapeHTML(user.custom_id) || 'Generating...'}" readonly style="width: 100%; padding: 0.75rem; border: 1px solid #e0e0e0; border-radius: 8px; background: #f8fafc; color: #2ecc71; font-weight: 700; font-family: monospace; letter-spacing: 1px;">
                             </div>
 
                             <div class="form-group">
@@ -268,7 +268,7 @@ async function resolveAccount() {
     }
 
     // Show Loading
-    statusDiv.innerHTML = '<span class="spinner" style="width: 16px; height: 16px; border: 2px solid #8b5cf6; border-top-color: transparent; border-radius: 50%; display: inline-block; animation: spin 0.8s linear infinite;"></span>';
+    statusDiv.innerHTML = '<span class="spinner" style="width: 16px; height: 16px; border: 2px solid #2ecc71; border-top-color: transparent; border-radius: 50%; display: inline-block; animation: spin 0.8s linear infinite;"></span>';
 
     try {
         const response = await apiFetch(`/api/clients/bank-details.php?bank_code=${bankCode}&account_number=${accountNumber}`, {
@@ -621,7 +621,7 @@ function getPriorityBadgeColor(priority) {
     const colors = {
         'hot': '#ef4444',
         'trending': '#f59e0b',
-        'featured': '#8b5cf6',
+        'featured': '#2ecc71',
         'nearby': '#10b981',
         'upcoming': '#3b82f6'
     };
@@ -809,7 +809,7 @@ function showEditEventModal(event) {
                                     <input type="number" name="price" id="editPriceInput" value="${event.price}" required min="0" step="0.01" 
                                            style="${parseFloat(event.price) === 0 ? 'display: none;' : ''}">
                                     <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; user-select: none; font-weight: 600; color: #6b7280; background: white; padding: 0.5rem 1rem; border-radius: 8px; border: 1px solid #d1d5db;">
-                                        <input type="checkbox" id="editFreeEventCheckbox" ${parseFloat(event.price) === 0 ? 'checked' : ''} style="width: 1.1rem; height: 1.1rem; accent-color: #8b5cf6;"> Free
+                                        <input type="checkbox" id="editFreeEventCheckbox" ${parseFloat(event.price) === 0 ? 'checked' : ''} style="width: 1.1rem; height: 1.1rem; accent-color: #2ecc71;"> Free
                                     </label>
                                 </div>
                             </div>
@@ -845,7 +845,7 @@ function showEditEventModal(event) {
                                             <input type="number" name="regular_quantity" value="${event.regular_quantity || ''}" placeholder="Max Qty" style="margin-top: 5px;">
                                         </div>
                                         <div>
-                                            <label style="font-size: 0.75rem; font-weight: 700; color: #7c3aed; text-transform: uppercase;">VIP Price (₦)</label>
+                                            <label style="font-size: 0.75rem; font-weight: 700; color: #2ecc71; text-transform: uppercase;">VIP Price (₦)</label>
                                             <input type="number" name="vip_price" value="${event.vip_price || 0}" min="0" step="0.01">
                                             <input type="number" name="vip_quantity" value="${event.vip_quantity || ''}" placeholder="Max Qty" style="margin-top: 5px;">
                                         </div>
@@ -1024,7 +1024,7 @@ function showTicketPreviewModal(ticket) {
     const imgSrc = ticket.event_image
         ? (ticket.event_image.startsWith('http') ? ticket.event_image : '../../' + ticket.event_image)
         : null;
-    const heroBg = imgSrc ? `url("${imgSrc.replace(/"/g, '%22')}")` : 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)';
+    const heroBg = imgSrc ? `url("${imgSrc.replace(/"/g, '%22')}")` : 'linear-gradient(135deg, #6366f1 0%, #2ecc71 100%)';
     const price = parseFloat(ticket.price || ticket.total_price || 0) === 0 ? 'Free' : `₦${parseFloat(ticket.price || ticket.total_price || 0).toLocaleString()}`;
     const statusClass = ticket.status === 'valid' ? 'tkt-active' : ticket.status === 'used' ? 'tkt-used' : 'tkt-cancelled';
     const statusLabel = { valid: '✓ Valid', used: '👁 Used', cancelled: '✕ Cancelled' }[ticket.status] || (ticket.status ? ticket.status.toUpperCase() : 'N/A');
@@ -1059,10 +1059,6 @@ function showTicketPreviewModal(ticket) {
                     <div style="font-family:monospace;font-size:.75rem;color:#475569;margin-top:0.75rem;word-break:break-all;">${escapeHTML(ticket.barcode || ticket.id || '—')}</div>
                 </div>
                 <div style="display:flex;gap:.75rem;margin-top:1.5rem;">
-                    <button onclick="downloadTicketPDF('${ticket.barcode || ticket.id}')" style="flex:1;padding:.75rem;background:#059669;color:white;border:none;border-radius:10px;font-weight:700;cursor:pointer;font-size:.9rem;display:flex;align-items:center;justify-content:center;gap:.5rem;transition:all .2s;">
-                        <i data-lucide="download" style="width:16px;height:16px;"></i>
-                        Download
-                    </button>
                     <button onclick="closeTicketPreviewModal()" style="flex:1;padding:.75rem;background:#6366f1;color:white;border:none;border-radius:10px;font-weight:700;cursor:pointer;font-size:.9rem;">Close</button>
                 </div>
             </div>

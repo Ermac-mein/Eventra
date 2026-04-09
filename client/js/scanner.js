@@ -29,7 +29,7 @@ async function initScanner() {
             icon: 'error',
             title: 'Camera Access Denied',
             text: 'Please grant camera permissions to use the scanner.',
-            confirmButtonColor: '#7c3aed'
+            confirmButtonColor: '#2ecc71'
         });
     }
 }
@@ -42,7 +42,7 @@ async function onScanSuccess(decodedText, decodedResult) {
     vibrate(); // Haptic feedback if supported
 
     document.getElementById('scanMessage').textContent = 'Processing...';
-    document.getElementById('scannerOverlay').style.borderColor = '#7c3aed';
+    document.getElementById('scannerOverlay').style.borderColor = '#2ecc71';
 
     try {
         const response = await fetch('/api/tickets/scan-ticket.php', {

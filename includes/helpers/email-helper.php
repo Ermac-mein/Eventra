@@ -88,12 +88,12 @@ function sendTicketEmail($to, $userName, $eventName, $barcode, $pdfPath = null)
 
     $body = "
         <div style='font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee;'>
-            <h2 style='color: #7c3aed;'>Ticket Confirmation</h2>
+            <h2 style='color: #2ecc71;'>Ticket Confirmation</h2>
             <p>Hi <strong>{$userName}</strong>,</p>
             <p>Thank you for your purchase! Your ticket for <strong>{$eventName}</strong> is ready.</p>
             <div style='background: #f9f9f9; padding: 20px; text-align: center; border-radius: 10px; margin: 20px 0;'>
                 <p style='margin-bottom: 5px; color: #666;'>Ticket ID</p>
-                <div style='font-size: 24px; font-weight: bold; letter-spacing: 5px; color: #7c3aed;'>{$barcode}</div>
+                <div style='font-size: 24px; font-weight: bold; letter-spacing: 5px; color: #2ecc71;'>{$barcode}</div>
             </div>
             <p>Your PDF ticket is attached to this email. Please present the QR code at the venue entrance.</p>
             <hr style='border: 0; border-top: 1px solid #eee; margin: 20px 0;'>

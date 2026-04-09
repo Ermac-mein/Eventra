@@ -98,7 +98,7 @@ try {
             $subject = "Payment Receipt - " . $payment['event_name'];
             $body = "
                 <div style='font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee;'>
-                    <h2 style='color: #7c3aed;'>Payment Received ✅</h2>
+                    <h2 style='color: #2ecc71;'>Payment Received ✅</h2>
                     <p>Hi {$user['name']},</p>
                     <p>Thank you for your purchase! Here are your transaction details:</p>
                     <table style='width: 100%; border-collapse: collapse;'>
@@ -150,8 +150,8 @@ try {
                 }
 
                 $ticketContent .= "
-                    <div style='border: 2px dashed #7c3aed; padding: 15px; margin-bottom: 20px; border-radius: 10px;'>
-                        <h3 style='margin: 0; color: #7c3aed;'>{$ticket['event_name']}</h3>
+                    <div style='border: 2px dashed #2ecc71; padding: 15px; margin-bottom: 20px; border-radius: 10px;'>
+                        <h3 style='margin: 0; color: #2ecc71;'>{$ticket['event_name']}</h3>
                         <p style='margin: 5px 0;'><strong>Date:</strong> {$ticket['event_date']}</p>
                         <p style='margin: 5px 0;'><strong>Time:</strong> {$ticket['event_time']}</p>
                         <p style='margin: 5px 0;'><strong>Venue:</strong> {$ticket['location']}</p>
@@ -163,7 +163,7 @@ try {
 
             $body = "
                 <div style='font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px;'>
-                    <h2 style='color: #7c3aed;'>Your Eventra Tickets 🎟️</h2>
+                    <h2 style='color: #2ecc71;'>Your Eventra Tickets 🎟️</h2>
                     <p>Hi {$user['name']}, your tickets are ready!</p>
                     <p>We have attached your PDF ticket(s) to this email. Please present the QR code at the venue for entry validation.</p>
                     {$ticketContent}
@@ -178,7 +178,7 @@ try {
             $message = $data['message'] ?? "";
             $body = "
                 <div style='font-family: sans-serif; padding: 20px;'>
-                    <h2 style='color: #7c3aed;'>Notification</h2>
+                    <h2 style='color: #2ecc71;'>Notification</h2>
                     <p>{$message}</p>
                 </div>
             ";
