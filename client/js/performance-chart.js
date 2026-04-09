@@ -47,7 +47,6 @@ async function loadChartData() {
             renderEmptyChart();
         }
     } catch (error) {
-        console.error('Error loading chart data:', error);
         // Fallback to local data aggregation if API fails
         const events = window.stateManager ? window.stateManager.getState().events : [];
         if (events.length > 0) {

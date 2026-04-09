@@ -52,7 +52,6 @@ async function loadMedia() {
     try {
         const user = storage.getUser();
         if (!user || !user.id) {
-            console.error('User session not found');
             return;
         }
         const response = await apiFetch(`/api/media/get-media.php?client_id=${user.id}&status=${currentMediaStatus}${currentFolderId ? '&folder_id=' + currentFolderId : ''}`);
@@ -142,7 +141,6 @@ async function loadMedia() {
 
         mediaGrid.innerHTML = html;
     } catch (error) {
-        console.error('Error loading media:', error);
     }
 }
 
@@ -209,7 +207,6 @@ async function handleFolderCreation(e) {
             showNotification('Failed to create folder: ' + result.message, 'error');
         }
     } catch (error) {
-        console.error('Folder creation error:', error);
         showNotification('An error occurred while creating folder', 'error');
     }
 }
@@ -269,7 +266,6 @@ function uploadFile() {
                 showNotification('Upload failed: ' + result.message, 'error');
             }
         } catch (error) {
-            console.error('Upload error:', error);
             showNotification('An error occurred during upload', 'error');
         }
     };
@@ -314,7 +310,6 @@ function uploadToFolder(folderId, folderName, e) {
                 showNotification('Upload failed: ' + result.message, 'error');
             }
         } catch (error) {
-            console.error('Upload error:', error);
             showNotification('An error occurred during upload', 'error');
         }
     };
@@ -393,7 +388,6 @@ async function deleteMedia(id, type = 'file', e, fileCount = 0) {
                 showNotification('Delete failed: ' + result.message, 'error');
             }
         } catch (error) {
-            console.error('Delete error:', error);
             showNotification('An error occurred', 'error');
         }
     } else {
@@ -430,7 +424,6 @@ async function deleteMedia(id, type = 'file', e, fileCount = 0) {
                 showNotification('Delete failed: ' + result.message, 'error');
             }
         } catch (error) {
-            console.error('Delete error:', error);
             showNotification('An error occurred', 'error');
         }
     }
@@ -510,7 +503,6 @@ async function openFolder(id, name) {
             emptyState.style.display = 'block';
         }
     } catch (error) {
-        console.error('Error fetching folder contents:', error);
         tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 2rem; color: var(--client-text-muted);">Failed to load files</td></tr>';
     }
 }

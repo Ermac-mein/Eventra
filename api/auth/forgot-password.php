@@ -1,64 +1,64 @@
 <?php
 
+/**
+ * Forgot Password - Step 1: Request OTP (CLIENTS ONLY)
+ * Sends OTP to client's registered phone number via SMS
+ */
+
 header('Content-Type: application/json');
 require_once __DIR__ . '/../../config/database.php';
-require_once __DIR__ . '/../../includes/helpers/email-helper.php';
+require_once __DIR__ . '/../../includes/helpers/otp-service.php';
+require_once __DIR__ . '/../../includes/helpers/validation.php';
 
 $data = json_decode(file_get_contents("php://input"), true);
 $email = $data['email'] ?? null;
 
-if (!$email) {
-    echo json_encode(['success' => false, 'message' => 'Email is required.']);
+if (!$email || !validateEmail($email)) {
+    echo json_encode(['success' => false, 'message' => 'Valid email is required.']);
     exit;
 }
 
 try {
-    // Check if email exists in auth_accounts and is a client
-    $stmt = $pdo->prepare("SELECT id, username FROM auth_accounts WHERE email = ? AND role = 'client' AND deleted_at IS NULL");
+    // Check if email exists in auth_accounts (CLIENTS ONLY)
+    $stmt = $pdo->prepare("
+        SELECT a.id, c.phone, c.id as client_id
+        FROM auth_accounts a
+        INNER JOIN clients c ON a.id = c.client_auth_id
+        WHERE a.email = ? AND a.role = 'client' AND a.deleted_at IS NULL
+        LIMIT 1
+    ");
     $stmt->execute([$email]);
-    $account = $stmt->fetch();
+    $account = $stmt->fetch(PDO::FETCH_ASSOC);
 
     if (!$account) {
-        // Security best practice: Don't reveal if email exists
-        echo json_encode(['success' => true, 'message' => 'If a client account exists with this email, you will receive an OTP code shortly.']);
+        // Security: Don't reveal if email exists
+        echo json_encode(['success' => true, 'message' => 'If an account exists with this email, you will receive an OTP shortly.']);
         exit;
     }
 
-    // Generate 6-digit OTP
-    $otpCode = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+    // Get phone number from clients table
+    $phone = $account['phone'] ?? null;
 
-    // Invalidate previous OTP tokens
-    $stmt = $pdo->prepare("UPDATE auth_tokens SET revoked = 1 WHERE auth_id = ? AND type = 'otp'");
-    $stmt->execute([$account['id']]);
-
-    // Store OTP token (expires in 10 minutes using database time)
-    $stmt = $pdo->prepare("INSERT INTO auth_tokens (auth_id, token, type, expires_at) VALUES (?, ?, 'otp', DATE_ADD(NOW(), INTERVAL 10 MINUTE))");
-    $stmt->execute([$account['id'], $otpCode]);
-
-    // Send OTP via email
-    $subject = "Your Eventra Password Reset OTP";
-    $body = "
-        <div style='font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 12px;'>
-            <h2 style='color: #7c3aed;'>Password Reset Request</h2>
-            <p>Hi there,</p>
-            <p>We received a request to reset your Eventra password. Use the code below to verify your identity. This code will expire in 10 minutes.</p>
-            <div style='text-align: center; margin: 30px 0;'>
-                <div style='font-size: 32px; font-weight: bold; letter-spacing: 5px; color: #7c3aed; font-family: monospace;'>$otpCode</div>
-            </div>
-            <p style='color: #6b7280; font-size: 14px;'>Do not share this code with anyone. If you didn't request this, you can safely ignore this email.</p>
-            <hr style='border: 0; border-top: 1px solid #eee; margin: 20px 0;'>
-            <p style='font-size: 12px; color: #9ca3af; text-align: center;'>&copy; " . date('Y') . " Eventra.</p>
-        </div>
-    ";
-
-    $emailResult = sendEmail($email, $subject, $body);
-
-    if ($emailResult['success']) {
-        echo json_encode(['success' => true, 'message' => 'OTP has been sent to your email.']);
-    } else {
-        echo json_encode(['success' => false, 'message' => 'Failed to send OTP. Please try again later.']);
+    if (!$phone) {
+        error_log("[ForgotPassword] No phone number on file for client: " . $account['client_id']);
+        echo json_encode(['success' => true, 'message' => 'If an account exists with this email, you will receive an OTP shortly.']);
+        exit;
     }
+
+    // Generate and send OTP
+    $result = OTPService::generateOTP($phone, 'password_reset', $account['id']);
+
+    if ($result['success']) {
+        echo json_encode([
+            'success' => true,
+            'message' => 'OTP has been sent to your registered phone number.',
+            'otp_purpose' => 'password_reset'
+        ]);
+    } else {
+        echo json_encode(['success' => false, 'message' => $result['message']]);
+    }
+
 } catch (PDOException $e) {
     error_log("Forgot password error: " . $e->getMessage());
-    echo json_encode(['success' => false, 'message' => 'Database error occurred.']);
+    echo json_encode(['success' => false, 'message' => 'An error occurred. Please try again later.']);
 }

@@ -144,7 +144,6 @@ document.addEventListener('EventraProfileUpdated', (e) => {
         }
     });
 
-    console.log('[Profile Sync] UI refreshed for all synced elements');
 });
 
 // Validate email
@@ -316,20 +315,17 @@ async function apiFetch(url, options = {}) {
         throw new Error(errorData.message || `Server error: ${response.status}`);
       } else {
         const text = await response.text();
-        console.error(`Non-JSON Error (${response.status}):`, text.substring(0, 200));
         throw new Error(`Server returned ${response.status} (HTML/Text). This usually means a routing error or a crash.`);
       }
     }
 
     if (!isJson && response.status !== 204) {
-      console.warn(`Expected JSON but got ${contentType}`);
       // We don't throw here if it's a 200, but we should be careful
     }
     
     return response;
   } catch (error) {
     if (error.name === 'AbortError') return null;
-    console.error('API Fetch Error:', error);
     throw error;
   }
 }
@@ -353,9 +349,7 @@ async function apiFetch(url, options = {}) {
         // Us/api/auth/check-session as a heartbeat
         await apiFetch('/api/auth/check-session.php', { method: 'GET', cache: 'no-store' });
         lastPing = Date.now();
-        console.log('[Activity Tracker] Session extended');
       } catch (e) {
-        console.warn('[Activity Tracker] Failed to extend session:', e);
       }
     }
   }, 2000);
@@ -449,7 +443,6 @@ function restoreFormState(formId) {
             }
         });
     } catch (e) {
-        console.warn(`[Persistence] Failed to restore state for ${formId}:`, e);
     }
 }
 

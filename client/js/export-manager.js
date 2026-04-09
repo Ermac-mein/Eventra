@@ -168,7 +168,6 @@ async function exportTableToPDF(dataType) {
         doc.save(`${dataType}_export_${new Date().toISOString().split('T')[0]}.pdf`);
         showNotification('PDF Export Complete', 'success');
     } catch (error) {
-        console.error('PDF export error:', error);
         showNotification('PDF export failed', 'error');
     }
 }
@@ -228,7 +227,6 @@ async function exportTableToExcel(dataType) {
         XLSX.writeFile(workbook, filename);
         showNotification(`${dataType} exported successfully as Excel`, 'success');
     } catch (error) {
-        console.error('Excel export error:', error);
         showNotification('Failed to export as Excel', 'error');
     }
 }

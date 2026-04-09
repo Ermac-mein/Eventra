@@ -85,7 +85,6 @@ class DeletedEventModal {
                 this.showNotification('Failed to load event details', 'error');
             }
         } catch (error) {
-            console.error('Error loading event:', error);
             this.showNotification('An error occurred', 'error');
         }
     }
@@ -173,7 +172,6 @@ class DeletedEventModal {
                 this.showNotification('Failed to restore event: ' + escapeHTML(data.message), 'error');
             }
         } catch (error) {
-            console.error('Error restoring event:', error);
             this.showNotification('An error occurred', 'error');
         }
     }
@@ -219,7 +217,6 @@ class DeletedEventModal {
                 this.showNotification('Failed to delete event: ' + escapeHTML(data.message), 'error');
             }
         } catch (error) {
-            console.error('Error deleting event:', error);
             this.showNotification('An error occurred', 'error');
         }
     }
@@ -236,7 +233,6 @@ class DeletedEventModal {
         if (typeof showNotification === 'function') {
             showNotification(message, type);
         } else {
-            console.log(message);
         }
     }
 }

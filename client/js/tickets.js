@@ -141,11 +141,9 @@ async function loadTickets(clientId) {
                 updateStatsCards(result.stats);
             }
         } else {
-            console.error('API Error:', result.message);
             showNotification(result.message || 'Failed to load tickets', 'error');
         }
     } catch (error) {
-        console.error('Error loading tickets:', error);
         const tbody = document.getElementById('ticketsTableBody');
         if (tbody) {
             tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 2rem; color: #ef4444;">Error loading tickets. Please try again later.</td></tr>';
@@ -299,7 +297,6 @@ async function downloadTicketPDF(ticketCode) {
         btn.innerHTML = originalText;
         btn.disabled = false;
     } catch (error) {
-        console.error('Error downloading ticket:', error);
         showNotification('Failed to download ticket. Please try again.', 'error');
         
         // Restore button

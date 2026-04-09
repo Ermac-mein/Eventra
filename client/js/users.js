@@ -119,7 +119,6 @@ async function loadUsers(clientId) {
             }
         }
     } catch (error) {
-        console.error('Error loading users:', error);
     }
 }
 

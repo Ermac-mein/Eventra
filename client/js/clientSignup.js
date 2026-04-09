@@ -29,7 +29,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (signupButton) signupButton.textContent = 'Create Admin Account';
         if (loginLink) loginLink.href = `clientLogin.html?role=admin`;
         
-        console.log("Admin registration context activated.");
     } else {
         if (intent === 'user') {
             window.location.href = '../../public/pages/index.html';
@@ -179,7 +178,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 signupButton.innerHTML = originalBtnText;
             }
         } catch (error) {
-            console.error('Error:', error);
             showError('passwordError', 'An error occurred. Please try again later.');
             signupButton.disabled = false;
             signupButton.innerHTML = originalBtnText;
@@ -208,7 +206,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         });
                         google.accounts.id.prompt();
                     } catch (error) {
-                        console.error('Google Sign-up error:', error);
                         Swal.fire('Error', 'Failed to initialize Google Sign-up.', 'error');
                     }
                 } else if (attempts < 20) {
@@ -220,7 +217,6 @@ document.addEventListener('DOMContentLoaded', () => {
             };
             attemptGoogleInit();
         } catch (error) {
-            console.error('Google Sign-up config error:', error);
             Swal.fire('Error', 'Failed to initialize Google Sign-up.', 'error');
         }
     }
@@ -265,7 +261,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 Swal.fire('Registration Failed', result.message, 'error');
             }
         } catch (error) {
-            console.error('Google registration error:', error);
             Swal.fire('Error', 'An error occurred during Google Sign-up.', 'error');
         }
     }
@@ -303,7 +298,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 setInterval(updateSlider, 5000);
             }
         } catch (error) {
-            console.error('Slider init error:', error);
         }
     }
 

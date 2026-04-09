@@ -16,7 +16,6 @@ class AdminAuth {
 
             // If auth controller is already synced, we can skip the dedicated fetch
             if (window.authController && window.authController.settled && window.authController.state === 'authenticated') {
-                console.log('[AdminAuth] Using settled auth state');
                 return this.adminData;
             }
 
@@ -35,11 +34,9 @@ class AdminAuth {
                 this.updateProfileUI();
                 return this.adminData;
             } else {
-                console.error('Failed to load admin profile:', result.message);
                 return null;
             }
         } catch (error) {
-            console.error('Error loading admin profile:', error);
             return null;
         }
     }
@@ -187,7 +184,6 @@ class AdminAuth {
                 }
             }
         } catch (error) {
-            console.error('Logout error:', error);
             if (window.toast) {
                 window.toast.error('An error occurred during logout');
             }
@@ -201,7 +197,6 @@ window.adminAuth = new AdminAuth();
 // Listen for unified auth sync
 document.addEventListener('auth:sync', (e) => {
     if (e.detail.success && e.detail.user && e.detail.user.role === 'admin') {
-        console.log('[AdminAuth] Updating UI from auth:sync');
         window.adminAuth.adminData = e.detail.user;
         window.adminAuth.updateProfileUI();
     }

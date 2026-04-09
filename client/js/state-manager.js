@@ -59,7 +59,6 @@ class StateManager {
                 storage.set('client_user', result.user);
             }
         } catch (error) {
-            console.error('Error initializing state manager:', error);
         }
 
         this.initialized = true;
@@ -160,7 +159,6 @@ class StateManager {
             try {
                 listener(this.state);
             } catch (error) {
-                console.error('Error in state listener:', error);
             }
         });
     }

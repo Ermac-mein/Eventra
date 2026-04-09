@@ -97,7 +97,6 @@ class NotificationManager {
                 // Ignore aborted fetches silently
                 return;
             }
-            console.error('Error fetching notifications:', error);
         } finally {
             this.currentAbortController = null;
         }
@@ -271,7 +270,6 @@ class NotificationManager {
                 this.fetchNotifications();
             }
         } catch (error) {
-            console.error('Error marking notifications as read:', error);
         }
     }
 
@@ -295,7 +293,6 @@ class NotificationManager {
                 this.fetchNotifications(); // Full refresh
             }
         } catch (error) {
-            console.error('Error marking single notification as read:', error);
         }
     }
 
@@ -328,7 +325,6 @@ class NotificationManager {
                 }
             }
         } catch (error) {
-            console.error('Error clearing notifications:', error);
         }
     }
 

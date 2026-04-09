@@ -23,7 +23,6 @@ const PaystackBanks = {
                     return this.banks;
                 }
             } catch (e) {
-                console.warn('Failed to parse bank cache');
             }
         }
 
@@ -43,7 +42,6 @@ const PaystackBanks = {
                 return this.banks;
             }
         } catch (err) {
-            console.error('Failed to load banks:', err);
         }
         return [];
     },

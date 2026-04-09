@@ -10,7 +10,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Capture referral if client is in URL
     if (clientName) {
         sessionStorage.setItem('referral_client', clientName);
-        console.log('Referral captured:', clientName);
     }
 
     if (!eventId && !eventTag) {
@@ -38,7 +37,6 @@ async function loadEventDetailsById(id) {
             setTimeout(() => window.location.href = 'index.html', 2000);
         }
     } catch (error) {
-        console.error('Error loading event:', error);
         showNotification('System error occurred', 'error');
     }
 }
@@ -55,7 +53,6 @@ async function loadEventDetailsByTag(tag) {
             setTimeout(() => window.location.href = 'index.html', 2000);
         }
     } catch (error) {
-        console.error('Error loading event:', error);
         showNotification('System error occurred', 'error');
     }
 }
@@ -210,7 +207,6 @@ async function handleBooking(eventId) {
             showNotification(result.message, 'error');
         }
     } catch (error) {
-        console.error('Booking error:', error);
         showNotification('Booking failed', 'error');
     }
 }

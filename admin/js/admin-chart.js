@@ -11,13 +11,11 @@ async function initAdminChart(period = '7days') {
         const result = await response.json();
 
         if (!result.success) {
-            console.error('Failed to load chart data:', result.message);
             return;
         }
 
         const ctx = document.getElementById('adminChart');
         if (!ctx) {
-            console.error('Chart canvas not found');
             return;
         }
 
@@ -127,7 +125,6 @@ async function initAdminChart(period = '7days') {
         });
 
     } catch (error) {
-        console.error('Error initializing chart:', error);
     }
 }
 

@@ -143,11 +143,9 @@ async function loadEvents() {
       // Finally apply filters for the "All Discovery Results" grid
       applyFilters();
     } else {
-      console.error('Failed to load events:', result.message);
       renderDiscovery([]);
     }
   } catch (error) {
-    console.error('Error loading events:', error);
     renderDiscovery([]);
   }
 }
@@ -344,7 +342,6 @@ function initUserIcon() {
 
   // Listen for state changes from AuthController
   window.addEventListener('auth:stateChange', (e) => {
-    console.log('[Main] Auth state change detected:', e.detail.state);
     setupUI();
     if (e.detail.state === authController.states.AUTHENTICATED) {
         loadEvents(); // Refresh data to show is_favorite states
@@ -500,7 +497,6 @@ function initUserIcon() {
           showNotification(result.message || 'Error updating profile', 'error');
         }
       } catch (error) {
-        console.error('Update profile error:', error);
         showNotification('System error occurred', 'error');
       }
     });
@@ -541,14 +537,11 @@ async function initGoogleAuth() {
     if (authController.state === authController.states.AUTHENTICATED) return;
 
     try {
-        console.log('[Main] Fetching Google config...');
         const response = await apiFetch('/api/config/get-google-config.php');
         const data = await response.json();
         
-        console.log('[Main] Google config response:', data.success ? 'success' : 'failed');
 
         if (data.success && data.client_id) {
-            console.log('[Main] Waiting for Google SDK to load...');
             
             // Use a Promise-based approach with timeout
             const googleLoadPromise = new Promise((resolve) => {
@@ -558,15 +551,12 @@ async function initGoogleAuth() {
                 let intervalId;
                 const checkGoogle = () => {
                     attempts++;
-                    console.log(`[Main] Google SDK check attempt ${attempts}/${maxAttempts}`);
                     
                     if (typeof google !== 'undefined' && google.accounts && google.accounts.id) {
-                        console.log('[Main] Google SDK fully loaded and ready');
                         if (intervalId) clearInterval(intervalId);
                         resolve(true);
                     } else {
                         if (attempts >= maxAttempts) {
-                            console.error('[Main] Google GSI script not loaded after 10 seconds');
                             if (intervalId) clearInterval(intervalId);
                             resolve(false);
                         }
@@ -580,17 +570,13 @@ async function initGoogleAuth() {
             const googleLoaded = await googleLoadPromise;
             
             if (googleLoaded) {
-                console.log('[Main] Initializing Google SDK in background mode');
                 // Use 'none' to preserve the custom button UI instead of overriding it
                 authController.initGoogle(data.client_id, 'none'); 
             } else {
-                console.error('[Main] Google SDK failed to load, not initializing');
             }
         } else {
-            console.error('[Main] No client_id in response:', data);
         }
     } catch (error) {
-        console.error('[Main] Google Auth Init Error:', error);
     }
 }
 
@@ -675,7 +661,6 @@ async function performServerSearch(query) {
     }
   } catch (error) {
     if (loader) loader.style.display = 'none';
-    console.error('Search error:', error);
     showNotification('Error performing search. Please try again.', 'error');
   }
 }
@@ -1173,7 +1158,6 @@ function shareEvent(e, eventId, title = 'Check out this event!', text = 'I found
       title: title,
       text: text,
       url: shareUrl
-    }).catch(err => console.log('Error sharing:', err));
   } else {
     navigator.clipboard.writeText(shareUrl).then(() => {
         showNotification('Share link copied to clipboard!', 'success');
@@ -1235,7 +1219,6 @@ async function toggleFavorite(e, eventId) {
             showNotification(result.message, 'success');
         }
     } catch (error) {
-        console.error('Favorite toggle error:', error);
         showNotification('Failed to update favorite', 'error');
     }
 }
@@ -1406,7 +1389,6 @@ function initEventModal() {
 function showEventModal(eventId) {
   const event = allEvents.find(e => e.id == eventId);
   if (!event) {
-    console.error('Event not found:', eventId);
     return;
   }
 
@@ -1626,7 +1608,6 @@ async function initUserLogin() {
                     loginBtn.innerHTML = originalBtnText;
                 }
             } catch (error) {
-                console.error('Login error:', error);
                 showNotification('An error occurred. Please try again.', 'error');
                 loginBtn.disabled = false;
                 loginBtn.innerHTML = originalBtnText;

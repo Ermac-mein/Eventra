@@ -224,7 +224,6 @@ class ProfilePicUpload {
             xhr.send(formData);
 
         } catch (error) {
-            console.error('Upload error:', error);
             this.handleUploadError('An error occurred during upload.');
         }
     }
@@ -265,7 +264,6 @@ class ProfilePicUpload {
 
     updateProfilePictures(newPath) {
         // Redundant - now handled by EventraProfileUpdated listener in utils.js
-        console.log('[Profile Upload] Global sync triggered for:', newPath);
     }
 }
 

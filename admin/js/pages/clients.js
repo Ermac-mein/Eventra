@@ -24,7 +24,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 eventsEl.textContent = s.total_clients_events ?? 0;
             }
         } catch (e) {
-            console.error('Stats load error:', e);
         }
     }
 
@@ -37,13 +36,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                 allClients = result.clients;
                 updatePagination(allClients);
             } else {
-                console.error('Failed to load clients:', result.message);
                 if (clientsTableBody) {
                     clientsTableBody.innerHTML = `<tr><td colspan="18" style="text-align:center;padding:2rem;color:#ef4444;">Failed to load clients: ${escapeHTML(result.message || 'Unknown error')}</td></tr>`;
                 }
             }
         } catch (error) {
-            console.error('Error fetching clients:', error);
             if (clientsTableBody) {
                 clientsTableBody.innerHTML = `<tr><td colspan="18" style="text-align:center;padding:2rem;color:#ef4444;">Network error loading clients.</td></tr>`;
             }

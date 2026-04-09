@@ -31,7 +31,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                     loadRecentActivities(result.recent_activities);
                 }
             } catch (error) {
-                console.error('Error refreshing activities:', error);
             }
         }
     }, 15000);
@@ -62,7 +61,6 @@ async function loadAdminProfile() {
             }
         }
     } catch (error) {
-        console.error('Error loading profile:', error);
     }
 }
 
@@ -71,7 +69,6 @@ async function loadDashboardStats() {
         const response = await apiFetch('/api/stats/get-admin-dashboard-stats.php');
         
         if (!response.ok) {
-            console.warn('API call failed, trying cached stats');
             loadCachedAdminStats();
             return;
         }
@@ -79,7 +76,6 @@ async function loadDashboardStats() {
         const result = await response.json();
 
         if (!result.success) {
-            console.warn('API returned error, trying cached stats');
             loadCachedAdminStats();
             return;
         }
@@ -120,7 +116,6 @@ async function loadDashboardStats() {
         initSliders();
 
     } catch (error) {
-        console.error('Error loading stats:', error);
         loadCachedAdminStats();
     }
 }
@@ -133,7 +128,6 @@ function cacheAdminDashboardStats(data) {
             localStorage.setItem('admin_dashboard_stats', JSON.stringify(data));
         }
     } catch (error) {
-        console.error('Error caching admin stats:', error);
     }
 }
 
@@ -149,7 +143,6 @@ function loadCachedAdminStats() {
         }
 
         if (!cachedData || !cachedData.stats) {
-            console.warn('No cached admin stats available');
             return;
         }
 
@@ -162,7 +155,6 @@ function loadCachedAdminStats() {
         loadEventsToSlider('upcomingEventsSlider', cachedData.upcoming_events || []);
         loadEventsToSlider('pastEventsSlider', cachedData.past_events || []);
     } catch (error) {
-        console.error('Error loading cached admin stats:', error);
     }
 }
 

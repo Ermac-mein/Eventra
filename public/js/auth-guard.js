@@ -35,7 +35,6 @@
         // Check if we just logged in (session storage flag can be used if we set it in login.js)
         const justLoggedIn = sessionStorage.getItem('just_logged_in');
         if (!justLoggedIn) {
-            console.log('[Auth Guard] No local auth found and no just_logged_in flag. Redirecting...', {
                 requiredRole,
                 currentPath
             });
@@ -46,7 +45,6 @@
             }
             return;
         } else {
-            console.log('[Auth Guard] No local auth found but "just_logged_in" flag detected. Allowing optimistic bypass...');
         }
     }
 
@@ -56,13 +54,11 @@
     try {
         // 3. Ensure AuthController exists and is initialized
         if (!window.authController) {
-            console.error('[Auth Guard] authController not found on window. Check script load order.');
             throw new Error('AuthController not found');
         }
 
         // Always kick off init() — it guards against double-calls internally
         if (!window.authController.settled && !window.authController.isSyncing) {
-            console.log('[Auth Guard] Triggering AuthController.init()...');
             window.authController.init();
         }
 
@@ -72,7 +68,6 @@
             new Promise(resolve => setTimeout(() => resolve('timeout'), 8000)) // 8 second timeout
         ]);
         
-        console.log('[Auth Guard] Auth settled state:', authState);
 
         const user = window.authController.user;
 
@@ -81,12 +76,10 @@
             // If we have local auth and just logged in, proceed (might be sync delay on shared hosting)
             const justLoggedIn = sessionStorage.getItem('just_logged_in');
             if (hasLocalAuth && justLoggedIn && (authState === 'timeout' || authState === 'unauthenticated')) {
-                console.log('[Auth Guard] Proceeding with local auth despite sync timeout/failure (handshake delay)');
                 // We DON'T remove just_logged_in yet, let it persist for one more load if needed
                 return;
             }
             
-            console.warn('[Auth Guard] Access denied. Redirecting to login.');
 
             if (window.storage) {
                 window.storage.set('redirect_after_login', window.location.href);
@@ -101,7 +94,6 @@
         }
 
         // 6. Success — hide loading overlay
-        console.log(`[Auth Guard] Authorized as ${requiredRole}`);
         
         // Clear flag if it was set
         sessionStorage.removeItem('just_logged_in');
@@ -112,7 +104,6 @@
         }
 
     } catch (error) {
-        console.error('[Auth Guard] Error during validation:', error);
         
         // Ensure overlay is hidden even on error
         if (loadingOverlay) {
@@ -123,13 +114,11 @@
         // Check if we have local auth and just logged in before redirecting
         const justLoggedIn = sessionStorage.getItem('just_logged_in');
         if (hasLocalAuth && justLoggedIn) {
-            console.log('[Auth Guard] Proceeding with local auth despite error (likely shared hosting sync delay)');
             sessionStorage.removeItem('just_logged_in');
             return;
         }
 
         // On critical error OR sync failure, redirect to the role-specific login
-        console.error('[Auth Guard] Critical error or sync Failure. Redirecting...', { error });
         
         if (requiredRole === 'admin') {
             window.location.replace(origin + '/admin/pages/adminLogin.html' + (window.location.search || '?error=auth_failed'));

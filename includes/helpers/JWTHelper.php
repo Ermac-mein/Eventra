@@ -4,14 +4,29 @@ namespace App\Helpers;
 
 class JWTHelper
 {
-    private static $secret = '7de26102-2709-4da5-84c4-8cf8a8d07026_EVENTRA_SECRET_KEY';
+    private static $secret = null;
+
+    /**
+     * Get JWT secret from environment variable
+     */
+    private static function getSecret()
+    {
+        if (self::$secret === null) {
+            self::$secret = $_ENV['JWT_SECRET'] ?? getenv('JWT_SECRET');
+            
+            if (empty(self::$secret)) {
+                throw new \RuntimeException('JWT_SECRET environment variable is not set');
+            }
+        }
+        return self::$secret;
+    }
 
     public static function generateJWT($payload)
     {
         $header = self::base64UrlEncode(json_encode(['alg' => 'HS256', 'typ' => 'JWT']));
         $payload = self::base64UrlEncode(json_encode($payload));
 
-        $signature = hash_hmac('sha256', "$header.$payload", self::$secret, true);
+        $signature = hash_hmac('sha256', "$header.$payload", self::getSecret(), true);
         $signature = self::base64UrlEncode($signature);
 
         return "$header.$payload.$signature";
@@ -26,7 +41,7 @@ class JWTHelper
 
         list($header, $payload, $signature) = $parts;
 
-        $validSignature = hash_hmac('sha256', "$header.$payload", self::$secret, true);
+        $validSignature = hash_hmac('sha256', "$header.$payload", self::getSecret(), true);
         $validSignature = self::base64UrlEncode($validSignature);
 
         if (!hash_equals($validSignature, $signature)) {
@@ -59,3 +74,4 @@ class JWTHelper
         return base64_decode(str_replace(['-', '_'], ['+', '/'], $data));
     }
 }
+

@@ -98,7 +98,6 @@ async function loadEvents(clientId) {
             updatePagination(eventsData);
         }
     } catch (error) {
-        console.error('Error loading events:', error);
     }
 }
 
@@ -396,7 +395,6 @@ async function editEvent(eventId) {
             }
         }
     } catch (error) {
-        console.error('Error fetching event:', error);
         showNotification('Failed to load event details', 'error');
     }
 }
@@ -466,7 +464,6 @@ async function deleteEvent(eventId) {
             showNotification('Failed to delete: ' + data.message, 'error');
         }
     } catch (error) {
-        console.error('Error deleting event:', error);
         // Revert optimistic UI
         if (row) {
             row.style.opacity = '1';
@@ -534,7 +531,6 @@ async function undoDelete(eventId) {
             showNotification('Failed to undo: ' + data.message, 'error');
         }
     } catch (error) {
-        console.error('Undo error:', error);
         showNotification('Failed to undo deletion', 'error');
     }
 }
@@ -594,7 +590,6 @@ async function loadTrashEvents() {
             tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 2rem; color: #ef4444;">Failed to load trash</td></tr>';
         }
     } catch (error) {
-        console.error('Error loading trash:', error);
         tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 2rem; color: #ef4444;">An error occurred</td></tr>';
     }
 }
@@ -647,7 +642,6 @@ async function restoreEvent(eventId) {
             showNotification('Restore failed: ' + data.message, 'error');
         }
     } catch (error) {
-        console.error('Error restoring event:', error);
         if (row) { row.style.opacity = '1'; row.style.transform = 'translateX(0)'; }
         showNotification('An error occurred', 'error');
     }
@@ -703,7 +697,6 @@ async function permanentDeleteEvent(eventId) {
             showNotification('Delete failed: ' + data.message, 'error');
         }
     } catch (error) {
-        console.error('Error permanently deleting:', error);
         if (row) { row.style.opacity = '1'; row.style.transform = 'translateX(0)'; }
         showNotification('An error occurred', 'error');
     }
@@ -748,7 +741,6 @@ async function previewEvent(eventId) {
             throw new Error(result.message || 'Event not found');
         }
     } catch (e) {
-        console.error('Error fetching event preview:', e);
         showNotification('Could not load event details.', 'error');
         row.style.opacity = '1';
         return;
@@ -970,7 +962,6 @@ async function publishEvent(eventId) {
             showNotification('Failed to publish event: ' + result.message, 'error');
         }
     } catch (error) {
-        console.error('Error publishing event:', error);
         showNotification('An error occurred while publishing event', 'error');
     }
 }

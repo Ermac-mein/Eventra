@@ -101,7 +101,7 @@ try {
             $sql = "
                 SELECT u.id, u.display_name, a.email, u.phone, u.dob, u.gender, u.created_at
                 FROM users u
-                LEFT JOIN users a ON u.user_auth_id = a.id
+                LEFT JOIN auth_accounts a ON u.user_auth_id = a.id
                 $where_sql
                 ORDER BY u.created_at DESC
             ";

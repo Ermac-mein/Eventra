@@ -14,7 +14,6 @@ class ScheduleNotificationChecker {
     requestPermission() {
         if ('Notification' in window && Notification.permission === 'default') {
             Notification.requestPermission().then(permission => {
-                console.log('Notification permission:', permission);
             });
         }
     }
@@ -29,7 +28,6 @@ class ScheduleNotificationChecker {
                 this.processEvents(result.events);
             }
         } catch (error) {
-            console.error('Error checking upcoming events:', error);
         }
     }
 
@@ -130,14 +128,12 @@ class ScheduleNotificationChecker {
             this.checkUpcomingEvents();
         }, this.checkDelay);
 
-        //console.log('Schedule notification checker started');
     }
 
     stopChecking() {
         if (this.checkInterval) {
             clearInterval(this.checkInterval);
             this.checkInterval = null;
-          //  console.log('Schedule notification checker stopped');
         }
     }
 }

@@ -161,7 +161,6 @@ async function loadPayments() {
             renderPaymentsTable(data.payments);
             computeStats(data.payments, data.total);
         } catch (err) {
-            console.error('Payments load error', err);
             if (tbody) tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:2rem;color:#ef4444;">An error occurred loading payments.</td></tr>';
         }
     } else {
@@ -187,7 +186,6 @@ async function loadPayments() {
             const btns = document.getElementById('paginationBtns');
             if (btns) btns.innerHTML = '';
         } catch (err) {
-            console.error('Refunds load error', err);
             if (tbody) tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:2rem;color:#ef4444;">An error occurred loading refund requests.</td></tr>';
         }
     }
@@ -346,7 +344,6 @@ async function reviewRefund(requestId, action) {
             Swal.fire('Error', data.message, 'error');
         }
     } catch (err) {
-        console.error('Refund review error', err);
         Swal.fire('Error', 'An error occurred while processing the refund.', 'error');
     }
 }

@@ -24,11 +24,9 @@ class NotificationManager {
                 this.updateNotificationUI();
                 return result;
             } else {
-                console.error('Failed to fetch notifications:', result.message);
                 return null;
             }
         } catch (error) {
-            console.error('Error fetching notifications:', error);
             return null;
         }
     }
@@ -58,7 +56,6 @@ class NotificationManager {
                 }
             }
         } catch (error) {
-            console.error('Error clearing notifications:', error);
         }
     }
 
@@ -209,7 +206,6 @@ class NotificationManager {
                 await this.fetchNotifications();
             }
         } catch (error) {
-            console.error('Error marking notification as read:', error);
         }
     }
 
@@ -240,7 +236,6 @@ class NotificationManager {
                 if (typeof showToast === 'function') showToast('All notifications cleared', 'success');
             }
         } catch (error) {
-            console.error('Error clearing notifications:', error);
         }
     }
 

@@ -25,10 +25,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 applyFilters(); // Apply current filters
                 updateStats(result.stats);
             } else {
-                console.error('Failed to load events:', result.message);
             }
         } catch (error) {
-            console.error('Error fetching events:', error);
         }
     }
 

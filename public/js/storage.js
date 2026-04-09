@@ -10,7 +10,6 @@ if (typeof window.storage === 'undefined' || !window.storage) {
                 localStorage.setItem(key, JSON.stringify(value));
                 return true;
             } catch (error) {
-                console.error('Error saving to storage:', error);
                 return false;
             }
         },
@@ -26,7 +25,6 @@ if (typeof window.storage === 'undefined' || !window.storage) {
                     return item;
                 }
             } catch (error) {
-                console.error('Error reading from storage:', error);
                 return null;
             }
         },
@@ -36,7 +34,6 @@ if (typeof window.storage === 'undefined' || !window.storage) {
                 localStorage.removeItem(key);
                 return true;
             } catch (error) {
-                console.error('Error removing from storage:', error);
                 return false;
             }
         },
@@ -49,7 +46,6 @@ if (typeof window.storage === 'undefined' || !window.storage) {
                 this.remove('redirect_after_login');
                 return true;
             } catch (error) {
-                console.error('Error clearing storage:', error);
                 return false;
             }
         },

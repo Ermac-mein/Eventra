@@ -15,10 +15,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 updatePagination(allUsers);
                 updateStats(result.summary);
             } else {
-                console.error('Failed to load users:', result.message);
             }
         } catch (error) {
-            console.error('Error fetching users:', error);
         }
     }
 

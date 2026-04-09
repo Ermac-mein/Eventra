@@ -40,7 +40,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 // Proceed to polling regardless of immediate result, get-order will handle the final state
                 startPolling(reference);
             } catch (err) {
-                console.error('Verification trigger failed', err);
                 startPolling(reference);
             }
         })();
@@ -104,7 +103,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             });
         }
     } catch (e) {
-        console.error('Failed to load event details', e);
         Swal.fire('Error', 'An error occurred fetching event details.', 'error');
     }
 });
@@ -130,7 +128,6 @@ async function startPolling(reference) {
             const res = await apiFetch(`/api/payments/get-order.php?reference=${reference}`);
             
             if (!res) {
-                console.warn('Polling stopped: User unauthenticated or request aborted.');
                 return;
             }
 
@@ -182,7 +179,6 @@ async function startPolling(reference) {
             }
         } catch (e) {
             consecutiveErrors++;
-            console.error(`Polling error (${consecutiveErrors}/${maxConsecutiveErrors}):`, e);
 
             if (consecutiveErrors >= maxConsecutiveErrors) {
                 icon.textContent = '⚠️';

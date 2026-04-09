@@ -10,7 +10,6 @@ class SearchManager {
         this.minChars = 2;
 
         if (!this.input || !this.dropdown) {
-            console.error('Search elements not found');
             return;
         }
 
@@ -60,7 +59,6 @@ class SearchManager {
                 this.renderResults(data.results, query);
             }
         } catch (error) {
-            console.error('Search error:', error);
         }
     }
 

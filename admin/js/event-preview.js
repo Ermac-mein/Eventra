@@ -37,7 +37,6 @@ async function previewEvent(eventId) {
             throw new Error(result.message || 'Event not found');
         }
     } catch (e) {
-        console.error('Error fetching event preview:', e);
         alert('Could not load event details.');
         row.style.opacity = '1';
         return;

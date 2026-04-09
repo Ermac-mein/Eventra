@@ -30,7 +30,6 @@ class AuthController {
      */
     async init() {
         if (this.settled || this.isSyncing) return this.ready;
-        // console.log('[AuthController] Initializing...');
         
         // 1. Initial State from Storage (Optimistic)
         let storedUser = window.storage ? window.storage.getUser() : null;
@@ -106,13 +105,11 @@ class AuthController {
                 // If the message is "Not authenticated", it's expected for guests.
                 // We only "clear" if we actually thought we were logged in.
                 if (this.state !== this.states.UNAUTHENTICATED && this.state !== this.states.INITIALIZING) {
-                    console.warn('[AuthController] Session invalid according to server:', result.message);
                     
                     // Resiliency: if we have local auth and just logged in, don't clear it yet.
                     // This allows the page to load while the session might still be propagating.
                     const justLoggedIn = sessionStorage.getItem('just_logged_in');
                     if (justLoggedIn) {
-                        console.log('[AuthController] Preserving local state due to just_logged_in flag');
                         this.setState(this.states.AUTHENTICATED); // Force authenticated state to avoid redirect
                     } else {
                         this.clearLocalState();
@@ -123,12 +120,10 @@ class AuthController {
                 }
             }
         } catch (error) {
-            console.error('[AuthController] Session sync failed:', error);
             
             // On hard failure (network, syntax), only clear if not just_logged_in
             const justLoggedIn = sessionStorage.getItem('just_logged_in');
             if (justLoggedIn) {
-                console.log('[AuthController] Sync failed but preserving local state due to just_logged_in');
                 this.setState(this.states.AUTHENTICATED); // Optimistic keep-alive
             } else {
                 this.clearLocalState();
@@ -141,7 +136,6 @@ class AuthController {
      */
     setState(newState) {
         if (this.state === newState) return;
-        console.log(`[AuthController] State change: ${this.state} -> ${newState}`);
         this.state = newState;
         window.dispatchEvent(new CustomEvent('auth:stateChange', { detail: { state: newState, user: this.user } }));
         
@@ -166,7 +160,6 @@ class AuthController {
      * Hard Reset Storage & State
      */
     clearSession() {
-        console.log('[AuthController] Performing hard reset...');
         this.clearLocalState();
         window.storage.remove('redirect_after_login');
         this.setState(this.states.UNAUTHENTICATED);
@@ -184,12 +177,10 @@ class AuthController {
      */
     initGoogle(clientId, containerId = 'googleSignInContainer') {
         if (!clientId) {
-            console.error('[AuthController] No client ID provided for Google initialization');
             return;
         }
 
         try {
-            console.log('[AuthController] Initializing Google with clientId:', clientId.substring(0, 20) + '...');
             
             google.accounts.id.initialize({
                 client_id: clientId,
@@ -201,10 +192,8 @@ class AuthController {
             });
 
             this.googleInitialized = true;
-            console.log('[AuthController] Google initialized successfully, rendering button');
             this.renderGoogleButton(containerId);
         } catch (error) {
-            console.error('[AuthController] Google Init Error:', error);
             this.setState(this.states.ERROR);
         }
     }
@@ -215,25 +204,19 @@ class AuthController {
     renderGoogleButton(containerId) {
         const container = document.getElementById(containerId);
         if (!container && containerId !== 'none') {
-            console.warn('[AuthController] Container not found:', containerId);
             this.showButtonFallback(containerId);
             return;
         }
         if (!this.googleInitialized) {
-            console.warn('[AuthController] Google not initialized yet');
             return;
         }
 
         if (containerId === 'none') {
-            console.log('[AuthController] SDK initialized in background mode (no container)');
             return;
         }
 
         try {
-            console.log('[AuthController] Starting button render process...');
-            console.log('[AuthController] Container element:', container);
             const computedStyle = window.getComputedStyle(container);
-            console.log('[AuthController] Container visibility:', {
                 display: computedStyle.display,
                 visibility: computedStyle.visibility,
                 opacity: computedStyle.opacity,
@@ -247,7 +230,6 @@ class AuthController {
                 container.innerHTML = '';
             }
             
-            console.log('[AuthController] Container cleared, ready for button render');
             
             // Render the button with error handling
             try {
@@ -269,19 +251,15 @@ class AuthController {
                     
                     if (hasButton || hasIframe) {
                         clearInterval(verifyRender);
-                        console.log('[AuthController] Google button successfully rendered');
                     } else if (renderAttempt > 10) {
                         clearInterval(verifyRender);
-                        console.warn('[AuthController] Button did not render via renderButton after 10 attempts');
                         this.showButtonFallback(containerId);
                     }
                 }, 50);
             } catch (renderError) {
-                console.error('[AuthController] renderButton error:', renderError);
                 this.showButtonFallback(containerId);
             }
         } catch (error) {
-            console.error('[AuthController] Error rendering Google button:', error);
             this.showButtonFallback(containerId);
         }
     }
@@ -298,7 +276,6 @@ class AuthController {
                 <p style="color: #fff; font-size: 0.9rem; margin: 0;">Google Sign-In unavailable — try again</p>
             </div>
         `;
-        console.warn('[AuthController] Showing fallback message for container:', containerId);
     }
 
     /**
@@ -306,7 +283,6 @@ class AuthController {
      */
     async handleGoogleLoginManual() {
         if (!this.googleInitialized) {
-            console.warn('[AuthController] Google SDK not initialized yet, waiting...');
             // Wait up to 3 seconds for initialization
             let attempts = 0;
             while (!this.googleInitialized && attempts < 15) {
@@ -315,22 +291,17 @@ class AuthController {
             }
             
             if (!this.googleInitialized) {
-                console.error('[AuthController] Google SDK failed to initialize in time');
                 showNotification('Google Sign-In is still loading. Please try again in a moment.', 'info');
                 return;
             }
         }
         
-        console.log('[AuthController] Triggering manual Google prompt...');
         try {
             google.accounts.id.prompt((notification) => {
-                console.log('[AuthController] Prompt notification:', notification.getMomentType(), notification.isNotDisplayed());
                 if (notification.isNotDisplayed()) {
-                    console.warn('[AuthController] Prompt suppressed:', notification.getNotDisplayedReason());
                 }
             });
         } catch (e) {
-            console.error('[AuthController] Manual prompt error:', e);
         }
     }
 
@@ -387,7 +358,6 @@ class AuthController {
                 throw new Error(result.message || 'Authentication failed');
             }
         } catch (error) {
-            console.error('[AuthController] Google Login Error:', error);
             showNotification(error.message, 'error');
             this.setState(this.states.ERROR);
             
@@ -435,7 +405,6 @@ class AuthController {
             const targetIsDashboard = target.includes('Dashboard.html');
             
             if (isWeakRedirect && targetIsDashboard) {
-                console.log('[AuthController] Ignoring weak pending redirect in favor of dashboard:', pending);
                 pending = null;
                 if (window.storage) window.storage.remove('redirect_after_login');
             }
@@ -443,7 +412,6 @@ class AuthController {
 
         if (pending) {
             if (window.storage) window.storage.remove('redirect_after_login');
-            console.log('[AuthController] Using pending redirect:', pending);
             window.location.href = pending;
             return;
         }
@@ -453,7 +421,6 @@ class AuthController {
         const normalizedTarget = target.replace(/^\//, '');
         const finalUrl = target.includes('://') ? target : basePath + normalizedTarget;
         
-        console.log('[AuthController] Redirecting to:', finalUrl);
         window.location.href = finalUrl;
     }
 

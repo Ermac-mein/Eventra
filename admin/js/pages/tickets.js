@@ -66,7 +66,6 @@ async function loadTickets() {
         updateTktPagination(data.total || 0, _tktPage, TKT_PER_PAGE);
         updateStats(data);
     } catch (err) {
-        console.error('Tickets load error', err);
         if (tbody) {
             setTableStatusRow(tbody, 'Error loading tickets.', '#ef4444');
         }
@@ -254,7 +253,6 @@ function openAdminTicketModal(ticket) {
                 displayValue: false
             });
         } catch (e) {
-            console.warn('Barcode rendering failed:', e);
         }
     }
     

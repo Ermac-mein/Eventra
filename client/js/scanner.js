@@ -25,7 +25,6 @@ async function initScanner() {
             onScanSuccess
         );
     } catch (err) {
-        console.error("Scanner start error:", err);
         Swal.fire({
             icon: 'error',
             title: 'Camera Access Denied',

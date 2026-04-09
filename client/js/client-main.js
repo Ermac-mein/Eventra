@@ -24,7 +24,6 @@ async function loadGlobalProfile() {
 
         // If auth controller is already synced, we don't need to fetch again immediately
         if (window.authController && window.authController.settled && window.authController.state === 'authenticated') {
-            console.log('[Profile] Using settled auth state for profile');
             return;
         }
 
@@ -38,14 +37,12 @@ async function loadGlobalProfile() {
             updateClientNameDisplay(result.user);
         }
     } catch (error) {
-        console.error('Error loading global profile:', error);
     }
 }
 
 // Listen for auth sync to update profile
 document.addEventListener('auth:sync', (e) => {
     if (e.detail.success && e.detail.user) {
-        console.log('[Profile] Updating UI from auth:sync');
         updateGlobalAvatar(e.detail.user);
         updateClientNameDisplay(e.detail.user);
     }
@@ -118,7 +115,6 @@ async function logout() {
         const loginPage = keys.user === 'admin_user' ? '../../admin/pages/adminLogin.html' : '../../client/pages/clientLogin.html';
         window.location.href = loginPage;
     } catch (error) {
-        console.error('Logout error:', error);
         // Clean up and redirect anyway
         const keys = storage.getRoleKeys();
         storage.remove(keys.user);
@@ -226,7 +222,6 @@ window.copyToClipboard = function(text, successMsg) {
             });
         }
     }).catch(err => {
-        console.error('Failed to copy:', err);
         Swal.fire('Error', 'Failed to copy to clipboard', 'error');
     });
 };

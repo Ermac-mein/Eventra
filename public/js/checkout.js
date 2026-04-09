@@ -77,7 +77,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (paystackResult.success && paystackResult.public_key) {
             paystackPublicKey = paystackResult.public_key;
         } else {
-            console.error('Paystack Config Error:', paystackResult.message);
             showNotification('Payment system is currently unavailable', 'error');
             document.getElementById('paystackBtn').disabled = true;
         }
@@ -86,7 +85,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById('loadingOverlay').style.display = 'none';
 
     } catch (error) {
-        console.error('Checkout Initialization Error:', error);
         showErrorAndRedirect('Failed to initialize checkout secure environment', 'index.html');
     }
 
@@ -186,7 +184,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                     resetPayBtn(eventData, currentQuantity);
                 }
             } catch (err) {
-                console.error('Payment Error:', err);
                 const errMsg = err?.message || 'Could not connect to payment server. Please check your connection and try again.';
                 Swal.fire('Error', errMsg, 'error');
                 resetPayBtn(eventData, currentQuantity);

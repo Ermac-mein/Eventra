@@ -307,7 +307,6 @@ async function loadProfile() {
             }
         }
     } catch (error) {
-        console.error('Error loading profile:', error);
     }
 }
 
@@ -356,7 +355,6 @@ async function deleteClientProfile() {
                 Swal.fire('Error', data.message || 'Failed to delete profile.', 'error');
             }
         } catch (error) {
-            console.error('Error deleting profile:', error);
             Swal.fire('Error', 'An unexpected error occurred.', 'error');
         }
     }

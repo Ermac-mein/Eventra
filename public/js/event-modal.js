@@ -80,7 +80,6 @@ async function openEventDetailsModal(eventIdOrData) {
     renderModalContent(modalContent, eventData);
 
   } catch (error) {
-    console.error('Error fetching event details:', error);
     modalContent.innerHTML = `
       <button class="modal-close" onclick="closeEventDetailsModal()" style="position: absolute; top: 1rem; right: 1rem; background: rgba(255,255,255,0.9); border: none; width: 40px; height: 40px; border-radius: 50%; font-size: 1.5rem; cursor: pointer; z-index: 10; display: flex; align-items: center; justify-content: center;">&times;</button>
       <div style="padding: 3rem 1rem; text-align: center;">

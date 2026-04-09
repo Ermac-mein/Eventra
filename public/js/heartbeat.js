@@ -99,14 +99,11 @@
         }).then(res => {
             if (res.status === 401) {
                 // Server explicitly says session is invalid — redirect to login
-                console.warn('[Heartbeat] Session invalid (401), logging out.');
                 doLogout('server');
             } else if (!res.ok) {
-                console.debug('[Heartbeat] server returned non-ok status:', res.status);
             }
         }).catch(err => {
             // Network errors or 404s should NOT trigger a logout to avoid false positives
-            console.debug('[Heartbeat] request failed:', err);
         });
     }
 

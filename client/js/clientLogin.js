@@ -23,7 +23,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const isHomepageFlow = intent === 'user' || trigger === 'google';
     if (isHomepageFlow) intent = 'user';
 
-    //console.log("Login session initialized with intent:", intent);
 
     // Role-Specific UI Adjustments
     // Role-Specific UI Adjustments
@@ -31,7 +30,6 @@ document.addEventListener('DOMContentLoaded', () => {
         document.title = "Client Login - Eventra";
         const sliderText = document.querySelector('.slider-text');
         if (sliderText) sliderText.style.display = 'none';
-       // console.log("Client context activated.");
     } else if (intent === 'user') {
         // Users should only use Google Sign-in via the homepage modal
         window.location.href = '../../public/pages/index.html';
@@ -138,12 +136,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const contentType = response.headers.get("content-type");
             if (!contentType || !contentType.includes("application/json")) {
                 const text = await response.text();
-                console.error("Non-JSON response received:", text);
                 throw new Error("Server returned non-JSON response. Status: " + response.status);
             }
 
             const result = await response.json();
-            console.log("Login Result:", result);
 
             if (result.success) {
                 // Isolate session storage by role - store BOTH user and token
@@ -158,7 +154,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         localStorage.setItem('client_auth_token', result.user.token || '');
                         localStorage.setItem('client_user', JSON.stringify(result.user));
                     } catch (e) {
-                        console.warn('Could not store token:', e);
                     }
                 }
 
@@ -167,7 +162,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 setTimeout(() => {
                     const redirectUrl = result.redirect || '/client/pages/clientDashboard.html';
-                    console.log("Redirecting to:", redirectUrl);
                     
                     // Use unified redirect handler if available for consistency
                     if (window.authController && typeof window.authController.handleRedirect === 'function') {
@@ -187,7 +181,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 loginButton.innerHTML = originalBtnText;
             }
         } catch (error) {
-            console.error('Error:', error);
             showError('passwordError', 'An error occurred. Please try again later.');
             loginButton.disabled = false;
             loginButton.innerHTML = originalBtnText;
@@ -211,12 +204,10 @@ document.addEventListener('DOMContentLoaded', () => {
                         authController.initGoogle(data.client_id, 'none'); 
                     } else if (attempts > 50) {
                         clearInterval(checkGoogle);
-                        console.error('Google SDK failed to load');
                     }
                 }, 100);
             }
         } catch (error) {
-            console.error('Google Auth Init Error:', error);
         }
     }
 
@@ -282,7 +273,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 setInterval(updateSlider, 5000);
             }
         } catch (error) {
-            console.error('Slider init error:', error);
         }
     }
 
@@ -395,7 +385,6 @@ async function handleForgotPassword() {
             Swal.fire('Error', result.message, 'error');
         }
     } catch (error) {
-        console.error('Password recovery error:', error);
         Swal.fire('Error', 'An unexpected error occurred.', 'error');
     }
 }

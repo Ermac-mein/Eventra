@@ -2,11 +2,12 @@
 
 /**
  * API: Upload Media
- * Handles file uploads for events and media gallery
+ * Handles file uploads for events and media gallery with secure validation
  */
 
 header('Content-Type: application/json');
 require_once '../../config/database.php';
+require_once '../../includes/helpers/file-upload-helper.php';
 require_once '../utils/notification-helper.php';
 
 // Check authentication
@@ -50,10 +51,10 @@ try {
         }
     }
 
-    // Create upload directory if not exists
+    // Create upload directory if not exists (use secure permissions: 0755)
     $uploadDir = '../../uploads/media/client_' . $client_id . '/' . ($folder_name !== 'default' ? $folder_name . '/' : '');
     if (!file_exists($uploadDir)) {
-        mkdir($uploadDir, 0777, true);
+        mkdir($uploadDir, 0755, true);
     }
 
     $uploadedFiles = [];
@@ -68,13 +69,28 @@ try {
         $fileSize = is_array($files['size']) ? $files['size'][$i] : $files['size'];
         $fileType = is_array($files['type']) ? $files['type'][$i] : $files['type'];
 
-        // Generate unique filename
-        $fileExtension = pathinfo($fileName, PATHINFO_EXTENSION);
-        $uniqueFileName = uniqid() . '_' . time() . '.' . $fileExtension;
+        // Validate file before processing
+        $validation = FileUploadValidator::validateFile(
+            ['name' => $fileName, 'tmp_name' => $fileTmpName, 'size' => $fileSize, 'type' => $fileType],
+            ['allowed_types' => ['image', 'video', 'pdf', 'document']]
+        );
+
+        if (!$validation['valid']) {
+            $pdo->rollBack();
+            echo json_encode(['success' => false, 'message' => 'File validation failed: ' . $validation['error']]);
+            exit;
+        }
+
+        // Generate safe filename
+        $fileExtension = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
+        $uniqueFileName = FileUploadValidator::generateSafeFilename($fileName, 'media');
         $filePath = $uploadDir . $uniqueFileName;
 
         // Move uploaded file
         if (move_uploaded_file($fileTmpName, $filePath)) {
+            // Set secure file permissions (0644)
+            chmod($filePath, 0644);
+
             // Determine file type
             $fileExtensionLower = strtolower($fileExtension);
             $fileEnum = 'other';
@@ -106,7 +122,7 @@ try {
                 $client_id,
                 $folder_id,
                 $folder_name,
-                $fileName,
+                htmlspecialchars($fileName),
                 $fileExtensionLower,
                 $dbFilePath,
                 $fileEnum,
@@ -116,7 +132,7 @@ try {
 
             $uploadedFiles[] = [
                 'id' => $pdo->lastInsertId(),
-                'name' => $fileName,
+                'name' => htmlspecialchars($fileName),
                 'path' => $dbFilePath
             ];
         }

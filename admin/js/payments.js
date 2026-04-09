@@ -111,7 +111,6 @@ async function loadPayments() {
         updateEventraPagination(data.total, data.page, data.limit, data.pages);
         computeStats(data.stats, data.total);
     } catch (err) {
-        console.error('Payments load error', err);
         if (tbody) tbody.innerHTML = `<tr><td colspan="${colCount}" style="text-align:center;padding:2rem;color:#ef4444;">Error loading payments.</td></tr>`;
     }
 }
@@ -163,7 +162,6 @@ async function loadRefundRequests() {
 
         updateEventraPagination(data.total, 1, data.limit || 100, 1);
     } catch (err) {
-        console.error('Refunds load error', err);
         if (tbody) tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:2rem;color:#ef4444;">Error loading refund requests.</td></tr>`;
     }
 }

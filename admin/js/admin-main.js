@@ -135,7 +135,6 @@ async function logout() {
                 Swal.fire('Logout Failed', resultData.message, 'error');
             }
         } catch (error) {
-            console.error('Logout error:', error);
             // Clear local storage anyway
             storage.remove('admin_user');
             storage.remove('admin_auth_token');
@@ -312,7 +311,6 @@ function exportCurrentTableToPDF() {
 
         Swal.fire('Success', 'Data exported successfully as PDF', 'success');
     } catch (error) {
-        console.error('PDF export error:', error);
         Swal.fire('Error', 'Failed to export as PDF. Please try again.', 'error');
     }
 }
@@ -375,7 +373,6 @@ function exportCurrentTableToExcel() {
 
         Swal.fire('Success', 'Data exported successfully as Excel', 'success');
     } catch (error) {
-        console.error('Excel export error:', error);
         Swal.fire('Error', 'Failed to export as Excel. Please try again.', 'error');
     }
 }
@@ -897,7 +894,6 @@ window.copyToClipboard = function(text, successMsg) {
             });
         }
     }).catch(err => {
-        console.error('Failed to copy:', err);
         Swal.fire('Error', 'Failed to copy to clipboard', 'error');
     });
 };
@@ -1010,7 +1006,6 @@ window.toggleVerification = async function(clientId, type, status) {
             Swal.fire('Error', result.message || 'Failed to update verification status', 'error');
         }
     } catch (e) {
-        console.error('Error toggling verification', e);
         Swal.fire('Error', 'An unexpected error occurred.', 'error');
     }
 };

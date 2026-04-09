@@ -42,7 +42,6 @@ async function performSearch(query) {
             displaySearchResults(result.results, query);
         }
     } catch (error) {
-        console.error('Error performing search:', error);
     }
 }
 

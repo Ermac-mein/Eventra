@@ -237,10 +237,8 @@ async function handleProfileUpdate(e) {
             
             setTimeout(() => window.location.reload(), 1000);
         } else {
-            console.warn('Failed to update profile:', profileResult.message);
         }
     } catch (error) {
-        console.error('Error updating profile:', error);
         // User requested notifications and indicators only on success
     }
 }
@@ -281,7 +279,6 @@ async function resolveAccount() {
             nameInput.value = 'Resolution Failed';
         }
     } catch (error) {
-        console.error('Error resolving account:', error);
         statusDiv.innerHTML = '<span style="color:#ef4444;">✕ Error</span>';
     }
 }
@@ -343,7 +340,6 @@ async function validateAndVerifyField(type) {
             if (hiddenStatus) hiddenStatus.value = 0;
         }
     } catch (error) {
-        console.error(`Error verifying ${type}:`, error);
         updateFieldStatus(type, 'error', 'Connection error');
     }
 }
@@ -422,7 +418,6 @@ async function fetchEventDetails(eventId) {
             closeEventPreviewModal();
         }
     } catch (error) {
-        console.error('Error fetching event:', error);
         showNotification('Failed to load event details', 'error');
         closeEventPreviewModal();
     }
@@ -583,7 +578,6 @@ function shareEvent(link) {
         navigator.share({
             title: 'Check out this event!',
             url: link
-        }).catch(err => console.log('Error sharing:', err));
     } else {
         // Fallback: copy to clipboard
         navigator.clipboard.writeText(link).then(() => {
@@ -691,7 +685,6 @@ async function publishEvent(eventId) {
             showNotification('Failed to publish event: ' + publishResult.message, 'error');
         }
     } catch (error) {
-        console.error('Error publishing event:', error);
         showNotification('An error occurred while publishing event', 'error');
     }
 }
@@ -1014,7 +1007,6 @@ async function handleEventUpdate(e) {
             submitBtn.disabled = false;
         }
     } catch (error) {
-        console.error('Error updating event:', error);
         showNotification('An error occurred while updating event', 'error');
         submitBtn.textContent = originalText;
         submitBtn.disabled = false;
@@ -1091,7 +1083,6 @@ function showTicketPreviewModal(ticket) {
                 displayValue: false
             });
         } catch (e) {
-            console.warn('Barcode rendering failed:', e);
         }
     }
 }

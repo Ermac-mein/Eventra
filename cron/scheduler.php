@@ -30,11 +30,12 @@ try {
     $notificationCron = __DIR__ . '/../api/events/schedule-notification-cron.php';
     if (file_exists($notificationCron)) {
         echo " - Running Notification Cron...\n";
-        // To avoid relative path issues in the included file, we can either:
-        // A) Chdir to the directory and include
-        // B) Run as a separate process (safer for isolated environment)
-        $output = shell_exec("php $notificationCron");
-        echo $output;
+        // Use escapeshellarg() for safety and absolute PHP path
+        $phpPath = PHP_BINARY ?: 'php';
+        $output = shell_exec(escapeshellarg($phpPath) . ' ' . escapeshellarg($notificationCron));
+        if ($output) {
+            echo $output;
+        }
     } else {
         echo " - ERROR: Notification cron script not found at $notificationCron\n";
     }

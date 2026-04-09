@@ -76,7 +76,6 @@ async function loadClientProfile() {
             storage.setUser(user);
         }
     } catch (error) {
-        console.error('Error loading profile:', error);
     }
 }
 
@@ -85,7 +84,6 @@ async function loadDashboardStats() {
         const response = await apiFetch('/api/stats/get-client-dashboard-stats.php');
         
         if (!response.ok) {
-            console.warn('API call failed, trying cached stats');
             loadCachedStats();
             return;
         }
@@ -93,7 +91,6 @@ async function loadDashboardStats() {
         const result = await response.json();
 
         if (!result.success) {
-            console.warn('API returned error, trying cached stats');
             loadCachedStats();
             return;
         }
@@ -122,7 +119,6 @@ async function loadDashboardStats() {
         loadRecentTickets(result.attendees);
 
     } catch (error) {
-        console.error('Error loading stats:', error);
         loadCachedStats();
     }
 }
@@ -135,7 +131,6 @@ function cacheDashboardStats(data) {
             localStorage.setItem('dashboard_stats', JSON.stringify(data));
         }
     } catch (error) {
-        console.error('Error caching stats:', error);
     }
 }
 
@@ -151,7 +146,6 @@ function loadCachedStats() {
         }
 
         if (!cachedData || !cachedData.stats) {
-            console.warn('No cached stats available');
             return;
         }
 
@@ -160,7 +154,6 @@ function loadCachedStats() {
         loadUpcomingEvents(cachedData.events || []);
         loadRecentTickets(cachedData.attendees || []);
     } catch (error) {
-        console.error('Error loading cached stats:', error);
     }
 }
 

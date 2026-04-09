@@ -104,7 +104,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             if (!usernameInput || !passwordInput) {
-                console.error("Critical elements not found in DOM");
                 loginButton.disabled = false;
                 loginButton.innerHTML = originalBtnText;
                 return;
@@ -124,7 +123,6 @@ document.addEventListener('DOMContentLoaded', () => {
             // apiFetch now handles non-ok responses by throwing, 
             // but for login we want to parse the JSON if it's a 200
             const result = await response.json();
-            console.log("Login Result:", result);
 
             if (result.success) {
                 if (window.storage && typeof window.storage.setToken === 'function') {
@@ -138,7 +136,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         localStorage.setItem('admin_auth_token', result.user.token || '');
                         localStorage.setItem('admin_user', JSON.stringify(result.user));
                     } catch (e) {
-                        console.warn('Could not store token:', e);
                     }
                 }
 
@@ -161,7 +158,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 setTimeout(() => {
                     const redirectUrl = result.redirect || '/admin/pages/adminDashboard.html';
-                    console.log("Redirecting to:", redirectUrl);
                     window.location.href = redirectUrl;
                 }, 1600);
             } else {
@@ -174,7 +170,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 loginButton.innerHTML = originalBtnText;
             }
         } catch (error) {
-            console.error('Login Error:', error);
             showError('passwordError', error.message || 'An error occurred. Please try again later.');
             loginButton.disabled = false;
             loginButton.innerHTML = originalBtnText;
@@ -195,7 +190,6 @@ document.addEventListener('DOMContentLoaded', () => {
             
             clientId = configData.client_id;
         } catch (error) {
-            console.error('Failed to fetch Google config:', error);
             Swal.fire('Error', 'Could not load Google Sign-in configuration. Please try again later.', 'error');
             return;
         }
@@ -213,7 +207,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     google.accounts.id.prompt();
                 } catch (error) {
-                    console.error('Google Initialization Error:', error);
                     const errorMsg = 'Could not initialize Google Sign-in.\n\nPossible causes:\n- Ad blocker or privacy extension is blocking Google\n- Network connectivity issues\n- Browser security settings\n\nPlease try:\n1. Disabling ad blockers\n2. Using username/password login instead';
                     Swal.fire('Error', errorMsg, 'error');
                 }
@@ -251,7 +244,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const contentType = res.headers.get("content-type");
             if (!contentType || !contentType.includes("application/json")) {
                 const text = await res.text();
-                console.error("Non-JSON response received:", text);
                 throw new Error("Server returned non-JSON response. Status: " + res.status);
             }
 
@@ -269,7 +261,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         localStorage.setItem('admin_auth_token', result.user.token || '');
                         localStorage.setItem('admin_user', JSON.stringify(result.user));
                     } catch (e) {
-                        console.warn('Could not store token:', e);
                     }
                 }
                 
@@ -297,7 +288,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 Swal.fire('Login Failed', result.message, 'error');
             }
         } catch (error) {
-            console.error('Error:', error);
             Swal.fire('Error', 'An error occurred during Google Sign-in.', 'error');
         }
     }
@@ -348,7 +338,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 setInterval(updateSlider, 5000);
             }
         } catch (error) {
-            console.error('Slider init error:', error);
         }
     }
 
@@ -452,7 +441,6 @@ async function handleForgotPassword() {
             Swal.fire('Error', result.message, 'error');
         }
     } catch (error) {
-        console.error('Password recovery error:', error);
         Swal.fire('Error', 'An unexpected error occurred.', 'error');
     }
 }

@@ -23,7 +23,6 @@ function showTicketDesignPreview(eventId) {
                     if (imgEl) imgEl.src = eventImage;
                 }
             })
-            .catch(e => console.error('Error fetching event image:', e));
     } else if (!eventImage.startsWith('http') && !eventImage.startsWith('/')) {
         eventImage = '/' + eventImage;
     }

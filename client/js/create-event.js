@@ -583,7 +583,6 @@ async function handleEventCreation(e) {
             submitBtn.disabled = false;
         }
     } catch (error) {
-        console.error('Error creating event:', error);
         showNotification('An error occurred while creating event', 'error');
         submitBtn.textContent = originalText;
         submitBtn.disabled = false;
