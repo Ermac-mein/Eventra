@@ -1158,6 +1158,7 @@ function shareEvent(e, eventId, title = 'Check out this event!', text = 'I found
       title: title,
       text: text,
       url: shareUrl
+    });
   } else {
     navigator.clipboard.writeText(shareUrl).then(() => {
         showNotification('Share link copied to clipboard!', 'success');

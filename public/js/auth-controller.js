@@ -217,6 +217,8 @@ class AuthController {
 
         try {
             const computedStyle = window.getComputedStyle(container);
+            // Debugging container visibility
+            console.debug('Google Button Container Visibility:', {
                 display: computedStyle.display,
                 visibility: computedStyle.visibility,
                 opacity: computedStyle.opacity,
