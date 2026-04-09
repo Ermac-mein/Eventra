@@ -1,4 +1,21 @@
 
+// Utility function to resolve image paths correctly
+function resolveImagePath(imagePath) {
+    if (!imagePath) {
+        return 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=1200&fit=crop';
+    }
+    // If it's an absolute URL, use as-is
+    if (imagePath.startsWith('http')) {
+        return imagePath;
+    }
+    // If it starts with /, prepend base URL
+    if (imagePath.startsWith('/')) {
+        return imagePath;
+    }
+    // Otherwise, assume it's a relative path from uploads
+    return '/' + imagePath;
+}
+
 // Event Preview Function for Admin
 async function previewEvent(eventId) {
     const row = document.querySelector(`tr[data-id="${eventId}"]`);
@@ -23,7 +40,7 @@ async function previewEvent(eventId) {
                 attendees: data.attendee_count,
                 category: data.category || data.event_type || 'General',
                 status: data.status ? data.status.charAt(0).toUpperCase() + data.status.slice(1) : 'Draft',
-                image: data.image_path || 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=1200&fit=crop',
+                image: resolveImagePath(data.image_path),
                 tag: data.tag || 'Standard',
                 description: data.description,
                 address: data.address,
@@ -70,7 +87,7 @@ async function previewEvent(eventId) {
         backdrop.setAttribute('aria-hidden', 'false');
         backdrop.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 1000; backdrop-filter: blur(4px); transition: all 0.3s ease; overflow-y: auto;';
         backdrop.innerHTML = `
-            <div class="preview-modal" style="background: white; width: 95%; max-width: 650px; border-radius: 16px; overflow: hidden; position: relative; transform: translateY(20px); transition: all 0.3s ease; box-shadow: 0 20px 40px rgba(0,0,0,0.2); max-height: 90vh; display: flex; flex-direction: column; margin: auto;">
+            <div class="preview-modal" style="background: white; width: 95%; max-width: 900px; border-radius: 16px; overflow: hidden; position: relative; transform: translateY(20px); transition: all 0.3s ease; box-shadow: 0 20px 40px rgba(0,0,0,0.2); max-height: 90vh; display: flex; flex-direction: column; margin: auto;">
                 <button class="preview-close" aria-label="Close Preview" style="position: absolute; top: 1rem; right: 1rem; background: rgba(255,255,255,0.8); border: none; width: 32px; height: 32px; border-radius: 50%; font-size: 1.5rem; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 10; box-shadow: 0 2px 8px rgba(0,0,0,0.1); backdrop-filter: blur(4px);">×</button>
                 <div id="previewContent" style="overflow-y: auto; flex: 1;"></div>
             </div>
@@ -94,8 +111,8 @@ async function previewEvent(eventId) {
     content.innerHTML = `
         <div class="event-preview-container" style="font-family: 'Plus Jakarta Sans', sans-serif;">
             <!-- Hero Header -->
-            <div style="position: relative; height: 300px; border-radius: 0 0 32px 32px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.1);">
-                <img src="${eventImage}" style="width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s ease;" alt="Event">
+            <div style="position: relative; height: 300px; border-radius: 0 0 32px 32px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.1); background: linear-gradient(135deg, #f5f5f5 0%, #e8e8e8 100%);">
+                <img src="${eventImage}" style="width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s ease;" onerror="this.src='https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=1200&fit=crop'" alt="Event">
                 <div style="position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.2) 50%, transparent 100%);"></div>
                 
                 <div style="position: absolute; top: 1.5rem; left: 1.5rem; display: flex; gap: 10px;">
@@ -119,7 +136,7 @@ async function previewEvent(eventId) {
             </div>
 
             <!-- Content Body -->
-            <div style="padding: 2.5rem;">
+            <div style="padding: 3rem;">
                 <!-- Quick Stats Grid -->
                 <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 3rem;">
                     <div style="background: #f8fafc; padding: 1.25rem; border-radius: 20px; border: 1px solid #e2e8f0; transition: all 0.3s ease;">
@@ -195,10 +212,6 @@ async function previewEvent(eventId) {
                             </div>
                         </div>
 
-                        <button onclick="showTicketDesignPreview(${eventId})" style="width: 100%; padding: 1.25rem; background: var(--admin-primary); color: white; border: none; border-radius: 18px; font-weight: 800; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 12px; transition: all 0.3s ease; box-shadow: 0 10px 20px rgba(99, 102, 241, 0.2);">
-                            <i data-lucide="ticket" style="width: 18px; height: 18px;"></i>
-                            View Ticket Design
-                        </button>
                     </div>
                 </div>
             </div>

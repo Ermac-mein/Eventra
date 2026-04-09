@@ -140,7 +140,8 @@ try {
             $lastTicketData = [];
             for ($i = 0; $i < $quantity; $i++) {
                 $ticketCustomId = generateTicketId($pdo);
-                $barcode = 'TKT-FREE-' . strtoupper(substr(uniqid(), -8));
+                // Generate consistent TKT- barcode even for free events
+                $barcode = 'TKT-' . strtoupper(bin2hex(random_bytes(10)));
 
                 $pdo->prepare("
                     INSERT INTO tickets (user_id, event_id, payment_id, custom_id, barcode, status)

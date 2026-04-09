@@ -178,8 +178,8 @@ try {
     $tickets_generated = [];
 
     for ($i = 0; $i < $quantity; $i++) {
-        // Requirement 10: Generate cryptographically secure UUID-based barcode
-        $barcode = 'EVT-' . strtoupper(bin2hex(random_bytes(12)));
+        // Generate cryptographically secure UUID-based barcode with TKT- prefix
+        $barcode = 'TKT-' . strtoupper(bin2hex(random_bytes(10)));
         $ticket_code = strtoupper(bin2hex(random_bytes(4))); // Short human-readable code
         $customId = generateTicketId($pdo);
         $stmt->execute([$user_id, $event_id, $payment_id, $customId, $barcode, $ticket_code, $ticket_type]);

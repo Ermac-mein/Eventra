@@ -197,7 +197,8 @@ try {
             $ticket_ids = [];
             $pdfPaths = [];
             for ($i = 0; $i < $quantity; $i++) {
-                $barcode = 'TKT-' . strtoupper(bin2hex(random_bytes(6))) . ($i > 0 ? "-$i" : "");
+                // Generate consistent TKT-{UUID} barcode
+                $barcode = 'TKT-' . strtoupper(bin2hex(random_bytes(10)));
                 $ticketCustomId = generateTicketId($pdo);
 
                 $pdo->prepare("

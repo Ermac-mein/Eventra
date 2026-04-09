@@ -444,9 +444,9 @@ window.initPreviews = function() {
         backdrop = document.createElement('div');
         backdrop.className = 'preview-modal-backdrop';
         backdrop.innerHTML = `
-            <div class="preview-modal" style="width: 650px; max-height: 90vh; overflow-y: auto; background: white; border-radius: 20px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); position: relative; border: 1px solid var(--admin-border); overflow: hidden;">
+            <div class="preview-modal" style="width: 750px; max-height: 90vh; overflow-y: auto; overflow-x: hidden; background: white; border-radius: 20px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); position: relative; border: 1px solid var(--admin-border); display: flex; flex-direction: column;">
                 <span class="preview-close" style="position: absolute; top: 1rem; right: 1rem; width: 32px; height: 32px; background: rgba(0,0,0,0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 10; font-size: 1.2rem;">&times;</span>
-                <div id="previewContent"></div>
+                <div id="previewContent" style="flex: 1; overflow-y: auto;"></div>
             </div>
         `;
         document.body.appendChild(backdrop);
