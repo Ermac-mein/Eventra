@@ -775,7 +775,10 @@ window.initPreviews = function() {
                 const attendees = cells[3].innerText;
                 const category = cells[4].innerText;
                 
-                const eventImage = row.dataset.image || 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=1200&fit=crop';
+                const rawImage = row.dataset.image || 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=1200&fit=crop';
+                const eventImage = (rawImage.startsWith('http') || rawImage.startsWith('data:')) 
+                    ? rawImage 
+                    : (rawImage.startsWith('/') ? '../../' + rawImage.substring(1) : '../../' + rawImage);
                 
                 html = `
                     <div class="ticket-preview">
@@ -830,7 +833,7 @@ window.initPreviews = function() {
                 const rawImage = row.dataset.image || 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=1200&fit=crop';
                 const eventImage = (rawImage.startsWith('http') || rawImage.startsWith('data:')) 
                     ? rawImage 
-                    : (rawImage.startsWith('/') ? '../../' + rawImage.substring(1) : '../../' + rawImage);
+                    : (rawImage.startsWith('/') ? '../../' + rawImage.substring(1) : (rawImage.startsWith('public') ? '../../' + rawImage : (rawImage === '' ? 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=1200&fit=crop' : '../../' + rawImage)));
                 
                 html = `
                     <div class="event-preview">

@@ -15,12 +15,12 @@ if (!function_exists('getallheaders')) {
     function getallheaders()
     {
         $headers = [];
-        
+
         // Check for Apache's mod_php or CGI
         if (function_exists('apache_request_headers')) {
             return apache_request_headers();
         }
-        
+
         // Manual header collection from $_SERVER (works for CGI, FastCGI, etc.)
         foreach ($_SERVER as $name => $value) {
             if (substr($name, 0, 5) === 'HTTP_') {
@@ -33,7 +33,7 @@ if (!function_exists('getallheaders')) {
                 $headers[$header] = $value;
             }
         }
-        
+
         return $headers;
     }
 }
@@ -189,7 +189,7 @@ try {
             exit;
     }
 
-    $result = sendEmail($user['email'], $subject, $body, $attachments);
+    $result = EmailHelper::sendEmail($user['email'], $subject, $body, $attachments);
     echo json_encode($result);
 } catch (PDOException $e) {
     echo json_encode(['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);

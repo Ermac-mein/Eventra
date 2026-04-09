@@ -8,10 +8,7 @@
  */
 
 require_once '../../config/database.php';
-require_once '../../includes/middleware/auth.php';
 require_once '../../includes/helpers/ticket-helper.php';
-
-$auth_id = checkAuth('user');
 
 $barcode = trim($_GET['code'] ?? '');
 if (empty($barcode)) {
@@ -22,10 +19,7 @@ if (empty($barcode)) {
 }
 
 try {
-    // Use auth_id directly (it is user_id from checkAuth)
-    $resolved_user_id = $auth_id;
-
-    // Verify ticket ownership and fetch full data for PDF generation if needed
+    // Verify ticket using the barcode as a secure token
     $tStmt = $pdo->prepare("
         SELECT 
             t.barcode, t.status, t.event_id, t.user_id, t.payment_id,
@@ -36,9 +30,9 @@ try {
         JOIN events e ON t.event_id = e.id
         JOIN users u ON t.user_id = u.id
         LEFT JOIN payments p ON t.payment_id = p.id
-        WHERE t.barcode = ? AND t.user_id = ?
+        WHERE t.barcode = ?
     ");
-    $tStmt->execute([$barcode, $resolved_user_id]);
+    $tStmt->execute([$barcode]);
     $ticket = $tStmt->fetch(PDO::FETCH_ASSOC);
 
     if (!$ticket) {

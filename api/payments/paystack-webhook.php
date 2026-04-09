@@ -190,7 +190,7 @@ function processSuccessfulPayment(PDO $pdo, array $order, array $psData): void
         // ── Send notifications (outside transaction) ──────────────────────────
         // Email with PDF ticket(s)
         if (!empty($pdfPaths)) {
-            sendTicketEmailFull($order['user_email'], [
+            EmailHelper::sendTicketEmailFull($order['user_email'], [
                 'barcode'    => $barcode,
                 'event_name' => $order['event_name'],
                 'event_date' => $order['event_date'],

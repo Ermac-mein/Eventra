@@ -180,7 +180,7 @@ try {
             $pdo->commit();
 
             // 5. Notifications & Email
-            sendTicketEmailFull($user_email, $lastTicketData, $pdfPaths);
+            EmailHelper::sendTicketEmailFull($user_email, $lastTicketData, $pdfPaths);
             createPaymentSuccessNotification($auth_id, $event['event_name'], 0);
             createTicketIssuedNotification($auth_id, $event['event_name'], $tickets[0]['barcode']);
 

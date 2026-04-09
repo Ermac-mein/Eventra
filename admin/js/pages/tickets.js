@@ -230,7 +230,7 @@ function openAdminTicketModal(ticket) {
                 </div>
                 <div style="background:#f8fafc;padding:1.25rem;border-radius:10px;margin:1.25rem 0;text-align:center;">
                     <div style="font-size:.7rem;color:#94a3b8;font-weight:700;text-transform:uppercase;margin-bottom:1rem;">Barcode</div>
-                    <svg id="ticketBarcode" style="margin:0 auto;height:50px;"></svg>
+                    <svg id="ticketBarcode" style="margin:0 auto;height:60px;"></svg>
                     <div style="font-family:monospace;font-size:.75rem;color:#475569;margin-top:0.75rem;word-break:break-all;">${escapeHtml(ticket.barcode || '—')}</div>
                 </div>
                 <button onclick="document.getElementById('adminTicketModal').remove()" style="margin-top:1.5rem;width:100%;padding:.75rem;background:#6366f1;color:white;border:none;border-radius:10px;font-weight:700;cursor:pointer;font-size:.9rem;">Close</button>
@@ -244,13 +244,17 @@ function openAdminTicketModal(ticket) {
     document.body.appendChild(modalEl);
     
     // Render barcode with jsbarcode library
-    if (ticket.barcode && typeof JsBarcode !== 'undefined') {
+    const barcodeData = ticket.custom_id || ticket.barcode || (ticket.id ? ticket.id.toString() : '');
+    if (barcodeData && typeof JsBarcode !== 'undefined') {
         try {
-            JsBarcode("#ticketBarcode", ticket.barcode, {
+            JsBarcode("#ticketBarcode", barcodeData, {
                 format: "CODE128",
                 width: 2,
-                height: 50,
-                displayValue: false
+                height: 60,
+                displayValue: false,
+                margin: 0,
+                background: "transparent",
+                lineColor: "#1e293b"
             });
         } catch (e) {
         }

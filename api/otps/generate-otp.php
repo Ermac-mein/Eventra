@@ -115,7 +115,7 @@ try {
                 <p style='font-size: 12px; color: #9ca3af; text-align: center;'>If you did not request this, please ignore this email. &copy; " . date('Y') . " Eventra.</p>
             </div>
         ";
-        $emailResult = sendEmail($user['email'], $subject, $body);
+        $emailResult = EmailHelper::sendEmail($user['email'], $subject, $body);
         $sent = $emailResult['success'];
         $error_msg = $emailResult['message'];
     } else {

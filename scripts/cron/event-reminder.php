@@ -46,7 +46,7 @@ try {
             </div>
         ";
 
-        $result = sendEmail($reminder['email'], $subject, $body);
+        $result = EmailHelper::sendEmail($reminder['email'], $subject, $body);
         if ($result['success']) {
             $count++;
         } else {

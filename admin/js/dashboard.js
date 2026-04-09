@@ -48,17 +48,14 @@ async function loadAdminProfile() {
             // Store updated user data
             storage.setUser(adminUser);
             
-            // Update profile picture in header
-            const userAvatarEl = document.querySelector('.user-avatar');
-            if (userAvatarEl) {
-                const profileImg = typeof getProfileImg === 'function' 
-                    ? getProfileImg(adminUser.profile_pic, adminUser.name)
-                    : `https://ui-avatars.com/api/?name=${encodeURIComponent(adminUser.name || 'Admin')}&background=6366f1&color=fff&size=128&bold=true`;
-                
-                userAvatarEl.style.backgroundImage = `url('${profileImg}')`;
-                userAvatarEl.style.backgroundSize = 'cover';
-                userAvatarEl.style.backgroundPosition = 'center';
-            }
+            // Update profile picture in header and drawer
+            const avatars = document.querySelectorAll('.user-avatar, .profile-avatar-large');
+            avatars.forEach(el => {
+                const profileImg = '../../public/assets/imgs/admin.png';
+                el.style.backgroundImage = `url('${profileImg}')`;
+                el.style.backgroundSize = 'cover';
+                el.style.backgroundPosition = 'center';
+            });
         }
     } catch (error) {
     }
@@ -167,7 +164,7 @@ function displayAdminStatsCards(stats) {
     if (activeUsersEl) activeUsersEl.textContent = stats.active_users || 0;
 
     const verifiedClientsEl = document.getElementById('clientsVerifiedCount');
-    if (verifiedClientsEl) verifiedClientsEl.textContent = stats.clients_verified || 0;
+    if (verifiedClientsEl) verifiedClientsEl.textContent = stats.total_clients || 0;
 
     const unverifiedClientsEl = document.getElementById('clientsUnverifiedCount');
     if (unverifiedClientsEl) unverifiedClientsEl.textContent = stats.clients_unverified || 0;

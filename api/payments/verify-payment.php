@@ -192,10 +192,9 @@ try {
             ]);
             $payment_id = $pdo->lastInsertId();
 
-            // 2. Loop to generate multiple tickets
+            // 2. Create tickets without PDF/QR generation (defer to async)
             $barcodes = [];
             $ticket_ids = [];
-            $pdfPaths = [];
             for ($i = 0; $i < $quantity; $i++) {
                 // Generate consistent TKT-{UUID} barcode
                 $barcode = 'TKT-' . strtoupper(bin2hex(random_bytes(10)));
@@ -213,46 +212,53 @@ try {
                         ]);
                 $ticket_id = $pdo->lastInsertId();
                 $ticket_ids[] = $ticket_id;
-
-                $ticketData = [
-                    'barcode' => $barcode,
-                    'event_id' => $order['event_id'],
-                    'user_id' => $order['user_id'],
-                    'event_name' => $order['event_name'],
-                    'event_date' => $order['event_date'],
-                    'event_time' => $order['event_time'],
-                    'location' => $order['location'] ?? $order['address'],
-                    'user_name' => $order['user_name'],
-                    'payment_status' => 'paid',
-                    'order_id' => $order['id'],
-                    'amount' => $order['amount'],
-                ];
-
-                $qrCodePath = generateTicketQRCode($ticketData);
-                $pdfPath = generateTicketPDF($ticketData);
-                $pdfPaths[] = $pdfPath;
-
-                $pdo->prepare("UPDATE tickets SET qr_code_path = ? WHERE id = ?")
-                    ->execute([str_replace(__DIR__ . '/../../', '', $qrCodePath), $ticket_id]);
-
                 $barcodes[] = $barcode;
             }
             $barcode = $barcodes[0]; // Primary for notification
 
-            $pdo->commit(); // COMMIT EARLY before notifications to ensure data is saved
+            $pdo->commit(); // COMMIT EARLY before heavy processing to ensure data is saved
 
-            // 4. Notifications (Non-blocking as possible)
-            try {
-                sendTicketEmailFull($order['user_email'], $ticketData, $pdfPaths);
-                if (!empty($order['user_phone'])) {
-                    sendSMS($order['user_phone'], "Hi {$order['user_name']}, your ticket for {$order['event_name']} is confirmed!");
-                }
-                createPaymentSuccessNotification($user_auth_accounts_id, $order['event_name'], $order['amount']);
-                createTicketIssuedNotification($user_auth_accounts_id, $order['event_name'], $barcode);
-                createNewSaleNotification($order['organizer_auth_id'], $order['user_name'], $order['event_name'], $order['amount']);
-            } catch (Exception $e) {
-                error_log('[verify-payment.php] Notification failed: ' . $e->getMessage());
+            // 4. Defer QR/PDF generation and notifications to background (non-blocking)
+            $ticketData = [
+                'barcode' => $barcode,
+                'event_id' => $order['event_id'],
+                'user_id' => $order['user_id'],
+                'event_name' => $order['event_name'],
+                'event_date' => $order['event_date'],
+                'event_time' => $order['event_time'],
+                'location' => $order['location'] ?? $order['address'],
+                'user_name' => $order['user_name'],
+                'payment_status' => 'paid',
+                'order_id' => $order['id'],
+                'amount' => $order['amount'],
+            ];
+
+            // Queue async job for ticket PDF/QR generation and notifications
+            $asyncJobData = json_encode([
+                'type' => 'generate_tickets_and_notify',
+                'reference' => $reference,
+                'payment_id' => $payment_id,
+                'order_id' => $order['id'],
+                'barcodes' => $barcodes,
+                'ticket_ids' => $ticket_ids,
+                'ticket_data' => $ticketData,
+                'user_email' => $order['user_email'],
+                'user_phone' => $order['user_phone'],
+                'user_auth_accounts_id' => $user_auth_accounts_id,
+                'organizer_auth_id' => $order['organizer_auth_id'] ?? null,
+                'quantity' => $quantity,
+            ]);
+
+            // Write to a job queue file for background processing
+            $jobDir = __DIR__ . '/../../jobs/';
+            if (!is_dir($jobDir)) {
+                mkdir($jobDir, 0755, true);
             }
+            $jobFile = $jobDir . 'ticket_' . $reference . '_' . time() . '.json';
+            file_put_contents($jobFile, $asyncJobData);
+
+            // Try to trigger async processing (non-blocking)
+            @shell_exec('php ' . escapeshellarg(__DIR__ . '/../utils/process-ticket-queue.php') . ' > /dev/null 2>&1 &');
         } else {
             $pdo->commit();
             $barcode = $existingTickets[0]['barcode'];  // Fixed: use $existingTickets[0] not $existingTicket
