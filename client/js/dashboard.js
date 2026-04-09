@@ -115,6 +115,11 @@ async function loadDashboardStats() {
         // Load upcoming events / performance breakdown
         loadUpcomingEvents(result.events);
 
+        // Sync with global state manager
+        if (window.stateManager) {
+            window.stateManager.setState({ events: result.events || [] });
+        }
+
         // Load detailed attendee list
         loadRecentTickets(result.attendees);
 
@@ -153,6 +158,11 @@ function loadCachedStats() {
         displayStatsCards(cachedData.stats);
         loadUpcomingEvents(cachedData.events || []);
         loadRecentTickets(cachedData.attendees || []);
+
+        // Sync with global state manager
+        if (window.stateManager) {
+            window.stateManager.setState({ events: cachedData.events || [] });
+        }
     } catch (error) {
     }
 }

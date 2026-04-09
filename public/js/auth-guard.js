@@ -35,6 +35,8 @@
         // Check if we just logged in (session storage flag can be used if we set it in login.js)
         const justLoggedIn = sessionStorage.getItem('just_logged_in');
         if (!justLoggedIn) {
+            // Debugging auth failure
+            console.debug('Auth Guard Redirect:', {
                 requiredRole,
                 currentPath
             });

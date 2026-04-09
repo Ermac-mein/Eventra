@@ -40,9 +40,13 @@ function showProfileEditModal() {
                                 <input type="text" value="${escapeHTML(user.custom_id) || 'Generating...'}" readonly style="width: 100%; padding: 0.75rem; border: 1px solid #e0e0e0; border-radius: 8px; background: #f8fafc; color: #7c3aed; font-weight: 700; font-family: monospace; letter-spacing: 1px;">
                             </div>
 
-                            <div class="form-group modal-grid-full">
-                                <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Full Name *</label>
+                            <div class="form-group">
+                                <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Contact Name *</label>
                                 <input type="text" name="name" value="${escapeHTML(user.name)}" required class="form-control">
+                            </div>
+                            <div class="form-group">
+                                <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Business/Organization Name</label>
+                                <input type="text" name="business_name" value="${escapeHTML(user.business_name) || ''}" placeholder="Eventra Inc." class="form-control">
                             </div>
                             <div class="form-group">
                                 <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Email</label>
@@ -237,9 +241,10 @@ async function handleProfileUpdate(e) {
             
             setTimeout(() => window.location.reload(), 1000);
         } else {
+            showNotification(profileResult.message || 'Failed to update profile', 'error');
         }
     } catch (error) {
-        // User requested notifications and indicators only on success
+        showNotification(error.message || 'An unexpected error occurred during profile update', 'error');
     }
 }
 
@@ -578,6 +583,7 @@ function shareEvent(link) {
         navigator.share({
             title: 'Check out this event!',
             url: link
+        });
     } else {
         // Fallback: copy to clipboard
         navigator.clipboard.writeText(link).then(() => {

@@ -24,23 +24,23 @@ if (!$client_auth_id) {
     exit;
 }
 
-$name = $_POST['name'];
-$business_name = $_POST['business_name'];
-$phone = $_POST['phone'];
-$address = $_POST['address'];
-$city = $_POST['city'];
-$state = $_POST['state'];
-$country = $_POST['country'];
-$job_title = $_POST['job_title'];
-$company = $_POST['company'];
-$dob = $_POST['dob'];
-$gender = $_POST['gender'];
+$name = $_POST['name'] ?? '';
+$business_name = $_POST['business_name'] ?? '';
+$phone = $_POST['phone'] ?? '';
+$address = $_POST['address'] ?? '';
+$city = $_POST['city'] ?? '';
+$state = $_POST['state'] ?? '';
+$country = $_POST['country'] ?? '';
+$job_title = $_POST['job_title'] ?? '';
+$company = $_POST['company'] ?? '';
+$dob = $_POST['dob'] ?? '';
+$gender = $_POST['gender'] ?? '';
 
-$nin = $_POST['nin'];
-$bvn = $_POST['bvn'];
-$account_number = $_POST['account_number'];
-$bank_code = $_POST['bank_code'];
-$bank_name = $_POST['bank_name'];
+$nin = $_POST['nin'] ?? '';
+$bvn = $_POST['bvn'] ?? '';
+$account_number = $_POST['account_number'] ?? '';
+$bank_code = $_POST['bank_code'] ?? '';
+$bank_name = $_POST['bank_name'] ?? '';
 
 if (empty($name)) {
     echo json_encode(['success' => false, 'message' => 'Name is required']);
@@ -128,7 +128,7 @@ try {
         $resolveRes = paystackRequest('GET', "/bank/resolve?account_number={$account_number}&bank_code={$bank_code}");
         
         // Check if resolution was successful
-        if (!$resolveRes || !is_array($resolveRes) || !($resolveRes['ok'] ?? false)) {
+        if (!$resolveRes['ok'] || !($resolveRes['body']['status'] ?? false)) {
             $errMsg = ($resolveRes['body']['message'] ?? $resolveRes['error'] ?? 'Account resolution failed');
             $pdo->rollBack();
             http_response_code(400);

@@ -10,7 +10,8 @@ class StateManager {
             user: null,
             profilePicture: null,
             exportVisible: true,
-            notificationCount: 0
+            notificationCount: 0,
+            events: []
         };
         this.listeners = [];
         this.initialized = false;
@@ -220,6 +221,13 @@ class StateManager {
     }
 
     /**
+     * Get the current state object (Read-only recommended)
+     */
+    getState() {
+        return this.state;
+    }
+
+    /**
      * Clear all state (for logout)
      */
     clear() {
@@ -227,7 +235,8 @@ class StateManager {
             user: null,
             profilePicture: null,
             exportVisible: true,
-            notificationCount: 0
+            notificationCount: 0,
+            events: []
         };
         sessionStorage.removeItem('profile_picture');
         localStorage.removeItem('export_visible');
