@@ -1243,6 +1243,8 @@ input:checked+.slider:before {
     color: white;
     position: relative;
     overflow: hidden;
+    background-size: cover;
+    background-position: center;
 }
 
 .ticket-main {
@@ -1251,23 +1253,28 @@ input:checked+.slider:before {
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    background: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.7)), url('https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=800&fit=crop') center/cover;
 }
 
 .ticket-top {
     font-weight: 800;
     font-size: 1rem;
     letter-spacing: 1px;
+    color: #d4af37;
 }
 
 .ticket-event-name {
     font-size: 1.6rem;
     font-weight: 800;
-    margin-top: 5px;
+    margin-top: 10px;
+    color: #fff;
+    word-break: break-word;
 }
 
 .ticket-meta-info {
-    margin-top: 5px;
+    margin-top: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
 }
 
 .ticket-meta-line {
@@ -1275,49 +1282,63 @@ input:checked+.slider:before {
     align-items: center;
     gap: 8px;
     font-size: 0.85rem;
-    margin-bottom: 5px;
-    opacity: 0.9;
+    opacity: 0.95;
+    color: #fff;
+    word-break: break-word;
 }
 
 .ticket-bottom-info {
     display: flex;
     justify-content: space-between;
-    align-items: flex-end;
+    align-items: center;
+    gap: 15px;
+    margin-top: 15px;
 }
 
 .ticket-type {
     font-weight: 700;
-    font-size: 1rem;
+    font-size: 0.9rem;
+    color: #d4af37;
+    text-transform: uppercase;
 }
 
 .ticket-price-box {
     text-align: right;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
 }
 
 .ticket-price-label {
     font-size: 0.75rem;
     opacity: 0.8;
+    color: #999;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
 .ticket-price-val {
-    font-size: 1.1rem;
+    font-size: 1.2rem;
     font-weight: 800;
+    color: #d4af37;
+    margin-top: 2px;
 }
 
 .ticket-barcode-section {
-    width: 70px;
+    width: 80px;
     background: transparent;
     display: flex;
     align-items: center;
     justify-content: center;
     padding: 10px;
+    flex-shrink: 0;
 }
 
 .barcode-img {
-    width: 60px;
+    width: 50px;
     height: auto;
-    transform: rotate(90deg);
-    content: url('../../public/assets/imgs/barcode.png');
+    max-height: 100px;
+    object-fit: contain;
 }
 
 /* Event Preview Layout (Matches Image 3) */

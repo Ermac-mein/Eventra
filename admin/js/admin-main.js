@@ -776,34 +776,58 @@ window.initPreviews = function() {
                 const category = cells[4].innerText;
                 
                 const rawImage = row.dataset.image || 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=1200&fit=crop';
-                const eventImage = (rawImage.startsWith('http') || rawImage.startsWith('data:')) 
-                    ? rawImage 
-                    : (rawImage.startsWith('/') ? '../../' + rawImage.substring(1) : '../../' + rawImage);
+                
+                // Proper image path resolution
+                let eventImage = '';
+                if (rawImage.startsWith('http') || rawImage.startsWith('data:')) {
+                    eventImage = rawImage;
+                } else if (rawImage) {
+                    // Handle both /uploads/... and uploads/... formats
+                    eventImage = '../../' + (rawImage.startsWith('/') ? rawImage.substring(1) : rawImage);
+                } else {
+                    eventImage = 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=1200&fit=crop';
+                }
                 
                 html = `
                     <div class="ticket-preview">
-                        <div class="ticket-card-preview" style="background: url('${eventImage}') no-repeat center center; background-size: cover; position: relative;">
-                            <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); border-radius: 12px;"></div>
-                            <div class="ticket-main" style="position: relative; z-index: 1;">
-                                <div class="ticket-top">EVENTRA</div>
-                                <div class="ticket-info">
-                                    <div class="ticket-event-name">${escapeHTML(event)} Ticket</div>
-                                    <div class="ticket-meta-info">
-                                        <div class="ticket-meta-line">📍 Venue: Nigeria</div>
-                                        <div class="ticket-meta-line">👥 Attendees: ${escapeHTML(attendees)}</div>
-                                        <div class="ticket-meta-line">🔖 Serial: ${escapeHTML(serial)}</div>
+                        <div class="ticket-card-preview" style="background: linear-gradient(135deg, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0.7) 100%), url('${eventImage}') no-repeat center center; background-size: cover;">
+                            <div class="ticket-main">
+                                <div>
+                                    <div class="ticket-top">EVENTRA</div>
+                                    <div class="ticket-info">
+                                        <div class="ticket-event-name">${escapeHTML(event)}</div>
+                                        <div class="ticket-meta-info">
+                                            <div class="ticket-meta-line">📍 Venue: Nigeria</div>
+                                            <div class="ticket-meta-line">👥 Attendees: ${escapeHTML(attendees)}</div>
+                                            <div class="ticket-meta-line">🔖 Serial: ${escapeHTML(serial)}</div>
+                                        </div>
                                     </div>
                                 </div>
                                 <div class="ticket-bottom-info">
                                     <div class="ticket-type">${escapeHTML(category)}</div>
                                     <div class="ticket-price-box">
-                                        <div class="ticket-price-label">Ticket Price</div>
+                                        <div class="ticket-price-label">Price</div>
                                         <div class="ticket-price-val">${escapeHTML(price)}</div>
                                     </div>
                                 </div>
                             </div>
                             <div class="ticket-barcode-section">
-                                <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Barcode_93.svg/1200px-Barcode_93.svg.png" class="barcode-img" alt="barcode">
+                                <svg width="50" height="100" viewBox="0 0 50 100" xmlns="http://www.w3.org/2000/svg">
+                                    <rect x="3" y="0" width="2" height="80" fill="white"/>
+                                    <rect x="6" y="0" width="3" height="80" fill="white"/>
+                                    <rect x="10" y="0" width="2" height="80" fill="white"/>
+                                    <rect x="13" y="0" width="3" height="80" fill="white"/>
+                                    <rect x="17" y="0" width="2" height="80" fill="white"/>
+                                    <rect x="20" y="0" width="2" height="80" fill="white"/>
+                                    <rect x="23" y="0" width="3" height="80" fill="white"/>
+                                    <rect x="27" y="0" width="2" height="80" fill="white"/>
+                                    <rect x="30" y="0" width="3" height="80" fill="white"/>
+                                    <rect x="34" y="0" width="2" height="80" fill="white"/>
+                                    <rect x="37" y="0" width="2" height="80" fill="white"/>
+                                    <rect x="40" y="0" width="3" height="80" fill="white"/>
+                                    <rect x="44" y="0" width="2" height="80" fill="white"/>
+                                    <text x="25" y="95" text-anchor="middle" font-size="8" fill="white">${escapeHTML(serial).substring(0, 6)}</text>
+                                </svg>
                             </div>
                         </div>
                     </div>
