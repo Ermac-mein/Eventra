@@ -540,15 +540,19 @@ function displayEventPreview(event) {
                                 <button onclick="editEvent(${event.id})" class="btn" style="flex: 1; background: white; border: 2px solid #e5e7eb; color: #374151; padding: 1.1rem; border-radius: 14px; font-weight: 700; cursor: pointer; transition: all 0.2s; font-size: 1rem;">
                                     ✏️ Edit Event
                                 </button>
-                                ${status.toLowerCase() !== 'published' ? `
-                                    <button onclick="publishEvent(${event.id})" class="btn" style="flex: 2; background: #722f37; color: white; border: none; padding: 1.1rem; border-radius: 14px; font-weight: 700; cursor: pointer; transition: all 0.2s; font-size: 1rem; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);">
-                                        ✓ Publish Now
-                                    </button>
-                                ` : `
+                                ${status.toLowerCase() === 'published' ? `
                                     <button onclick="window.open('${shareLink}', '_blank')" class="btn" style="flex: 2; background: #4f46e5; color: white; border: none; padding: 1.1rem; border-radius: 14px; font-weight: 700; cursor: pointer; transition: all 0.2s; font-size: 1rem; box-shadow: 0 4px 12px rgba(79, 70, 229, 0.2);">
                                         👁️ View Public Page
                                     </button>
-                                `}
+                                ` : (event.event_visibility === 'private' ? `
+                                    <button onclick="navigator.clipboard.writeText('${escapeHTML(shareLink)}').then(() => showNotification('Private link copied! Share with selected people.', 'success'))" class="btn" style="flex: 2; background: #7c3aed; color: white; border: none; padding: 1.1rem; border-radius: 14px; font-weight: 700; cursor: pointer; transition: all 0.2s; font-size: 1rem; box-shadow: 0 4px 12px rgba(124, 58, 237, 0.2); display: flex; align-items: center; justify-content: center; gap: 8px;">
+                                        🔒 Copy Private Link
+                                    </button>
+                                ` : `
+                                    <button onclick="publishEvent(${event.id})" class="btn" style="flex: 2; background: #722f37; color: white; border: none; padding: 1.1rem; border-radius: 14px; font-weight: 700; cursor: pointer; transition: all 0.2s; font-size: 1rem; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);">
+                                        ✓ Publish Now
+                                    </button>
+                                `)}
                             </div>
                         </div>
                     </div>
@@ -811,6 +815,10 @@ function showEditEventModal(event) {
                                     <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; user-select: none; font-weight: 600; color: #6b7280; background: white; padding: 0.5rem 1rem; border-radius: 8px; border: 1px solid #d1d5db;">
                                         <input type="checkbox" id="editFreeEventCheckbox" ${parseFloat(event.price) === 0 ? 'checked' : ''} style="width: 1.1rem; height: 1.1rem; accent-color: #2ecc71;"> Free
                                     </label>
+                                    <select name="event_visibility" style="padding: 0.5rem 1rem; border-radius: 8px; border: 1px solid #d1d5db; font-size: 0.9rem; font-weight: 600; background: white; color: #374151; cursor: pointer;">
+                                        <option value="public" ${event.event_visibility === 'public' ? 'selected' : ''}>🌐 Public</option>
+                                        <option value="private" ${event.event_visibility === 'private' ? 'selected' : ''}>🔒 Private</option>
+                                    </select>
                                 </div>
                             </div>
 
@@ -1053,10 +1061,10 @@ function showTicketPreviewModal(ticket) {
                     <div><div style="font-size:.7rem;color:#94a3b8;font-weight:700;text-transform:uppercase;margin-bottom:2px;">Date Purchased</div><div style="font-weight:600;">${ticket.purchase_date || ticket.created_at ? new Date(ticket.purchase_date || ticket.created_at).toLocaleDateString() : '—'}</div></div>
                     <div><div style="font-size:.7rem;color:#94a3b8;font-weight:700;text-transform:uppercase;margin-bottom:2px;">Ticket Type</div><div style="font-weight:600;text-transform:capitalize;color:#6366f1;">${escapeHTML(ticket.ticket_type || 'regular')}</div></div>
                 </div>
-                <div style="background:#f8fafc;padding:1.25rem;border-radius:10px;margin:1.25rem 0;text-align:center;">
-                    <div style="font-size:.7rem;color:#94a3b8;font-weight:700;text-transform:uppercase;margin-bottom:1rem;">Barcode</div>
-                    <svg id="ticketBarcode" style="margin:0 auto;height:50px;"></svg>
-                    <div style="font-family:monospace;font-size:.75rem;color:#475569;margin-top:0.75rem;word-break:break-all;">${escapeHTML(ticket.barcode || ticket.id || '—')}</div>
+                <div style="background: #f8fafc; padding: 1.25rem; border-radius: 12px; margin: 1.25rem 0; text-align: center; border: 1px dashed #e2e8f0;">
+                    <div style="font-size: .7rem; color: #94a3b8; font-weight: 700; text-transform: uppercase; margin-bottom: 1rem; letter-spacing: 0.05em;">Ticket Barcode</div>
+                    <svg id="ticketBarcode" style="margin: 0 auto; min-width: 200px; height: 60px;"></svg>
+                    <div style="font-family: 'Courier New', monospace; font-size: .85rem; color: #1e293b; margin-top: 0.75rem; font-weight: 700; background: white; padding: 4px 12px; border-radius: 4px; display: inline-block;">${escapeHTML(ticket.custom_id || ticket.barcode || 'TKT-' + (ticket.id || Math.random().toString(36).substr(2, 9).toUpperCase()))}</div>
                 </div>
                 <div style="display:flex;gap:.75rem;margin-top:1.5rem;">
                     <button onclick="closeTicketPreviewModal()" style="flex:1;padding:.75rem;background:#6366f1;color:white;border:none;border-radius:10px;font-weight:700;cursor:pointer;font-size:.9rem;">Close</button>
@@ -1078,11 +1086,14 @@ function showTicketPreviewModal(ticket) {
     // Render barcode if library exists
     if (typeof JsBarcode !== 'undefined') {
         try {
-            JsBarcode("#ticketBarcode", ticket.barcode || ticket.id.toString(), {
+            JsBarcode("#ticketBarcode", ticket.custom_id || ticket.barcode || ticket.id.toString(), {
                 format: "CODE128",
                 width: 2,
-                height: 50,
-                displayValue: false
+                height: 60,
+                displayValue: false,
+                margin: 0,
+                background: "transparent",
+                lineColor: "#1e293b"
             });
         } catch (e) {
         }

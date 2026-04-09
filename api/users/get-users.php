@@ -10,18 +10,17 @@ require_once '../../config/database.php';
 require_once '../../includes/middleware/auth.php';
 
 try {
-    $auth_id = checkAuth('client');
+    $real_client_id = checkAuth('client');
 
-    // Resolve real_client_id from auth_id
-    $client_stmt = $pdo->prepare("SELECT id FROM clients WHERE client_auth_id = ?");
-    $client_stmt->execute([$auth_id]);
+    // Verify the client profile exists
+    $client_stmt = $pdo->prepare("SELECT id FROM clients WHERE id = ?");
+    $client_stmt->execute([$real_client_id]);
     $client_row = $client_stmt->fetch();
 
     if (!$client_row) {
         echo json_encode(['success' => false, 'message' => 'Client profile not found.']);
         exit;
     }
-    $real_client_id = $client_row['id'];
 
     // Get ALL registered users (who have logged in to the system)
     // Also calculate stats about their engagement with this client's events

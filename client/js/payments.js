@@ -446,23 +446,29 @@ function openDetailModal(payment) {
         
         <div class="modal-body" style="padding: 2.5rem 2rem; background: white;">
             <div style="display: flex; gap: 2.5rem; flex-wrap: wrap;">
-                <!-- Summary Card -->
-                <div style="flex: 0 0 240px; background: #f8fafc; border-radius: 20px; padding: 2rem; text-align: center; border: 1px solid #f1f5f9;">
-                    <div style="font-size: 0.85rem; color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.75rem;">Total Amount</div>
-                    <div style="font-size: 1.75rem; font-weight: 800; color: #1e293b; margin-bottom: 1.5rem;">₦${parseFloat(payment.amount).toLocaleString()}</div>
-                    
-                    <div style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 16px; border-radius: 20px; background: ${s.bg}; color: ${s.color}; font-weight: 700; font-size: 0.85rem; text-transform: capitalize;">
-                        <i data-lucide="${s.icon}" style="width: 14px; height: 14px;"></i>
-                        ${escapeHtml(payment.status)}
-                    </div>
-                    
-                    <div style="margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid #e2e8f0; text-align: left;">
-                        <div style="font-size: 0.75rem; color: #94a3b8; font-weight: 700; text-transform: uppercase; margin-bottom: 8px;">Payment Method</div>
-                        <div style="display: flex; align-items: center; gap: 10px; color: #334155; font-weight: 600;">
-                            <div style="width: 32px; height: 32px; background: white; border-radius: 8px; display: flex; align-items: center; justify-content: center; border: 1px solid #e2e8f0;">
-                                <i data-lucide="credit-card" style="width: 18px; height: 18px; color: #6366f1;"></i>
+                <!-- Summary Card with event image overlay -->
+                <div style="flex: 0 0 240px; border-radius: 20px; overflow: hidden; position: relative; border: 1px solid #f1f5f9; min-height: 200px;">
+                    ${payment.event_image ? `
+                        <div style="position: absolute; inset: 0; background: url('${payment.event_image.startsWith('/') ? '../..' + payment.event_image : payment.event_image}') center/cover no-repeat;"></div>
+                        <div style="position: absolute; inset: 0; background: linear-gradient(to bottom, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.75) 100%);"></div>
+                    ` : `<div style="position: absolute; inset: 0; background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);"></div>`}
+                    <div style="position: relative; padding: 2rem; text-align: center; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1rem;">
+                        <div style="font-size: 0.85rem; color: rgba(255,255,255,0.8); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Total Amount</div>
+                        <div style="font-size: 1.75rem; font-weight: 800; color: white; text-shadow: 0 2px 8px rgba(0,0,0,0.3);">₦${parseFloat(payment.amount).toLocaleString()}</div>
+                        
+                        <div style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 16px; border-radius: 20px; background: ${s.bg}; color: ${s.color}; font-weight: 700; font-size: 0.85rem; text-transform: capitalize;">
+                            <i data-lucide="${s.icon}" style="width: 14px; height: 14px;"></i>
+                            ${escapeHtml(payment.status)}
+                        </div>
+                        
+                        <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.2); width: 100%; text-align: left;">
+                            <div style="font-size: 0.75rem; color: rgba(255,255,255,0.6); font-weight: 700; text-transform: uppercase; margin-bottom: 8px;">Payment Method</div>
+                            <div style="display: flex; align-items: center; gap: 10px; color: white; font-weight: 600;">
+                                <div style="width: 32px; height: 32px; background: rgba(255,255,255,0.15); border-radius: 8px; display: flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,0.2);">
+                                    <i data-lucide="credit-card" style="width: 18px; height: 18px; color: white;"></i>
+                                </div>
+                                Paystack
                             </div>
-                            Paystack
                         </div>
                     </div>
                 </div>
@@ -509,12 +515,6 @@ function openDetailModal(payment) {
 
         <div class="modal-footer" style="padding: 1.5rem 2rem; background: #f8fafc; border-top: 1px solid #f1f5f9; display: flex; justify-content: flex-end; gap: 12px;">
             <button class="btn btn-secondary modal-close-btn" style="padding: 0.75rem 1.5rem; border-radius: 10px; font-weight: 600; cursor: pointer; background: #f1f5f9; border: 1px solid #e2e8f0; color: #64748b;">Close</button>
-            ${payment.status === 'paid' ? `
-                <button class="btn btn-primary" onclick="printReceipt(${payment.id})" style="padding: 0.75rem 1.5rem; border-radius: 10px; font-weight: 600; background: #6366f1; color: white; border: none; cursor: pointer; display: flex; align-items: center; gap: 8px;">
-                    <i data-lucide="printer" style="width: 18px; height: 18px;"></i>
-                    Print Receipt
-                </button>
-            ` : ''}
         </div>
     `;
 

@@ -87,8 +87,8 @@ function compressEventImage($filePath, $extension) {
 $client_id = checkAuth('client');
 
 try {
-    // 1. Resolve actual Client name from client_id early
-    $stmt = $pdo->prepare("SELECT name, verification_status FROM clients WHERE id = ?");
+    // 1. Resolve actual Client name and info from clients table
+    $stmt = $pdo->prepare("SELECT id, name, verification_status FROM clients WHERE id = ?");
     $stmt->execute([$client_id]);
     $client_data = $stmt->fetch();
 
@@ -96,27 +96,9 @@ try {
         throw new Exception("Client profile not found for this account.");
     }
 
-    $real_client_id = $client_id;
+    $real_client_id = $client_data['id'];
     $raw_client_name = $client_data['name'] ?? 'client';
     $client_name = strtolower(str_replace(' ', '-', preg_replace('/[^A-Za-z0-9 ]/', '', $raw_client_name)));
-
-    // ── Event Limit Check for Unverified Clients ──────────────────────────────
-    $limitStmt = $pdo->prepare("
-        SELECT COUNT(*) AS event_count
-        FROM events WHERE client_id = ? AND deleted_at IS NULL
-    ");
-    $limitStmt->execute([$real_client_id]);
-    $limitData = $limitStmt->fetch();
-
-    if ($client_data && $client_data['verification_status'] !== 'verified') {
-        http_response_code(403);
-        echo json_encode([
-            'success' => false,
-            'message' => "Unverified accounts cannot create events. Please complete your profile verification (NIN, BVN, bank account) and wait for admin approval to start creating events.",
-            'limit_reached' => true
-        ]);
-        exit;
-    }
     // ─────────────────────────────────────────────────────────────────────────
 
     // 2. Handle file upload if present using standardized path
@@ -201,18 +183,19 @@ try {
     $state = $_POST['state'] ?? '';
     $address = $_POST['address'] ?? '';
     $visibility = $_POST['visibility'] ?? 'all states';
+    $event_visibility = $_POST['event_visibility'] ?? 'public'; // public or private
     $price = $_POST['price'] ?? 0.00;
 
     // New pricing fields
-    $ticket_type_mode = $_POST['ticketTypeMode'] ?? 'both';
+    $ticket_type_mode = $_POST['ticketTypeMode'] ?? $_POST['ticket_type_mode'] ?? 'both';
     $regular_price = !empty($_POST['regular_price']) ? floatval($_POST['regular_price']) : 0.00;
     $vip_price = !empty($_POST['vip_price']) ? floatval($_POST['vip_price']) : 0.00;
     $regular_quantity = !empty($_POST['regular_quantity']) ? intval($_POST['regular_quantity']) : null;
     $vip_quantity = !empty($_POST['vip_quantity']) ? intval($_POST['vip_quantity']) : null;
 
-    // Validate priority
+    // Validate priority - default to nearby if empty
     $allowed_priorities = ['nearby', 'hot', 'trending', 'upcoming', 'featured'];
-    $priority_input = $_POST['priority'] ?? 'nearby';
+    $priority_input = !empty($_POST['priority']) ? $_POST['priority'] : 'nearby';
     $priority = in_array($priority_input, $allowed_priorities) ? $priority_input : 'nearby';
 
     $status = $_POST['status'] ?? 'draft';
@@ -220,8 +203,7 @@ try {
         ? $_POST['scheduled_publish_time']
         : date('Y-m-d H:i:s');
 
-
-    // Validate required fields (including image)
+    // Validate required fields (image optional if already provided as URL)
     if (
         empty($event_name) || empty($description) || empty($event_type) ||
         empty($event_date) || empty($event_time) || empty($phone_contact_1) ||

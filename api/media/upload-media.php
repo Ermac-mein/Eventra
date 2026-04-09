@@ -170,12 +170,7 @@ try {
             // Set secure file permissions (0644)
             chmod($filePath, 0644);
 
-            // Compress image if applicable
-            if (in_array($fileExtensionLower, ['jpg', 'jpeg', 'png', 'webp'])) {
-                $filePath = compressImage($filePath, $fileExtensionLower);
-            }
-
-            // Determine file type
+            // Determine file type FIRST (before compress call)
             $fileExtensionLower = strtolower($fileExtension);
             $fileEnum = 'other';
             if (in_array($fileExtensionLower, ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'])) {
@@ -192,6 +187,11 @@ try {
                 $fileEnum = 'powerpoint';
             } elseif (in_array($fileExtensionLower, ['zip', 'rar', '7z'])) {
                 $fileEnum = 'archive';
+            }
+
+            // Compress image if applicable
+            if (in_array($fileExtensionLower, ['jpg', 'jpeg', 'png', 'webp'])) {
+                $filePath = compressImage($filePath, $fileExtensionLower);
             }
 
             // Save to database

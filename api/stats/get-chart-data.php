@@ -133,16 +133,16 @@ try {
             ]
         ]);
     } elseif ($user_role === 'client') {
-        // Resolve real_client_id from clients table
-        $stmt = $pdo->prepare("SELECT id FROM clients WHERE client_auth_id = ?");
-        $stmt->execute([$user_id]);
-        $clientRow = $stmt->fetch();
-        
-        if (!$clientRow) {
+        // checkAuth('client') already returns clients.id
+        $real_client_id = $user_id;
+
+        // Verify client exists
+        $stmt = $pdo->prepare("SELECT id FROM clients WHERE id = ?");
+        $stmt->execute([$real_client_id]);
+        if (!$stmt->fetch()) {
             echo json_encode(['success' => false, 'message' => 'Client profile not found.']);
             exit;
         }
-        $real_client_id = $clientRow['id'];
 
         // Client chart data - ticket sales for their events
         $stmt = $pdo->prepare("

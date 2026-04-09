@@ -57,6 +57,7 @@ try {
         // For public/users, only show published events
         if ($user_role !== 'admin' && $user_role !== 'client') {
             $where_clauses[] = "e.status = 'published'";
+            $where_clauses[] = "e.event_visibility = 'public'";
         }
     }
 

@@ -107,7 +107,7 @@ $params = array_merge($scopeParams, $dateParams, $statusParams, $searchParams);
 $sql = "
     SELECT
         p.id, p.custom_id, p.reference, p.amount, p.status, p.paid_at, p.created_at,
-        e.event_name, e.event_date,
+        e.event_name, e.event_date, e.image_path AS event_image,
         c.business_name AS client_name, c.custom_id AS client_custom_id,
         u.name AS buyer_name, u.custom_id AS user_custom_id,
         au.email AS buyer_email,

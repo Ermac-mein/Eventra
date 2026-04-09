@@ -185,11 +185,15 @@ function showCreateEventModal() {
                                     </div>
 
                                     <div class="form-group" id="priceInputGroup">
-                                        <label style="display: block; font-size: 0.875rem; font-weight: 600; color: #6b7280; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.5px;">Event Type</label>
-                                        <div style="display: flex; align-items: center; min-height: 52px;">
+                                        <label style="display: block; font-size: 0.875rem; font-weight: 600; color: #6b7280; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.5px;">Event Type & Visibility</label>
+                                        <div style="display: flex; align-items: center; gap: 0.75rem; min-height: 52px; flex-wrap: wrap;">
                                             <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; user-select: none; font-weight: 600; color: #6b7280; background: white; padding: 0.75rem 1.25rem; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); border: 2px solid #e5e7eb;">
                                                 <input type="checkbox" id="freeEventCheckbox" style="width: 1.2rem; height: 1.2rem; accent-color: #722f37;"> FREE
                                             </label>
+                                            <select id="eventVisibilitySelect" name="event_visibility" style="padding: 0.75rem 1.25rem; border-radius: 12px; border: 2px solid #e5e7eb; font-size: 0.95rem; font-weight: 600; background: white; color: #374151; box-shadow: 0 2px 8px rgba(0,0,0,0.04); cursor: pointer;">
+                                                <option value="public">🌐 Public</option>
+                                                <option value="private">🔒 Private</option>
+                                            </select>
                                         </div>
                                     </div>
                                 </div>
@@ -623,6 +627,11 @@ function selectMdpDate(year, month, date) {
     if (selected < window.mdpToday) return; // Previous days not accessible
     window.mdpSelectedDate = selected;
     renderMaterialDatePicker();
+    
+    // Auto-confirm on click for smoother experience
+    setTimeout(() => {
+        confirmMaterialDatePicker();
+    }, 100);
 }
 
 function confirmMaterialDatePicker() {

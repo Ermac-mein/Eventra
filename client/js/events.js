@@ -248,7 +248,11 @@ function updateEventsTable(events) {
                     ${event.attendee_count || 0}
                 </div>
             </td>
-            <td><span style="color: ${getStatusColor(event.status)}; font-weight: 600;">${event.status.charAt(0).toUpperCase() + event.status.slice(1)}</span></td>
+            <td>
+                <span style="color: ${event.status === 'published' ? '#16a34a' : getStatusColor(event.status)}; font-weight: 700;${event.status === 'published' ? ' background: #dcfce7; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem;' : ''}">
+                    ${event.status.charAt(0).toUpperCase() + event.status.slice(1)}
+                </span>
+            </td>
             <td class="text-center" onclick="event.stopPropagation()">
                 <div style="display: flex; gap: 0.5rem; justify-content: center;">
                     <button onclick="${event.attendee_count > 0 ? "showLockedNotification('edit')" : `editEvent(${event.id})`}" 

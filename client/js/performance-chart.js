@@ -1,16 +1,21 @@
-/**
- * Event Performance Chart
- * Displays event analytics using Chart.js
- */
+// Load Chart.js if not already loaded, then init when DOM is ready
+function startChartInit() {
+    if (typeof Chart === 'undefined') {
+        const script = document.createElement('script');
+        script.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js';
+        script.onload = initializeChart;
+        document.head.appendChild(script);
+    } else {
+        initializeChart();
+    }
+}
 
-// Load Chart.js if not already loaded
-if (typeof Chart === 'undefined') {
-    const script = document.createElement('script');
-    script.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js';
-    script.onload = initializeChart;
-    document.head.appendChild(script);
+// Wait for DOM to be ready before attempting to find .chart-placeholder
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', startChartInit);
 } else {
-    initializeChart();
+    // DOM already ready (script loaded after DOMContentLoaded)
+    startChartInit();
 }
 
 let performanceChart = null;
