@@ -4,6 +4,80 @@ header('Content-Type: application/json');
 require_once '../../includes/middleware/auth.php';
 require_once '../../config/database.php';
 
+/**
+ * Compress profile picture for storage
+ */
+function compressProfileImage($filePath, $extension) {
+    if (!extension_loaded('gd')) {
+        return $filePath;
+    }
+
+    try {
+        $maxSize = 400; // Smaller profile pics
+        $quality = 85;
+        
+        $image = null;
+        switch ($extension) {
+            case 'jpg':
+            case 'jpeg':
+                $image = imagecreatefromjpeg($filePath);
+                break;
+            case 'png':
+                $image = imagecreatefrompng($filePath);
+                break;
+            case 'gif':
+                $image = imagecreatefromgif($filePath);
+                break;
+        }
+
+        if (!$image) return $filePath;
+
+        $width = imagesx($image);
+        $height = imagesy($image);
+        $size = min($width, $height);
+
+        // Crop to square if needed, then resize
+        if ($size > $maxSize) {
+            $ratio = $maxSize / $size;
+            $newSize = $maxSize;
+            
+            $resized = imagecreatetruecolor($newSize, $newSize);
+            imagecopyresampled($resized, $image, 0, 0, 0, 0, $newSize, $newSize, $size, $size);
+            imagedestroy($image);
+            $image = $resized;
+        }
+
+        // Save compressed version
+        $tempPath = $filePath . '.tmp';
+        switch ($extension) {
+            case 'jpg':
+            case 'jpeg':
+                imagejpeg($image, $tempPath, $quality);
+                break;
+            case 'png':
+                imagepng($image, $tempPath, 6);
+                break;
+            case 'gif':
+                imagegif($image, $tempPath);
+                break;
+        }
+
+        imagedestroy($image);
+
+        if (filesize($tempPath) < filesize($filePath)) {
+            unlink($filePath);
+            rename($tempPath, $filePath);
+        } else {
+            unlink($tempPath);
+        }
+
+        chmod($filePath, 0644);
+        return $filePath;
+    } catch (Exception $e) {
+        return $filePath;
+    }
+}
+
 // Check authentication and admin role
 $user_id = checkAuth();
 
@@ -79,6 +153,9 @@ if (!move_uploaded_file($file['tmp_name'], $uploadPath)) {
     echo json_encode(['success' => false, 'message' => 'Failed to save uploaded file.']);
     exit;
 }
+
+// Compress profile picture
+$uploadPath = compressProfileImage($uploadPath, $extension);
 
 // Delete old profile picture if it exists and is not the default
 try {

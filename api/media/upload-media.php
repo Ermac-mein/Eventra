@@ -10,6 +10,85 @@ require_once '../../config/database.php';
 require_once '../../includes/helpers/file-upload-helper.php';
 require_once '../utils/notification-helper.php';
 
+/**
+ * Compress image to reduce file size
+ * Compresses to 80% quality, max 1200px width
+ */
+function compressImage($filePath, $extension) {
+    if (!extension_loaded('gd')) {
+        return $filePath; // GD not available, return original
+    }
+
+    try {
+        $maxWidth = 1200;
+        $quality = 80; // JPEG quality
+        
+        // Get original image
+        $image = null;
+        switch ($extension) {
+            case 'jpg':
+            case 'jpeg':
+                $image = imagecreatefromjpeg($filePath);
+                break;
+            case 'png':
+                $image = imagecreatefrompng($filePath);
+                break;
+            case 'webp':
+                $image = imagecreatefromwebp($filePath);
+                break;
+        }
+
+        if (!$image) return $filePath;
+
+        // Get dimensions
+        $width = imagesx($image);
+        $height = imagesy($image);
+
+        // Check if resize needed
+        if ($width > $maxWidth) {
+            $ratio = $maxWidth / $width;
+            $newWidth = $maxWidth;
+            $newHeight = (int)($height * $ratio);
+
+            $resized = imagecreatetruecolor($newWidth, $newHeight);
+            imagecopyresampled($resized, $image, 0, 0, 0, 0, $newWidth, $newHeight, $width, $height);
+            imagedestroy($image);
+            $image = $resized;
+        }
+
+        // Save compressed image
+        $tempPath = $filePath . '.tmp';
+        switch ($extension) {
+            case 'jpg':
+            case 'jpeg':
+                imagejpeg($image, $tempPath, $quality);
+                break;
+            case 'png':
+                imagepng($image, $tempPath, 6); // Compression level 6
+                break;
+            case 'webp':
+                imagewebp($image, $tempPath, $quality);
+                break;
+        }
+
+        imagedestroy($image);
+
+        // Replace original with compressed version if smaller
+        if (filesize($tempPath) < filesize($filePath)) {
+            unlink($filePath);
+            rename($tempPath, $filePath);
+        } else {
+            unlink($tempPath);
+        }
+
+        chmod($filePath, 0644);
+        return $filePath;
+    } catch (Exception $e) {
+        // Compression failed, return original file
+        return $filePath;
+    }
+}
+
 // Check authentication
 require_once '../../includes/middleware/auth.php';
 $client_id = clientMiddleware();
@@ -90,6 +169,11 @@ try {
         if (move_uploaded_file($fileTmpName, $filePath)) {
             // Set secure file permissions (0644)
             chmod($filePath, 0644);
+
+            // Compress image if applicable
+            if (in_array($fileExtensionLower, ['jpg', 'jpeg', 'png', 'webp'])) {
+                $filePath = compressImage($filePath, $fileExtensionLower);
+            }
 
             // Determine file type
             $fileExtensionLower = strtolower($fileExtension);
