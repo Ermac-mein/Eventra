@@ -22,14 +22,55 @@ function initializeChart() {
     // Replace placeholder with canvas
     chartContainer.innerHTML = '<canvas id="performanceChart" style="width: 100%; height: 100%;"></canvas>';
     
-    // Check if we have events already loaded in the state (speed up initial render)
-    const storedEvents = window.stateManager ? window.stateManager.getState().events : null;
-    if (storedEvents && storedEvents.length > 0) {
-        renderChart(storedEvents);
+    // Try to load cached chart data first
+    const cachedChartData = loadCachedChartData();
+    if (cachedChartData) {
+        renderChartFromAPI(cachedChartData);
     }
 
     // Load fresh chart data
     loadChartData();
+}
+
+function saveCachedChartData(data) {
+    try {
+        if (window.storage) {
+            window.storage.set('chart_performance_data', {
+                data: data,
+                timestamp: Date.now()
+            });
+        } else {
+            localStorage.setItem('chart_performance_data', JSON.stringify({
+                data: data,
+                timestamp: Date.now()
+            }));
+        }
+    } catch (error) {
+        // Silently fail - cache not critical
+    }
+}
+
+function loadCachedChartData() {
+    try {
+        let cachedData = null;
+        if (window.storage) {
+            cachedData = window.storage.get('chart_performance_data');
+        } else {
+            const cached = localStorage.getItem('chart_performance_data');
+            cachedData = cached ? JSON.parse(cached) : null;
+        }
+
+        if (cachedData && cachedData.data && cachedData.timestamp) {
+            const cacheAge = Date.now() - cachedData.timestamp;
+            // Use cache if less than 5 minutes old
+            if (cacheAge < 300000) {
+                return cachedData.data;
+            }
+        }
+        return null;
+    } catch (error) {
+        return null;
+    }
 }
 
 async function loadChartData() {
@@ -37,20 +78,33 @@ async function loadChartData() {
         const user = window.storage ? window.storage.getUser() : null;
         if (!user) return;
 
-        // Fetch chart data from new API
+        // Fetch chart data from API
         const response = await apiFetch('/api/stats/get-chart-data.php?period=30days');
+        
+        if (!response.ok) {
+            throw new Error('API response not ok');
+        }
+        
         const result = await response.json();
 
         if (result.success && result.datasets) {
+            // Save to cache before rendering
+            saveCachedChartData(result);
             renderChartFromAPI(result);
         } else {
-            renderEmptyChart();
+            // Try fallback to cached data if API fails
+            const cachedData = loadCachedChartData();
+            if (cachedData) {
+                renderChartFromAPI(cachedData);
+            } else {
+                renderEmptyChart();
+            }
         }
     } catch (error) {
-        // Fallback to local data aggregation if API fails
-        const events = window.stateManager ? window.stateManager.getState().events : [];
-        if (events.length > 0) {
-            renderChart(events);
+        // Fallback to cached data if API fails
+        const cachedData = loadCachedChartData();
+        if (cachedData) {
+            renderChartFromAPI(cachedData);
         } else {
             renderEmptyChart();
         }

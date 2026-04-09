@@ -665,8 +665,8 @@ td { padding: 1.25rem 2rem; border-bottom: 1px solid var(--client-border); font-
 /* Media Specific Styles */
 .media-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 2rem;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1.5rem;
     margin-top: 1.5rem;
 }
 
@@ -688,12 +688,12 @@ td { padding: 1.25rem 2rem; border-bottom: 1px solid var(--client-border); font-
 }
 
 .media-thumb {
-    height: 180px;
+    height: 140px;
     background: #f8fafc;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 4.5rem;
+    font-size: 3.5rem;
     position: relative;
     border-bottom: 1px solid var(--client-border);
 }
@@ -707,14 +707,14 @@ td { padding: 1.25rem 2rem; border-bottom: 1px solid var(--client-border); font-
 }
 
 .media-info {
-    padding: 1.5rem;
+    padding: 1rem;
     display: flex;
     flex-direction: column;
     justify-content: center;
 }
 
 .media-name {
-    font-size: 1.1rem;
+    font-size: 0.95rem;
     font-weight: 700;
     white-space: nowrap;
     overflow: hidden;

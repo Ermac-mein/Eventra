@@ -54,94 +54,157 @@ async function loadMedia() {
         if (!user || !user.id) {
             return;
         }
+        
+        const cacheKey = `media_list_${currentMediaStatus}${currentFolderId ? '_' + currentFolderId : ''}`;
+        let cachedData = null;
+        
+        // Try to load from cache first
+        if (window.storage) {
+            cachedData = window.storage.get(cacheKey);
+        } else {
+            const cached = localStorage.getItem(cacheKey);
+            cachedData = cached ? JSON.parse(cached) : null;
+        }
+        
+        // Use cached data if available
+        if (cachedData && cachedData.media) {
+            displayMediaGrid(cachedData.media, cachedData.stats);
+        }
+        
+        // Always fetch fresh data in background
         const response = await apiFetch(`/api/media/get-media.php?client_id=${user.id}&status=${currentMediaStatus}${currentFolderId ? '&folder_id=' + currentFolderId : ''}`);
         const result = await response.json();
 
-        // Update dashboard stats
-        if (result.stats) {
-            const foldersEl = document.getElementById('foldersCreatedCount');
-            if (foldersEl) foldersEl.textContent = result.stats.total_folders || 0;
+        // Cache the media list
+        if (result.success && result.media) {
+            try {
+                if (window.storage) {
+                    window.storage.set(cacheKey, {
+                        media: result.media,
+                        stats: result.stats,
+                        timestamp: Date.now()
+                    });
+                } else {
+                    localStorage.setItem(cacheKey, JSON.stringify({
+                        media: result.media,
+                        stats: result.stats,
+                        timestamp: Date.now()
+                    }));
+                }
+            } catch (e) {
+                // Cache failed, continue anyway
+            }
             
-            const deletedEl = document.getElementById('mediaDeletedCount');
-            if (deletedEl) deletedEl.textContent = result.stats.total_deleted || 0;
-            
-            const restoredEl = document.getElementById('restoredFilesCount');
-            if (restoredEl) restoredEl.textContent = result.stats.total_files || 0;
+            displayMediaGrid(result.media, result.stats);
+        } else if (!cachedData) {
+            displayMediaGridEmpty();
         }
-
-        const mediaGrid = document.getElementById('mediaGrid');
+    } catch (error) {
+        // If fetch fails, use cached data if available
+        const cacheKey = `media_list_${currentMediaStatus}${currentFolderId ? '_' + currentFolderId : ''}`;
+        let cachedData = null;
+        if (window.storage) {
+            cachedData = window.storage.get(cacheKey);
+        } else {
+            const cached = localStorage.getItem(cacheKey);
+            cachedData = cached ? JSON.parse(cached) : null;
+        }
         
-        // Update hasFolders state
-        hasFolders = result.media && result.media.some(item => item.type === 'folder');
+        if (cachedData && cachedData.media) {
+            displayMediaGrid(cachedData.media, cachedData.stats);
+        } else {
+            displayMediaGridEmpty();
+        }
+    }
+}
 
-        if (!result.success || !result.media || result.media.length === 0) {
-            mediaGrid.innerHTML = `
-                <div style="grid-column: 1 / -1; text-align: center; padding: 4rem; color: var(--client-text-muted);">
-                    <div style="font-size: 3rem; margin-bottom: 1rem;">📁</div>
-                    <h3>No media found.</h3>
-                    ${currentMediaStatus === 'active' ? `<p>Create a folder to get started with uploads.</p>
-                    <button onclick="createNewFolder()" class="btn btn-primary" style="margin-top: 1rem;">Create Folder</button>` : ''}
+function displayMediaGrid(media, stats) {
+    // Update dashboard stats
+    if (stats) {
+        const foldersEl = document.getElementById('foldersCreatedCount');
+        if (foldersEl) foldersEl.textContent = stats.total_folders || 0;
+        
+        const deletedEl = document.getElementById('mediaDeletedCount');
+        if (deletedEl) deletedEl.textContent = stats.total_deleted || 0;
+        
+        const restoredEl = document.getElementById('restoredFilesCount');
+        if (restoredEl) restoredEl.textContent = stats.total_files || 0;
+    }
+
+    const mediaGrid = document.getElementById('mediaGrid');
+    
+    // Update hasFolders state
+    hasFolders = media && media.some(item => item.type === 'folder');
+
+    if (!media || media.length === 0) {
+        displayMediaGridEmpty();
+        return;
+    }
+
+    let html = media.map(item => {
+        if (item.type === 'folder') {
+            return `
+                <div class="media-card" onclick="openFolder(${item.id}, '${item.name.replace(/'/g, "\\'")}')" style="position: relative;">
+                    <div class="media-thumb"><span class="folder-icon">📂</span></div>
+                    <div class="media-info">
+                        <div class="media-name">${item.name}</div>
+                        <div class="media-meta"><span>${item.file_count || 0} files</span><span> · ${timeAgo(item.created_at)}</span></div>
+                    </div>
+                    <div class="media-actions-overlay" style="display: flex; gap: 8px; position: absolute; top: 12px; right: 12px; opacity: 1; visibility: visible; justify-content: flex-end; padding: 0;">
+                        ${currentMediaStatus === 'active' 
+                            ? `
+                                <span class="action-circle" onclick="uploadToFolder(${item.id}, '${item.name.replace(/'/g, "\\'")}')" title="Upload to Folder"><i data-lucide="upload" style="width: 16px; height: 16px;"></i></span>
+                                <span class="action-circle" onclick="deleteMedia(${item.id}, 'folder', event, ${item.file_count || 0})" title="Delete Folder" style="color: var(--card-red);"><i data-lucide="trash-2" style="width: 16px; height: 16px;"></i></span>
+                            ` 
+                            : `<span class="action-circle" onclick="restoreMedia(${item.id}, 'folder', event)" title="Restore Folder" style="color: var(--card-green);"><i data-lucide="refresh-cw" style="width: 16px; height: 16px;"></i></span>`
+                        }
+                    </div>
                 </div>
             `;
-            return;
+        } else {
+            const isImage = item.file_type?.startsWith('image/');
+            const isVideo = item.file_type?.startsWith('video/');
+            const isEnhanced = storage.get(`enhanced_hd_${item.id}`) === true;
+            
+            return `
+                <div class="media-card ${isEnhanced ? 'enhanced-hd' : ''}" id="media-${item.id}">
+                    <div class="media-thumb file-thumb" style="${isImage ? `background: url(${item.file_path}) center/cover;` : ''}">
+                        ${isVideo ? `<video src="${item.file_path}" style="width: 100%; height: 100%; object-fit: cover;"></video>` : ''}
+                        ${(!isImage && !isVideo) ? `<span class="file-icon" style="font-size: 4.5rem;">${getFileIcon(item.file_type)}</span>` : ''}
+                        <div class="hd-badge">4K HD</div>
+                        <div class="media-actions-overlay" style="display: flex; gap: 8px; position: absolute; top: 12px; right: 12px; opacity: 1; justify-content: flex-end; padding: 0;">
+                            ${currentMediaStatus === 'active' ? `
+                                <span class="action-circle hd-toggle ${isEnhanced ? 'active' : ''}" onclick="toggleHDEnhancement(event, ${item.id})" title="HD Enhancement">✨</span>
+                                <span class="action-circle" onclick="viewFile('${item.file_path}')"><i data-lucide="eye" style="width: 16px; height: 16px;"></i></span>
+                                <span class="action-circle" onclick="downloadFile('${item.file_path}', '${item.name.replace(/'/g, "\\'")}')"><i data-lucide="download" style="width: 16px; height: 16px;"></i></span>
+                                <span class="action-circle" onclick="deleteMedia(${item.id}, 'file', event)" style="color: var(--card-red);" title="Delete File"><i data-lucide="trash-2" style="width: 16px; height: 16px;"></i></span>
+                            ` : `
+                                <span class="action-circle" onclick="restoreMedia(${item.id}, 'file', event)" style="color: var(--card-green);" title="Restore File"><i data-lucide="refresh-cw" style="width: 16px; height: 16px;"></i></span>
+                            `}
+                        </div>
+                    </div>
+                    <div class="media-info">
+                        <div class="media-name">${item.name}</div>
+                        <div class="media-meta"><span style="text-transform: capitalize;">${item.file_type || 'File'}</span><span>${formatFileSize(item.file_size)}</span></div>
+                    </div>
+                </div>
+            `;
         }
+    }).join('');
 
-        let html = result.media.map(item => {
-            if (item.type === 'folder') {
-                return `
-                    <div class="media-card" onclick="openFolder(${item.id}, '${item.name.replace(/'/g, "\\'")}')" style="position: relative;">
-                        <div class="media-thumb"><span class="folder-icon">📂</span></div>
-                        <div class="media-info">
-                            <div class="media-name">${item.name}</div>
-                            <div class="media-meta"><span>${item.file_count || 0} files</span><span> · ${timeAgo(item.created_at)}</span></div>
-                        </div>
-                        <div class="media-actions-overlay" style="display: flex; gap: 8px; position: absolute; top: 12px; right: 12px; opacity: 1; visibility: visible; justify-content: flex-end; padding: 0;">
-                            ${currentMediaStatus === 'active' 
-                                ? `
-                                    <span class="action-circle" onclick="uploadToFolder(${item.id}, '${item.name.replace(/'/g, "\\'")}', event)" title="Upload to Folder"><i data-lucide="upload" style="width: 16px; height: 16px;"></i></span>
-                                    <span class="action-circle" onclick="deleteMedia(${item.id}, 'folder', event, ${item.file_count || 0})" title="Delete Folder" style="color: var(--card-red);"><i data-lucide="trash-2" style="width: 16px; height: 16px;"></i></span>
-                                ` 
-                                : `<span class="action-circle" onclick="restoreMedia(${item.id}, 'folder', event)" title="Restore Folder" style="color: var(--card-green);"><i data-lucide="refresh-cw" style="width: 16px; height: 16px;"></i></span>`
-                            }
-                        </div>
-                    </div>
-                `;
-            } else {
-                const isImage = item.file_type?.startsWith('image/');
-                const isVideo = item.file_type?.startsWith('video/');
-                const isEnhanced = storage.get(`enhanced_hd_${item.id}`) === true;
-                
-                return `
-                    <div class="media-card ${isEnhanced ? 'enhanced-hd' : ''}" id="media-${item.id}">
-                        <div class="media-thumb file-thumb" style="${isImage ? `background: url(${item.file_path}) center/cover;` : ''}">
-                            ${isVideo ? `<video src="${item.file_path}" style="width: 100%; height: 100%; object-fit: cover;"></video>` : ''}
-                            ${(!isImage && !isVideo) ? `<span class="file-icon" style="font-size: 4.5rem;">${getFileIcon(item.file_type)}</span>` : ''}
-                            <div class="hd-badge">4K HD</div>
-                            <div class="media-actions-overlay" style="display: flex; gap: 8px; position: absolute; top: 12px; right: 12px; opacity: 1; justify-content: flex-end; padding: 0;">
-                                ${currentMediaStatus === 'active' ? `
-                                    <span class="action-circle hd-toggle ${isEnhanced ? 'active' : ''}" onclick="toggleHDEnhancement(event, ${item.id})" title="HD Enhancement">✨</span>
-                                    <span class="action-circle" onclick="viewFile('${item.file_path}')"><i data-lucide="eye" style="width: 16px; height: 16px;"></i></span>
-                                    <span class="action-circle" onclick="downloadFile('${item.file_path}', '${item.name.replace(/'/g, "\\'")}')"><i data-lucide="download" style="width: 16px; height: 16px;"></i></span>
-                                    <span class="action-circle" onclick="deleteMedia(${item.id}, 'file', event)" style="color: var(--card-red);" title="Delete File"><i data-lucide="trash-2" style="width: 16px; height: 16px;"></i></span>
-                                ` : `
-                                    <span class="action-circle" onclick="restoreMedia(${item.id}, 'file', event)" style="color: var(--card-green);" title="Restore File"><i data-lucide="refresh-cw" style="width: 16px; height: 16px;"></i></span>
-                                `}
-                            </div>
-                        </div>
-                        <div class="media-info">
-                            <div class="media-name">${item.name}</div>
-                            <div class="media-meta"><span style="text-transform: capitalize;">${item.file_type || 'File'}</span><span>${formatFileSize(item.file_size)}</span></div>
-                        </div>
-                    </div>
-                `;
-            }
-        }).join('');
+    mediaGrid.innerHTML = html;
+}
 
-
-
-        mediaGrid.innerHTML = html;
-    } catch (error) {
-    }
+function displayMediaGridEmpty() {
+    const mediaGrid = document.getElementById('mediaGrid');
+    mediaGrid.innerHTML = `
+        <div style="grid-column: 1 / -1; text-align: center; padding: 4rem; color: var(--client-text-muted);">
+            <div style="font-size: 3rem; margin-bottom: 1rem;">📁</div>
+            <h3>No media found.</h3>
+            ${currentMediaStatus === 'active' ? `<p>Create a folder to get started with uploads.</p>
+            <button onclick="createNewFolder()" class="btn btn-primary" style="margin-top: 1rem;">Create Folder</button>` : ''}
+        </div>
+    `;
 }
 
 function createNewFolder() {
@@ -491,19 +554,59 @@ async function openFolder(id, name) {
 
     try {
         const user = storage.getUser();
+        const cacheKey = `folder_contents_${id}`;
+        
+        // Try to load from cache first
+        let cachedData = null;
+        if (window.storage) {
+            cachedData = window.storage.get(cacheKey);
+        } else {
+            const cached = localStorage.getItem(cacheKey);
+            cachedData = cached ? JSON.parse(cached) : null;
+        }
+        
+        // Show cached data if available
+        if (cachedData && cachedData.files) {
+            currentFolderFiles = cachedData.files;
+            populateFolderModal(currentFolderFiles);
+        }
+        
+        // Always fetch fresh data in the background
         const response = await apiFetch(`/api/media/get-folder-contents.php?client_id=${user.id}&folder_id=${id}&status=${currentMediaStatus}`);
         const result = await response.json();
 
         if (result.success && result.files) {
+            // Cache the folder contents
+            try {
+                if (window.storage) {
+                    window.storage.set(cacheKey, {
+                        files: result.files,
+                        timestamp: Date.now()
+                    });
+                } else {
+                    localStorage.setItem(cacheKey, JSON.stringify({
+                        files: result.files,
+                        timestamp: Date.now()
+                    }));
+                }
+            } catch (e) {
+                // Cache failed, continue anyway
+            }
+            
             currentFolderFiles = result.files;
             sortFolderFiles('date', false); // default sort and render
         } else {
-            currentFolderFiles = [];
-            tbody.innerHTML = '';
-            emptyState.style.display = 'block';
+            if (!cachedData) {
+                currentFolderFiles = [];
+                tbody.innerHTML = '';
+                emptyState.style.display = 'block';
+            }
         }
     } catch (error) {
-        tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 2rem; color: var(--client-text-muted);">Failed to load files</td></tr>';
+        // If fetch fails, use cached data if available, otherwise show error
+        if (!cachedData) {
+            tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 2rem; color: var(--client-text-muted);">Failed to load files</td></tr>';
+        }
     }
 }
 
