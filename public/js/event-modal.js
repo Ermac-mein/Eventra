@@ -140,7 +140,7 @@ function renderModalContent(container, eventData) {
         <div style="width: 32px; height: 32px; border-radius: 50%; background: #f3f4f6; display: flex; align-items: center; justify-content: center; color: #6b7280; font-size: 1rem;">👤</div>
         <p style="color: #6b7280; font-size: 1rem; margin: 0; display: flex; align-items: center; gap: 0.5rem;">
           Organized by <span style="font-weight: 600; color: #374151;">${escapeHTML(eventData.client_name || eventData.organizer_name || 'Eventra')}</span>
-          ${eventData.verification_status === 'verified' ? '<span style="color: #10b981; font-size: 0.9rem;" title="Verified Organizer">✓</span>' : ''}
+          ${eventData.verification_status === 'verified' ? '<span style="color: #722f37; font-size: 0.9rem;" title="Verified Organizer">✓</span>' : ''}
         </p>
       </div>
       

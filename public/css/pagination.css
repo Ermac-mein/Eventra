@@ -1,13 +1,13 @@
 /* Modern HD Pagination Component - 4K Optimized */
 
 :root {
-    --pg-primary: #2ecc71;
-    --pg-primary-dark: #2ecc71;
+    --pg-primary: #722f37;
+    --pg-primary-dark: #5a252b;
     --pg-text-main: #1f2937;
     --pg-text-muted: #6b7280;
     --pg-border: #e5e7eb;
     --pg-bg-hover: #f3f4f6;
-    --pg-bg-active: #2ecc71;
+    --pg-bg-active: #722f37;
     --pg-text-active: #ffffff;
     --pg-font-size: 14px; /* Optimized for 4K and Retina */
 }
@@ -118,7 +118,7 @@
     background: var(--pg-bg-active);
     color: var(--pg-text-active);
     border-color: var(--pg-bg-active);
-    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+    box-shadow: 0 4px 12px rgba(114, 47, 55, 0.3);
 }
 
 .pg-btn.disabled {

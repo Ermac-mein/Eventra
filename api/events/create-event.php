@@ -11,6 +11,78 @@ require_once '../../config/env-loader.php';
 
 require_once '../../includes/middleware/auth.php';
 
+/**
+ * Compress event image for storage
+ */
+function compressEventImage($filePath, $extension) {
+    if (!extension_loaded('gd')) {
+        return $filePath;
+    }
+
+    try {
+        $maxWidth = 1200;
+        $quality = 80;
+        
+        $image = null;
+        switch ($extension) {
+            case 'jpg':
+            case 'jpeg':
+                $image = imagecreatefromjpeg($filePath);
+                break;
+            case 'png':
+                $image = imagecreatefrompng($filePath);
+                break;
+            case 'webp':
+                $image = imagecreatefromwebp($filePath);
+                break;
+        }
+
+        if (!$image) return $filePath;
+
+        $width = imagesx($image);
+        $height = imagesy($image);
+
+        if ($width > $maxWidth) {
+            $ratio = $maxWidth / $width;
+            $newWidth = $maxWidth;
+            $newHeight = (int)($height * $ratio);
+
+            $resized = imagecreatetruecolor($newWidth, $newHeight);
+            imagecopyresampled($resized, $image, 0, 0, 0, 0, $newWidth, $newHeight, $width, $height);
+            imagedestroy($image);
+            $image = $resized;
+        }
+
+        $tempPath = $filePath . '.tmp';
+        switch ($extension) {
+            case 'jpg':
+            case 'jpeg':
+                imagejpeg($image, $tempPath, $quality);
+                break;
+            case 'png':
+                imagepng($image, $tempPath, 6);
+                break;
+            case 'webp':
+                imagewebp($image, $tempPath, $quality);
+                break;
+        }
+
+        imagedestroy($image);
+
+        if (filesize($tempPath) < filesize($filePath)) {
+            unlink($filePath);
+            rename($tempPath, $filePath);
+        } else {
+            unlink($tempPath);
+        }
+
+        chmod($filePath, 0644);
+        return $filePath;
+    } catch (Exception $e) {
+        return $filePath;
+    }
+}
+
 // Check authentication and role
 $client_id = checkAuth('client');
 
@@ -61,7 +133,9 @@ try {
         $target_path = $upload_dir . $file_name;
 
         if (move_uploaded_file($_FILES['event_image']['tmp_name'], $target_path)) {
-            $image_path = "/uploads/events/" . $file_name;
+            // Compress image before storing
+            $target_path = compressEventImage($target_path, $file_extension);
+            $image_path = "/uploads/events/" . basename($target_path);
 
             // Register in media table (Canonical folder: "Event Images")
             try {

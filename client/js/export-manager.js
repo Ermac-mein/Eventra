@@ -355,7 +355,7 @@ function showNotification(message, type = 'info') {
         return;
     }
     const notification = document.createElement('div');
-    notification.style.cssText = `position:fixed;top:20px;right:20px;background:${type === 'success' ? '#10b981' : type === 'error' ? '#ef4444' : '#3b82f6'};color:white;padding:1rem 1.5rem;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.15);z-index:10000;`;
+    notification.style.cssText = `position:fixed;top:20px;right:20px;background:${type === 'success' ? '#722f37' : type === 'error' ? '#ef4444' : '#3b82f6'};color:white;padding:1rem 1.5rem;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.15);z-index:10000;`;
     notification.textContent = message;
     document.body.appendChild(notification);
     setTimeout(() => notification.remove(), 3000);

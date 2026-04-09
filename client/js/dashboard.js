@@ -254,7 +254,7 @@ async function loadRecentTickets(attendees) {
                 </div>
             </div>
             <div style="text-align: right;">
-                <div style="font-size: 0.85rem; font-weight: 700; color: ${attendee.event_price == 0 ? '#10b981' : '#10b981'};">
+                <div style="font-size: 0.85rem; font-weight: 700; color: ${attendee.event_price == 0 ? '#722f37' : '#722f37'};">
                     ${attendee.price_display}
                 </div>
                 <div style="font-size: 0.7rem; color: var(--client-text-muted);">

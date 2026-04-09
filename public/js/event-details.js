@@ -72,7 +72,7 @@ function renderEvent(event) {
     
     // Client Verification Badge - Sanitize name first
     const verificationBadge = (Number(event.client_is_verified) === 1) 
-        ? ' <span style="display: inline-flex; align-items: center; justify-content: center; background: #10b981; color: white; width: 16px; height: 16px; border-radius: 50%; font-size: 10px; margin-left: 4px; border: 1.5px solid white; box-shadow: 0 0 0 1px #10b981;" title="Verified Event Planner">✓</span>'
+        ? ' <span style="display: inline-flex; align-items: center; justify-content: center; background: #722f37; color: white; width: 16px; height: 16px; border-radius: 50%; font-size: 10px; margin-left: 4px; border: 1.5px solid white; box-shadow: 0 0 0 1px #722f37;" title="Verified Event Planner">✓</span>'
         : '';
     
     const clientNameContainer = document.getElementById('clientName');

@@ -807,7 +807,7 @@ body {
 }
 
 .priority-featured {
-  background: linear-gradient(135deg, #10b981, #059669);
+  background: linear-gradient(135deg, #722f37, #5a252b);
 }
 
 .priority-hot {
@@ -2594,7 +2594,7 @@ body {
 }
 
 .badge-verified {
-  background: #10b981;
+  background: #722f37;
   color: white;
 }
 
@@ -2623,7 +2623,7 @@ body {
 }
 
 .verified-check {
-  color: #10b981;
+  color: #722f37;
   font-weight: bold;
   margin-left: 4px;
 }

@@ -145,7 +145,7 @@ function updateUsersTable(users) {
         // Determine status display
         const isActive = user.status === 'active' || user.status === 1 || user.status === '1';
         const statusText = isActive ? 'Active' : 'Inactive';
-        const statusColor = isActive ? '#10b981' : '#ef4444';
+        const statusColor = isActive ? '#722f37' : '#ef4444';
         
         const hasValidUrl = user.profile_pic && user.profile_pic.startsWith('http');
         const profileImage = user.profile_pic 

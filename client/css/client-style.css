@@ -6,21 +6,21 @@
     --client-primary: #722f37; /* Wine */
     --client-primary-dark: #5a252b;
     --client-primary-light: #8b3a44;
-    --client-emerald: #059669; /* Emerald */
+    --client-emerald: #5a252b; /* Emerald */
     --client-emerald-dark: #047857;
-    --client-emerald-light: #34d399;
+    --client-emerald-light: #8b3a44;
     --client-accent: #722f37;
     --client-text-main: #1e293b;
     --client-text-muted: #64748b;
     --client-text-white: #ffffff;
     --client-border: rgba(226, 232, 240, 0.6);
     --card-blue: #3b82f6;
-    --card-green: #059669;
+    --card-green: #5a252b;
     --card-red: #ef4444;
     --card-wine: #722f37;
     
     /* Vibrant Gradients */
-    --grad-emerald: linear-gradient(135deg, #059669 0%, #047857 100%);
+    --grad-emerald: linear-gradient(135deg, #5a252b 0%, #047857 100%);
     --grad-blue: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
     --grad-wine: linear-gradient(135deg, #722f37 0%, #4a1d23 100%);
     --grad-orange: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);

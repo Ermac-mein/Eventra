@@ -176,11 +176,11 @@ function updateTicketsTable(tickets) {
     tbody.innerHTML = tickets.map(ticket => {
         // Price: use server-computed display value ("Free" or formatted ₦)
         const priceDisplay = ticket.price_display === 'Free'
-            ? '<span style="color:#10b981;font-weight:700;">Free</span>'
+            ? '<span style="color:#722f37;font-weight:700;">Free</span>'
             : `<strong>₦${parseFloat(ticket.event_price || ticket.amount || 0).toLocaleString()}</strong>`;
 
         const statusColor = (ticket.status === 'valid' || ticket.payment_status === 'paid')
-            ? '#10b981' : (ticket.status === 'cancelled' ? '#ef4444' : '#f59e0b');
+            ? '#722f37' : (ticket.status === 'cancelled' ? '#ef4444' : '#f59e0b');
 
         const customId = ticket.custom_id
             ? `<div style="font-size:.7rem;color:#94a3b8;font-family:monospace;">${ticket.custom_id}</div>`

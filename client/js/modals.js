@@ -127,7 +127,7 @@ function showProfileEditModal() {
                                     <span>Account Number (10 Digits)</span>
                                     <div id="accountStatus" class="verification-status-indicator">
                                         ${user.subaccount_code 
-                                            ? '<span style="color:#10b981; font-weight: bold;" title="Verified Subaccount">✓ Verified</span>' 
+                                            ? '<span style="color:#722f37; font-weight: bold;" title="Verified Subaccount">✓ Verified</span>' 
                                             : ''}
                                     </div>
                                 </label>
@@ -277,7 +277,7 @@ async function resolveAccount() {
         const result = await response.json();
 
         if (result.success) {
-            statusDiv.innerHTML = '<span style="color:#10b981; font-weight: bold;">✓ Verified</span>';
+            statusDiv.innerHTML = '<span style="color:#722f37; font-weight: bold;">✓ Verified</span>';
             nameInput.value = escapeHTML(result.account_name);
         } else {
             statusDiv.innerHTML = '<span style="color:#ef4444; font-weight: bold;">✕ Invalid</span>';
@@ -356,7 +356,7 @@ function updateFieldStatus(type, status, message = '') {
     if (status === 'loading') {
         statusDiv.innerHTML = '<span class="spinner" style="width: 16px; height: 16px; border: 2px solid #3b82f6; border-top-color: transparent; border-radius: 50%; display: inline-block; animation: spin 0.8s linear infinite;"></span>';
     } else if (status === 'success') {
-        statusDiv.innerHTML = '<span style="color:#10b981; font-size: 1.1rem; font-weight: bold;" title="Verified">✓</span>';
+        statusDiv.innerHTML = '<span style="color:#722f37; font-size: 1.1rem; font-weight: bold;" title="Verified">✓</span>';
     } else if (status === 'error') {
         statusDiv.innerHTML = `<span style="color:#ef4444; font-size: 1.1rem; font-weight: bold; cursor: help;" title="${escapeHTML(message)}">✕</span>`;
     }
@@ -541,7 +541,7 @@ function displayEventPreview(event) {
                                     ✏️ Edit Event
                                 </button>
                                 ${status.toLowerCase() !== 'published' ? `
-                                    <button onclick="publishEvent(${event.id})" class="btn" style="flex: 2; background: #10b981; color: white; border: none; padding: 1.1rem; border-radius: 14px; font-weight: 700; cursor: pointer; transition: all 0.2s; font-size: 1rem; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);">
+                                    <button onclick="publishEvent(${event.id})" class="btn" style="flex: 2; background: #722f37; color: white; border: none; padding: 1.1rem; border-radius: 14px; font-weight: 700; cursor: pointer; transition: all 0.2s; font-size: 1rem; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);">
                                         ✓ Publish Now
                                     </button>
                                 ` : `
@@ -609,7 +609,7 @@ function getNigerianStates(includeGlobal = false) {
 
 function getStatusBadgeColor(status) {
     const colors = {
-        'published': '#10b981',
+        'published': '#722f37',
         'scheduled': '#3b82f6',
         'draft': '#ef4444',
         'cancelled': '#6b7280'
@@ -622,7 +622,7 @@ function getPriorityBadgeColor(priority) {
         'hot': '#ef4444',
         'trending': '#f59e0b',
         'featured': '#2ecc71',
-        'nearby': '#10b981',
+        'nearby': '#722f37',
         'upcoming': '#3b82f6'
     };
     return colors[priority] || '#6b7280';
@@ -659,7 +659,7 @@ async function publishEvent(eventId) {
         text: 'Are you sure you want to publish this event? It will be visible to all users on the platform.',
         icon: 'question',
         showCancelButton: true,
-        confirmButtonColor: '#10b981',
+        confirmButtonColor: '#722f37',
         cancelButtonColor: '#9ca3af',
         confirmButtonText: 'Yes, Publish',
         cancelButtonText: 'Wait'
@@ -1162,7 +1162,7 @@ function showUserPreviewModal(user) {
 
                             <div>
                                 <div style="font-size: 0.75rem; text-transform: uppercase; color: var(--client-text-muted); font-weight: 700; margin-bottom: 0.25rem; letter-spacing: 0.5px;">Status</div>
-                                <div style="font-weight: 700; padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; display: inline-block; ${(user.status === 'active' || user.status === 1 || user.status === '1') ? 'background: #d1fae5; color: #10b981;' : 'background: #fee2e2; color: #ef4444;'}">
+                                <div style="font-weight: 700; padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; display: inline-block; ${(user.status === 'active' || user.status === 1 || user.status === '1') ? 'background: #d1fae5; color: #722f37;' : 'background: #fee2e2; color: #ef4444;'}">
                                     ${(user.status === 'active' || user.status === 1 || user.status === '1') ? 'Active' : 'Inactive'}
                                 </div>
                             </div>

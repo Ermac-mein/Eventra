@@ -31,7 +31,7 @@ class DeletedEventModal {
                     </div>
                     <div class="modal-footer" style="padding: 1.5rem 2rem; border-top: 1px solid #e5e7eb; display: flex; gap: 1rem; justify-content: flex-end; background: #f9fafb;">
                         <button class="btn-delete-permanent" style="background: #ef4444; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 10px; font-weight: 700; cursor: pointer; transition: all 0.3s; font-size: 0.95rem;">Delete Permanently</button>
-                        <button class="btn-restore" style="background: #10b981; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 10px; font-weight: 700; cursor: pointer; transition: all 0.3s; font-size: 0.95rem;">Restore Event</button>
+                        <button class="btn-restore" style="background: #722f37; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 10px; font-weight: 700; cursor: pointer; transition: all 0.3s; font-size: 0.95rem;">Restore Event</button>
                     </div>
                 </div>
             </div>
@@ -140,7 +140,7 @@ class DeletedEventModal {
                 text: 'This event will be restored with "restored" status. You can edit and publish it again.',
                 icon: 'question',
                 showCancelButton: true,
-                confirmButtonColor: '#10b981',
+                confirmButtonColor: '#722f37',
                 cancelButtonColor: '#9ca3af',
                 confirmButtonText: 'Yes, Restore',
                 cancelButtonText: 'Cancel'

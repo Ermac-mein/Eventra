@@ -233,7 +233,7 @@ function updateEventsTable(events) {
             <td>${event.event_type}</td>
             <td>
                 ${parseFloat(event.price) === 0 
-                    ? '<span style="background: #ecfdf5; color: #10b981; padding: 2px 8px; border-radius: 4px; font-weight: 600; font-size: 0.8rem;">Free</span>' 
+                    ? '<span style="background: #ecfdf5; color: #722f37; padding: 2px 8px; border-radius: 4px; font-weight: 600; font-size: 0.8rem;">Free</span>' 
                     : `₦${parseFloat(event.price).toLocaleString()}`}
             </td>
             <td>
@@ -602,7 +602,7 @@ async function restoreEvent(eventId) {
         text: 'This event will be restored with "Restored" status. You can then edit and re-publish it.',
         icon: 'question',
         showCancelButton: true,
-        confirmButtonColor: '#10b981',
+        confirmButtonColor: '#722f37',
         cancelButtonColor: '#9ca3af',
         confirmButtonText: 'Yes, Restore',
         cancelButtonText: 'Cancel'
@@ -900,7 +900,7 @@ async function previewEvent(eventId) {
                         </div>
 
                         ${status.toLowerCase() !== 'published' ? `
-                            <button onclick="publishEvent(${eventId})" style="width: 100%; padding: 1.25rem; background: #10b981; color: white; border: none; border-radius: 18px; font-weight: 800; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 12px; transition: all 0.3s ease; box-shadow: 0 10px 20px rgba(16, 185, 129, 0.2);">
+                            <button onclick="publishEvent(${eventId})" style="width: 100%; padding: 1.25rem; background: #722f37; color: white; border: none; border-radius: 18px; font-weight: 800; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 12px; transition: all 0.3s ease; box-shadow: 0 10px 20px rgba(16, 185, 129, 0.2);">
                                 🚀 Publish Event Now
                             </button>
                         ` : ''}
@@ -926,7 +926,7 @@ async function publishEvent(eventId) {
         text: 'Are you sure you want to publish this event? It will be visible to all users on the platform.',
         icon: 'question',
         showCancelButton: true,
-        confirmButtonColor: '#10b981',
+        confirmButtonColor: '#722f37',
         cancelButtonColor: '#9ca3af',
         confirmButtonText: 'Yes, Publish',
         cancelButtonText: 'Wait'

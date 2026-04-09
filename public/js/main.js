@@ -744,7 +744,7 @@ function createEventCard(event, index) {
   const isPassed = new Date(event.event_date) < new Date();
   const status = isPassed ? 'passed' : (event.sold_out ? 'sold-out' : 'upcoming');
   const statusLabel = isPassed ? 'Passed' : (event.sold_out ? 'Sold Out' : 'Upcoming');
-  const statusColor = isPassed ? '#6b7280' : (event.sold_out ? '#ef4444' : '#10b981');
+  const statusColor = isPassed ? '#6b7280' : (event.sold_out ? '#ef4444' : '#722f37');
   
   const eventTime = escapeHTML(event.event_time) || '12:00:00';
   const isFavorite = event.is_favorite ? 'active' : '';
@@ -1412,7 +1412,7 @@ function showEventModal(eventId) {
       orgContainer.style.alignItems = 'center';
       orgContainer.style.gap = '8px';
       orgContainer.innerHTML = `Organized by <span style="font-weight: 600;">${escapeHTML(event.organizer_name || event.client_name || 'Eventra')}</span> 
-      ${typeof getVerificationBadge === 'function' ? getVerificationBadge(event.verification_status) : (event.is_verified == 1 ? '<span class="verified-check" style="color: #10b981; margin-left: 5px;" title="Verified">✓</span>' : '')}`;
+      ${typeof getVerificationBadge === 'function' ? getVerificationBadge(event.verification_status) : (event.is_verified == 1 ? '<span class="verified-check" style="color: #722f37; margin-left: 5px;" title="Verified">✓</span>' : '')}`;
   }
   if (window.lucide) window.lucide.createIcons();
   if (document.getElementById('modalEventDate')) document.getElementById('modalEventDate').textContent = new Date(event.event_date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });

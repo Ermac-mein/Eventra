@@ -203,7 +203,7 @@ function renderPaymentsTable(payments) {
 
     tbody.innerHTML = payments.map(p => {
         const badgeClass = `status-${p.status}`;
-        const amountDisplay = parseFloat(p.amount) === 0 ? '<span style="color:#10b981;font-weight:700">Free</span>' : `₦${parseFloat(p.amount).toLocaleString()}`;
+        const amountDisplay = parseFloat(p.amount) === 0 ? '<span style="color:#722f37;font-weight:700">Free</span>' : `₦${parseFloat(p.amount).toLocaleString()}`;
         const rowData = encodeURIComponent(JSON.stringify(p));
         
         const userCustomId = p.user_custom_id ? `<div style="font-size:.7rem;color:#94a3b8;font-family:monospace;">${p.user_custom_id}</div>` : '';
@@ -280,7 +280,7 @@ function renderRefundsTable(requests) {
             <td style="text-align:right;">
                 ${r.status === 'pending' ? `
                     <div style="display:flex;gap:8px;justify-content:flex-end;">
-                        <button onclick="reviewRefund(${r.id}, 'approve')" class="page-btn active" style="padding:4px 12px;background:#10b981;border-color:#10b981;font-size:0.8rem;">Approve</button>
+                        <button onclick="reviewRefund(${r.id}, 'approve')" class="page-btn active" style="padding:4px 12px;background:#722f37;border-color:#722f37;font-size:0.8rem;">Approve</button>
                         <button onclick="reviewRefund(${r.id}, 'decline')" class="page-btn" style="padding:4px 12px;color:#ef4444;font-size:0.8rem;">Decline</button>
                     </div>
                 ` : `
@@ -324,7 +324,7 @@ async function reviewRefund(requestId, action) {
             text: "This will call Paystack to refund the money and cancel the ticket. This action cannot be undone.",
             icon: 'warning',
             showCancelButton: true,
-            confirmButtonColor: '#10b981',
+            confirmButtonColor: '#722f37',
             cancelButtonColor: '#9ca3af',
             confirmButtonText: 'Yes, Approve'
         });
@@ -423,8 +423,8 @@ function openDetailModal(payment) {
     modalContent.style.boxShadow = '0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04)';
 
     const statusMap = {
-        'paid': { color: '#10b981', bg: '#d1fae5', icon: 'check-circle' },
-        'confirmed': { color: '#10b981', bg: '#d1fae5', icon: 'check-circle' },
+        'paid': { color: '#722f37', bg: '#d1fae5', icon: 'check-circle' },
+        'confirmed': { color: '#722f37', bg: '#d1fae5', icon: 'check-circle' },
         'pending': { color: '#f59e0b', bg: '#fef3c7', icon: 'clock' },
         'failed': { color: '#ef4444', bg: '#fee2e2', icon: 'x-circle' }
     };
