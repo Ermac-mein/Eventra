@@ -12,19 +12,20 @@ function showTicketDesignPreview(eventId) {
     const address = row.dataset.address || row.cells[1].innerText;
     let eventImage = row.dataset.image;
     
-    // Fallback to API fetch if image not in dataset
-    if (!eventImage) {
+    // Normalize image path using getImageUrl
+    if (eventImage) {
+        eventImage = getImageUrl(eventImage);
+    } else {
+        // Fallback to API fetch if image not in dataset
         fetch(`/api/events/get-event.php?id=${eventId}`)
             .then(r => r.json())
             .then(result => {
                 if (result.success && result.event) {
-                    eventImage = result.event.image_path || 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=1200&fit=crop';
+                    eventImage = result.event.image_path ? getImageUrl(result.event.image_path) : 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=1200&fit=crop';
                     const imgEl = document.querySelector('#ticketPreviewModal img');
                     if (imgEl) imgEl.src = eventImage;
                 }
             })
-    } else if (!eventImage.startsWith('http') && !eventImage.startsWith('/')) {
-        eventImage = '/' + eventImage;
     }
     
     const formattedDate = new Date(date).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });

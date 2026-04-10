@@ -85,6 +85,35 @@ function getProfileImg(path, name = '') {
 }
 
 /**
+ * Get normalized image URL for any image (event, ticket, media, etc)
+ * @param {string} path - Database image path
+ * @returns {string} - Final URL
+ */
+function getImageUrl(path) {
+  if (!path || path.trim() === '' || path === 'null' || path === 'undefined') {
+    return '';
+  }
+
+  // Handle external URLs
+  if (path.startsWith('http')) {
+    return path;
+  }
+
+  let finalPath = path;
+  
+  // Normalize path - ensure it starts with /
+  if (!finalPath.startsWith('/')) {
+    finalPath = '/' + finalPath;
+  }
+
+  // Ensure double slashes are removed
+  finalPath = finalPath.replace(/\/\//g, '/');
+
+  // Return absolute URL
+  return window.location.origin + finalPath;
+}
+
+/**
  * Get verification badge HTML
  * @param {string} status - 'verified', 'pending', 'rejected'
  * @returns {string} - Badge HTML

@@ -346,8 +346,18 @@ function openDetailModal(payment) {
         ? '<span style="color:#10b981;font-weight:700">Free</span>'
         : `<strong>₦${parseFloat(payment.amount).toLocaleString()}</strong>`;
 
-    const imageUrl = payment.event_image ? payment.event_image : '/public/assets/event-placeholder.jpg';
-    const backgroundImage = payment.event_image ? `url(${imageUrl})` : 'linear-gradient(135deg, #f1f5f9, #e2e8f0)';
+    // Proper image path resolution for payment modal
+    let imageUrl = 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=1200&fit=crop';
+    if (payment.event_image) {
+        if (payment.event_image.startsWith('http') || payment.event_image.startsWith('data:')) {
+            imageUrl = payment.event_image;
+        } else if (payment.event_image.startsWith('/')) {
+            imageUrl = '../../' + payment.event_image.substring(1);
+        } else {
+            imageUrl = '../../' + payment.event_image;
+        }
+    }
+    const backgroundImage = payment.event_image ? `url('${imageUrl}')` : 'linear-gradient(135deg, #f1f5f9, #e2e8f0)';
 
     content.innerHTML = `
         <div style="text-align:center;margin-bottom:1.5rem;">

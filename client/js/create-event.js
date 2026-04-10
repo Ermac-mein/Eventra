@@ -306,7 +306,7 @@ function showCreateEventModal() {
 
                                 <!-- Submit Buttons -->
                                 <div style="display: flex; gap: 1.25rem; margin-top: 1rem;">
-                                    <button type="submit" class="btn btn-primary" style="flex: 2; padding: 1.25rem; font-size: 1.125rem; font-weight: 700; justify-content: center; background: linear-gradient(135deg, #722f37, #4c1d95); border: none; border-radius: 14px; color: white; cursor: pointer; box-shadow: 0 10px 25px rgba(139, 92, 246, 0.3); transition: all 0.3s;">
+                                    <button type="submit" class="btn btn-primary" style="flex: 2; padding: 1.25rem; font-size: 1.125rem; font-weight: 700; justify-content: center; background: #4f46e5; border: none; border-radius: 14px; color: white; cursor: pointer; box-shadow: 0 10px 25px rgba(79, 70, 229, 0.3); transition: all 0.3s;">
                                         Create Event ✨
                                     </button>
                                     <button type="button" class="btn btn-secondary" onclick="closeCreateEventModal()" style="flex: 1; padding: 1.25rem; font-size: 1.125rem; justify-content: center; background: white; border: 2px solid #e5e7eb; border-radius: 14px; color: #6b7280; cursor: pointer; font-weight: 600; transition: all 0.3s;">

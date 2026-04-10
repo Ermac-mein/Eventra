@@ -688,12 +688,12 @@ td { padding: 1.25rem 2rem; border-bottom: 1px solid var(--client-border); font-
 }
 
 .media-thumb {
-    height: 140px;
+    height: 90px;
     background: #f8fafc;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 3.5rem;
+    font-size: 2.5rem;
     position: relative;
     border-bottom: 1px solid var(--client-border);
 }
@@ -707,7 +707,7 @@ td { padding: 1.25rem 2rem; border-bottom: 1px solid var(--client-border); font-
 }
 
 .media-info {
-    padding: 1rem;
+    padding: 0.75rem;
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -970,6 +970,27 @@ td { padding: 1.25rem 2rem; border-bottom: 1px solid var(--client-border); font-
     border-radius: 10px;
     border: 1px solid #e0e0e0;
     background: #f8f8f8;
+}
+
+/* Ensure date picker calendar is visible on hover */
+input[type="date"] {
+    position: relative;
+    z-index: 1;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    color: #1e293b;
+    opacity: 1;
+    z-index: 10;
+}
+
+input[type="date"]::-webkit-datetime-edit {
+    color: #1e293b !important;
+}
+
+input[type="date"]::-webkit-datetime-edit-text {
+    color: #1e293b !important;
 }
 
 .upload-zone {
@@ -2469,4 +2490,45 @@ td { padding: 1.25rem 2rem; border-bottom: 1px solid var(--client-border); font-
     .shown-desktop {
         display: block !important;
     }
+}
+
+/* SweetAlert2 Enhancements */
+.swal2-container {
+    z-index: 9999 !important;
+}
+
+.swal2-popup {
+    background: #1e293b !important;
+    color: #fff !important;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3) !important;
+    border-radius: 16px !important;
+}
+
+.swal2-title {
+    color: #fff !important;
+    font-weight: 700 !important;
+}
+
+.swal2-html-container {
+    color: #e2e8f0 !important;
+}
+
+.swal2-confirm {
+    background: #4f46e5 !important;
+    border-radius: 8px !important;
+    font-weight: 600 !important;
+}
+
+.swal2-confirm:hover {
+    background: #4338ca !important;
+}
+
+.swal2-cancel {
+    background: #6b7280 !important;
+    border-radius: 8px !important;
+    font-weight: 600 !important;
+}
+
+.swal2-cancel:hover {
+    background: #4b5563 !important;
 }

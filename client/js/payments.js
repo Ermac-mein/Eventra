@@ -449,7 +449,7 @@ function openDetailModal(payment) {
                 <!-- Summary Card with event image overlay -->
                 <div style="flex: 0 0 240px; border-radius: 20px; overflow: hidden; position: relative; border: 1px solid #f1f5f9; min-height: 200px;">
                     ${payment.event_image ? `
-                        <div style="position: absolute; inset: 0; background: url('${payment.event_image.startsWith('/') ? '../..' + payment.event_image : payment.event_image}') center/cover no-repeat;"></div>
+                        <div style="position: absolute; inset: 0; background: url('${getImageUrl(payment.event_image)}') center/cover no-repeat;"></div>
                         <div style="position: absolute; inset: 0; background: linear-gradient(to bottom, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.75) 100%);"></div>
                     ` : `<div style="position: absolute; inset: 0; background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);"></div>`}
                     <div style="position: relative; padding: 2rem; text-align: center; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1rem;">

@@ -214,6 +214,17 @@ async function handleProfileUpdate(e) {
             body: formData
         });
 
+        if (!response) {
+            showNotification('Request failed. Please check your connection and try again.', 'error');
+            return;
+        }
+
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            showNotification('Server returned an invalid response. Please try again.', 'error');
+            return;
+        }
+
         const profileResult = await response.json();
 
         if (profileResult.success) {
@@ -430,6 +441,7 @@ async function fetchEventDetails(eventId) {
 
 function displayEventPreview(event) {
     const eventImage = event.image_path || 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=1200&fit=crop';
+    const normalizedImage = eventImage.startsWith('http') ? eventImage : getImageUrl(eventImage);
     const status = event.status || 'draft';
     const price = parseFloat(event.price) === 0 ? 'Free' : `₦${parseFloat(event.price).toLocaleString()}`;
     const date = new Date(event.event_date).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' });
@@ -447,7 +459,7 @@ function displayEventPreview(event) {
                     <button onclick="closeEventPreviewModal()" style="position: absolute; top: 1.5rem; right: 1.5rem; background: rgba(255,255,255,0.2); border: none; width: 40px; height: 40px; border-radius: 50%; color: white; font-size: 1.5rem; cursor: pointer; z-index: 10; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px);">&times;</button>
                     
                     <div class="event-preview-hero">
-                        <img src="${eventImage.startsWith('http') ? eventImage : (eventImage.startsWith('/') ? '../..' + eventImage : '../../' + eventImage)}" alt="Event">
+                        <img src="${normalizedImage}" alt="Event">
                         <div class="event-status-badge" style="background: ${getStatusBadgeColor(status.toLowerCase())};">
                             ${status}
                         </div>
@@ -455,7 +467,12 @@ function displayEventPreview(event) {
                     
                     <div class="event-preview-content" style="background: white;">
                         <div style="margin-bottom: 2.5rem;">
-                            <h1 class="event-preview-title">${escapeHTML((event.event_name || '').replace(/\s*#\d+$/, ''))}</h1>
+                            <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;">
+                                <h1 class="event-preview-title" style="margin: 0; flex: 1;">${escapeHTML((event.event_name || '').replace(/\s*#\d+$/, ''))}</h1>
+                                <div style="background: #4f46e5; color: white; padding: 0.5rem 1rem; border-radius: 20px; font-size: 0.85rem; font-weight: 700; white-space: nowrap;">
+                                    ID: ${escapeHTML(event.id || 'N/A')}
+                                </div>
+                            </div>
                             <p style="color: #6b7280; font-size: 1.1rem;">Organized by ${escapeHTML(user.name) || 'Eventra'}</p>
                         </div>
 
@@ -525,6 +542,13 @@ function displayEventPreview(event) {
                                 <div style="display: flex; gap: 0.75rem; align-items: center;">
                                     <code style="background: #f3f4f6; padding: 0.85rem 1.25rem; border-radius: 12px; border: 1px solid #e5e7eb; font-family: 'JetBrains Mono', monospace; font-size: 1rem; flex: 1; color: #111827; font-weight: 700;">${escapeHTML(event.tag)}</code>
                                     <button onclick="navigator.clipboard.writeText('${escapeHTML(event.tag)}').then(() => showNotification('Tag copied!', 'success'))" style="background: white; border: 1px solid #d1d5db; width: 48px; height: 48px; border-radius: 12px; cursor: pointer; transition: all 0.2s; font-size: 1.25rem; display: flex; align-items: center; justify-content: center;" title="Copy Tag">📋</button>
+                                </div>
+                            </div>
+                            <div style="margin-bottom: 1.5rem;">
+                                <label style="display: block; font-size: 0.9rem; color: #111827; margin-bottom: 1rem; text-transform: uppercase; font-weight: 800; letter-spacing: 0.05em;">🆔 Event ID</label>
+                                <div style="display: flex; gap: 0.75rem; align-items: center;">
+                                    <code style="background: #f3f4f6; padding: 0.85rem 1.25rem; border-radius: 12px; border: 1px solid #e5e7eb; font-family: 'JetBrains Mono', monospace; font-size: 1rem; flex: 1; color: #111827; font-weight: 700;">${escapeHTML(event.id || 'N/A')}</code>
+                                    <button onclick="navigator.clipboard.writeText('${escapeHTML(event.id)}').then(() => showNotification('ID copied!', 'success'))" style="background: white; border: 1px solid #d1d5db; width: 48px; height: 48px; border-radius: 12px; cursor: pointer; transition: all 0.2s; font-size: 1.25rem; display: flex; align-items: center; justify-content: center;" title="Copy ID">📋</button>
                                 </div>
                             </div>
                             <div style="margin-bottom: 2.5rem;">
@@ -718,7 +742,7 @@ function showEditEventModal(event) {
                             <label style="display: block; font-weight: 600; margin-bottom: 0.5rem;">Event Image</label>
                             <div style="position: relative;">
                                 <img id="editEventImagePreview" 
-                                     src="${event.image_path ? (event.image_path.startsWith('/') ? '../..' + event.image_path : '../../' + event.image_path) : ''}" 
+                                     src="${event.image_path ? getImageUrl(event.image_path) : ''}" 
                                      style="width: 100%; height: 250px; object-fit: cover; border-radius: 12px; border: 2px dashed #d1d5db;">
                                 <label for="editEventImageInput" style="position: absolute; bottom: 1rem; right: 1rem; background: var(--card-blue); color: white; padding: 0.75rem 1.5rem; border-radius: 8px; cursor: pointer; font-weight: 600; box-shadow: 0 4px 12px rgba(0,0,0,0.2);">
                                     📷 Change Image
@@ -728,7 +752,7 @@ function showEditEventModal(event) {
                         </div>
 
                         <!-- Event Basic Info -->
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 2rem;">
                             <div class="form-group" style="grid-column: 1 / -1;">
                                 <label>Event Name *</label>
                                 <input type="text" name="event_name" value="${escapeHTML(event.event_name)}" required>
@@ -1029,9 +1053,7 @@ async function handleEventUpdate(e) {
 
 // Ticket Preview Modal
 function showTicketPreviewModal(ticket) {
-    const imgSrc = ticket.event_image
-        ? (ticket.event_image.startsWith('http') ? ticket.event_image : '../../' + ticket.event_image)
-        : null;
+    const imgSrc = ticket.event_image ? getImageUrl(ticket.event_image) : null;
     const heroBg = imgSrc ? `url("${imgSrc.replace(/"/g, '%22')}")` : 'linear-gradient(135deg, #6366f1 0%, #2ecc71 100%)';
     const price = parseFloat(ticket.price || ticket.total_price || 0) === 0 ? 'Free' : `₦${parseFloat(ticket.price || ticket.total_price || 0).toLocaleString()}`;
     const statusClass = ticket.status === 'valid' ? 'tkt-active' : ticket.status === 'used' ? 'tkt-used' : 'tkt-cancelled';
