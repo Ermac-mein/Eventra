@@ -10,6 +10,7 @@
 
 require_once __DIR__ . '/../../vendor/autoload.php';
 require_once __DIR__ . '/../../config/app.php';
+require_once __DIR__ . '/email-helper.php';
 
 use Dompdf\Dompdf;
 use Dompdf\Options;
@@ -109,6 +110,7 @@ function generateTicketQRCode(array $ticketData): string
         $svgData = $qrcode->render($secureToken);
 
         $fileName = 'qr_' . $ticketData['barcode'] . '.png';
+
         $dir = __DIR__ . '/../../uploads/tickets/qrcodes/';
         if (!is_dir($dir)) {
             mkdir($dir, 0755, true);
@@ -194,15 +196,22 @@ function generateTicketPDF(array $ticketData): string
     $price = $price_display;
 
 
-    // Render Template
-    ob_start();
-    $templatePath = __DIR__ . '/../templates/tickets_design.html';
-    if (file_exists($templatePath)) {
-        include $templatePath;
-    } else {
-        throw new \Exception("Ticket template not found at: " . $templatePath);
-    }
-    $html = ob_get_clean();
+    // Map data for EmailHelper::buildTicketHtml
+    $richTicketData = [
+        'barcode'             => $ticket_id,
+        'event_name'          => $event_name,
+        'user_name'           => $user_name,
+        'location'            => $venue_name,
+        'state'               => $state,
+        'ticket_type'         => $ticket_type,
+        'ticket_type_display' => $event_type_label,
+        'qr_base64'           => $qr_base64,
+        'amount'              => $price_value,
+        'event_date'          => $ticketData['event_date'] ?? null,
+        'event_time'          => $ticketData['event_time'] ?? null,
+    ];
+
+    $html = EmailHelper::buildTicketHtml($richTicketData);
 
     $dompdf->loadHtml($html);
     $dompdf->setPaper('A4', 'portrait');

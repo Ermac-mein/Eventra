@@ -142,13 +142,23 @@ try {
             // Check if resolution was successful
             if (!$resolveRes['ok'] || !($resolveRes['body']['status'] ?? false)) {
                 $errMsg = ($resolveRes['body']['message'] ?? $resolveRes['error'] ?? 'Account resolution failed. Please check the parameters properly.');
-                $pdo->rollBack();
-                http_response_code(400);
-                echo json_encode(['success' => false, 'message' => $errMsg]);
-                exit;
+                
+                // FALLBACK: In Paystack Test Mode, we allow failures to pass through
+                // by using the provided account holder name or falling back to business_name.
+                $isTestMode = (defined('PAYSTACK_SECRET_KEY') && str_starts_with(PAYSTACK_SECRET_KEY, 'sk_test'));
+
+                if ($isTestMode) {
+                    error_log("[Paystack Test Mode] Account resolution failed ($errMsg). Falling back to provided name.");
+                    $resolved_account_name = $_POST['account_name'] ?: ($business_name ?: $name);
+                } else {
+                    $pdo->rollBack();
+                    http_response_code(400);
+                    echo json_encode(['success' => false, 'message' => "Paystack: " . $errMsg]);
+                    exit;
+                }
+            } else {
+                $resolved_account_name = $resolveRes['body']['data']['account_name'] ?? ($business_name ?: $name);
             }
-            
-            $resolved_account_name = $resolveRes['body']['data']['account_name'] ?? ($business_name ?: $name);
 
             $subRes = ensureSubaccount(
                 $pdo,

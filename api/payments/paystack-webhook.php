@@ -152,15 +152,21 @@ function processSuccessfulPayment(PDO $pdo, array $order, array $psData): void
                     'event_image'    => $order['image_path'] ?? null,
                 ];
 
-                $qrCodePath = generateTicketQRCode($ticketData);
-                $pdfPath    = generateTicketPDF($ticketData);
-                $pdfPaths[] = $pdfPath;
+                try {
+                    $qrCodePath = generateTicketQRCode($ticketData);
+                    $pdfPath    = generateTicketPDF($ticketData);
+                    $pdfPaths[] = $pdfPath;
 
-                $pdo->prepare("UPDATE tickets SET qr_code_path = ? WHERE id = ?")
-                    ->execute([str_replace(__DIR__ . '/../../', '', $qrCodePath), $ticket_id]);
+                    $pdo->prepare("UPDATE tickets SET qr_code_path = ? WHERE id = ?")
+                        ->execute([str_replace(__DIR__ . '/../../', '', $qrCodePath), $ticket_id]);
+                } catch (\Throwable $genError) {
+                    error_log("[Webhook] Error generating ticket $barcode: " . $genError->getMessage());
+                    // Continue to next ticket – don't crash the whole webhook
+                }
 
                 $barcodes[] = $barcode;
             }
+
             $barcode = $barcodes[0]; // Primary for email notified
         } else {
             $barcode = $existingTickets[0]['barcode'];

@@ -4,10 +4,24 @@
  * Loads .env file and populates $_ENV superglobal
  */
 
-function loadEnv($path = __DIR__ . '/../.env')
+function loadEnv($path = null)
 {
-    if (!file_exists($path)) {
-        return; // Skip if .env doesn't exist (e.g. in production)
+    // Fallback logic: try .env then .env.example if no path provided
+    if ($path === null) {
+        $primary = __DIR__ . '/../.env';
+        $fallback = __DIR__ . '/../.env.example';
+        
+        if (file_exists($primary)) {
+            $path = $primary;
+        } elseif (file_exists($fallback)) {
+            $path = $fallback;
+            // Note: In a real production environment, we'd usually log a warning 
+            // but here we allow it for the user's testing flexibility.
+        } else {
+            return; // No env files found
+        }
+    } elseif (!file_exists($path)) {
+        return;
     }
 
     $lines = file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);

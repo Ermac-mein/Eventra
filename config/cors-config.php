@@ -4,13 +4,20 @@
  * Handles Cross-Origin Resource Sharing for localhost development
  */
 
-// Allow requests from localhost (for development)
+// Allow requests from localhost (for development) and production domains
 $allowed_origins = [
     'http://localhost:8000',
     'http://127.0.0.1:8000',
     'http://localhost:8001',
     'http://127.0.0.1:8001',
 ];
+
+// Add origins from environment variables if present (comma-separated list)
+$env_origins = getenv('ALLOWED_ORIGINS') ?: ($_ENV['ALLOWED_ORIGINS'] ?? '');
+if (!empty($env_origins)) {
+    $additional_origins = array_map('trim', explode(',', $env_origins));
+    $allowed_origins = array_merge($allowed_origins, $additional_origins);
+}
 
 $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
 

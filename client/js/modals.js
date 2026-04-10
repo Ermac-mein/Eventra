@@ -470,7 +470,7 @@ function displayEventPreview(event) {
                             <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;">
                                 <h1 class="event-preview-title" style="margin: 0; flex: 1;">${escapeHTML((event.event_name || '').replace(/\s*#\d+$/, ''))}</h1>
                                 <div style="background: #4f46e5; color: white; padding: 0.5rem 1rem; border-radius: 20px; font-size: 0.85rem; font-weight: 700; white-space: nowrap;">
-                                    ID: ${escapeHTML(event.id || 'N/A')}
+                                    ID: ${escapeHTML(event.custom_id || event.id || 'N/A')}
                                 </div>
                             </div>
                             <p style="color: #6b7280; font-size: 1.1rem;">Organized by ${escapeHTML(user.name) || 'Eventra'}</p>
@@ -547,8 +547,8 @@ function displayEventPreview(event) {
                             <div style="margin-bottom: 1.5rem;">
                                 <label style="display: block; font-size: 0.9rem; color: #111827; margin-bottom: 1rem; text-transform: uppercase; font-weight: 800; letter-spacing: 0.05em;">🆔 Event ID</label>
                                 <div style="display: flex; gap: 0.75rem; align-items: center;">
-                                    <code style="background: #f3f4f6; padding: 0.85rem 1.25rem; border-radius: 12px; border: 1px solid #e5e7eb; font-family: 'JetBrains Mono', monospace; font-size: 1rem; flex: 1; color: #111827; font-weight: 700;">${escapeHTML(event.id || 'N/A')}</code>
-                                    <button onclick="navigator.clipboard.writeText('${escapeHTML(event.id)}').then(() => showNotification('ID copied!', 'success'))" style="background: white; border: 1px solid #d1d5db; width: 48px; height: 48px; border-radius: 12px; cursor: pointer; transition: all 0.2s; font-size: 1.25rem; display: flex; align-items: center; justify-content: center;" title="Copy ID">📋</button>
+                                    <code style="background: #f3f4f6; padding: 0.85rem 1.25rem; border-radius: 12px; border: 1px solid #e5e7eb; font-family: 'JetBrains Mono', monospace; font-size: 1rem; flex: 1; color: #111827; font-weight: 700;">${escapeHTML(event.custom_id || event.id || 'N/A')}</code>
+                                    <button onclick="navigator.clipboard.writeText('${escapeHTML(event.custom_id || event.id)}').then(() => showNotification('ID copied!', 'success'))" style="background: white; border: 1px solid #d1d5db; width: 48px; height: 48px; border-radius: 12px; cursor: pointer; transition: all 0.2s; font-size: 1.25rem; display: flex; align-items: center; justify-content: center;" title="Copy ID">📋</button>
                                 </div>
                             </div>
                             <div style="margin-bottom: 2.5rem;">

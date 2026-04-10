@@ -725,7 +725,7 @@ async function previewEvent(eventId) {
             event = {
                 id: eventId,
                 name: data.event_name,
-                custom_id: data.id, // Using DB ID as requested
+                custom_id: data.custom_id || data.id, // Using Alphanumeric ID for display
                 client_name: data.client_name || 'N/A',
                 price: parseFloat(data.price) === 0 ? 'Free' : `₦${parseFloat(data.price).toLocaleString()}`,
                 attendees: data.attendee_count,
@@ -811,7 +811,7 @@ async function previewEvent(eventId) {
                         ${status}
                     </div>
                     <div style="background: rgba(255,255,255,0.2); color: white; padding: 0.6rem 1.2rem; border-radius: 12px; font-weight: 800; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.3);">
-                        ID: ${event.id}
+                        ID: ${event.custom_id}
                     </div>
                 </div>
 

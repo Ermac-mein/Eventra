@@ -82,6 +82,22 @@ function ensureSubaccount($pdo, $client_auth_id, $bank_code, $account_number, $b
 
     if (!$res['ok']) {
         $msg = $res['body']['message'] ?? $res['error'] ?? 'Unknown Paystack error';
+        
+        // CHECKPOINT: If in Test Mode, we allow subaccount failures to pass through
+        // so that the profile update isn't blocked by invalid dummy bank info.
+        $isTestMode = (defined('PAYSTACK_SECRET_KEY') && str_starts_with(PAYSTACK_SECRET_KEY, 'sk_test'));
+        if ($isTestMode) {
+            error_log("[Paystack Test Mode] Subaccount creation/update failed: " . $msg);
+            $mock_code = $existing_subaccount_code ?: 'SETTLE_MOCK_' . strtoupper(substr(md5($client_auth_id), 0, 8));
+            return [
+                'success' => true, 
+                'subaccount_code' => $mock_code, 
+                'subaccount_id' => 0,
+                'is_mock' => true,
+                'message' => "Mocked subaccount due to Test Mode"
+            ];
+        }
+
         return ['success' => false, 'message' => "Paystack: " . $msg];
     }
 

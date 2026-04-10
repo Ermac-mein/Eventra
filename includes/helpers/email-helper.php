@@ -14,841 +14,957 @@ require_once __DIR__ . '/../../config/email.php';
 class EmailHelper
 {
     /**
-     * Send an email with optional file attachments
- *
- * @param string $to          Recipient email address
- * @param string $subject     Email subject
- * @param string $body        Email HTML content
- * @param array  $attachments Array of absolute file paths to attach
- * @param string $altBody     Plain-text fallback (auto-generated if empty)
- * @return array ['success' => bool, 'message' => string]
- */
-    public static function sendEmail(string $to, string $subject, string $body, array $attachments = [], string $altBody = ''): array
-{
-    if (empty(SMTP_HOST) || empty(SMTP_USER) || empty(SMTP_PASS)) {
-        error_log('[Email Helper] Error: SMTP credentials not configured.');
-        return ['success' => false, 'message' => 'SMTP credentials not configured. Please contact the administrator.'];
-    }
-
-    $mail = new PHPMailer(true);
-
-    try {
-        // ── Server settings ───────────────────────────────────
-        $mail->isSMTP();
-        $mail->Host       = SMTP_HOST;
-        $mail->SMTPAuth   = true;
-        $mail->Username   = SMTP_USER;
-        $mail->Password   = SMTP_PASS;
-        $mail->SMTPSecure = SMTP_SECURE;
-        $mail->Port       = (int) SMTP_PORT;
-
-        // ── Recipients ────────────────────────────────────────
-        $mail->setFrom(EMAIL_FROM, EMAIL_FROM_NAME);
-        $mail->addAddress($to);
-
-        // ── Attachments ───────────────────────────────────────
-        foreach ($attachments as $filePath) {
-            if (file_exists($filePath)) {
-                $mail->addAttachment($filePath);
-            } else {
-                error_log("[Email Helper] Attachment not found: {$filePath}");
-            }
+     * Send an email with optional file attachments.
+     *
+     * @param string $to          Recipient email address
+     * @param string $subject     Email subject
+     * @param string $body        Email HTML content
+     * @param array  $attachments Array of absolute file paths to attach
+     * @param string $altBody     Plain-text fallback (auto-generated if empty)
+     * @return array ['success' => bool, 'message' => string]
+     */
+    public static function sendEmail(
+        string $to,
+        string $subject,
+        string $body,
+        array  $attachments = [],
+        string $altBody     = ''
+    ): array {
+        if (empty(SMTP_HOST) || empty(SMTP_USER) || empty(SMTP_PASS)) {
+            error_log('[EmailHelper] SMTP credentials not configured.');
+            return ['success' => false, 'message' => 'SMTP credentials not configured.'];
         }
 
-        // ── Content ───────────────────────────────────────────
-        $mail->isHTML(true);
-        $mail->Subject = $subject;
-        $mail->Body    = $body;
-        $mail->AltBody = $altBody ?: strip_tags($body);
+        $mail = new PHPMailer(true);
 
-        $mail->send();
+        try {
+            $mail->isSMTP();
+            $mail->Host       = SMTP_HOST;
+            $mail->SMTPAuth   = true;
+            $mail->Username   = SMTP_USER;
+            $mail->Password   = SMTP_PASS;
+            $mail->SMTPSecure = SMTP_SECURE;
+            $mail->Port       = (int) SMTP_PORT;
 
-        error_log("[Email Helper] Email sent to: {$to} | Subject: {$subject}");
-        return ['success' => true, 'message' => 'Email sent successfully'];
+            $mail->setFrom(EMAIL_FROM, EMAIL_FROM_NAME);
+            $mail->addAddress($to);
 
-    } catch (Exception $e) {
-        error_log("[Email Helper] Mailer error to {$to}: {$mail->ErrorInfo}");
-        return ['success' => false, 'message' => "Email delivery failed: {$mail->ErrorInfo}"];
+            foreach ($attachments as $filePath) {
+                if (file_exists($filePath)) {
+                    $mail->addAttachment($filePath);
+                } else {
+                    error_log("[EmailHelper] Attachment not found: {$filePath}");
+                }
+            }
+
+            $mail->isHTML(true);
+            $mail->Subject = $subject;
+            $mail->Body    = $body;
+            $mail->AltBody = $altBody ?: strip_tags($body);
+
+            $mail->send();
+            error_log("[EmailHelper] Sent to: {$to} | Subject: {$subject}");
+            return ['success' => true, 'message' => 'Email sent successfully'];
+
+        } catch (Exception $ex) {
+            error_log("[EmailHelper] Mailer error to {$to}: {$mail->ErrorInfo}");
+            return ['success' => false, 'message' => "Email delivery failed: {$mail->ErrorInfo}"];
+        }
     }
-}
 
-/**
- * Send Ticket Purchase Confirmation Email (simple/legacy wrapper)
- *
- * @param string $to
- * @param string $userName
- * @param string $eventName
- * @param string $barcode
- * @param string $pdfPath   Optional path to PDF ticket attachment
- * @return array
- */
-    public static function sendTicketEmail(string $to, string $userName, string $eventName, string $barcode, string $pdfPath = ''): array
-{
-    $subject     = "Your Ticket for {$eventName}";
-    $safeUser    = htmlspecialchars($userName,  ENT_QUOTES, 'UTF-8');
-    $safeEvent   = htmlspecialchars($eventName, ENT_QUOTES, 'UTF-8');
-    $safeBarcode = htmlspecialchars($barcode,   ENT_QUOTES, 'UTF-8');
-    $year        = date('Y');
+    /* ─────────────────────────────────────────────────────────────
+     *  LEGACY SIMPLE CONFIRMATION WRAPPER
+     * ───────────────────────────────────────────────────────────── */
 
-    $body = <<<HTML
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee;">
-        <h2 style="color: #2ecc71;">Ticket Confirmation</h2>
-        <p>Hi <strong>{$safeUser}</strong>,</p>
-        <p>Thank you for your purchase! Your ticket for <strong>{$safeEvent}</strong> is ready.</p>
-        <div style="background: #f9f9f9; padding: 20px; text-align: center; border-radius: 10px; margin: 20px 0;">
-            <p style="margin-bottom: 5px; color: #666;">Ticket ID</p>
-            <div style="font-size: 24px; font-weight: bold; letter-spacing: 5px; color: #2ecc71;">{$safeBarcode}</div>
+    /**
+     * Send a simple ticket confirmation email.
+     */
+    public static function sendTicketEmail(
+        string $to,
+        string $userName,
+        string $eventName,
+        string $barcode,
+        string $pdfPath = ''
+    ): array {
+        $subject     = "Your Ticket for {$eventName}";
+        $safeUser    = htmlspecialchars($userName,  ENT_QUOTES, 'UTF-8');
+        $safeEvent   = htmlspecialchars($eventName, ENT_QUOTES, 'UTF-8');
+        $safeBarcode = htmlspecialchars($barcode,   ENT_QUOTES, 'UTF-8');
+        $year        = date('Y');
+
+        $body = <<<HTML
+        <div style="font-family:Arial,sans-serif;max-width:600px;margin:auto;padding:20px;border:1px solid #eee;">
+            <h2 style="color:#2ecc71;">Ticket Confirmation</h2>
+            <p>Hi <strong>{$safeUser}</strong>,</p>
+            <p>Thank you for your purchase! Your ticket for <strong>{$safeEvent}</strong> is ready.</p>
+            <div style="background:#f9f9f9;padding:20px;text-align:center;border-radius:10px;margin:20px 0;">
+                <p style="margin-bottom:5px;color:#666;">Ticket ID</p>
+                <div style="font-size:24px;font-weight:bold;letter-spacing:5px;color:#2ecc71;">{$safeBarcode}</div>
+            </div>
+            <p>Your PDF ticket is attached. Please present the QR code at the venue entrance.</p>
+            <hr style="border:0;border-top:1px solid #eee;margin:20px 0;">
+            <p style="font-size:12px;color:#999;text-align:center;">&copy; {$year} Eventra. All rights reserved.</p>
         </div>
-        <p>Your PDF ticket is attached to this email. Please present the QR code at the venue entrance.</p>
-        <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
-        <p style="font-size: 12px; color: #999; text-align: center;">
-            &copy; {$year} Eventra. All rights reserved.
-        </p>
-    </div>
-    HTML;
+        HTML;
 
-    $attachments = ($pdfPath && file_exists($pdfPath)) ? [$pdfPath] : [];
-    return self::sendEmail($to, $subject, $body, $attachments);
-}
+        $attachments = ($pdfPath && file_exists($pdfPath)) ? [$pdfPath] : [];
+        return self::sendEmail($to, $subject, $body, $attachments);
+    }
 
-/**
- * Build the ticket HTML body for use in emails or PDF generation.
- * Extracted into its own function so it can be reused by both
- * sendTicketEmailFull() and any standalone PDF renderer.
- *
- * @param array  $ticketData  Keys: barcode, event_name, event_date, event_time,
- *                            location, state, user_name, order_id, amount,
- *                            ticket_type, ticket_type_display, qr_base64
- * @param string $downloadUrl Optional URL for the PDF download button
- * @return string             Complete HTML document as a string
- */
+    /* ─────────────────────────────────────────────────────────────
+     *  PRIVATE HELPERS
+     * ───────────────────────────────────────────────────────────── */
+
+    /**
+     * Sanitise a string for safe HTML output.
+     */
+    private static function esc(string $v): string
+    {
+        return htmlspecialchars($v, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+    }
+
+    /**
+     * Build one label + value row for the detail table cells.
+     * Uses fully inline styles so it survives email clients and DOMPDF.
+     */
+    private static function detailRow(string $label, string $value, bool $priceStyle = false): string
+    {
+        $valueStyle = $priceStyle
+            ? 'font-family:\'Barlow Condensed\',Arial,sans-serif;font-size:17px;font-weight:800;color:#d4af37;line-height:1.2;display:block;'
+            : 'font-family:\'Barlow Condensed\',Arial,sans-serif;font-size:15px;font-weight:600;color:#d4af37;line-height:1.2;display:block;';
+
+        return '<div style="margin-bottom:14px;">'
+             . '<span style="display:block;font-family:\'Barlow Condensed\',Arial,sans-serif;'
+             . 'font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;'
+             . 'color:rgba(255,255,255,0.30);margin-bottom:3px;">'
+             . self::esc($label)
+             . '</span>'
+             . '<span style="' . $valueStyle . '">' . $value . '</span>'
+             . '</div>';
+    }
+
     public static function buildTicketHtml(array $ticketData, string $downloadUrl = ''): string
-{
-    /* ── 1. Sanitise text values ─────────────────────────────── */
-    $e = static fn(string $v): string =>
-        htmlspecialchars($v, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
- 
-    $barcode     = $e($ticketData['barcode']             ?? '');
-    $ticketId    = $e($ticketData['ticket_id']           ?? ($ticketData['barcode'] ?? ''));
-    $eventTitle  = $e($ticketData['event_name']          ?? 'Your Event');
-    $userName    = $e($ticketData['user_name']           ?? 'Attendee');
-    $location    = $e($ticketData['location']            ?? '—');
-    $state       = $e($ticketData['state']               ?? '');
-    $organizer   = $e($ticketData['organizer']           ?? '');
-    $ticketType  = $e($ticketData['ticket_type']         ?? '');
-    $tick = $e($ticketData['ticket_type_display'] ?? ($ticketData['ticket_type'] ?? ''));
-    $year        = date('Y');
- 
-    /* ── 2. Format date & time ───────────────────────────────── */
-    $eventDate = !empty($ticketData['event_date'])
-        ? $e(date('D, d M Y', strtotime((string)$ticketData['event_date'])))
-        : 'TBC';
-    $eventTime = !empty($ticketData['event_time'])
-        ? $e(date('g:i A', strtotime((string)$ticketData['event_time'])))
-        : 'TBC';
- 
-    /* ── 3. Format price ─────────────────────────────────────── */
-    $amount = '';
-    if (isset($ticketData['amount']) && (float)$ticketData['amount'] > 0) {
-        $amount = '&#8358;' . number_format((float)$ticketData['amount'], 2);
-    } elseif (isset($ticketData['amount'])) {
-        $amount = 'Free';
-    }
- 
-    /* ── 4. QR code image ────────────────────────────────────── */
-    // qr_base64 must arrive as a full data-URI: "data:image/png;base64,…"
-    // Do NOT run htmlspecialchars on a data-URI – it breaks the base64 payload.
-    $qrBase64 = trim((string)($ticketData['qr_base64'] ?? ''));
-    $qrHtml   = ($qrBase64 !== '')
-        ? '<img src="' . $qrBase64 . '" alt="QR Code"
-               style="width:130px;height:130px;display:block;image-rendering:pixelated;">'
-        : '<div style="width:130px;height:130px;background:#e0e0e0;display:flex;
-                       align-items:center;justify-content:center;
-                       font-size:11px;color:#aaa;letter-spacing:1px;">NO QR</div>';
- 
-    /* ── 5. Event banner image ───────────────────────────────── */
-    $eventImage   = trim((string)($ticketData['event_image'] ?? ''));
-    $eventImgHtml = ($eventImage !== '')
-        ? '<img src="' . $eventImage . '" alt="Event Banner"
-               style="width:100%;height:100%;object-fit:cover;display:block;">'
-        : '<div style="width:100%;height:100%;
-                       background:linear-gradient(135deg,#1a1a2e 0%,#0f3460 100%);
-                       display:flex;align-items:center;justify-content:center;">
-               <span style="font-family:\'Bebas Neue\',serif;font-size:11px;
-                            letter-spacing:3px;color:rgba(212,175,55,0.45);">EVENT IMAGE</span>
-           </div>';
- 
-    /* ── 6. Badge (ticket type) ──────────────────────────────── */
-    $badgeBg = '#d4af37';
-    $badgeFg = '#111111';
-    if ($tick !== '') {
-        $lower = strtolower($tick);
-        if (str_contains($lower, 'vip'))  { $badgeBg = '#c0392b'; $badgeFg = '#ffffff'; }
-        if (str_contains($lower, 'free')) { $badgeBg = '#27ae60'; $badgeFg = '#ffffff'; }
-    }
-    $badgeHtml = ($tick !== '')
-        ? '<span style="display:inline-block;background:' . $badgeBg . ';color:' . $badgeFg . ';'
-          . 'font-size:9px;font-weight:800;letter-spacing:2px;text-transform:uppercase;'
-          . 'padding:4px 14px;border-radius:20px;">' . $tick . '</span>'
-        : '&nbsp;'; // keep row height stable even when empty
- 
-    /* ── 7. Optional right-column rows ──────────────────────── */
-    $stateRow    = ($state     !== '') ? _detailCell('State',       $state)     : '';
-    $ticketTypeRow = ($ticketType  !== '') ? _detailCell('Ticket Type', $ticketType) : '';
-    $orgRow      = ($organizer !== '') ? _detailCell('Organizer',   $organizer) : '';
- 
-    /* ── 8. Price cell (col A, fourth row) ───────────────────── */
-    $priceCell = ($amount !== '')
-        ? _detailCell('Price', $amount, 'price')
-        : '';
- 
-    /* ── 9. Download button ──────────────────────────────────── */
-    $dlButton = ($downloadUrl !== '')
-        ? '<div style="text-align:center;margin-top:24px;">'
-          . '<a href="' . $e($downloadUrl) . '" download="ticket.pdf" '
-          . 'style="display:inline-block;padding:12px 32px;'
-          . 'background:linear-gradient(135deg,#d4af37,#f5d87a);'
-          . 'color:#111111;text-decoration:none;border-radius:6px;'
-          . 'font-family:\'Barlow Condensed\',sans-serif;'
-          . 'font-size:13px;font-weight:800;letter-spacing:1.5px;'
-          . 'text-transform:uppercase;">'
-          . '&#8675;&nbsp;Download PDF Ticket'
-          . '</a></div>'
-        : '';
- 
+    {
+        /* ── 1. Sanitise text fields ──────────────────────────── */
+        $barcode     = self::esc($ticketData['barcode']             ?? '');
+        $ticketId    = self::esc($ticketData['ticket_id']           ?? ($ticketData['barcode'] ?? ''));
+        $eventTitle  = self::esc($ticketData['event_name']          ?? 'Your Event');
+        $userName    = self::esc($ticketData['user_name']           ?? 'Attendee');
+        $location    = self::esc($ticketData['location']            ?? '—');
+        $state       = self::esc($ticketData['state']               ?? '');
+        $organizer   = self::esc($ticketData['organizer']           ?? '');
+        $ticketType  = self::esc($ticketData['ticket_type']         ?? '');
+        $tickDispRaw = $ticketData['ticket_type_display']
+                       ?? ($ticketData['ticket_type'] ?? '');
+        $tickDisp    = self::esc($tickDispRaw);
+        $year        = date('Y');
 
-    // ── Build HTML via heredoc (no PHP tags inside the string) ─
-    return <<<HTML
-    <!DOCTYPE html>
+        /* ── 2. Date & time ──────────────────────────────────── */
+        $eventDate = !empty($ticketData['event_date'])
+            ? self::esc(date('D, d M Y', strtotime((string) $ticketData['event_date'])))
+            : 'TBC';
+        $eventTime = !empty($ticketData['event_time'])
+            ? self::esc(date('g:i A', strtotime((string) $ticketData['event_time'])))
+            : 'TBC';
+
+        /* ── 3. Price ─────────────────────────────────────────── */
+        $amountDisplay = '';
+        if (isset($ticketData['amount'])) {
+            $amountFloat = (float) $ticketData['amount'];
+            $amountDisplay = $amountFloat > 0
+                ? '&#8358;' . number_format($amountFloat, 2)
+                : 'Free';
+        }
+
+        /* ── 4. QR code ──────────────────────────────────────── */
+        // IMPORTANT: Never run htmlspecialchars on a base64 data-URI —
+        // it corrupts the payload.  Validate the prefix instead.
+        $qrRaw  = trim((string) ($ticketData['qr_base64'] ?? ''));
+        $qrSafe = (str_starts_with($qrRaw, 'data:image/') && strlen($qrRaw) > 100)
+            ? $qrRaw
+            : '';
+
+        $qrHtml = $qrSafe !== ''
+            ? '<img src="' . $qrSafe . '" alt="QR Code"
+                   width="130" height="130"
+                   style="width:130px;height:130px;display:block;image-rendering:pixelated;">'
+            : '<div style="width:130px;height:130px;background:#e0e0e0;
+                           display:flex;align-items:center;justify-content:center;
+                           font-size:10px;color:#aaa;letter-spacing:1px;
+                           border-radius:4px;">NO QR</div>';
+
+        /* ── 5. Event banner image ────────────────────────────── */
+        $imgRaw  = trim((string) ($ticketData['event_image'] ?? ''));
+        // Accept data-URIs and absolute http(s) URLs
+        $imgSafe = ($imgRaw !== '' && (
+            str_starts_with($imgRaw, 'data:image/')  ||
+            str_starts_with($imgRaw, 'http://')      ||
+            str_starts_with($imgRaw, 'https://')
+        )) ? $imgRaw : '';
+
+        $eventImgHtml = $imgSafe !== ''
+            ? '<img src="' . $imgSafe . '" alt="Event" width="100%"
+                   style="width:100%;height:100%;object-fit:cover;display:block;">'
+            : '<div style="width:100%;height:100%;min-height:140px;
+                           background:linear-gradient(135deg,#1a1a2e 0%,#0f3460 100%);
+                           display:flex;align-items:center;justify-content:center;">
+                   <span style="font-family:Arial,sans-serif;font-size:10px;
+                                letter-spacing:3px;color:rgba(212,175,55,0.45);
+                                text-transform:uppercase;">Event Image</span>
+               </div>';
+
+        /* ── 6. Ticket-type badge ─────────────────────────────── */
+        $badgeBg = '#d4af37';
+        $badgeFg = '#111111';
+        if ($tickDisp !== '') {
+            $lower = strtolower($tickDispRaw);
+            if (str_contains($lower, 'vip'))  { $badgeBg = '#c0392b'; $badgeFg = '#ffffff'; }
+            if (str_contains($lower, 'free')) { $badgeBg = '#27ae60'; $badgeFg = '#ffffff'; }
+        }
+        // Wrap in a block container so it never becomes a stretched flex child
+        $badgeWrapStyle = 'line-height:1;margin-bottom:16px;min-height:22px;';
+        $badgeHtml = $tickDisp !== ''
+            ? '<div style="' . $badgeWrapStyle . '">'
+              . '<span style="display:inline-block;background:' . $badgeBg . ';color:' . $badgeFg . ';'
+              . 'font-family:\'Barlow Condensed\',Arial,sans-serif;'
+              . 'font-size:9px;font-weight:800;letter-spacing:2px;text-transform:uppercase;'
+              . 'padding:4px 14px;border-radius:20px;">'
+              . $tickDisp
+              . '</span></div>'
+            : '<div style="' . $badgeWrapStyle . '"></div>';
+
+        /* ── 7. Build Col A (left detail column) ─────────────── */
+        $colA = self::detailRow('Date',  $eventDate);
+        $colA .= self::detailRow('Time',  $eventTime);
+        $colA .= self::detailRow('Venue', $location);
+        if ($amountDisplay !== '') {
+            $colA .= self::detailRow('Price', $amountDisplay, true);
+        }
+
+        /* ── 8. Build Col B (right detail column) ────────────── */
+        $colB = '';
+        if ($state     !== '') $colB .= self::detailRow('State',       $state);
+        if ($ticketType  !== '') $colB .= self::detailRow('Ticket Type',  $tickDisp ?: $ticketType);
+        if ($organizer !== '') $colB .= self::detailRow('Organizer',    $organizer);
+
+        /* ── 9. Download button ──────────────────────────────── */
+        $dlButtonHtml = '';
+        if ($downloadUrl !== '') {
+            $safeUrl      = self::esc($downloadUrl);
+            $dlButtonHtml = <<<BTN
+            <div style="text-align:center;margin-top:28px;">
+                <a href="{$safeUrl}" download="ticket.pdf"
+                   style="display:inline-block;padding:13px 36px;
+                          background:linear-gradient(135deg,#d4af37,#f5d87a);
+                          color:#111111;text-decoration:none;border-radius:7px;
+                          font-family:'Barlow Condensed',Arial,sans-serif;
+                          font-size:14px;font-weight:800;letter-spacing:1.5px;
+                          text-transform:uppercase;">
+                    &#8675;&nbsp;Download PDF Ticket
+                </a>
+            </div>
+            BTN;
+        }
+
+        /* ── 10. Assemble HTML ───────────────────────────────── */
+        // Layout uses HTML <table> for maximum compatibility with Gmail,
+        // Outlook, Apple Mail and DOMPDF — all of which have incomplete
+        // support for CSS flexbox/grid.
+        return <<<HTML
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Event Ticket &mdash; {$eventTitle}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:wght@400;600;700;800;900&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
         /* ── Reset ──────────────────────────────────────────── */
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
         @page { margin: 0; size: A4 landscape; }
 
         html, body {
             width: 100%;
             min-height: 100%;
-            background: #e8e8e8;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 30px 20px;
-            font-family: 'Barlow', sans-serif;
+            background: #cfcfcf;
+            font-family: 'Barlow', Arial, sans-serif;
+            padding: 40px 20px;
         }
 
         /* ── Outer wrapper ──────────────────────────────────── */
         .ticket-wrapper {
             width: 100%;
-            max-width: 820px;
-            filter: drop-shadow(0 25px 50px rgba(0,0,0,0.35));
+            max-width: 860px;
+            margin: 0 auto;
+            filter: drop-shadow(0 20px 48px rgba(0,0,0,0.42));
         }
 
-        /* ── Ticket shell ───────────────────────────────────── */
-        .ticket {
-            display: flex;
+        /* ── Main ticket table ──────────────────────────────── */
+        .ticket-table {
             width: 100%;
-            border-radius: 12px;
+            border-collapse: collapse;
+            border-spacing: 0;
+            border-radius: 14px;
             overflow: hidden;
+            /* Fallback: min-height on the row */
+        }
+
+        /* ─── LEFT BODY ─────────────────────────────────────── */
+        .td-body {
+            width: 65%;
             background: #111111;
-            min-height: 280px;
-            position: relative;
-        }
-
-        /* ── Notch cutouts on the divider ───────────────────── */
-        .ticket::before,
-        .ticket::after {
-            content: '';
-            position: absolute;
-            top: 50%;
-            transform: translateY(-50%);
-            width: 26px;
-            height: 26px;
-            background: #e8e8e8;
-            border-radius: 50%;
-            z-index: 10;
-        }
-        .ticket::before { left: calc(100% - 220px - 13px); }
-        .ticket::after  { left: calc(100% - 220px - 13px); display: none; } /* single notch pair */
-
-        /* ── Left: main ticket body ─────────────────────────── */
-        .ticket-body {
-            width: 70%;
-            display: flex;
-            flex-direction: column;
+            vertical-align: top;
             padding: 0;
-            background: #111111;
+            border-radius: 14px 0 0 14px;
             position: relative;
-            overflow: hidden;
         }
 
-        /* Decorative diagonal accent stripe */
-        .ticket-body::before {
-            content: '';
-            position: absolute;
-            top: 0; right: 0;
-            width: 180px; height: 100%;
-            background: linear-gradient(135deg, transparent 40%, rgba(212,175,55,0.06) 100%);
-            pointer-events: none;
-        }
-
-        /* Corner dots pattern */
-        .ticket-body::after {
-            content: '';
-            position: absolute;
-            bottom: 16px; left: 32px;
-            width: 60px; height: 30px;
-            background-image: radial-gradient(circle, rgba(212,175,55,0.4) 1.5px, transparent 1.5px);
-            background-size: 10px 10px;
-            pointer-events: none;
-        }
-
-        /* ── Gold top bar ───────────────────────────────────── */
+        /* gold top bar — inside left cell */
         .gold-bar {
             height: 5px;
-            background: linear-gradient(90deg, #d4af37, #f5d87a, #c9a227);
-            flex-shrink: 0;
+            background: linear-gradient(90deg, #c9a227 0%, #f5d87a 50%, #c9a227 100%);
+            display: block;
         }
 
-        /* ── Body inner padding ─────────────────────────────── */
+        /* inner scroll area */
         .body-inner {
-            padding: 28px 32px 24px;
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
+            padding: 22px 28px 16px 28px;
             position: relative;
-            z-index: 2;
         }
 
-        /* Brand line */
-        .brand-line {
+        /* brand row */
+        .brand-row {
             display: flex;
             align-items: center;
             gap: 10px;
-            margin-bottom: 14px;
+            margin-bottom: 12px;
         }
         .brand-name {
-            font-family: 'Bebas Neue', sans-serif;
-            font-size: 13px;
+            font-family: 'Bebas Neue', Arial, sans-serif;
+            font-size: 15px;
             letter-spacing: 4px;
             color: #d4af37;
+            white-space: nowrap;
+            flex-shrink: 0;
         }
-        .brand-divider {
+        .brand-sep {
             flex: 1;
             height: 1px;
-            background: linear-gradient(90deg, rgba(212,175,55,0.4), transparent);
+            background: linear-gradient(90deg, rgba(212,175,55,0.5), transparent);
         }
-        .admission-label {
-            font-family: 'Barlow Condensed', sans-serif;
-            font-size: 10px;
+        .admission-tag {
+            font-family: 'Barlow Condensed', Arial, sans-serif;
+            font-size: 9px;
             letter-spacing: 2px;
             text-transform: uppercase;
-            color: rgba(212,175,55,0.6);
+            color: rgba(212,175,55,0.50);
+            white-space: nowrap;
+            flex-shrink: 0;
         }
 
-        /* Event title */
+        /* event title */
         .event-title {
-            font-family: 'Bebas Neue', sans-serif;
-            font-size: 40px;
-            line-height: 1.1;
+            font-family: 'Bebas Neue', Arial, sans-serif;
+            font-size: 44px;
+            line-height: 1.0;
             color: #ffffff;
-            letter-spacing: 1px;
+            letter-spacing: 1.5px;
             text-transform: uppercase;
             margin-bottom: 10px;
+            word-break: break-word;
         }
 
-        /* Badge */
-        .event-type-badge {
-            display: inline-block;
-            background: #d4af37;
-            color: #111111;
-            font-family: 'Barlow Condensed', sans-serif;
-            font-size: 9px;
-            font-weight: 800;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-            padding: 4px 12px;
-            border-radius: 20px;
-            margin-bottom: 18px;
+        /* two-column detail table */
+        .details-table {
+            width: 100%;
+            border-collapse: collapse;
+            border-spacing: 0;
+            margin-bottom: 0;
         }
-        .event-type-badge.vip  { background: #e63946; color: #fff; }
-        .event-type-badge.free { background: #2a9d8f; color: #fff; }
-
-        /* Details grid */
-        .details-grid {
-            display: block;
-            margin-bottom: 20px;
-        }
-        .detail-item {
-            display: inline-block;
+        .details-table td {
             vertical-align: top;
-            width: 30%;
-            min-width: 100px;
-            margin-bottom: 14px;
-            margin-right: 2%;
+            padding: 0;
+            width: 50%;
         }
-        .detail-label {
-            font-family: 'Barlow Condensed', sans-serif;
-            font-size: 9px;
-            font-weight: 700;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-            color: rgba(255,255,255,0.35);
-            display: block;
-            margin-bottom: 4px;
+        .col-a {
+            padding-right: 20px;
+            border-right: 1px solid rgba(212,175,55,0.15);
         }
-        .detail-value {
-            font-family: 'Barlow Condensed', sans-serif;
-            font-size: 16px;
-            font-weight: 600;
-            color: #d4af37;
-            line-height: 1.2;
-            display: block;
-        }
-        .detail-value.price {
-            font-size: 18px;
-            font-weight: 700;
+        .col-b {
+            padding-left: 20px;
         }
 
-        /* Attendee strip */
-        .attendee-strip {
+        /* ── Holder bar ─────────────────────────────────────── */
+        .holder-bar {
             display: flex;
             align-items: center;
-            gap: 14px;
-            padding-top: 16px;
-            border-top: 1px solid rgba(212,175,55,0.2);
+            justify-content: space-between;
+            gap: 12px;
+            padding: 14px 28px;
+            background: rgba(212,175,55,0.07);
+            border-top: 1px solid rgba(212,175,55,0.18);
+            margin-top: 18px;
         }
-        .attendee-avatar {
-            width: 32px;
-            height: 32px;
+        .holder-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-width: 0;
+        }
+        .holder-avatar {
+            width: 34px;
+            height: 34px;
             border-radius: 50%;
-            border: 1px solid rgba(212,175,55,0.4);
+            border: 1px solid rgba(212,175,55,0.38);
+            background: rgba(212,175,55,0.06);
             display: flex;
             align-items: center;
             justify-content: center;
             flex-shrink: 0;
         }
-        .attendee-avatar svg { width: 16px; height: 16px; fill: #d4af37; opacity: 0.7; }
-        .attendee-info {}
-        .attendee-label {
-            font-size: 9px;
+        .holder-avatar svg { width: 17px; height: 17px; fill: #d4af37; opacity: 0.72; }
+        .holder-caption {
+            font-size: 8px;
             letter-spacing: 1.5px;
             text-transform: uppercase;
-            color: rgba(255,255,255,0.3);
+            color: rgba(255,255,255,0.25);
             margin-bottom: 2px;
+            display: block;
         }
-        .attendee-name {
-            font-family: 'Barlow Condensed', sans-serif;
-            font-size: 18px;
-            font-weight: 700;
+        .holder-name {
+            font-family: 'Barlow Condensed', Arial, sans-serif;
+            font-size: 17px;
+            font-weight: 800;
             color: #ffffff;
             letter-spacing: 0.5px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: block;
+        }
+        .holder-id {
+            text-align: right;
+            flex-shrink: 0;
+        }
+        .holder-id-caption {
+            font-size: 8px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            color: rgba(255,255,255,0.22);
+            display: block;
+            margin-bottom: 2px;
+        }
+        .holder-id-value {
+            font-family: 'Barlow Condensed', Arial, sans-serif;
+            font-size: 11px;
+            font-weight: 700;
+            color: rgba(212,175,55,0.70);
+            letter-spacing: 1.2px;
+            /* CRITICAL: prevent vertical stacking — keep on one line */
+            white-space: nowrap;
+            display: block;
+            max-width: 180px;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
-        /* ── Perforated divider ─────────────────────────────── */
-        .perforation {
+        /* ─── PERFORATION CELL ──────────────────────────────── */
+        .td-perf {
             width: 2px;
             background: repeating-linear-gradient(
                 to bottom,
-                transparent,
-                transparent 6px,
-                rgba(255,255,255,0.12) 6px,
-                rgba(255,255,255,0.12) 12px
+                transparent     0px,
+                transparent     6px,
+                rgba(255,255,255,0.13) 6px,
+                rgba(255,255,255,0.13) 12px
             );
+            vertical-align: top;
             position: relative;
-            flex-shrink: 0;
         }
-        /* Semicircle notches cut into the ticket edges */
-        .perforation::before,
-        .perforation::after {
+        /* top notch */
+        .td-perf::before {
             content: '';
             position: absolute;
-            left: 50%;
+            top: -1px; left: 50%;
             transform: translateX(-50%);
-            width: 22px;
-            height: 11px;
-            background: #e8e8e8;
+            width: 22px; height: 11px;
+            background: #cfcfcf;
+            border-radius: 0 0 11px 11px;
             z-index: 5;
         }
-        .perforation::before { top: -1px;  border-radius: 0 0 11px 11px; }
-        .perforation::after  { bottom: -1px; border-radius: 11px 11px 0 0; }
+        /* bottom notch */
+        .td-perf::after {
+            content: '';
+            position: absolute;
+            bottom: -1px; left: 50%;
+            transform: translateX(-50%);
+            width: 22px; height: 11px;
+            background: #cfcfcf;
+            border-radius: 11px 11px 0 0;
+            z-index: 5;
+        }
 
-        /* ── Right: stub / QR section ───────────────────────── */
-        .ticket-stub {
-            width: 30%;
-            flex-shrink: 0;
-            background: #1a1a1a;
+        /* ─── RIGHT STUB ────────────────────────────────────── */
+        .td-stub {
+            width: 35%;
+            background: #1c1c1c;
+            vertical-align: top;
+            padding: 0;
+            border-radius: 0 14px 14px 0;
+        }
+
+        /* inner stub layout — flex column */
+        .stub-inner {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            min-height: 300px;
+        }
+
+        /* event image: top section */
+        .stub-image {
+            flex: 0 0 48%;
+            overflow: hidden;
+            position: relative;
+            min-height: 140px;
+        }
+        /* gradient fade at bottom of image */
+        .stub-image::after {
+            content: '';
+            position: absolute;
+            bottom: 0; left: 0; right: 0;
+            height: 32px;
+            background: linear-gradient(to top, #1c1c1c, transparent);
+            z-index: 2;
+        }
+
+        /* QR section: bottom */
+        .stub-qr {
+            flex: 1;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            padding: 24px 20px;
-            gap: 14px;
+            padding: 10px 16px 20px;
+            gap: 8px;
             text-align: center;
             position: relative;
         }
-
-        /* Subtle corner accent */
-        .ticket-stub::before {
+        /* EVENTRA watermark */
+        .stub-qr::before {
             content: 'EVENTRA';
             position: absolute;
-            top: 14px;
-            left: 50%;
+            top: 6px; left: 50%;
             transform: translateX(-50%);
-            font-family: 'Bebas Neue', sans-serif;
-            font-size: 10px;
+            font-family: 'Bebas Neue', Arial, sans-serif;
+            font-size: 9px;
             letter-spacing: 3px;
-            color: rgba(212,175,55,0.35);
+            color: rgba(212,175,55,0.22);
             white-space: nowrap;
         }
-
-        .stub-title {
-            font-family: 'Barlow Condensed', sans-serif;
-            font-size: 9px;
+        .scan-label {
+            font-family: 'Barlow Condensed', Arial, sans-serif;
+            font-size: 8px;
             font-weight: 700;
             letter-spacing: 2.5px;
             text-transform: uppercase;
-            color: rgba(255,255,255,0.35);
-            margin-top: 12px;
+            color: rgba(255,255,255,0.28);
+            margin-top: 16px;
         }
 
-        /* QR frame */
+        /* QR white frame with gold corner brackets */
         .qr-frame {
-            width: 140px;
-            height: 140px;
+            width: 148px;
+            height: 148px;
             background: #ffffff;
-            border-radius: 6px;
+            border-radius: 8px;
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 8px;
+            padding: 9px;
             position: relative;
+            flex-shrink: 0;
         }
-
-        /* Corner decorators on QR frame */
         .qr-frame::before,
         .qr-frame::after {
             content: '';
             position: absolute;
-            width: 14px;
-            height: 14px;
+            width: 16px; height: 16px;
             border-color: #d4af37;
             border-style: solid;
         }
         .qr-frame::before {
             top: -3px; left: -3px;
             border-width: 2px 0 0 2px;
+            border-radius: 2px 0 0 0;
         }
         .qr-frame::after {
             bottom: -3px; right: -3px;
             border-width: 0 2px 2px 0;
+            border-radius: 0 0 2px 0;
         }
 
-        .qr-code {
-            width: 124px;
-            height: 124px;
+        /* Barcode text — CRITICAL: must NOT go vertical */
+        .ticket-code-text {
+            font-family: 'Barlow Condensed', Arial, sans-serif;
+            font-size: 9px;
+            font-weight: 700;
+            color: rgba(212,175,55,0.60);
+            letter-spacing: 1px;
+            text-align: center;
+            /* prevent char-by-char vertical stacking */
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 180px;
             display: block;
-            image-rendering: pixelated;
-        }
-        .qr-placeholder {
-            width: 124px;
-            height: 124px;
-            background: #eee;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-family: 'Bebas Neue', sans-serif;
-            font-size: 13px;
-            letter-spacing: 2px;
-            color: #aaa;
-        }
-
-        /* Barcode / ticket ID */
-        .ticket-code {
-            font-family: 'Barlow Condensed', sans-serif;
-            font-size: 11px;
-            font-weight: 600;
-            color: rgba(255,255,255,0.5);
-            letter-spacing: 1.5px;
-            word-break: break-all;
-            line-height: 1.4;
         }
         .scan-note {
-            font-size: 8px;
-            color: rgba(255,255,255,0.2);
+            font-size: 7px;
+            color: rgba(255,255,255,0.18);
             letter-spacing: 1px;
             text-transform: uppercase;
         }
 
-        /* ── Footer strip ───────────────────────────────────── */
-        .ticket-footer {
-            background: #0a0a0a;
-            padding: 8px 32px;
-            font-size: 8px;
-            color: rgba(255,255,255,0.2);
-            letter-spacing: 0.5px;
-            text-align: center;
-        }
-
-        /* ── Download button (email view) ───────────────────── */
-        .dl-button {
-            display: inline-block;
-            margin-top: 16px;
-            padding: 11px 24px;
-            background: linear-gradient(135deg, #d4af37, #f5d87a);
-            color: #111;
-            text-decoration: none;
-            border-radius: 6px;
-            font-family: 'Barlow Condensed', sans-serif;
-            font-size: 13px;
-            font-weight: 700;
-            letter-spacing: 1px;
-            text-transform: uppercase;
-        }
-
-        /* ── Responsive ─────────────────────────────────────── */
-        @media (max-width: 640px) {
+        /* ─── RESPONSIVE ────────────────────────────────────── */
+        @media (max-width: 620px) {
             html, body { padding: 16px 10px; }
 
-            .ticket { flex-direction: column; }
-            .ticket::before, .ticket::after { display: none; }
+            /* Stack columns vertically on mobile */
+            .ticket-table,
+            .ticket-table tbody,
+            .ticket-table tr,
+            .td-body,
+            .td-perf,
+            .td-stub {
+                display: block !important;
+                width: 100% !important;
+                border-radius: 0 !important;
+            }
+            .td-body  { border-radius: 12px 12px 0 0 !important; }
+            .td-stub  { border-radius: 0 0 12px 12px !important; }
 
-            .perforation {
-                width: 100%;
-                height: 2px;
+            /* horizontal perforation */
+            .td-perf {
+                height: 2px !important;
                 background: repeating-linear-gradient(
                     to right,
-                    transparent,
-                    transparent 6px,
-                    rgba(255,255,255,0.12) 6px,
-                    rgba(255,255,255,0.12) 12px
-                );
+                    transparent 0px, transparent 6px,
+                    rgba(255,255,255,0.13) 6px, rgba(255,255,255,0.13) 12px
+                ) !important;
             }
-            .perforation::before, .perforation::after {
-                top: 50%;
-                left: auto;
-                transform: translateY(-50%);
-                width: 11px;
-                height: 22px;
-            }
-            .perforation::before { left: -1px;  top: 50%; border-radius: 0 11px 11px 0; }
-            .perforation::after  { right: -1px; top: 50%; left: auto; border-radius: 11px 0 0 11px; }
+            .td-perf::before,
+            .td-perf::after { display: none !important; }
 
-            .ticket-stub {
-                width: 100%;
-                border-left: none;
-                border-top: none;
-                padding: 20px;
-                flex-direction: row;
-                flex-wrap: wrap;
-                justify-content: center;
-                gap: 16px;
-            }
-            .ticket-stub::before { display: none; }
-            .stub-title { width: 100%; margin-top: 0; }
-            .qr-frame { width: 110px; height: 110px; }
-            .qr-code, .qr-placeholder { width: 94px; height: 94px; }
+            .stub-inner { flex-direction: row !important; min-height: 180px !important; }
+            .stub-image { flex: 0 0 45% !important; min-height: 160px !important; }
+            .stub-qr    { flex: 1 !important; padding: 12px 10px !important; }
+            .qr-frame   { width: 110px !important; height: 110px !important; }
 
-            .details-grid { display: block; }
-            .detail-item { width: 45%; margin-bottom: 12px; }
-            .event-title { font-size: 32px; }
-            .body-inner { padding: 20px; }
+            .details-table,
+            .details-table tbody,
+            .details-table tr,
+            .details-table td {
+                display: block !important;
+                width: 100% !important;
+            }
+            .col-a { border-right: none !important; padding-right: 0 !important;
+                     border-bottom: 1px solid rgba(212,175,55,0.15) !important;
+                     padding-bottom: 10px !important; margin-bottom: 10px !important; }
+            .col-b { padding-left: 0 !important; }
+
+            .event-title { font-size: 30px !important; }
+            .holder-name { font-size: 15px !important; }
         }
 
         @media (max-width: 380px) {
-            .detail-item { width: 100%; margin-right: 0; }
-            .event-title { font-size: 26px; }
+            .event-title { font-size: 24px !important; }
+            .qr-frame    { width: 90px !important; height: 90px !important; }
         }
 
         @media print {
-            html, body { background: white; padding: 0; }
+            html, body      { background: white; padding: 0; }
             .ticket-wrapper { filter: none; }
-            .dl-button { display: none; }
+            .dl-btn-wrap    { display: none !important; }
         }
     </style>
 </head>
 <body>
 <div class="ticket-wrapper">
 
-    <!-- ── Main Ticket ─────────────────────────────────────── -->
-    <div class="ticket">
+    <!-- ════════════════════════════════════════════════════
+         TICKET  (table layout — works in Gmail, Outlook, DOMPDF)
+         ════════════════════════════════════════════════════ -->
+    <table class="ticket-table" cellpadding="0" cellspacing="0" border="0" role="presentation">
+        <tbody>
+        <tr>
 
-        <!-- Left body -->
-        <div class="ticket-body">
-            <div class="gold-bar"></div>
+            <!-- ══════════════════════
+                 LEFT BODY  (65%)
+                 ══════════════════════ -->
+            <td class="td-body">
 
-            <div class="body-inner">
-                <!-- Brand / admission label -->
-                <div class="brand-line">
-                    <span class="brand-name">Eventra</span>
-                    <span class="brand-divider"></span>
-                    <span class="admission-label"></span>
+                <!-- Gold accent bar -->
+                <span class="gold-bar"></span>
+
+                <!-- Brand + title + badge + details -->
+                <div class="body-inner">
+
+                    <!-- 1. Brand row -->
+                    <div class="brand-row">
+                        <span class="brand-name">Eventra</span>
+                        <span class="brand-sep"></span>
+                        <span class="admission-tag">Admission Ticket</span>
+                    </div>
+
+                    <!-- 2. Event title -->
+                    <h1 class="event-title">{$eventTitle}</h1>
+
+                    <!-- 3. Badge — wrapped in block div so it never stretches -->
+                    {$badgeHtml}
+
+                    <!-- 4. Two-column detail grid (TABLE — email/PDF safe) -->
+                    <table class="details-table" cellpadding="0" cellspacing="0" border="0" role="presentation">
+                        <tbody>
+                        <tr>
+                            <!-- Col A : Date / Time / Venue / Price -->
+                            <td class="col-a">
+                                {$colA}
+                            </td>
+                            <!-- Col B : State / Ticket Type / Organizer -->
+                            <td class="col-b">
+                                {$colB}
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+
+                </div><!-- /body-inner -->
+
+                <!-- 5. Ticket holder bar -->
+                <div class="holder-bar">
+                    <div class="holder-left">
+                        <div class="holder-avatar">
+                            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4
+                                         7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2
+                                         0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4
+                                         c0-3.2-6.4-4.8-9.6-4.8z"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <span class="holder-caption">Ticket Holder</span>
+                            <span class="holder-name">{$userName}</span>
+                        </div>
+                    </div>
+                    <div class="holder-id">
+                        <span class="holder-id-caption">Ticket ID</span>
+                        <span class="holder-id-value">{$ticketId}</span>
+                    </div>
                 </div>
 
-                <!-- Event name -->
-                <h1 class="event-title">{$eventTitle}</h1>
+            </td><!-- /td-body -->
 
-                <!-- Ticket type badge (optional) -->
-                {$badgeHtml}
+            <!-- ══════════════════════
+                 PERFORATED DIVIDER
+                 ══════════════════════ -->
+            <td class="td-perf"></td>
 
-                <!-- Event details grid -->
-                <div class="details-grid">
-                    <div class="detail-item">
-                        <span class="detail-label">Date</span>
-                        <span class="detail-value">{$eventDate}</span>
+            <!-- ══════════════════════
+                 RIGHT STUB  (35%)
+                 ══════════════════════ -->
+            <td class="td-stub">
+                <div class="stub-inner">
+
+                    <!-- Event image (top ~48%) -->
+                    <div class="stub-image">
+                        {$eventImgHtml}
                     </div>
-                    <div class="detail-item">
-                        <span class="detail-label">Time</span>
-                        <span class="detail-value">{$eventTime}</span>
+
+                    <!-- QR code section (bottom) -->
+                    <div class="stub-qr">
+                        <span class="scan-label">Scan to Enter</span>
+
+                        <div class="qr-frame">
+                            {$qrHtml}
+                        </div>
+
+                        <!-- Barcode text — white-space:nowrap prevents vertical stacking -->
+                        <span class="ticket-code-text">{$barcode}</span>
+                        <span class="scan-note">Present at venue entry</span>
                     </div>
-                    <div class="detail-item">
-                        <span class="detail-label">Venue</span>
-                        <span class="detail-value">{$location}</span>
-                    </div>
-                    {$stateRow}
-                    {$priceCell}
-                    {$ticketTypeRow}
-                </div>
 
-                <!-- Attendee strip -->
-                <div class="attendee-strip">
-                    <div class="attendee-avatar">
-                        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/>
-                        </svg>
-                    </div>
-                    <div class="attendee-info">
-                        <div class="attendee-label">Ticket Holder</div>
-                        <div class="attendee-name">{$userName}</div>
-                    </div>
-                </div>
-            </div>
+                </div><!-- /stub-inner -->
+            </td><!-- /td-stub -->
 
-            <!-- Footer inside ticketOptional URL for the body -->
-            <div class="ticket-footer">
-                This ticket is valid only for the event date and time specified above &bull;
-                Non-transferable without organiser approval &bull; &copy; {$year} Eventra
-            </div>
-        </div>
+        </tr>
+        </tbody>
+    </table><!-- /ticket-table -->
 
-        <!-- Perforated divider -->
-        <div class="perforation"></div>
+    <!-- Download button (email view only, hidden on print) -->
+    {$dlButtonHtml}
 
-        <!-- Right stub -->
-        <div class="ticket-stub">
-            <span class="stub-title">Scan to Enter</span>
-
-            <div class="qr-frame">
-                {$qrHtml}
-            </div>
-
-            <div class="ticket-code">{$barcode}</div>
-            <div class="scan-note">Present at venue entry</div>
-        </div>
-    </div>
-    {$dlButton}
-</div>
+</div><!-- /ticket-wrapper -->
 </body>
 </html>
 HTML;
-}
+    }
 
-/**
- * sendTicketEmailFull — Rich marketplace ticket email with full event details,
- * styled inline preview, PDF attachment, and a download link.
- *
- * @param string       $to
- * @param array        $ticketData  Keys: barcode, event_name, event_date, event_time,
- *                                  location, state, user_name, order_id, amount,
- *                                  ticket_type, ticket_type_display, qr_base64
- * @param string|array $pdfPath     Absolute path(s) to generated PDF ticket(s)
- * @return array
- */
-public static function sendTicketEmailFull(string $to, array $ticketData, string|array $pdfPath = ''): array
-{
-    // Fetch data from database sync to ensure persistent and complete info
-    $barcode = $ticketData['barcode'] ?? '';
-    if ($barcode) {
-        $dbPath = __DIR__ . '/../../config/database.php';
-        if (file_exists($dbPath)) {
-            require_once $dbPath;
-            global $pdo;
-            if (isset($pdo)) {
-                try {
-                    $stmt = $pdo->prepare("
-                        SELECT 
-                            t.barcode, t.status, t.event_id, t.user_id, t.payment_id,
-                            e.event_name, e.event_date, e.event_time, e.location, e.address, e.image_path as event_image,
-                            u.name as user_name, u.email,
-                            p.status as payment_status, p.id as order_id, p.amount,
-                            t.ticket_type
-                        FROM tickets t
-                        JOIN events e ON t.event_id = e.id
-                        JOIN users u ON t.user_id = u.id
-                        LEFT JOIN payments p ON t.payment_id = p.id
-                        WHERE t.barcode = ?
-                    ");
-                    $stmt->execute([$barcode]);
-                    $dbData = $stmt->fetch(\PDO::FETCH_ASSOC);
-                    if ($dbData) {
-                        // Merge fresh persistent data
-                        $ticketData = array_merge($ticketData, array_filter($dbData, fn($v) => $v !== null));
+    /* ─────────────────────────────────────────────────────────────
+     *  FULL TICKET EMAIL SENDER
+     * ───────────────────────────────────────────────────────────── */
+
+    /**
+     * Send a rich ticket email with styled HTML ticket, PDF attachment,
+     * and optional download button.
+     *
+     * This method fetches fresh, complete ticket data from the database
+     * before sending so the email is always data-persistent and accurate.
+     *
+     * @param string       $to
+     * @param array        $ticketData  See buildTicketHtml() for accepted keys.
+     *                                  At minimum, 'barcode' must be present.
+     * @param string|array $pdfPath     Absolute path(s) to the generated PDF(s)
+     * @return array ['success' => bool, 'message' => string]
+     */
+    public static function sendTicketEmailFull(
+        string       $to,
+        array        $ticketData,
+        string|array $pdfPath = ''
+    ): array {
+        /* ── 1. Sync from DB to ensure data persistence ───────── */
+        $barcode = trim((string) ($ticketData['barcode'] ?? ''));
+
+        if ($barcode !== '') {
+            $dbConfigPath = __DIR__ . '/../../config/database.php';
+            if (file_exists($dbConfigPath)) {
+                require_once $dbConfigPath;
+                global $pdo;
+
+                if (isset($pdo) && $pdo instanceof \PDO) {
+                    try {
+                        $stmt = $pdo->prepare("
+                            SELECT
+                                t.barcode,
+                                t.id         AS ticket_id,
+                                t.status,
+                                t.ticket_type,
+                                e.event_name,
+                                e.event_date,
+                                e.event_time,
+                                e.location,
+                                e.address,
+                                e.image_path AS event_image,
+                                u.name       AS user_name,
+                                p.amount,
+                                p.id         AS order_id
+                            FROM tickets t
+                            JOIN events e  ON e.id = t.event_id
+                            JOIN users  u  ON u.id = t.user_id
+                            LEFT JOIN payments p ON p.id = t.payment_id
+                            WHERE t.barcode = ?
+                            LIMIT 1
+                        ");
+                        $stmt->execute([$barcode]);
+                        $fresh = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+                        if ($fresh) {
+                            // array_filter removes nulls so we don't overwrite
+                            // caller-supplied values with empty DB columns
+                            $ticketData = array_merge(
+                                $ticketData,
+                                array_filter($fresh, static fn($v) => $v !== null)
+                            );
+                        }
+                    } catch (\Throwable $dbEx) {
+                        error_log('[EmailHelper] DB sync error: ' . $dbEx->getMessage());
+                        // Non-fatal — proceed with caller-supplied data
                     }
-                } catch (\Throwable $e) {
-                    error_log('[Email Helper] DB Error: ' . $e->getMessage());
                 }
             }
         }
-    }
 
-    $eventName = htmlspecialchars(
-        $ticketData['event_name'] ?? 'Your Event', ENT_QUOTES, 'UTF-8'
-    );
-    $subject = "Your Ticket for {$eventName} — Eventra";
- 
-    /* build download URL from APP_URL env */
-    $appUrl      = rtrim((string)($_ENV['APP_URL'] ?? ''), '/');
-    $downloadUrl = $appUrl !== ''
-        ? $appUrl . '/api/tickets/download-ticket.php?code=' . urlencode($barcode)
-        : '';
- 
-    $body = self::buildTicketHtml($ticketData, $downloadUrl);
- 
-    /* resolve and validate attachments */
-    $attachments = [];
-    $paths       = is_array($pdfPath) ? $pdfPath : [$pdfPath];
-    foreach ($paths as $path) {
-        $path = trim((string)$path);
-        if ($path === '') continue;
+        /* ── 2. Subject & download URL ───────────────────────── */
+        $eventName = htmlspecialchars(
+            $ticketData['event_name'] ?? 'Your Event', ENT_QUOTES, 'UTF-8'
+        );
+        $subject = "Your Ticket for {$eventName} — Eventra";
 
-        // Fix the issue where PDF downloads as .png instead of .pdf
-        $ext = strtolower(pathinfo($path, PATHINFO_EXTENSION));
-        if ($ext === 'png') {
-            if ($barcode) {
-                // If a png was passed, replace it with the actual PDF
-                $expectedPdf = __DIR__ . '/../../uploads/tickets/pdfs/ticket_' . $barcode . '.pdf';
-                if (file_exists($expectedPdf) && !in_array($expectedPdf, $attachments)) {
-                    $attachments[] = $expectedPdf;
-                }
+        $appUrl      = rtrim((string) ($_ENV['APP_URL'] ?? ''), '/');
+        $downloadUrl = ($appUrl !== '' && $barcode !== '')
+            ? $appUrl . '/api/tickets/download-ticket.php?code=' . urlencode($barcode)
+            : '';
+
+        /* ── 3. Build HTML body ───────────────────────────────── */
+        $body = self::buildTicketHtml($ticketData, $downloadUrl);
+
+        /* ── 4. Resolve PDF attachments ──────────────────────── */
+        // BUG FIX: The previous code swapped .png paths for .pdf and silently
+        // dropped attachments when the swapped path didn't exist. This caused
+        // blank/missing PDFs. Fix: accept any valid file as-is; only skip
+        // truly missing or empty paths.
+        $attachments = [];
+        $rawPaths    = is_array($pdfPath) ? $pdfPath : [$pdfPath];
+
+        foreach ($rawPaths as $path) {
+            $path = trim((string) $path);
+            if ($path === '') {
+                continue;
             }
-            continue;
+            if (!file_exists($path)) {
+                error_log("[EmailHelper] Attachment not found: {$path}");
+                continue;
+            }
+            if (!in_array($path, $attachments, true)) {
+                $attachments[] = $path;
+            }
         }
 
-        if (file_exists($path) && !in_array($path, $attachments)) {
-            $attachments[] = $path;
-        } else {
-            error_log("[Email Helper] PDF not found or empty path: {$path}");
-        }
+        /* ── 5. Send ─────────────────────────────────────────── */
+        return self::sendEmail($to, $subject, $body, $attachments);
     }
- 
-    return self::sendEmail($to, $subject, $body, $attachments);
 }
+
+/* ─────────────────────────────────────────────────────────────────
+ *  GLOBAL PROCEDURAL WRAPPER (backwards compatibility)
+ *  Any code that calls the old standalone sendTicketEmail() function
+ *  will continue to work without changes.
+ * ───────────────────────────────────────────────────────────────── */
+if (!function_exists('sendEmail')) {
+    function sendEmail(string $to, string $subject, string $body, array $attachments = [], string $altBody = ''): array
+    {
+        return EmailHelper::sendEmail($to, $subject, $body, $attachments, $altBody);
+    }
+}
+
+if (!function_exists('sendTicketEmail')) {
+    function sendTicketEmail(string $to, string $userName, string $eventName, string $barcode, string $pdfPath = ''): array
+    {
+        return EmailHelper::sendTicketEmail($to, $userName, $eventName, $barcode, $pdfPath);
+    }
+}
+
+if (!function_exists('sendTicketEmailFull')) {
+    function sendTicketEmailFull(string $to, array $ticketData, string|array $pdfPath = ''): array
+    {
+        return EmailHelper::sendTicketEmailFull($to, $ticketData, $pdfPath);
+    }
+}
+
+/* ─────────────────────────────────────────────────────────────────
+ *  LEGACY GLOBAL HELPER (used by old detail-grid callers)
+ *  Kept as a global function outside the class so any existing
+ *  PHP files that call _detailCell() directly still work.
+ * ───────────────────────────────────────────────────────────────── */
+if (!function_exists('_detailCell')) {
+    function _detailCell(string $label, string $value, string $class = ''): string
+    {
+        $classAttr  = $class !== '' ? ' ' . htmlspecialchars($class, ENT_QUOTES, 'UTF-8') : '';
+        $safeLabel  = htmlspecialchars($label, ENT_QUOTES, 'UTF-8');
+        return '<div class="detail-item' . $classAttr . '">'
+             . '<span class="detail-label">' . $safeLabel . '</span>'
+             . '<span class="detail-value">' . $value . '</span>'
+             . '</div>';
+    }
 }
