@@ -252,11 +252,22 @@ document.addEventListener('DOMContentLoaded', () => {
         return JSON.parse(jsonPayload);
     };
 
-    // Event Image Slider Logic
+    // Event Image Slider Logic - RESTRICTED: Only show when user is authenticated to prevent data leakage
     async function initSlider() {
         const sliderContainer = document.querySelector('.slider-images');
         
         if (!sliderContainer) return;
+
+        // Check if user is already authenticated
+        const isAuthenticated = window.storage && typeof window.storage.getUser === 'function' && window.storage.getUser();
+        
+        // Don't fetch or display events on login page when user is not authenticated
+        // This prevents showing other clients' events to unauthenticated users
+        if (!isAuthenticated) {
+            // Show placeholder or empty state instead
+            sliderContainer.innerHTML = '';
+            return;
+        }
 
         try {
             const response = await apiFetch('/api/events/get-events.php?status=published&limit=10');
