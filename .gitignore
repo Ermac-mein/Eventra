@@ -13,4 +13,5 @@
 composer.lock
 package-lock.json
 /error/*.log
+.env.backup
 
