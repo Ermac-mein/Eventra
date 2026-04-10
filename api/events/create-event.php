@@ -49,7 +49,6 @@ function compressEventImage($filePath, $extension) {
 
             $resized = imagecreatetruecolor($newWidth, $newHeight);
             imagecopyresampled($resized, $image, 0, 0, 0, 0, $newWidth, $newHeight, $width, $height);
-            imagedestroy($image);
             $image = $resized;
         }
 
@@ -66,8 +65,6 @@ function compressEventImage($filePath, $extension) {
                 imagewebp($image, $tempPath, $quality);
                 break;
         }
-
-        imagedestroy($image);
 
         if (filesize($tempPath) < filesize($filePath)) {
             unlink($filePath);

@@ -38,9 +38,9 @@ $gender = $_POST['gender'] ?? '';
 
 $nin = $_POST['nin'] ?? '';
 $bvn = $_POST['bvn'] ?? '';
-$account_number = $_POST['account_number'] ?? '';
-$bank_code = $_POST['bank_code'] ?? '';
-$bank_name = $_POST['bank_name'] ?? '';
+$account_number = trim($_POST['account_number'] ?? '');
+$bank_code = trim($_POST['bank_code'] ?? '');
+$bank_name = trim($_POST['bank_name'] ?? '');
 
 if (empty($name)) {
     echo json_encode(['success' => false, 'message' => 'Name is required']);
@@ -84,7 +84,7 @@ try {
 
     // Fetch existing data for comparison and filling missing fields
     $stmt_existing = $pdo->prepare("
-        SELECT c.business_name, a.email, c.nin, c.bvn, c.nin_verified, c.bvn_verified, c.subaccount_code, c.account_number, c.bank_code, c.verification_status 
+        SELECT c.business_name, a.email, c.nin, c.bvn, c.nin_verified, c.bvn_verified, c.subaccount_code, c.account_number, c.bank_code, c.verification_status, c.account_name 
         FROM clients c
         JOIN auth_accounts a ON c.client_auth_id = a.id
         WHERE c.client_auth_id = ?
@@ -119,41 +119,57 @@ try {
         $new_verification_status = $existing['verification_status'] ?? 'pending';
     }
 
-    $account_name = null;
+    $account_name = $existing['account_name'] ?? null;
     $auth_email = $existing['email'] ?? '';
+
+    // Check if bank details have changed or subaccount is missing
+    $bank_changed = (
+        $account_number !== ($existing['account_number'] ?? '') ||
+        $bank_code !== ($existing['bank_code'] ?? '') ||
+        empty($existing['subaccount_code'])
+    );
 
     // ── Paystack Subaccount Automation ─────────────────────────────────────
     if (!empty($bank_code) && !empty($account_number)) {
-        // Resolve Account Name first if we don't have it (optional but good for business_name)
-        $resolveRes = paystackRequest('GET', "/bank/resolve?account_number={$account_number}&bank_code={$bank_code}");
-        
-        // Check if resolution was successful
-        if (!$resolveRes['ok'] || !($resolveRes['body']['status'] ?? false)) {
-            $errMsg = ($resolveRes['body']['message'] ?? $resolveRes['error'] ?? 'Account resolution failed');
-            $pdo->rollBack();
-            http_response_code(400);
-            echo json_encode(['success' => false, 'message' => $errMsg]);
-            exit;
-        }
-        
-        $resolved_account_name = $resolveRes['body']['data']['account_name'] ?? ($business_name ?: $name);
+        if ($bank_changed) {
+            // Resolve Account Name first if we don't have it (optional but good for business_name)
+            $query_params = http_build_query([
+                'account_number' => $account_number,
+                'bank_code' => $bank_code
+            ]);
+            $resolveRes = paystackRequest('GET', "/bank/resolve?{$query_params}");
+            
+            // Check if resolution was successful
+            if (!$resolveRes['ok'] || !($resolveRes['body']['status'] ?? false)) {
+                $errMsg = ($resolveRes['body']['message'] ?? $resolveRes['error'] ?? 'Account resolution failed. Please check the parameters properly.');
+                $pdo->rollBack();
+                http_response_code(400);
+                echo json_encode(['success' => false, 'message' => $errMsg]);
+                exit;
+            }
+            
+            $resolved_account_name = $resolveRes['body']['data']['account_name'] ?? ($business_name ?: $name);
 
-        $subRes = ensureSubaccount(
-            $pdo,
-            $client_auth_id,
-            $bank_code,
-            $account_number,
-            $resolved_account_name,
-            $auth_email,
-            $existing['subaccount_code']
-        );
+            $subRes = ensureSubaccount(
+                $pdo,
+                $client_auth_id,
+                $bank_code,
+                $account_number,
+                $resolved_account_name,
+                $auth_email,
+                $existing['subaccount_code']
+            );
 
-        if (!$subRes['success']) {
-            $pdo->rollBack();
-            echo json_encode(['success' => false, 'message' => $subRes['message']]);
-            exit;
+            if (!$subRes['success']) {
+                $pdo->rollBack();
+                http_response_code(400);
+                echo json_encode(['success' => false, 'message' => $subRes['message']]);
+                exit;
+            }
+            $account_name = $resolved_account_name;
+        } else {
+            $account_name = $existing['account_name'] ?? ($business_name ?: $name);
         }
-        $account_name = $resolved_account_name;
     }
 
     // Prepare Update Query

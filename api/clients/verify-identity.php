@@ -67,7 +67,6 @@ try {
 
     $result = curl_exec($ch);
     $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    curl_close($ch);
 
     $verified = false;
     if ($httpCode === 200 && $result) {

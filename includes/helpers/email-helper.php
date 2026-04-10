@@ -124,57 +124,102 @@ class EmailHelper
  */
     public static function buildTicketHtml(array $ticketData, string $downloadUrl = ''): string
 {
-    // ── Extract & sanitise variables ──────────────────────────
-    $barcode          = htmlspecialchars($ticketData['barcode']             ?? '',         ENT_QUOTES, 'UTF-8');
-    $eventTitle       = htmlspecialchars($ticketData['event_name']          ?? 'Your Event', ENT_QUOTES, 'UTF-8');
-    $userName         = htmlspecialchars($ticketData['user_name']           ?? 'Attendee', ENT_QUOTES, 'UTF-8');
-    $location         = htmlspecialchars($ticketData['location']            ?? 'See event details', ENT_QUOTES, 'UTF-8');
-    $state            = htmlspecialchars($ticketData['state']               ?? '',         ENT_QUOTES, 'UTF-8');
-    $ticketType       = htmlspecialchars($ticketData['ticket_type']         ?? '',         ENT_QUOTES, 'UTF-8');
-    $ticketTypeDisplay = htmlspecialchars($ticketData['ticket_type_display'] ?? '',        ENT_QUOTES, 'UTF-8');
-    $qrBase64         = $ticketData['qr_base64'] ?? ''; // Already a base64 data URI — do NOT escape
-    $amount           = !empty($ticketData['amount'])
-                        ? '&#8358;' . number_format((float)$ticketData['amount'], 2)
-                        : '';
-    $year             = date('Y');
-
-    // Format date / time safely
+    /* ── 1. Sanitise text values ─────────────────────────────── */
+    $e = static fn(string $v): string =>
+        htmlspecialchars($v, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+ 
+    $barcode     = $e($ticketData['barcode']             ?? '');
+    $ticketId    = $e($ticketData['ticket_id']           ?? ($ticketData['barcode'] ?? ''));
+    $eventTitle  = $e($ticketData['event_name']          ?? 'Your Event');
+    $userName    = $e($ticketData['user_name']           ?? 'Attendee');
+    $location    = $e($ticketData['location']            ?? '—');
+    $state       = $e($ticketData['state']               ?? '');
+    $organizer   = $e($ticketData['organizer']           ?? '');
+    $ticketType  = $e($ticketData['ticket_type']         ?? '');
+    $tick = $e($ticketData['ticket_type_display'] ?? ($ticketData['ticket_type'] ?? ''));
+    $year        = date('Y');
+ 
+    /* ── 2. Format date & time ───────────────────────────────── */
     $eventDate = !empty($ticketData['event_date'])
-                 ? htmlspecialchars(date('D, d M Y', strtotime($ticketData['event_date'])), ENT_QUOTES, 'UTF-8')
-                 : 'TBC';
+        ? $e(date('D, d M Y', strtotime((string)$ticketData['event_date'])))
+        : 'TBC';
     $eventTime = !empty($ticketData['event_time'])
-                 ? htmlspecialchars(date('g:i A', strtotime($ticketData['event_time'])), ENT_QUOTES, 'UTF-8')
-                 : 'TBC';
-
-    // ── Badge class for ticket type ───────────────────────────
-    $badgeClass = '';
-    if (!empty($ticketTypeDisplay)) {
-        $lower      = strtolower($ticketTypeDisplay);
-        $badgeClass = str_contains($lower, 'vip')  ? 'vip'
-                    : (str_contains($lower, 'free') ? 'free' : '');
+        ? $e(date('g:i A', strtotime((string)$ticketData['event_time'])))
+        : 'TBC';
+ 
+    /* ── 3. Format price ─────────────────────────────────────── */
+    $amount = '';
+    if (isset($ticketData['amount']) && (float)$ticketData['amount'] > 0) {
+        $amount = '&#8358;' . number_format((float)$ticketData['amount'], 2);
+    } elseif (isset($ticketData['amount'])) {
+        $amount = 'Free';
     }
-    $badgeHtml = !empty($ticketTypeDisplay)
-        ? '<span class="event-type-badge ' . $badgeClass . '">' . $ticketTypeDisplay . '</span>'
+ 
+    /* ── 4. QR code image ────────────────────────────────────── */
+    // qr_base64 must arrive as a full data-URI: "data:image/png;base64,…"
+    // Do NOT run htmlspecialchars on a data-URI – it breaks the base64 payload.
+    $qrBase64 = trim((string)($ticketData['qr_base64'] ?? ''));
+    $qrHtml   = ($qrBase64 !== '')
+        ? '<img src="' . $qrBase64 . '" alt="QR Code"
+               style="width:130px;height:130px;display:block;image-rendering:pixelated;">'
+        : '<div style="width:130px;height:130px;background:#e0e0e0;display:flex;
+                       align-items:center;justify-content:center;
+                       font-size:11px;color:#aaa;letter-spacing:1px;">NO QR</div>';
+ 
+    /* ── 5. Event banner image ───────────────────────────────── */
+    $eventImage   = trim((string)($ticketData['event_image'] ?? ''));
+    $eventImgHtml = ($eventImage !== '')
+        ? '<img src="' . $eventImage . '" alt="Event Banner"
+               style="width:100%;height:100%;object-fit:cover;display:block;">'
+        : '<div style="width:100%;height:100%;
+                       background:linear-gradient(135deg,#1a1a2e 0%,#0f3460 100%);
+                       display:flex;align-items:center;justify-content:center;">
+               <span style="font-family:\'Bebas Neue\',serif;font-size:11px;
+                            letter-spacing:3px;color:rgba(212,175,55,0.45);">EVENT IMAGE</span>
+           </div>';
+ 
+    /* ── 6. Badge (ticket type) ──────────────────────────────── */
+    $badgeBg = '#d4af37';
+    $badgeFg = '#111111';
+    if ($tick !== '') {
+        $lower = strtolower($tick);
+        if (str_contains($lower, 'vip'))  { $badgeBg = '#c0392b'; $badgeFg = '#ffffff'; }
+        if (str_contains($lower, 'free')) { $badgeBg = '#27ae60'; $badgeFg = '#ffffff'; }
+    }
+    $badgeHtml = ($tick !== '')
+        ? '<span style="display:inline-block;background:' . $badgeBg . ';color:' . $badgeFg . ';'
+          . 'font-size:9px;font-weight:800;letter-spacing:2px;text-transform:uppercase;'
+          . 'padding:4px 14px;border-radius:20px;">' . $tick . '</span>'
+        : '&nbsp;'; // keep row height stable even when empty
+ 
+    /* ── 7. Optional right-column rows ──────────────────────── */
+    $stateRow    = ($state     !== '') ? _detailCell('State',       $state)     : '';
+    $ticketTypeRow = ($ticketType  !== '') ? _detailCell('Ticket Type', $ticketType) : '';
+    $orgRow      = ($organizer !== '') ? _detailCell('Organizer',   $organizer) : '';
+ 
+    /* ── 8. Price cell (col A, fourth row) ───────────────────── */
+    $priceCell = ($amount !== '')
+        ? _detailCell('Price', $amount, 'price')
         : '';
-
-    // ── Optional extra detail rows ────────────────────────────
-    $stateRow      = $state      ? '<div class="detail-item"><span class="detail-label">State</span><span class="detail-value">' . $state      . '</span></div>' : '';
-    $amountRow     = $amount     ? '<div class="detail-item"><span class="detail-label">Price</span><span class="detail-value price">' . $amount . '</span></div>' : '';
-    $ticketTypeRow = $ticketType ? '<div class="detail-item"><span class="detail-label">Ticket Type</span><span class="detail-value">' . $ticketType . '</span></div>' : '';
-
-    // ── QR code img or placeholder ────────────────────────────
-    $qrHtml = $qrBase64
-        ? '<img src="' . $qrBase64 . '" class="qr-code" alt="QR Code">'
-        : '<div class="qr-placeholder">QR</div>';
-
-    // ── Download button (email only) ──────────────────────────
-    $dlButton = $downloadUrl
-        ? '<a href="' . htmlspecialchars($downloadUrl, ENT_QUOTES, 'UTF-8') . '" class="dl-button">Download PDF Ticket</a>'
+ 
+    /* ── 9. Download button ──────────────────────────────────── */
+    $dlButton = ($downloadUrl !== '')
+        ? '<div style="text-align:center;margin-top:24px;">'
+          . '<a href="' . $e($downloadUrl) . '" download="ticket.pdf" '
+          . 'style="display:inline-block;padding:12px 32px;'
+          . 'background:linear-gradient(135deg,#d4af37,#f5d87a);'
+          . 'color:#111111;text-decoration:none;border-radius:6px;'
+          . 'font-family:\'Barlow Condensed\',sans-serif;'
+          . 'font-size:13px;font-weight:800;letter-spacing:1.5px;'
+          . 'text-transform:uppercase;">'
+          . '&#8675;&nbsp;Download PDF Ticket'
+          . '</a></div>'
         : '';
+ 
 
     // ── Build HTML via heredoc (no PHP tags inside the string) ─
     return <<<HTML
-<!DOCTYPE html>
+    <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -645,7 +690,7 @@ class EmailHelper
                 <div class="brand-line">
                     <span class="brand-name">Eventra</span>
                     <span class="brand-divider"></span>
-                    <span class="admission-label">Admission Ticket</span>
+                    <span class="admission-label"></span>
                 </div>
 
                 <!-- Event name -->
@@ -669,7 +714,7 @@ class EmailHelper
                         <span class="detail-value">{$location}</span>
                     </div>
                     {$stateRow}
-                    {$amountRow}
+                    {$priceCell}
                     {$ticketTypeRow}
                 </div>
 
@@ -727,34 +772,83 @@ HTML;
  * @param string|array $pdfPath     Absolute path(s) to generated PDF ticket(s)
  * @return array
  */
-    public static function sendTicketEmailFull(string $to, array $ticketData, string|array $pdfPath = ''): array
+public static function sendTicketEmailFull(string $to, array $ticketData, string|array $pdfPath = ''): array
 {
-    $eventName = htmlspecialchars($ticketData['event_name'] ?? 'Your Event', ENT_QUOTES, 'UTF-8');
-    $subject   = "Your Ticket for {$eventName} — Eventra";
-
-    // ── Build download URL ────────────────────────────────────
-    $barcode     = $ticketData['barcode'] ?? '';
-    $appUrl      = rtrim($_ENV['APP_URL'] ?? '', '/');
-    $downloadUrl = $appUrl
-        ? $appUrl . '/api/tickets/download-ticket.php?code=' . urlencode($barcode)
-        : '';
-
-    // ── Build ticket HTML body ────────────────────────────────
-    $body = self::buildTicketHtml($ticketData, $downloadUrl);
-
-    // ── Resolve attachments ───────────────────────────────────
-    $attachments = [];
-    if (!empty($pdfPath)) {
-        $paths = is_array($pdfPath) ? $pdfPath : [$pdfPath];
-        foreach ($paths as $path) {
-            if (!empty($path) && file_exists($path)) {
-                $attachments[] = $path;
-            } else {
-                error_log("[Email Helper] PDF attachment not found: {$path}");
+    // Fetch data from database sync to ensure persistent and complete info
+    $barcode = $ticketData['barcode'] ?? '';
+    if ($barcode) {
+        $dbPath = __DIR__ . '/../../config/database.php';
+        if (file_exists($dbPath)) {
+            require_once $dbPath;
+            global $pdo;
+            if (isset($pdo)) {
+                try {
+                    $stmt = $pdo->prepare("
+                        SELECT 
+                            t.barcode, t.status, t.event_id, t.user_id, t.payment_id,
+                            e.event_name, e.event_date, e.event_time, e.location, e.address, e.image_path as event_image,
+                            u.name as user_name, u.email,
+                            p.status as payment_status, p.id as order_id, p.amount,
+                            t.ticket_type
+                        FROM tickets t
+                        JOIN events e ON t.event_id = e.id
+                        JOIN users u ON t.user_id = u.id
+                        LEFT JOIN payments p ON t.payment_id = p.id
+                        WHERE t.barcode = ?
+                    ");
+                    $stmt->execute([$barcode]);
+                    $dbData = $stmt->fetch(\PDO::FETCH_ASSOC);
+                    if ($dbData) {
+                        // Merge fresh persistent data
+                        $ticketData = array_merge($ticketData, array_filter($dbData, fn($v) => $v !== null));
+                    }
+                } catch (\Throwable $e) {
+                    error_log('[Email Helper] DB Error: ' . $e->getMessage());
+                }
             }
         }
     }
 
+    $eventName = htmlspecialchars(
+        $ticketData['event_name'] ?? 'Your Event', ENT_QUOTES, 'UTF-8'
+    );
+    $subject = "Your Ticket for {$eventName} — Eventra";
+ 
+    /* build download URL from APP_URL env */
+    $appUrl      = rtrim((string)($_ENV['APP_URL'] ?? ''), '/');
+    $downloadUrl = $appUrl !== ''
+        ? $appUrl . '/api/tickets/download-ticket.php?code=' . urlencode($barcode)
+        : '';
+ 
+    $body = self::buildTicketHtml($ticketData, $downloadUrl);
+ 
+    /* resolve and validate attachments */
+    $attachments = [];
+    $paths       = is_array($pdfPath) ? $pdfPath : [$pdfPath];
+    foreach ($paths as $path) {
+        $path = trim((string)$path);
+        if ($path === '') continue;
+
+        // Fix the issue where PDF downloads as .png instead of .pdf
+        $ext = strtolower(pathinfo($path, PATHINFO_EXTENSION));
+        if ($ext === 'png') {
+            if ($barcode) {
+                // If a png was passed, replace it with the actual PDF
+                $expectedPdf = __DIR__ . '/../../uploads/tickets/pdfs/ticket_' . $barcode . '.pdf';
+                if (file_exists($expectedPdf) && !in_array($expectedPdf, $attachments)) {
+                    $attachments[] = $expectedPdf;
+                }
+            }
+            continue;
+        }
+
+        if (file_exists($path) && !in_array($path, $attachments)) {
+            $attachments[] = $path;
+        } else {
+            error_log("[Email Helper] PDF not found or empty path: {$path}");
+        }
+    }
+ 
     return self::sendEmail($to, $subject, $body, $attachments);
 }
 }

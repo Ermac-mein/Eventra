@@ -2594,7 +2594,7 @@ body {
 }
 
 .badge-verified {
-  background: #722f37;
+  background: #2ecc71;
   color: white;
 }
 
@@ -2761,8 +2761,8 @@ body {
 
 .google-signin:hover {
   background-color: #2ecc71;
-  border-color: #6d28d9;
-  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
+  border-color: #2ecc71;
+  box-shadow: 0 4px 12px rgba(46, 204, 113, 0.3);
   color: white;
 }
 
