@@ -10,21 +10,27 @@ require_once '../../config/database.php';
 require_once '../utils/notification-helper.php';
 require_once '../../includes/middleware/auth.php';
 
-// Check authentication and determine role/ID mapping
-$user_role = $_SESSION['role'] ?? 'user';
+$headers = getallheaders();
+$headersLower = array_change_key_case($headers, CASE_LOWER);
+$portal = $headersLower['x-eventra-portal'] ?? null;
 
-// For clients: $_SESSION['client_id'] = clients table ID
-// For admins: $_SESSION['admin_id'] = admins table ID
-if ($user_role === 'client') {
-    $client_id = checkAuth('client');
-    $user_id = $client_id;
-} elseif ($user_role === 'admin') {
-    $admin_id = checkAuth('admin');
-    $user_id = $admin_id;
+if ($portal === 'client') {
+    $user_id = checkAuth('client');
+    $user_role = 'client';
+} elseif ($portal === 'admin') {
+    $user_id = checkAuth('admin');
+    $user_role = 'admin';
 } else {
-    http_response_code(401);
-    echo json_encode(['success' => false, 'message' => 'Unauthorized']);
-    exit;
+    $user_role = $_SESSION['role'] ?? null;
+    if ($user_role === 'client') {
+        $user_id = checkAuth('client');
+    } elseif ($user_role === 'admin') {
+        $user_id = checkAuth('admin');
+    } else {
+        http_response_code(401);
+        echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+        exit;
+    }
 }
 
 $data = json_decode(file_get_contents("php://input"), true);

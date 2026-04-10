@@ -80,17 +80,27 @@ function compressEventImage($filePath, $extension) {
     }
 }
 
-// Check authentication - require either client or admin role
-$role = $_SESSION['role'] ?? null;
+$headers = getallheaders();
+$headersLower = array_change_key_case($headers, CASE_LOWER);
+$portal = $headersLower['x-eventra-portal'] ?? null;
 
-if ($role === 'client') {
+if ($portal === 'client') {
     $user_id = checkAuth('client');
-} elseif ($role === 'admin') {
+    $role = 'client';
+} elseif ($portal === 'admin') {
     $user_id = checkAuth('admin');
+    $role = 'admin';
 } else {
-    http_response_code(401);
-    echo json_encode(['success' => false, 'message' => 'Unauthorized']);
-    exit;
+    $role = $_SESSION['role'] ?? null;
+    if ($role === 'client') {
+        $user_id = checkAuth('client');
+    } elseif ($role === 'admin') {
+        $user_id = checkAuth('admin');
+    } else {
+        http_response_code(401);
+        echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+        exit;
+    }
 }
 
 $event_id = $_POST['event_id'] ?? null;

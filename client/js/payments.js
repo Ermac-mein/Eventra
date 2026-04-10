@@ -611,10 +611,7 @@ function exportPayments(format) {
 }
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
-function escapeHtml(str) {
-    if (!str) return '';
-    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-}
+
 function ucfirst(str) {
     if (!str) return '';
     return str.charAt(0).toUpperCase() + str.slice(1);

@@ -142,6 +142,22 @@ document.addEventListener('DOMContentLoaded', () => {
             const result = await response.json();
 
             if (result.success) {
+                // Show Success SweetAlert
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Login Successful',
+                        text: 'Welcome back!',
+                        toast: true,
+                        position: 'top-end',
+                        showConfirmButton: false,
+                        timer: 1500,
+                        timerProgressBar: true,
+                        background: '#1e293b',
+                        color: '#fff'
+                    });
+                }
+
                 // Isolate session storage by role - store BOTH user and token
                 if (window.storage && typeof window.storage.setToken === 'function') {
                     window.storage.setUser(result.user);

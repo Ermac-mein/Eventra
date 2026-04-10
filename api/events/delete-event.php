@@ -10,17 +10,27 @@ require_once '../../config/database.php';
 require_once '../utils/notification-helper.php';
 require_once '../../includes/middleware/auth.php';
 
-// Check authentication - require either client or admin role
-$user_role = $_SESSION['role'] ?? null;
+$headers = getallheaders();
+$headersLower = array_change_key_case($headers, CASE_LOWER);
+$portal = $headersLower['x-eventra-portal'] ?? null;
 
-if ($user_role === 'client') {
+if ($portal === 'client') {
     $user_id = checkAuth('client');
-} elseif ($user_role === 'admin') {
+    $user_role = 'client';
+} elseif ($portal === 'admin') {
     $user_id = checkAuth('admin');
+    $user_role = 'admin';
 } else {
-    http_response_code(401);
-    echo json_encode(['success' => false, 'message' => 'Unauthorized']);
-    exit;
+    $user_role = $_SESSION['role'] ?? null;
+    if ($user_role === 'client') {
+        $user_id = checkAuth('client');
+    } elseif ($user_role === 'admin') {
+        $user_id = checkAuth('admin');
+    } else {
+        http_response_code(401);
+        echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+        exit;
+    }
 }
 
 $data = json_decode(file_get_contents("php://input"), true);

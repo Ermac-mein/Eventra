@@ -665,7 +665,7 @@ td { padding: 1.25rem 2rem; border-bottom: 1px solid var(--client-border); font-
 /* Media Specific Styles */
 .media-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
     gap: 1.5rem;
     margin-top: 1.5rem;
 }

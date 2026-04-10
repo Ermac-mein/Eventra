@@ -404,9 +404,16 @@ class AuthController {
         // Sanitize pending redirect - ignore if it's just the homepage/root and we have a specific dashboard target
         if (pending) {
             const isWeakRedirect = pending.endsWith('/') || pending.endsWith('index.html') || pending.includes('?trigger=login');
-            const targetIsDashboard = target.includes('Dashboard.html');
+            const targetIsDashboard = target && target.includes('Dashboard.html');
             
-            if (isWeakRedirect && targetIsDashboard) {
+            // Check if there is a role mismatch in the pending redirect
+            const isPendingAdmin = pending.includes('/admin/');
+            const isPendingClient = pending.includes('/client/');
+            const userRole = this.user ? this.user.role : 'user';
+            
+            const roleMismatch = (isPendingAdmin && userRole !== 'admin') || (isPendingClient && userRole !== 'client');
+            
+            if ((isWeakRedirect && targetIsDashboard) || roleMismatch) {
                 pending = null;
                 if (window.storage) window.storage.remove('redirect_after_login');
             }

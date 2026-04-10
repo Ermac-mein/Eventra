@@ -15,6 +15,9 @@ function escapeHTML(str) {
         .replace(/'/g, '&#039;');
 }
 
+// Alias for backward compatibility
+const escapeHtml = escapeHTML;
+
 // Format currency
 function formatCurrency(amount, currency = '₦') {
   return `${currency} ${amount.toLocaleString()}`;

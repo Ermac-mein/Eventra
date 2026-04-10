@@ -408,8 +408,23 @@ async function toggleHDEnhancement(e, mediaId) {
     }
 }
 
-function viewFile(filePath) {
-    window.open(filePath, '_blank');
+function viewFile(filePath, fileName = '') {
+    // Open in lightbox modal
+    const isImage = /\.(jpg|jpeg|png|gif|webp|svg)$/i.test(filePath);
+    const isVideo = /\.(mp4|webm|ogg|mov)$/i.test(filePath);
+    
+    const modalHTML = `
+        <div id="filePreviewModal" class="modal-backdrop active" style="z-index: 9000;" role="dialog" aria-modal="true">
+            <div style="position: relative; max-width: 90vw; max-height: 90vh; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                <button onclick="document.getElementById('filePreviewModal').remove()" style="position: absolute; top: -40px; right: 0; background: white; border: none; width: 40px; height: 40px; border-radius: 50%; font-size: 1.5rem; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 10;">&times;</button>
+                ${isImage ? `<img src="${filePath}" style="max-width: 90vw; max-height: 90vh; object-fit: contain; border-radius: 12px;">` : 
+                  isVideo ? `<video src="${filePath}" controls style="max-width: 90vw; max-height: 90vh; border-radius: 12px;"></video>` :
+                  `<div style="background: white; padding: 4rem; border-radius: 12px; text-align: center;"><div style="font-size: 4rem; margin-bottom: 1rem;">📄</div><p>Cannot preview this file type in browser</p><a href="${filePath}" download style="display: inline-block; margin-top: 1rem; background: #4f46e5; color: white; padding: 0.75rem 1.5rem; border-radius: 8px; text-decoration: none; font-weight: 600;">Download File</a></div>`}
+            </div>
+        </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
 }
 
 function downloadFile(filePath, fileName) {
