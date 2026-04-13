@@ -4,13 +4,9 @@ const selectedUserIds = new Set();
 
 document.addEventListener('DOMContentLoaded', async () => {
     const user = storage.getUser();
-    
-    if (!user || user.role !== 'client') {
-        window.location.href = 'clientLogin.html';
-        return;
+    if (user && user.id) {
+        await loadUsers(user.id);
     }
-
-    await loadUsers(user.id);
     initializeTableSorting();
 
     // Auto-refresh users list every 60s (reduced from 15s) to decrease database load

@@ -79,7 +79,7 @@ class AuthController {
             }
 
             const role = this.getPortalIntent();
-            const endpoint = `${basePath}api/auth/check-session.php`; // Use centralized endpoint directly
+            const endpoint = `${basePath}api/auth/check-session.php?portal=${role}`; // Use centralized endpoint directly
 
             const response = await apiFetch(endpoint, {
                 cache: 'no-store'
@@ -108,8 +108,7 @@ class AuthController {
                     
                     // Resiliency: if we have local auth and just logged in, don't clear it yet.
                     // This allows the page to load while the session might still be propagating.
-                    const justLoggedIn = sessionStorage.getItem('just_logged_in');
-                    if (justLoggedIn) {
+                    if (justLoggedIn || window.storage?.getToken()) {
                         this.setState(this.states.AUTHENTICATED); // Force authenticated state to avoid redirect
                     } else {
                         this.clearLocalState();

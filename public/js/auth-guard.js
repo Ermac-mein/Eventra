@@ -23,6 +23,15 @@
         requiredRole = 'client';
     }
 
+    // Allow one-time skip of redirect when navigation initiated via sidebar/menu click
+    try {
+        if ((typeof sessionStorage !== 'undefined' && sessionStorage.getItem('skip_auth_redirect')) || (typeof localStorage !== 'undefined' && localStorage.getItem('skip_auth_redirect'))) {
+            try { sessionStorage.removeItem('skip_auth_redirect'); } catch (e) {}
+            try { localStorage.removeItem('skip_auth_redirect'); } catch (e) {}
+            return; // Permit navigation without forcing a login redirect
+        }
+    } catch (e) {}
+
     if (!requiredRole) return; // Not a protected area
 
     // FAST synchronous check before rendering body
@@ -72,16 +81,26 @@
         
 
         const user = window.authController.user;
+        const isTimeout = authState === 'timeout';
 
-        // 5. Final Evaluation - Allow timeout to proceed if we have local auth
-        if ((authState === 'timeout' || authState !== 'authenticated') || !user || (user.role !== requiredRole)) {
-            // If we have local auth and just logged in, proceed (might be sync delay on shared hosting)
-            const justLoggedIn = sessionStorage.getItem('just_logged_in');
-            if (hasLocalAuth && justLoggedIn && (authState === 'timeout' || authState === 'unauthenticated')) {
-                // We DON'T remove just_logged_in yet, let it persist for one more load if needed
+        // 5. Final Evaluation
+        if (authState === 'unauthenticated' || (user && user.role !== requiredRole)) {
+            // Check if we have a valid local session to fall back on during slow syncs
+            const localUser = window.storage ? window.storage.getUser() : null;
+            const isRoleValid = localUser && localUser.role === requiredRole;
+
+            // If we have local auth and it timed out, allow it (be patient with shared hosting)
+            if (hasLocalAuth && isRoleValid && authState === 'timeout') {
+                console.warn('Auth sync timed out, but local session is valid. Proceeding...');
                 return;
             }
-            
+
+            // If we just logged in, handle specifically
+            const justLoggedIn = sessionStorage.getItem('just_logged_in');
+            if (hasLocalAuth && justLoggedIn && (authState === 'timeout' || authState === 'unauthenticated')) {
+                // Keep the flag for a bit longer if we are still struggling to sync
+                return;
+            }
 
             if (window.storage) {
                 window.storage.set('redirect_after_login', window.location.href);
@@ -95,10 +114,11 @@
             return;
         }
 
-        // 6. Success — hide loading overlay
-        
-        // Clear flag if it was set
-        sessionStorage.removeItem('just_logged_in');
+        // 6. Success — stable authenticated state
+        // We only clear just_logged_in if the sync was actually successful (authenticated)
+        if (authState === 'authenticated') {
+            sessionStorage.removeItem('just_logged_in');
+        }
         
         if (loadingOverlay) {
             loadingOverlay.classList.add('hidden');

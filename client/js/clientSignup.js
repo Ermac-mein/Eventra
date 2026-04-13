@@ -151,11 +151,26 @@ document.addEventListener('DOMContentLoaded', () => {
             const result = await response.json();
 
             if (result.success) {
+                // AUTO-LOGIN: Store user and token
+                if (window.storage && typeof window.storage.setToken === 'function') {
+                    window.storage.setUser(result.user);
+                    if (result.user.token) {
+                        window.storage.setToken(result.user.token);
+                    }
+                } else {
+                    // Fallback
+                    localStorage.setItem('client_auth_token', result.user.token || '');
+                    localStorage.setItem('client_user', JSON.stringify(result.user));
+                }
+
+                // Signal fresh login
+                sessionStorage.setItem('just_logged_in', 'true');
+
                 if (typeof Swal !== 'undefined') {
                     Swal.fire({
                         icon: 'success',
-                        title: 'Account Created!',
-                        text: result.message || 'Redirecting to login...',
+                        title: 'Welcome to Eventra!',
+                        text: result.message || 'Account created successfully. Redirecting to your dashboard...',
                         timer: 2000,
                         showConfirmButton: false,
                         background: 'rgba(30, 41, 59, 0.95)',
@@ -166,11 +181,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     clearFormState('signupForm');
                 } else if (successMessage) {
                     successMessage.classList.add('show');
-                    successMessage.textContent = 'Account created successfully! Redirecting...';
+                    successMessage.textContent = 'Welcome! Redirecting to dashboard...';
                 }
                 
                 setTimeout(() => {
-                    window.location.href = `clientLogin.html?role=${intent}`;
+                    const redirectUrl = result.redirect || `/client/pages/clientDashboard.html`;
+                    window.location.href = redirectUrl;
                 }, 2100);
             } else {
                 showError('passwordError', result.message || 'Registration failed. Please try again.');

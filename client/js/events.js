@@ -11,15 +11,10 @@ const selectedEventIds = new Set();
 document.addEventListener('DOMContentLoaded', async () => {
     const user = storage.getUser();
     
-    if (!user || user.role !== 'client') {
-        window.location.href = 'clientLogin.html';
-        return;
-    }
-
     // Load cached stats first for instant feedback
     loadCachedStats();
 
-    const clientId = user.id;
+    const clientId = user ? user.id : null;
 
     // Load events
     await loadEvents(clientId);

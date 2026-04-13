@@ -263,15 +263,18 @@ function openAdminTicketModal(ticket) {
     document.addEventListener('keydown', function esc(e) { if (e.key === 'Escape') { modalEl?.remove(); document.removeEventListener('keydown', esc); } });
 }
 
-function escapeHtml(str) {
-    if (!str) return '';
-    return String(str)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#039;');
+if (typeof window.escapeHtml === 'undefined') {
+    window.escapeHtml = function(str) {
+        if (!str) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    };
 }
+var escapeHtml = window.escapeHtml;
 
 function setTableStatusRow(tbody, message, color = '#94a3b8') {
     tbody.textContent = '';

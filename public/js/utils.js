@@ -5,6 +5,8 @@
  * @param {string} str - String to escape
  * @returns {string} - Escaped string
  */
+// Ensure escapeHTML/escapeHtml exist without redeclaring
+if (typeof window.escapeHTML === 'undefined') {
 function escapeHTML(str) {
     if (!str) return '';
     return str.toString()
@@ -14,9 +16,14 @@ function escapeHTML(str) {
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#039;');
 }
+window.escapeHTML = escapeHTML;
+} else {
+    // Reuse existing implementation
+    var escapeHTML = window.escapeHTML;
+}
 
 // Alias for backward compatibility
-const escapeHtml = escapeHTML;
+window.escapeHtml = window.escapeHTML;
 
 // Format currency
 function formatCurrency(amount, currency = '₦') {

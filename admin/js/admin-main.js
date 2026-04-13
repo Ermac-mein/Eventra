@@ -431,7 +431,14 @@ function initSidebar() {
     const currentPath = window.location.pathname;
     const menuItems = document.querySelectorAll('.menu-item a');
     
+    // Mark navigation initiated from sidebar to avoid immediate auth-guard redirect loop
     menuItems.forEach(item => {
+        item.addEventListener('click', (e) => {
+            // Mark navigation initiated from sidebar to avoid immediate auth-guard redirect loop
+            try { sessionStorage.setItem('skip_auth_redirect', '1'); } catch (err) {}
+            try { localStorage.setItem('skip_auth_redirect', Date.now().toString()); } catch (err) {}
+        });
+
         if (currentPath.includes(item.getAttribute('href'))) {
             item.parentElement.classList.add('active');
         }

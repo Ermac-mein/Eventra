@@ -1151,8 +1151,24 @@ function applyFilters() {
 
 // Share event function
 function shareEvent(e, eventId, title = 'Check out this event!', text = 'I found this amazing event on Eventra') {
-  if(e) e.stopPropagation();
-  const shareUrl = `${window.location.origin}${window.location.pathname}?event=${eventId}`;
+  if (e) e.stopPropagation();
+  
+  let eventName = 'event';
+  let organizerName = 'organizer';
+  if (typeof allEvents !== 'undefined') {
+    const ev = allEvents.find(event => event.id == eventId);
+    if (ev) {
+      eventName = ev.event_name || 'event';
+      organizerName = ev.organizer_name || ev.client_name || 'organizer';
+    }
+  }
+
+  const domain = 'https://eventra-website.liveblog365.com/public/pages/index.html';
+  const nameSlug = encodeURIComponent(eventName.trim().toLowerCase().replace(/\s+/g, '-'));
+  const orgSlug = encodeURIComponent(organizerName.trim().toLowerCase().replace(/\s+/g, '-'));
+  
+  const shareUrl = `${domain}?event=${eventId}&organizer=${orgSlug}&name=${nameSlug}`;
+
   if (navigator.share) {
     navigator.share({
       title: title,

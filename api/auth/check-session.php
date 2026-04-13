@@ -39,7 +39,7 @@ if (!function_exists('getallheaders')) {
 
 // 1. Resolve Portal Intent from Headers for Correct Session Targeting
 $headers = getallheaders();
-$portal = $_SERVER['HTTP_X_EVENTRA_PORTAL'] ?? $headers['X-Eventra-Portal'] ?? $headers['x-eventra-portal'] ?? null;
+$portal = $_GET['portal'] ?? $_SERVER['HTTP_X_EVENTRA_PORTAL'] ?? $headers['X-Eventra-Portal'] ?? $headers['x-eventra-portal'] ?? null;
 
 // Fallback: detect from Referer for reliability on client-side redirects
 if (!$portal) {

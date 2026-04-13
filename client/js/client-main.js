@@ -290,7 +290,11 @@ function initMobileSidebar() {
     // Close sidebar when clicking on a menu item (navigation)
     const menuItems = document.querySelectorAll('.menu-item a');
     menuItems.forEach(item => {
+        // Mark navigation initiated from sidebar to avoid immediate auth-guard redirect loop
         item.addEventListener('click', () => {
+            // Mark navigation initiated from sidebar to avoid immediate auth-guard redirect loop
+            try { sessionStorage.setItem('skip_auth_redirect', '1'); } catch (err) {}
+            try { localStorage.setItem('skip_auth_redirect', Date.now().toString()); } catch (err) {}
             if (isMobile()) {
                 closeMobileSidebar();
             }

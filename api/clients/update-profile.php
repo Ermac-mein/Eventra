@@ -24,28 +24,49 @@ if (!$client_auth_id) {
     exit;
 }
 
-$name = $_POST['name'] ?? '';
-$business_name = $_POST['business_name'] ?? '';
-$phone = $_POST['phone'] ?? '';
-$address = $_POST['address'] ?? '';
-$city = $_POST['city'] ?? '';
-$state = $_POST['state'] ?? '';
-$country = $_POST['country'] ?? '';
-$job_title = $_POST['job_title'] ?? '';
-$company = $_POST['company'] ?? '';
-$dob = $_POST['dob'] ?? '';
-$gender = $_POST['gender'] ?? '';
+$required_fields = [
+    'name' => 'Name',
+    'business_name' => 'Business/Organization Name',
+    'phone' => 'Phone Number',
+    'address' => 'Address',
+    'city' => 'City',
+    'state' => 'State',
+    'country' => 'Country',
+    'job_title' => 'Job Title',
+    'company' => 'Company',
+    'dob' => 'Date of Birth',
+    'gender' => 'Gender',
+    'nin' => 'NIN',
+    'bvn' => 'BVN',
+    'account_number' => 'Account Number',
+    'bank_code' => 'Settlement Bank',
+    'account_name' => 'Account Holder Name'
+];
 
-$nin = $_POST['nin'] ?? '';
-$bvn = $_POST['bvn'] ?? '';
-$account_number = trim($_POST['account_number'] ?? '');
-$bank_code = trim($_POST['bank_code'] ?? '');
-$bank_name = trim($_POST['bank_name'] ?? '');
-
-if (empty($name)) {
-    echo json_encode(['success' => false, 'message' => 'Name is required']);
-    exit;
+foreach ($required_fields as $field => $label) {
+    if (empty(trim($_POST[$field] ?? ''))) {
+        echo json_encode(['success' => false, 'message' => "$label is required"]);
+        exit;
+    }
 }
+
+$name = trim($_POST['name']);
+$business_name = trim($_POST['business_name']);
+$phone = trim($_POST['phone']);
+$address = trim($_POST['address']);
+$city = trim($_POST['city']);
+$state = trim($_POST['state']);
+$country = trim($_POST['country']);
+$job_title = trim($_POST['job_title']);
+$company = trim($_POST['company']);
+$dob = trim($_POST['dob']);
+$gender = trim($_POST['gender']);
+$nin = trim($_POST['nin']);
+$bvn = trim($_POST['bvn']);
+$account_number = trim($_POST['account_number']);
+$bank_code = trim($_POST['bank_code']);
+$bank_name = trim($_POST['bank_name'] ?? '');
+$account_name = trim($_POST['account_name']);
 
 try {
     $pdo->beginTransaction();
@@ -149,7 +170,7 @@ try {
 
                 if ($isTestMode) {
                     error_log("[Paystack Test Mode] Account resolution failed ($errMsg). Falling back to provided name.");
-                    $resolved_account_name = $_POST['account_name'] ?: ($business_name ?: $name);
+                    $resolved_account_name = $account_name;
                 } else {
                     $pdo->rollBack();
                     http_response_code(400);

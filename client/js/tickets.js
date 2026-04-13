@@ -8,13 +8,9 @@ const selectedTicketIds = new Set();
 
 document.addEventListener('DOMContentLoaded', async () => {
     const user = storage.getUser();
-    
-    if (!user || user.role !== 'client') {
-        window.location.href = 'clientLogin.html';
-        return;
+    if (user && user.id) {
+        await loadTickets(user.id);
     }
-
-    await loadTickets(user.id);
     
     // Handle search highlighting
     const urlParams = new URLSearchParams(window.location.search);

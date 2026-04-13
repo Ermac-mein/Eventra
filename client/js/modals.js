@@ -45,32 +45,32 @@ function showProfileEditModal() {
                                 <input type="text" name="name" value="${escapeHTML(user.name)}" required class="form-control">
                             </div>
                             <div class="form-group">
-                                <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Business/Organization Name</label>
-                                <input type="text" name="business_name" value="${escapeHTML(user.business_name) || ''}" placeholder="Eventra Inc." class="form-control">
+                                <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Business/Organization Name *</label>
+                                <input type="text" name="business_name" value="${escapeHTML(user.business_name) || ''}" placeholder="Eventra Inc." class="form-control" required>
                             </div>
                             <div class="form-group">
                                 <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Email</label>
                                 <input type="email" value="${escapeHTML(user.email)}" disabled class="form-control disabled">
                             </div>
                             <div class="form-group">
-                                <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Phone</label>
+                                <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Phone *</label>
                                 <input type="tel" name="phone" value="${escapeHTML(user.phone) || ''}" placeholder="+234..." class="form-control" required>
                             </div>
                             
                             <div class="form-group modal-grid-full">
                                 <label style="font-weight: 600; margin-bottom: 0.5rem; display: flex; align-items: center; justify-content: space-between; width: 100%;">
-                                    <span>NIN (National Identity Number)</span>
+                                    <span>NIN (National Identity Number) *</span>
                                     <div id="ninStatus" class="verification-status-indicator"></div>
                                 </label>
                                 <input type="text" id="ninInput" name="nin" value="${escapeHTML(user.nin) || ''}" placeholder="11-digit NIN" class="form-control" onblur="validateAndVerifyField('nin')" required>
                             </div>
 
                             <div class="form-group">
-                                <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Date of Birth</label>
+                                <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Date of Birth *</label>
                                 <input type="date" name="dob" value="${escapeHTML(user.dob) || ''}" class="form-control" required>
                             </div>
                             <div class="form-group">
-                                <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Gender</label>
+                                <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Gender *</label>
                                 <select name="gender" class="form-control" required>
                                     <option value="">Select Gender</option>
                                     <option value="male" ${user.gender === 'male' ? 'selected' : ''}>Male</option>
@@ -80,24 +80,24 @@ function showProfileEditModal() {
                             </div>
                             
                             <div class="form-group modal-grid-full">
-                                <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Address</label>
+                                <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Address *</label>
                                 <textarea name="address" rows="2" placeholder="Full address" class="form-control" required>${escapeHTML(user.address) || ''}</textarea>
                             </div>
                             
                             <div class="form-group">
-                                <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Job Title</label>
+                                <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Job Title *</label>
                                 <input type="text" name="job_title" value="${escapeHTML(user.job_title) || ''}" placeholder="Event Organizer" class="form-control" required>
                             </div>
                             <div class="form-group">
-                                <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Company</label>
+                                <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Company *</label>
                                 <input type="text" name="company" value="${escapeHTML(user.company) || ''}" placeholder="Company Name" class="form-control" required>
                             </div>
                             <div class="form-group">
-                                <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">City</label>
+                                <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">City *</label>
                                 <input type="text" name="city" value="${escapeHTML(user.city) || ''}" placeholder="Lagos" class="form-control" required>
                             </div>
                             <div class="form-group">
-                                <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">State</label>
+                                <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">State *</label>
                                 <select name="state" class="form-control" required>
                                     <option value="">Select State</option>
                                     ${getNigerianStates().map(state => 
@@ -106,7 +106,7 @@ function showProfileEditModal() {
                                 </select>
                             </div>
                             <div class="form-group modal-grid-full">
-                                <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Country</label>
+                                <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Country *</label>
                                 <input type="text" name="country" value="${escapeHTML(user.country) || ''}" placeholder="Nigeria" class="form-control" required>
                             </div>
                         </div>
@@ -116,7 +116,7 @@ function showProfileEditModal() {
                         
                         <div class="modal-grid">
                             <div class="form-group modal-grid-full">
-                                <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Settlement Bank</label>
+                                <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Settlement Bank *</label>
                                 <select id="bankSelect" name="bank_code" class="form-control" onchange="resolveAccount()" required>
                                     <option value="">Select Bank</option>
                                 </select>
@@ -124,7 +124,7 @@ function showProfileEditModal() {
                             </div>
                             <div class="form-group modal-grid-full">
                                 <label style="font-weight: 600; margin-bottom: 0.5rem; display: flex; align-items: center; justify-content: space-between; width: 100%;">
-                                    <span>Account Number (10 Digits)</span>
+                                    <span>Account Number (10 Digits) *</span>
                                     <div id="accountStatus" class="verification-status-indicator">
                                         ${user.subaccount_code 
                                             ? '<span style="color:#722f37; font-weight: bold;" title="Verified Subaccount">✓ Verified</span>' 
@@ -135,15 +135,15 @@ function showProfileEditModal() {
                             </div>
                             <div class="form-group modal-grid-full">
                                 <label style="font-weight: 600; margin-bottom: 0.5rem; display: flex; align-items: center; justify-content: space-between; width: 100%;">
-                                    <span>BVN (11 Digits)</span>
+                                    <span>BVN (11 Digits) *</span>
                                     <div id="bvnStatus" class="verification-status-indicator"></div>
                                 </label>
                                 <input type="text" id="bvnInput" name="bvn" value="${escapeHTML(user.bvn) || ''}" maxlength="11" placeholder="11-digit BVN" class="form-control" oninput="this.value = this.value.replace(/[^0-9]/g, '');" onblur="validateAndVerifyField('bvn')" required>
                                 <small style="display: block; margin-top: 5px; color: #64748b; font-size: 0.8rem; font-style: italic;">Note: Your BVN is for identity verification only.</small>
                             </div>
                             <div class="form-group modal-grid-full">
-                                <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Account Holder Name (Auto-resolved)</label>
-                                <input type="text" id="accountNameInput" name="account_name" value="${escapeHTML(user.account_name) || ''}" class="form-control" style="font-weight: 500;">
+                                <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Account Holder Name (Auto-resolved) *</label>
+                                <input type="text" id="accountNameInput" name="account_name" value="${escapeHTML(user.account_name) || ''}" class="form-control" style="font-weight: 500;" required>
                             </div>
                         </div>
 
@@ -449,7 +449,11 @@ function displayEventPreview(event) {
     
     // Get client name for sharing
     const user = storage.get('client_user') || storage.get('user') || {};
-    const shareLink = `${window.location.origin}/public/pages/event-details.html?event=${event.tag}&client=${clientNameSlug}`;
+    const organizerName = user.name || 'organizer';
+    const computedClientSlug = encodeURIComponent(organizerName.trim().toLowerCase().replace(/\s+/g, '-'));
+    const computedEventSlug = encodeURIComponent((event.event_name || 'event').trim().toLowerCase().replace(/\s+/g, '-'));
+    const shareDomain = 'https://eventra-website.liveblog365.com/public/pages/index.html';
+    const shareLink = `${shareDomain}?event=${event.tag || event.id}&organizer=${computedClientSlug}&name=${computedEventSlug}`;
 
     const modalContent = `
         <div id="eventPreviewModal" class="modal-backdrop active" role="dialog" aria-modal="true">
