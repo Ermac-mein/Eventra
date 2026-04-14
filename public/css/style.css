@@ -1340,6 +1340,24 @@ body {
   box-shadow: 0 0 0 2px rgba(255, 90, 95, 0.1);
 }
 
+/* ── Red asterisk on all required field labels ─────────────────────────── */
+.side-modal-body .form-group label:after,
+.modal-body .form-group label:after,
+.modal-grid .form-group label:after {
+  content: ' *';
+  color: #ef4444;
+  font-weight: 700;
+}
+/* Don't add asterisk to disabled/readonly field labels */
+.side-modal-body .form-group:has(input[disabled]) label:after,
+.modal-body .form-group:has(input[disabled]) label:after,
+.modal-grid .form-group:has(input[disabled]) label:after,
+.side-modal-body .form-group:has(input[readonly]) label:after,
+.modal-body .form-group:has(input[readonly]) label:after,
+.modal-grid .form-group:has(input[readonly]) label:after {
+  content: '';
+}
+
 @media (max-width: 450px) {
   .side-modal {
     width: 100%;

@@ -38,39 +38,26 @@ try {
             exit;
         }
 
-        if (!function_exists('paystackRequest')) {
-            http_response_code(500);
-            echo json_encode(['success' => false, 'message' => 'Payment configuration not loaded.']);
+        // Validate account number: must be digits only
+        if (!ctype_digit($account_number)) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'Account number must contain digits only.']);
             exit;
         }
 
-        if (strlen($account_number) === 10 && ctype_digit($account_number)) {
+        // ── Length-only validation (testing mode) ──
+        // Any 10-digit numeric account number is accepted without external API call
+        if (strlen($account_number) === 10) {
             echo json_encode([
                 'success'      => true,
-                'account_name' => 'Demo Account Name',
+                'account_name' => 'Test Account',
             ]);
             exit;
         }
 
-        $resolveRes = paystackRequest('GET', "/bank/resolve?account_number={$account_number}&bank_code={$bank_code}");
-
-        if (!$resolveRes || !is_array($resolveRes)) {
-            http_response_code(500);
-            echo json_encode(['success' => false, 'message' => 'Invalid response from payment service.']);
-            exit;
-        }
-
-        if (!$resolveRes['ok'] || !($resolveRes['body']['status'] ?? false)) {
-            $errMsg = $resolveRes['body']['message'] ?? $resolveRes['error'] ?? 'Account resolution failed.';
-            http_response_code(400);
-            echo json_encode(['success' => false, 'message' => $errMsg]);
-            exit;
-        }
-
-        echo json_encode([
-            'success'      => true,
-            'account_name' => $resolveRes['body']['data']['account_name'] ?? 'Unknown',
-        ]);
+        // If length is wrong, return a 400 with clear message instead of calling external API
+        http_response_code(400);
+        echo json_encode(['success' => false, 'message' => 'Account number must be exactly 10 digits.']);
         exit;
     }
 

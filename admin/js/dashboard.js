@@ -39,7 +39,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 async function loadAdminProfile() {
     try {
         const user = storage.getUser();
-        const response = await apiFetch(`/api/users/get-profile.php?user_id=${user.id}`);
+        // Resolve the correct ID — auth_id takes priority, fall back to id
+        const authId = user && (user.auth_id || user.id);
+        if (!authId) return; // Guard: skip if no valid id (prevents ?user_id=undefined)
+
+        const response = await apiFetch(`/api/users/get-profile.php?user_id=${authId}`);
         const result = await response.json();
 
         if (result.success) {

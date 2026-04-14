@@ -4,12 +4,15 @@ header('Content-Type: application/json');
 require_once '../../includes/middleware/auth.php';
 require_once '../../config/database.php';
 
-$auth_id = getAuthId(); // Get the auth_accounts.id
+// Run adminMiddleware first — this validates the token, populates $_SESSION,
+// and returns the profile-level admin_id (or exits with 403 if not admin).
+adminMiddleware();
 
-// Check if user is admin
-if ($_SESSION['role'] !== 'admin') {
+$auth_id = getAuthId(); // Now safe: session is guaranteed populated by adminMiddleware()
+
+if (!$auth_id) {
     http_response_code(403);
-    echo json_encode(['success' => false, 'message' => 'Access denied. Admin only.']);
+    echo json_encode(['success' => false, 'message' => 'Access denied. Admin authentication required.']);
     exit;
 }
 

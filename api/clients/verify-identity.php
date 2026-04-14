@@ -51,37 +51,15 @@ try {
         exit;
     }
 
-    // Call real verification service or mock for development
-    // For production, replace with actual DOJAH/BVN provider integration
-    // For now, use the mock endpoint for development/testing
-    $mockUrl = SITE_URL . '/api/admin/dojah-mock.php';
-
-    $ch = curl_init($mockUrl);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_POST, true);
-    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode(['type' => $type, 'number' => $number]));
-    curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
-    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-    curl_setopt($ch, CURLOPT_TIMEOUT, 5);
-
-    $result = curl_exec($ch);
-    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-
-    $verified = false;
-    if ($httpCode === 200 && $result) {
-        $resp = json_decode($result, true);
-        // Response structure from dojah-mock.php
-        $verified = ($resp['success'] && ($resp['data']['verified'] ?? false));
-    } else {
-        // Fallback mock logic if endpoint unreachable
-        // This ensures verification works even during development
-        $last_digit = substr($number, -1);
-        $verified = ($last_digit === '1');
-    }
+    // ── Simplified identity validation (length-based, no external API) ──
+    // NIN: exactly 11 digits, BVN: exactly 11 digits
+    $expectedLength = 11; // Both NIN and BVN are 11 digits
+    $verified = (strlen($number) === $expectedLength && ctype_digit($number));
 
     if (!$verified) {
         $pdo->rollBack();
-        echo json_encode(['success' => false, 'message' => "Verification failed for $type. Please check the number."]);
+        $label = ($type === 'nin') ? '11-digit NIN' : '11-digit BVN';
+        echo json_encode(['success' => false, 'message' => "Please enter a valid $label (11 numeric digits)."]);
         exit;
     }
 
@@ -96,7 +74,7 @@ try {
             updated_at = NOW() 
         WHERE id = ?
     ");
-    $updateStmt->execute([$number, $client_auth_id]);
+    $updateStmt->execute([$number, $client_id]);
 
     $pdo->commit();
 

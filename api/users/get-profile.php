@@ -9,12 +9,22 @@ header('Content-Type: application/json');
 require_once '../../config/database.php';
 require_once '../../includes/middleware/auth.php';
 
-// Check authentication
+// Hydrate session first — must happen before any $_SESSION access
+checkAuth();
+
 $auth_id = getAuthId();
 $user_id = $_GET['user_id'] ?? $auth_id;
 
-// Check if requesting own profile or admin
-if ($user_id != $auth_id && $_SESSION['role'] !== 'admin') {
+// If no auth at all, reject
+if (!$auth_id) {
+    http_response_code(401);
+    echo json_encode(['success' => false, 'message' => 'Authentication required']);
+    exit;
+}
+
+// Check if requesting own profile or has admin role
+$role = $_SESSION['role'] ?? '';
+if ($user_id != $auth_id && $role !== 'admin') {
     http_response_code(403);
     echo json_encode(['success' => false, 'message' => 'Access denied']);
     exit;

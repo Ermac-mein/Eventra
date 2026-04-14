@@ -539,44 +539,47 @@ async function initGoogleAuth() {
     try {
         const response = await apiFetch('/api/config/get-google-config.php');
         const data = await response.json();
-        
 
         if (data.success && data.client_id) {
             
-            // Use a Promise-based approach with timeout
-            const googleLoadPromise = new Promise((resolve) => {
+            // Wait for Google SDK to load (up to 10s)
+            const googleLoaded = await new Promise((resolve) => {
+                if (typeof google !== 'undefined' && google.accounts && google.accounts.id) {
+                    return resolve(true);
+                }
                 let attempts = 0;
-                const maxAttempts = 100; // 10 seconds with 100ms intervals
-                
-                let intervalId;
-                const checkGoogle = () => {
+                const maxAttempts = 100;
+                const intervalId = setInterval(() => {
                     attempts++;
-                    
                     if (typeof google !== 'undefined' && google.accounts && google.accounts.id) {
-                        if (intervalId) clearInterval(intervalId);
+                        clearInterval(intervalId);
                         resolve(true);
-                    } else {
-                        if (attempts >= maxAttempts) {
-                            if (intervalId) clearInterval(intervalId);
-                            resolve(false);
-                        }
+                    } else if (attempts >= maxAttempts) {
+                        clearInterval(intervalId);
+                        resolve(false);
                     }
-                };
-                
-                checkGoogle(); // Check immediately
-                intervalId = setInterval(checkGoogle, 100);
+                }, 100);
             });
-            
-            const googleLoaded = await googleLoadPromise;
-            
+
             if (googleLoaded) {
-                // Use 'none' to preserve the custom button UI instead of overriding it
-                authController.initGoogle(data.client_id, 'none'); 
+                // Pass the real container ID so googleInitialized is set to true
+                // The GIS button will render inside googleSignInContainer
+                const containerId = document.getElementById('googleSignInContainer') ? 'googleSignInContainer' : 'none';
+                authController.initGoogle(data.client_id, containerId);
             } else {
+                // SDK never loaded — show a manual retry message in the container
+                const container = document.getElementById('googleSignInContainer');
+                if (container) {
+                    container.innerHTML = `
+                        <button id="googleSignIn" class="google-signin" onclick="initGoogleAuth()" style="opacity:0.8;">
+                            <img src="https://www.gstatic.com/images/branding/product/1x/gsa_512dp.png" alt="Google Icon" class="google-icon">
+                            Sign in with Google (Retry)
+                        </button>`;
+                }
             }
-        } else {
         }
     } catch (error) {
+        // Silently fail — user can still navigate to login page
     }
 }
 

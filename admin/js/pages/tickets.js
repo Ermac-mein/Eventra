@@ -263,8 +263,8 @@ function openAdminTicketModal(ticket) {
     document.addEventListener('keydown', function esc(e) { if (e.key === 'Escape') { modalEl?.remove(); document.removeEventListener('keydown', esc); } });
 }
 
-// Use global escapeHtml from utils.js
-var escapeHtml = window.escapeHtml;
+// Use global escapeHtml from utils.js (safe guard – never re-declare)
+if (typeof escapeHtml === 'undefined') { var escapeHtml = window.escapeHtml || function(t){ return String(t||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m])); }; }
 
 function setTableStatusRow(tbody, message, color = '#94a3b8') {
     tbody.textContent = '';

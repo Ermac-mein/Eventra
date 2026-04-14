@@ -436,8 +436,8 @@ function formatDate(dateStr) {
     return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' });
 }
 
-// Use global escapeHtml from utils.js
-var escapeHtml = window.escapeHtml;
+// Use global escapeHtml from utils.js (safe guard – never re-declare)
+if (typeof escapeHtml === 'undefined') { var escapeHtml = window.escapeHtml || function(t){ return String(t||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m])); }; }
 function ucfirst(str) {
     return str ? str.charAt(0).toUpperCase() + str.slice(1) : '';
 }
