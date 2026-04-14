@@ -50,6 +50,25 @@ foreach ($required_fields as $field => $label) {
     }
 }
 
+// Strict length validations
+$nin = trim($_POST['nin']);
+if (strlen($nin) !== 11 || !ctype_digit($nin)) {
+    echo json_encode(['success' => false, 'message' => "NIN must be exactly 11 digits"]);
+    exit;
+}
+
+$bvn = trim($_POST['bvn']);
+if (strlen($bvn) !== 11 || !ctype_digit($bvn)) {
+    echo json_encode(['success' => false, 'message' => "BVN must be exactly 11 digits"]);
+    exit;
+}
+
+$account_number = trim($_POST['account_number']);
+if (strlen($account_number) !== 10 || !ctype_digit($account_number)) {
+    echo json_encode(['success' => false, 'message' => "Account Number must be exactly 10 digits"]);
+    exit;
+}
+
 $name = trim($_POST['name']);
 $business_name = trim($_POST['business_name']);
 $phone = trim($_POST['phone']);

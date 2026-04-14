@@ -41,11 +41,11 @@ function showProfileEditModal() {
                             </div>
 
                             <div class="form-group">
-                                <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Contact Name <span style="color:#ef4444;">*</span></label>
+                                <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Contact Name <span class="text-danger">*</span></label>
                                 <input type="text" name="name" value="${escapeHTML(user.name)}" required class="form-control">
                             </div>
                             <div class="form-group">
-                                <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Business/Organization Name <span style="color:#ef4444;">*</span></label>
+                                <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Business/Organization Name <span class="text-danger">*</span></label>
                                 <input type="text" name="business_name" value="${escapeHTML(user.business_name) || ''}" placeholder="Eventra Inc." class="form-control" required>
                             </div>
                             <div class="form-group">
@@ -53,24 +53,24 @@ function showProfileEditModal() {
                                 <input type="email" value="${escapeHTML(user.email)}" disabled class="form-control disabled">
                             </div>
                             <div class="form-group">
-                                <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Phone <span style="color:#ef4444;">*</span></label>
+                                <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Phone <span class="text-danger">*</span></label>
                                 <input type="tel" name="phone" value="${escapeHTML(user.phone) || ''}" placeholder="+234..." class="form-control" required>
                             </div>
                             
                             <div class="form-group modal-grid-full">
                                 <label style="font-weight: 600; margin-bottom: 0.5rem; display: flex; align-items: center; justify-content: space-between; width: 100%;">
-                                    <span>NIN (National Identity Number) <span style="color:#ef4444;">*</span></span>
+                                    <span>NIN (National Identity Number) <span class="text-danger">*</span></span>
                                     <div id="ninStatus" class="verification-status-indicator"></div>
                                 </label>
                                 <input type="text" id="ninInput" name="nin" value="${escapeHTML(user.nin) || ''}" placeholder="11-digit NIN" class="form-control" onblur="validateAndVerifyField('nin')" required>
                             </div>
 
                             <div class="form-group">
-                                <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Date of Birth <span style="color:#ef4444;">*</span></label>
+                                <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Date of Birth <span class="text-danger">*</span></label>
                                 <input type="date" name="dob" value="${escapeHTML(user.dob) || ''}" class="form-control" required>
                             </div>
                             <div class="form-group">
-                                <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Gender <span style="color:#ef4444;">*</span></label>
+                                <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Gender <span class="text-danger">*</span></label>
                                 <select name="gender" class="form-control" required>
                                     <option value="">Select Gender</option>
                                     <option value="male" ${user.gender === 'male' ? 'selected' : ''}>Male</option>
@@ -80,24 +80,24 @@ function showProfileEditModal() {
                             </div>
                             
                             <div class="form-group modal-grid-full">
-                                <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Address <span style="color:#ef4444;">*</span></label>
+                                <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Address <span class="text-danger">*</span></label>
                                 <textarea name="address" rows="2" placeholder="Full address" class="form-control" required>${escapeHTML(user.address) || ''}</textarea>
                             </div>
                             
                             <div class="form-group">
-                                <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Job Title <span style="color:#ef4444;">*</span></label>
+                                <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Job Title <span class="text-danger">*</span></label>
                                 <input type="text" name="job_title" value="${escapeHTML(user.job_title) || ''}" placeholder="Event Organizer" class="form-control" required>
                             </div>
                             <div class="form-group">
-                                <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Company <span style="color:#ef4444;">*</span></label>
+                                <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Company <span class="text-danger">*</span></label>
                                 <input type="text" name="company" value="${escapeHTML(user.company) || ''}" placeholder="Company Name" class="form-control" required>
                             </div>
                             <div class="form-group">
-                                <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">City <span style="color:#ef4444;">*</span></label>
+                                <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">City <span class="text-danger">*</span></label>
                                 <input type="text" name="city" value="${escapeHTML(user.city) || ''}" placeholder="Lagos" class="form-control" required>
                             </div>
                             <div class="form-group">
-                                <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">State <span style="color:#ef4444;">*</span></label>
+                                <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">State <span class="text-danger">*</span></label>
                                 <select name="state" class="form-control" required>
                                     <option value="">Select State</option>
                                     ${getNigerianStates().map(state => 
@@ -106,7 +106,7 @@ function showProfileEditModal() {
                                 </select>
                             </div>
                             <div class="form-group modal-grid-full">
-                                <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Country <span style="color:#ef4444;">*</span></label>
+                                <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Country <span class="text-danger">*</span></label>
                                 <input type="text" name="country" value="${escapeHTML(user.country) || ''}" placeholder="Nigeria" class="form-control" required>
                             </div>
                         </div>
@@ -116,7 +116,7 @@ function showProfileEditModal() {
                         
                         <div class="modal-grid">
                             <div class="form-group modal-grid-full">
-                                <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Settlement Bank <span style="color:#ef4444;">*</span></label>
+                                <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Settlement Bank <span class="text-danger">*</span></label>
                                 <select id="bankSelect" name="bank_code" class="form-control" onchange="resolveAccount()" required>
                                     <option value="">Select Bank</option>
                                 </select>
@@ -124,7 +124,7 @@ function showProfileEditModal() {
                             </div>
                             <div class="form-group modal-grid-full">
                                 <label style="font-weight: 600; margin-bottom: 0.5rem; display: flex; align-items: center; justify-content: space-between; width: 100%;">
-                                    <span>Account Number (10 Digits) <span style="color:#ef4444;">*</span></span>
+                                    <span>Account Number (10 Digits) <span class="text-danger">*</span></span>
                                     <div id="accountStatus" class="verification-status-indicator">
                                         ${user.subaccount_code 
                                             ? '<span style="color:#722f37; font-weight: bold;" title="Verified Subaccount">✓ Verified</span>' 
@@ -135,14 +135,14 @@ function showProfileEditModal() {
                             </div>
                             <div class="form-group modal-grid-full">
                                 <label style="font-weight: 600; margin-bottom: 0.5rem; display: flex; align-items: center; justify-content: space-between; width: 100%;">
-                                    <span>BVN (11 Digits) <span style="color:#ef4444;">*</span></span>
+                                    <span>BVN (11 Digits) <span class="text-danger">*</span></span>
                                     <div id="bvnStatus" class="verification-status-indicator"></div>
                                 </label>
                                 <input type="text" id="bvnInput" name="bvn" value="${escapeHTML(user.bvn) || ''}" maxlength="11" placeholder="11-digit BVN" class="form-control" oninput="this.value = this.value.replace(/[^0-9]/g, '');" onblur="validateAndVerifyField('bvn')" required>
                                 <small style="display: block; margin-top: 5px; color: #64748b; font-size: 0.8rem; font-style: italic;">Note: Your BVN is for identity verification only.</small>
                             </div>
                             <div class="form-group modal-grid-full">
-                                <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Account Holder Name (Auto-resolved) <span style="color:#ef4444;">*</span></label>
+                                <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Account Holder Name (Auto-resolved) <span class="text-danger">*</span></label>
                                 <input type="text" id="accountNameInput" name="account_name" value="${escapeHTML(user.account_name) || ''}" class="form-control" style="font-weight: 500;" required>
                             </div>
                         </div>
@@ -205,8 +205,10 @@ function previewProfilePic(event) {
 
 async function handleProfileUpdate(e) {
     e.preventDefault();
+    const form = e.target;
+    const formData = new FormData(form);
 
-    // ── Frontend required-field validation ──────────────────────────────────
+    // ── Pre-flight validation ───────────────────────────────────────────────
     const requiredFields = [
         { name: 'name',           label: 'Contact Name' },
         { name: 'business_name',  label: 'Business/Organization Name' },
@@ -226,45 +228,58 @@ async function handleProfileUpdate(e) {
         { name: 'account_name',   label: 'Account Holder Name' },
     ];
 
-    const form = e.target;
+    let firstInvalidField = null;
     for (const field of requiredFields) {
         const el = form.querySelector(`[name="${field.name}"]`);
         if (!el || !el.value.trim()) {
-            showNotification(`${field.label} is required.`, 'error');
+            if (!firstInvalidField) firstInvalidField = el;
             if (el) {
-                el.focus();
                 el.style.borderColor = '#ef4444';
                 el.addEventListener('input', () => { el.style.borderColor = ''; }, { once: true });
             }
-            return;
         }
     }
 
-    // ── Account number digit-count validation ───────────────────────────────
-    const accNumEl = form.querySelector('[name="account_number"]');
-    if (accNumEl) {
-        const digits = accNumEl.value.replace(/\D/g, '');
-        if (digits.length !== 10) {
-            showNotification('Account number must be exactly 10 digits.', 'error');
-            accNumEl.focus();
-            accNumEl.style.borderColor = '#ef4444';
-            accNumEl.addEventListener('input', () => { accNumEl.style.borderColor = ''; }, { once: true });
-            return;
-        }
+    if (firstInvalidField) {
+        firstInvalidField.focus();
+        Swal.fire({
+            icon: 'error',
+            title: 'Missing Required Fields',
+            text: 'Please fill in all fields marked with a red asterisk (*)',
+            confirmButtonColor: '#722f37'
+        });
+        return;
     }
 
-    const formData = new FormData(form);
+    // ── Digit-specific validations ─────────────────────────────────────────
+    const nin = formData.get('nin');
+    if (nin && !/^\d{11}$/.test(nin.replace(/\D/g, ''))) {
+        Swal.fire('Error', 'NIN must be exactly 11 digits', 'error');
+        return;
+    }
+
+    const bvn = formData.get('bvn');
+    if (bvn && !/^\d{11}$/.test(bvn.replace(/\D/g, ''))) {
+        Swal.fire('Error', 'BVN must be exactly 11 digits', 'error');
+        return;
+    }
+
+    const accountNumber = formData.get('account_number');
+    if (accountNumber && !/^\d{10}$/.test(accountNumber.replace(/\D/g, ''))) {
+        Swal.fire('Error', 'Account number must be exactly 10 digits', 'error');
+        return;
+    }
+
+    const submitBtn = form.querySelector('button[type="submit"]');
+    const originalText = submitBtn.textContent;
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span class="spinner"></span> Saving...';
 
     try {
         const response = await apiFetch('/api/clients/update-profile.php', {
             method: 'POST',
             body: formData
         });
-
-        if (!response) {
-            showNotification('Request failed. Please check your connection and try again.', 'error');
-            return;
-        }
 
         const contentType = response.headers.get('content-type');
         if (!contentType || !contentType.includes('application/json')) {
@@ -278,7 +293,7 @@ async function handleProfileUpdate(e) {
             showNotification('Profile updated successfully!', 'success');
 
             // Clear saved form state
-            clearFormState('profileEditForm');
+            if (typeof clearFormState === 'function') clearFormState('profileEditForm');
 
             // Update stored user data
             storage.set('client_user', profileResult.user);
@@ -287,22 +302,30 @@ async function handleProfileUpdate(e) {
             // Close modal
             closeProfileEditModal();
 
-            // Reload page to reflect changes
+            // Refresh UI components
+            if (window.updateClientNameDisplay) {
+                window.updateClientNameDisplay(profileResult.user);
+            }
+
+            // Optional: Reload or update stats if dashboard function exists
             if (window.loadDashboardStats) {
-                window.loadDashboardStats(profileResult.user.id);
+                window.loadDashboardStats();
             }
 
-            // Update sidebar profile if exists
-            if (document.getElementById('sidebarUserName')) {
-                document.getElementById('sidebarUserName').textContent = profileResult.user.name;
-            }
+            // Sync with sidebar if applicable
+            const sidebarName = document.getElementById('sidebarUserName');
+            if (sidebarName) sidebarName.textContent = profileResult.user.name;
 
-            setTimeout(() => window.location.reload(), 1000);
+            // Success feedback and eventual reload if critical
+            setTimeout(() => window.location.reload(), 1500);
         } else {
             showNotification(profileResult.message || 'Failed to update profile', 'error');
         }
     } catch (error) {
         showNotification(error.message || 'An unexpected error occurred during profile update', 'error');
+    } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalText;
     }
 }
 

@@ -2908,3 +2908,5 @@ body {
     .hero-content { margin-bottom: 0.5rem; }
     .nav-menu { overflow-y: auto; }
 }
+
+.text-danger { color: #ef4444 !important; }

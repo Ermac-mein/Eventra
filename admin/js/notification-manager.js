@@ -278,5 +278,3 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// Use global escapeHtml from utils.js (safe guard – never re-declare)
-if (typeof escapeHtml === 'undefined') { var escapeHtml = window.escapeHtml || function(t){ return String(t||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m])); }; }

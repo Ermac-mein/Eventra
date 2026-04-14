@@ -25,7 +25,7 @@ $sessionRole = $_SESSION['user_role'] ?? $_SESSION['role'] ?? null;
 
 if (!$sessionRole) {
     http_response_code(403);
-    echo json_encode(['success' => false, 'message' => 'Access denied.']);
+    echo json_encode(['success' => false, 'message' => 'Access denied. Role not found in session.']);
     exit();
 }
 
@@ -100,11 +100,22 @@ $scopeParams = [];
 
 if ($sessionRole === 'user') {
     $userId = $_SESSION['user_id'] ?? null;
+    if (!$userId) {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'message' => 'User ID not found in session.']);
+        exit();
+    }
     $scopeWhere = ' AND p.user_id = ?';
     $scopeParams[] = $userId;
 } elseif ($sessionRole === 'client') {
     $clientAuthId = $_SESSION['auth_id'] ?? null;
-    $scopeWhere = ' AND e.client_id = (SELECT id FROM clients WHERE client_auth_id = ?)';
+    if (!$clientAuthId) {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'message' => 'Client identity not found in session.']);
+        exit();
+    }
+    // Filter payments by events belonging to this client
+    $scopeWhere = ' AND e.client_id = (SELECT id FROM clients WHERE client_auth_id = ? LIMIT 1)';
     $scopeParams[] = $clientAuthId;
 }
 

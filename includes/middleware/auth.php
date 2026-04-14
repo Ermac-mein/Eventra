@@ -111,8 +111,14 @@ function validateBearerToken($requiredRole = null)
             return null;
         }
 
-        if ($requiredRole && $result['role'] !== $requiredRole) {
-            return null;
+        if ($requiredRole) {
+            if (is_array($requiredRole)) {
+                if (!in_array($result['role'], $requiredRole)) {
+                    return null;
+                }
+            } elseif ($result['role'] !== $requiredRole) {
+                return null;
+            }
         }
 
         // Update last_seen timestamp
@@ -187,7 +193,16 @@ function checkAuth($requiredRole = null)
     $role = $_SESSION['role'] ?? null;
     $userId = $_SESSION[$role . '_id'] ?? null;
 
-    if (!$userId || ($requiredRole && $role !== $requiredRole)) {
+    $hasAuthorizedRole = true;
+    if ($requiredRole) {
+        if (is_array($requiredRole)) {
+            $hasAuthorizedRole = in_array($role, $requiredRole);
+        } else {
+            $hasAuthorizedRole = ($role === $requiredRole);
+        }
+    }
+
+    if (!$userId || !$hasAuthorizedRole) {
         // Check if it's an API request first to avoid redirect loops on AJAX calls
         if (strpos($_SERVER['REQUEST_URI'], '/api/') !== false || (isset($_SERVER['HTTP_ACCEPT']) && strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false)) {
             http_response_code(403);

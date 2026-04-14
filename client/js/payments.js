@@ -617,8 +617,6 @@ function ucfirst(str) {
     return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
-// Use global escapeHtml from utils.js (safe guard – never re-declare)
-if (typeof escapeHtml === 'undefined') { var escapeHtml = window.escapeHtml || function(t){ return String(t||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m])); }; }
 
 // Expose for onclick attributes
 window.openDetailModal = openDetailModal;
