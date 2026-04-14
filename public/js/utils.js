@@ -22,8 +22,10 @@ window.escapeHTML = escapeHTML;
     var escapeHTML = window.escapeHTML;
 }
 
-// Alias for backward compatibility
-window.escapeHtml = window.escapeHTML;
+// Alias for backward compatibility - ensure we don't clobber or redeclare if already exists
+if (typeof window.escapeHtml === 'undefined') {
+    window.escapeHtml = window.escapeHTML;
+}
 
 // Format currency
 function formatCurrency(amount, currency = '₦') {

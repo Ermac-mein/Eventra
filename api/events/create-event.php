@@ -184,7 +184,8 @@ try {
     $price = $_POST['price'] ?? 0.00;
 
     // New pricing fields
-    $ticket_type_mode = $_POST['ticketTypeMode'] ?? $_POST['ticket_type_mode'] ?? 'both';
+    $ticket_type = $_POST['ticket_type'] ?? 'regular';
+    $ticket_type_mode = $_POST['ticket_type_mode'] ?? 'both';
     $regular_price = !empty($_POST['regular_price']) ? floatval($_POST['regular_price']) : 0.00;
     $vip_price = !empty($_POST['vip_price']) ? floatval($_POST['vip_price']) : 0.00;
     $regular_quantity = !empty($_POST['regular_quantity']) ? intval($_POST['regular_quantity']) : null;
@@ -255,8 +256,8 @@ try {
             client_id, custom_id, event_name, description, event_type, event_date, event_time,
             phone_contact_1, phone_contact_2, state, address, visibility, tag,
             external_link, price, regular_price, vip_price, regular_quantity, vip_quantity, 
-            image_path, priority, status, scheduled_publish_time, category
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            image_path, priority, status, scheduled_publish_time, category, event_visibility, ticket_type_mode
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ");
 
     $stmt->execute([
@@ -283,7 +284,9 @@ try {
         $priority,
         $status,
         $scheduled_publish_time,
-        $event_type
+        $event_type,
+        $event_visibility,
+        $ticket_type_mode
     ]);
 
     $event_id = $pdo->lastInsertId();

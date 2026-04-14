@@ -46,10 +46,15 @@ if (!function_exists('getallheaders')) {
 function getBearerToken()
 {
     $headers = getallheaders();
-    if (isset($headers['Authorization'])) {
-        if (preg_match('/Bearer\s+(.*)$/i', $headers['Authorization'], $matches)) {
-            return $matches[1];
-        }
+    $authHeader = $headers['Authorization'] ?? $headers['authorization'] ?? null;
+
+    // Alternative: Check $_SERVER if getallheaders() missed it (common on Apache/CGI)
+    if (!$authHeader) {
+        $authHeader = $_SERVER['HTTP_AUTHORIZATION'] ?? $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? null;
+    }
+
+    if ($authHeader && preg_match('/Bearer\s+(.*)$/i', $authHeader, $matches)) {
+        return $matches[1];
     }
     return null;
 }
@@ -214,10 +219,43 @@ function userMiddleware()
  */
 function checkAuthOptional()
 {
+    global $pdo;
+    
+    // Ensure session is started
     if (session_status() === PHP_SESSION_NONE) {
         require_once __DIR__ . '/../../config.php';
     }
 
+    // Try Bearer token first (same logic as checkAuth but non-terminating)
+    $auth_id = validateBearerToken();
+    if ($auth_id) {
+        // Sync session if token is valid
+        $stmt = $pdo->prepare("SELECT role FROM auth_accounts WHERE id = ?");
+        $stmt->execute([$auth_id]);
+        $role = $stmt->fetchColumn();
+        
+        if ($role) {
+            $_SESSION['auth_id'] = $auth_id;
+            $_SESSION['role'] = $role;
+            $_SESSION['user_role'] = $role;
+            
+            // Get profile ID
+            $profileTable = ($role === 'client') ? 'clients' : (($role === 'admin') ? 'admins' : 'users');
+            $authCol = ($role === 'client') ? 'client_auth_id' : (($role === 'admin') ? 'admin_auth_id' : 'user_auth_id');
+            
+            $stmt = $pdo->prepare("SELECT id FROM $profileTable WHERE $authCol = ? LIMIT 1");
+            $stmt->execute([$auth_id]);
+            $profileId = $stmt->fetchColumn();
+            
+            if ($profileId) {
+                $_SESSION[$role . '_id'] = $profileId;
+                return $profileId;
+            }
+        }
+        return $auth_id;
+    }
+
+    // Fall back to existing session
     $role = $_SESSION['role'] ?? null;
     $userId = $_SESSION[$role . '_id'] ?? null;
 

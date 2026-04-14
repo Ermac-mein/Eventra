@@ -130,6 +130,11 @@ try {
         'folders' => $folders
     ]);
 } catch (PDOException $e) {
+    error_log("[Get Media DB Error] " . $e->getMessage());
     http_response_code(500);
     echo json_encode(['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);
+} catch (Throwable $e) {
+    error_log("[Get Media Global Error] " . $e->getMessage());
+    http_response_code(500);
+    echo json_encode(['success' => false, 'message' => 'Internal server error: ' . $e->getMessage()]);
 }

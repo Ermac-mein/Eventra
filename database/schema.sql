@@ -202,6 +202,7 @@ CREATE TABLE IF NOT EXISTS events (
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     deleted_at DATETIME DEFAULT NULL,
+    event_visibility ENUM('public', 'private') DEFAULT 'public',
     PRIMARY KEY (id),
     UNIQUE KEY uq_event_custom_id (custom_id),
     KEY idx_event_client (client_id),
