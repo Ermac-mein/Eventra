@@ -263,17 +263,7 @@ function openAdminTicketModal(ticket) {
     document.addEventListener('keydown', function esc(e) { if (e.key === 'Escape') { modalEl?.remove(); document.removeEventListener('keydown', esc); } });
 }
 
-if (typeof window.escapeHtml === 'undefined') {
-    window.escapeHtml = function(str) {
-        if (!str) return '';
-        return String(str)
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;')
-            .replace(/'/g, '&#039;');
-    };
-}
+// Use global escapeHtml from utils.js
 var escapeHtml = window.escapeHtml;
 
 function setTableStatusRow(tbody, message, color = '#94a3b8') {

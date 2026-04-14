@@ -278,15 +278,5 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-if (typeof window.escapeHtml === 'undefined') {
-    window.escapeHtml = function(str) {
-        if (!str) return '';
-        return String(str)
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;')
-            .replace(/'/g, '&#039;');
-    };
-}
+// Use global escapeHtml from utils.js
 var escapeHtml = window.escapeHtml;

@@ -1,18 +1,27 @@
 <?php
-
 /**
  * Get Client Dashboard Stats API
  * Provides statistics for client dashboard
  */
 
-header('Content-Type: application/json');
-require_once '../../config/database.php';
+// MUST be the first two lines — no whitespace, no BOM before <?php
+require_once __DIR__ . '/../../config.php'; 
+require_once __DIR__ . '/../../config/database.php';
+require_once __DIR__ . '/../../includes/middleware/auth.php';
 
-// Check authentication
-require_once '../../includes/middleware/auth.php';
+// Then immediately set JSON response header
+header('Content-Type: application/json');
+
+// Handle CORS preflight — must come before any logic
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(200);
+    exit();
+}
+
+// Authenticate via robust middleware
 $auth_id = checkAuth('client');
 
-// Fallback: If session role is missing (common with Bearer token auth), fetch it
+// Fallback: If session role is missing, fetch it
 if (!isset($_SESSION['role'])) {
     $stmt = $pdo->prepare("SELECT role FROM auth_accounts WHERE id = ?");
     $stmt->execute([$auth_id]);

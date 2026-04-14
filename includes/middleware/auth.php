@@ -41,21 +41,39 @@ if (!function_exists('getallheaders')) {
 }
 
 /**
- * Get Bearer Token from Authorization header
+ * Get Bearer Token from Authorization header (Robust - works on shared hosting)
  */
 function getBearerToken()
 {
-    $headers = getallheaders();
-    $authHeader = $headers['Authorization'] ?? $headers['authorization'] ?? null;
-
-    // Alternative: Check $_SERVER if getallheaders() missed it (common on Apache/CGI)
-    if (!$authHeader) {
-        $authHeader = $_SERVER['HTTP_AUTHORIZATION'] ?? $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? null;
+    // Method 1: Standard (often blocked by Apache on shared hosts)
+    if (!empty($_SERVER['HTTP_AUTHORIZATION'])) {
+        return str_replace('Bearer ', '', trim($_SERVER['HTTP_AUTHORIZATION']));
+    }
+    
+    // Method 2: Alternate key some hosts use
+    if (!empty($_SERVER['REDIRECT_HTTP_AUTHORIZATION'])) {
+        return str_replace('Bearer ', '', trim($_SERVER['REDIRECT_HTTP_AUTHORIZATION']));
+    }
+    
+    // Method 3: Apache fallback via mod_rewrite (requires .htaccess rule)
+    if (!empty($_SERVER['HTTP_ACCESS_TOKEN'])) {
+        return trim($_SERVER['HTTP_ACCESS_TOKEN']);
     }
 
-    if ($authHeader && preg_match('/Bearer\s+(.*)$/i', $authHeader, $matches)) {
-        return $matches[1];
+    // Method 4: From session (if token was stored at login)
+    if (!empty($_SESSION['api_token'])) {
+        return $_SESSION['api_token'];
     }
+
+    // Traditional getallheaders fallback
+    if (function_exists('getallheaders')) {
+        $headers = getallheaders();
+        $authHeader = $headers['Authorization'] ?? $headers['authorization'] ?? null;
+        if ($authHeader && preg_match('/Bearer\s+(.*)$/i', $authHeader, $matches)) {
+            return $matches[1];
+        }
+    }
+
     return null;
 }
 

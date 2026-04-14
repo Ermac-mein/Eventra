@@ -1,15 +1,24 @@
 <?php
-
 /**
  * Get Media API
  * Retrieves media files and folders for a client
  */
 
+// MUST be the first two lines — no whitespace, no BOM before <?php
+require_once __DIR__ . '/../../config.php'; 
+require_once __DIR__ . '/../../config/database.php';
+require_once __DIR__ . '/../../includes/middleware/auth.php';
+
+// Then immediately set JSON response header
 header('Content-Type: application/json');
-require_once '../../config/database.php';
+
+// Handle CORS preflight — must come before any logic
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(200);
+    exit();
+}
 
 try {
-    require_once '../../includes/middleware/auth.php';
     $client_id = checkAuth('client');  // checkAuth now returns client_id directly
 
     // ──────────────────────────────────────────────────────────────────────────

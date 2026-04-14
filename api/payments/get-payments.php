@@ -1,25 +1,32 @@
 <?php
-
 /**
  * Get Payments API
  * Returns paginated, filterable payment list.
- * Users: own payments only. Admins: all payments.
+ * Users/Clients: own payments only. Admins: all payments.
  */
 
-header('Content-Type: application/json');
-require_once '../../config/database.php';
-require_once '../../includes/middleware/auth.php';
+// MUST be the first two lines — no whitespace, no BOM before <?php
+require_once __DIR__ . '/../../config.php'; 
+require_once __DIR__ . '/../../config/database.php';
+require_once __DIR__ . '/../../includes/middleware/auth.php';
 
-// Authenticate — accept both user and admin
-if (session_status() === PHP_SESSION_NONE) {
-    require_once '../../config/session-config.php';
+// Then immediately set JSON response header
+header('Content-Type: application/json');
+
+// Handle CORS preflight — must come before any logic
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(200);
+    exit();
 }
 
-$sessionRole = $_SESSION['user_role'] ?? null;
-if (!$sessionRole || !in_array($sessionRole, ['user', 'admin', 'client'])) {
-    http_response_code(401);
-    echo json_encode(['success' => false, 'message' => 'Unauthorized.']);
-    exit;
+// Authenticate via robust middleware
+$auth_id = checkAuth(['user', 'admin', 'client']);
+$sessionRole = $_SESSION['user_role'] ?? $_SESSION['role'] ?? null;
+
+if (!$sessionRole) {
+    http_response_code(403);
+    echo json_encode(['success' => false, 'message' => 'Access denied.']);
+    exit();
 }
 
 $isAdmin = ($sessionRole === 'admin');

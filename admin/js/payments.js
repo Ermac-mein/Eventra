@@ -436,17 +436,7 @@ function formatDate(dateStr) {
     return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' });
 }
 
-if (typeof window.escapeHtml === 'undefined') {
-    window.escapeHtml = function(str) {
-        if (!str) return '';
-        return str.toString()
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;')
-            .replace(/'/g, '&#039;');
-    };
-}
+// Use global escapeHtml from utils.js
 var escapeHtml = window.escapeHtml;
 function ucfirst(str) {
     return str ? str.charAt(0).toUpperCase() + str.slice(1) : '';

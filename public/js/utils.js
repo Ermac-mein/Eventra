@@ -5,26 +5,15 @@
  * @param {string} str - String to escape
  * @returns {string} - Escaped string
  */
-// Ensure escapeHTML/escapeHtml exist without redeclaring
-if (typeof window.escapeHTML === 'undefined') {
-function escapeHTML(str) {
-    if (!str) return '';
-    return str.toString()
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#039;');
-}
-window.escapeHTML = escapeHTML;
-} else {
-    // Reuse existing implementation
-    var escapeHTML = window.escapeHTML;
-}
-
-// Alias for backward compatibility - ensure we don't clobber or redeclare if already exists
+// Use var or attach to window to prevent re-declaration errors if loaded twice
 if (typeof window.escapeHtml === 'undefined') {
-    window.escapeHtml = window.escapeHTML;
+    window.escapeHtml = function(text) {
+        if (text === null || text === undefined) return '';
+        const map = { '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;' };
+        return String(text).replace(/[&<>"']/g, m => map[m]);
+    };
+    // Maintain backward compatibility for any code using escapeHTML (all caps)
+    window.escapeHTML = window.escapeHtml;
 }
 
 // Format currency

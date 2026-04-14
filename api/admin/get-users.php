@@ -1,14 +1,23 @@
 <?php
-
 /**
  * Get All Users API for Admin
  * Retrieves all registered users with role 'user'
  * OPTIMIZED: Eliminated N+1 queries and triple-nested subqueries
  */
 
+// MUST be the first two lines — no whitespace, no BOM before <?php
+require_once __DIR__ . '/../../config.php'; 
+require_once __DIR__ . '/../../config/database.php';
+require_once __DIR__ . '/../../includes/middleware/auth.php';
+
+// Then immediately set JSON response header
 header('Content-Type: application/json');
-require_once '../../config/database.php';
-require_once '../../includes/middleware/auth.php';
+
+// Handle CORS preflight — must come before any logic
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(200);
+    exit();
+}
 
 // Check if admin is logged in
 checkAuth('admin');
