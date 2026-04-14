@@ -7,10 +7,15 @@
  */
 
 header('Content-Type: application/json');
-require_once '../../config/database.php';
+require_once __DIR__ . '/../../config.php';
+require_once __DIR__ . '/../../config/database.php';
 
 try {
-    $mediaDir = realpath(__DIR__ . '/../../uploads/media/default');
+    $mediaDir = realpath(MEDIA_PATH . 'default');
+    if (!$mediaDir) {
+        // Fallback to legacy uploads path
+        $mediaDir = realpath(__DIR__ . '/../../uploads/media/default');
+    }
     
     if (!$mediaDir || !is_dir($mediaDir)) {
         echo json_encode([
@@ -33,7 +38,7 @@ try {
         if (is_file($filePath) && preg_match('/\.(svg|jpg|jpeg|png|gif|webp)$/i', $file)) {
             $templates[] = [
                 'filename' => $file,
-                'url' => '/uploads/media/default/' . $file,
+                'url' => UPLOAD_URL . 'default/' . $file,
                 'type' => pathinfo($file, PATHINFO_EXTENSION),
                 'size' => filesize($filePath),
                 'uploaded_at' => date('Y-m-d H:i:s', filemtime($filePath))

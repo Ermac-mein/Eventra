@@ -74,7 +74,7 @@ if (session_status() === PHP_SESSION_NONE) {
             session_name('EVENTRA_USER_SESS');
         }
     }
-    @session_start();
+    // Session is started by config.php (session_start guarded by PHP_SESSION_NONE).
 }
 
 if (!isset($_SESSION['csrf_token'])) {
@@ -89,7 +89,7 @@ if (isset($_SESSION['last_activity']) && (time() - $_SESSION['last_activity'] > 
     }
     // Restart as guest/fresh if needed, or caller will handle 401
     if (session_status() === PHP_SESSION_NONE) {
-        @session_start();
+        // Session is started by config.php
     }
 }
 $_SESSION['last_activity'] = time();

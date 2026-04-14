@@ -44,7 +44,7 @@ try {
     }
 
     // Update status to cancelled
-    $stmt = $pdo->prepare("UPDATE tickets SET status = 'cancelled', updated_at = NOW() WHERE id = ?");
+    $stmt = $pdo->prepare("UPDATE `tickets` SET `status` = 'cancelled', `updated_at` = NOW() WHERE `id` = ?");
     $stmt->execute([$ticket_id]);
 
     // Trigger Notification

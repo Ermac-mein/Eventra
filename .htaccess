@@ -46,3 +46,13 @@ php_value post_max_size 15M
 
 # ETag Headers
 FileETag None
+
+# Protect sensitive files
+<FilesMatch "^\.env$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+<FilesMatch "^env_loader\.php$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>

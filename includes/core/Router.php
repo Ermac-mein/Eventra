@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/../../config.php';
 
 namespace App\Core;
 
@@ -110,7 +111,7 @@ class Router
         }
 
         if (session_status() === PHP_SESSION_NONE) {
-            require_once __DIR__ . '/../../config/session-config.php';
+            require_once __DIR__ . '/../../config.php';
         }
 
         // 2. Strict Role Check
@@ -137,7 +138,7 @@ class Router
                 exit();
             }
 
-            header("Location: $loginPath");
+            header("Location: " . SITE_URL . $loginPath);
             exit();
         }
     }

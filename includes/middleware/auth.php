@@ -6,6 +6,7 @@
  * Use App\Core\Router and middleware instead for new code.
  */
 
+require_once __DIR__ . '/../../config.php';
 require_once __DIR__ . '/../../config/database.php';
 
 /**
@@ -107,7 +108,7 @@ function checkAuth($requiredRole = null)
 
     // Ensure session is started
     if (session_status() === PHP_SESSION_NONE) {
-        require_once __DIR__ . '/../../config/session-config.php';
+        require_once __DIR__ . '/../../config.php';
     }
 
     // First, try Bearer token authentication (for API requests)
@@ -173,7 +174,7 @@ function checkAuth($requiredRole = null)
         }
 
         $loginPath = ($requiredRole === 'client') ? '/client/login' : (($requiredRole === 'admin') ? '/admin/login' : '/user/login');
-        header("Location: $loginPath");
+        header("Location: " . SITE_URL . $loginPath);
         exit;
     }
 
@@ -214,7 +215,7 @@ function userMiddleware()
 function checkAuthOptional()
 {
     if (session_status() === PHP_SESSION_NONE) {
-        require_once __DIR__ . '/../../config/session-config.php';
+        require_once __DIR__ . '/../../config.php';
     }
 
     $role = $_SESSION['role'] ?? null;

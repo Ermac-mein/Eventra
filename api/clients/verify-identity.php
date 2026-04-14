@@ -9,8 +9,9 @@
  */
 
 header('Content-Type: application/json');
-require_once '../../config/database.php';
-require_once '../../includes/middleware/auth.php';
+require_once __DIR__ . '/../../config.php';
+require_once __DIR__ . '/../../config/database.php';
+require_once __DIR__ . '/../../includes/middleware/auth.php';
 
 // Get client ID from auth check
 $client_id = clientMiddleware();
@@ -53,9 +54,7 @@ try {
     // Call real verification service or mock for development
     // For production, replace with actual DOJAH/BVN provider integration
     // For now, use the mock endpoint for development/testing
-    $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http';
-    $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
-    $mockUrl = "$protocol://$host/api/admin/dojah-mock.php";
+    $mockUrl = SITE_URL . '/api/admin/dojah-mock.php';
 
     $ch = curl_init($mockUrl);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);

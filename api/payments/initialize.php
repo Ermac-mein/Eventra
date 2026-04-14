@@ -1,7 +1,8 @@
 <?php
 
 header('Content-Type: application/json');
-require_once '../../config/database.php';
+require_once __DIR__ . '/../../config.php';
+require_once __DIR__ . '/../../config/database.php';
 require_once '../../config/payment.php';
 require_once '../../includes/middleware/auth.php';
 
@@ -184,9 +185,7 @@ try {
             createPaymentSuccessNotification($auth_id, $event['event_name'], 0);
             createTicketIssuedNotification($auth_id, $event['event_name'], $tickets[0]['barcode']);
 
-            $protocol    = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') ? 'https' : 'http';
-            $host        = $_SERVER['HTTP_HOST'] ?? 'localhost';
-            $callbackUrl = "{$protocol}://{$host}/public/pages/payment.html?reference={$reference}";
+            $callbackUrl = SITE_URL . '/public/pages/payment.html?reference=' . rawurlencode($reference);
 
             echo json_encode([
                 'success'           => true,
@@ -228,9 +227,7 @@ try {
     $order_id = $pdo->lastInsertId();
 
     // ── Initialize Paystack transaction ──────────────────────────────────────
-    $protocol    = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') ? 'https' : 'http';
-    $host        = $_SERVER['HTTP_HOST'] ?? 'localhost';
-    $callbackUrl = "{$protocol}://{$host}/public/pages/payment.html?reference={$reference}";
+    $callbackUrl = SITE_URL . '/public/pages/payment.html?reference=' . rawurlencode($reference);
 
     $paystackPayload = [
         'email'         => $user_email,

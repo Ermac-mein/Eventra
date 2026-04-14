@@ -11,8 +11,9 @@ error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
 header('Content-Type: application/json');
-require_once '../../config/database.php';
-require_once '../../includes/middleware/auth.php';
+require_once __DIR__ . '/../../config.php';
+require_once __DIR__ . '/../../config/database.php';
+require_once __DIR__ . '/../../includes/middleware/auth.php';
 
 /**
  * Helper: Resolve users.id from auth_id (auth_accounts.id or session users.id)
@@ -84,9 +85,7 @@ try {
     // Build ticket download URL if ticket exists
     $downloadUrl = null;
     if (!empty($order['barcode'])) {
-        $protocol = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') ? 'https' : 'http';
-        $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
-        $downloadUrl = "{$protocol}://{$host}/api/tickets/download-ticket.php?code=" . urlencode($order['barcode']);
+        $downloadUrl = SITE_URL . '/api/tickets/download-ticket.php?code=' . urlencode($order['barcode']);
     }
 
     // Determine safe status

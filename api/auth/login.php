@@ -25,7 +25,7 @@ session_name($sessionName);
 header('Content-Type: application/json');
 
 require_once __DIR__ . '/../../config/database.php';
-require_once __DIR__ . '/../../config/session-config.php';
+require_once __DIR__ . '/../../config.php';
 require_once __DIR__ . '/../../includes/helpers/entity-resolver.php';
 
 $identity = $data['email'] ?? $data['username'] ?? null;
@@ -134,9 +134,9 @@ try {
             session_name($expectedSessionName);
         }
 
-        // Start session if not already started
+        // Ensure session is initialized via centralized config
         if (session_status() === PHP_SESSION_NONE) {
-            session_start();
+            require_once __DIR__ . '/../../config.php';
         }
 
         // Regenerate session ID for security, but preserve critical data

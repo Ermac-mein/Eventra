@@ -44,7 +44,7 @@ try {
     }
 
     // Success: Mark as used
-    $stmt = $pdo->prepare("UPDATE tickets SET status = 'used' WHERE id = ?");
+    $stmt = $pdo->prepare("UPDATE `tickets` SET `status` = 'used' WHERE `id` = ?");
     $stmt->execute([$ticket['id']]);
 
     echo json_encode([

@@ -99,9 +99,7 @@ try {
     }
     
     session_name($sessionName);
-    if (session_status() === PHP_SESSION_NONE) {
-        session_start();
-    }
+    require_once __DIR__ . '/../../config.php';
 
     // Set session variables
     $_SESSION['auth_id'] = $auth_id;

@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/../../config.php';
 
 namespace App\Core;
 
@@ -35,7 +36,13 @@ class BaseController
 
     protected function redirect($url)
     {
-        header("Location: $url");
+        // Ensure absolute URL using SITE_URL when a relative path is provided
+        if (strpos($url, 'http://') === 0 || strpos($url, 'https://') === 0) {
+            $target = $url;
+        } else {
+            $target = SITE_URL . $url;
+        }
+        header("Location: " . $target);
         exit();
     }
 
