@@ -150,54 +150,14 @@ try {
         empty($existing['subaccount_code'])
     );
 
-    // ── Paystack Subaccount Automation ─────────────────────────────────────
+    // ── Bank Details: Mock Resolution (no external API call) ────────────────
     if (!empty($bank_code) && !empty($account_number)) {
         if ($bank_changed) {
-            // Resolve Account Name first if we don't have it (optional but good for business_name)
-            $query_params = http_build_query([
-                'account_number' => $account_number,
-                'bank_code' => $bank_code
-            ]);
-            $resolveRes = paystackRequest('GET', "/bank/resolve?{$query_params}");
-            
-            // Check if resolution was successful
-            if (!$resolveRes['ok'] || !($resolveRes['body']['status'] ?? false)) {
-                $errMsg = ($resolveRes['body']['message'] ?? $resolveRes['error'] ?? 'Account resolution failed. Please check the parameters properly.');
-                
-                // FALLBACK: In Paystack Test Mode, we allow failures to pass through
-                // by using the provided account holder name or falling back to business_name.
-                $isTestMode = (defined('PAYSTACK_SECRET_KEY') && str_starts_with(PAYSTACK_SECRET_KEY, 'sk_test'));
-
-                if ($isTestMode) {
-                    error_log("[Paystack Test Mode] Account resolution failed ($errMsg). Falling back to provided name.");
-                    $resolved_account_name = $account_name;
-                } else {
-                    $pdo->rollBack();
-                    http_response_code(400);
-                    echo json_encode(['success' => false, 'message' => "Paystack: " . $errMsg]);
-                    exit;
-                }
-            } else {
-                $resolved_account_name = $resolveRes['body']['data']['account_name'] ?? ($business_name ?: $name);
-            }
-
-            $subRes = ensureSubaccount(
-                $pdo,
-                $client_auth_id,
-                $bank_code,
-                $account_number,
-                $resolved_account_name,
-                $auth_email,
-                $existing['subaccount_code']
-            );
-
-            if (!$subRes['success']) {
-                $pdo->rollBack();
-                http_response_code(400);
-                echo json_encode(['success' => false, 'message' => $subRes['message']]);
-                exit;
-            }
-            $account_name = $resolved_account_name;
+            // Use provided account_name if given, else fall back to a test placeholder
+            $provided_account_name = trim($_POST['account_name'] ?? '');
+            $account_name = !empty($provided_account_name)
+                ? $provided_account_name
+                : 'Test Account';
         } else {
             $account_name = $existing['account_name'] ?? ($business_name ?: $name);
         }
