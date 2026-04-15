@@ -816,6 +816,50 @@ HTML;
      * ───────────────────────────────────────────────────────────── */
 
     /**
+     * Send a registration OTP email.
+     *
+     * @param string $to Recipient email
+     * @param string $name Recipient name
+     * @param string $otp 6-digit OTP
+     * @return array
+     */
+    public static function sendRegistrationOTP(string $to, string $name, string $otp): array
+    {
+        $subject = "Verify your Eventra account — OTP: $otp";
+        $safeName = htmlspecialchars($name, ENT_QUOTES, 'UTF-8');
+        $year = date('Y');
+
+        $body = <<<HTML
+        <div style="font-family:'Plus Jakarta Sans',Arial,sans-serif;max-width:600px;margin:auto;padding:40px;background-color:#ffffff;border-radius:16px;box-shadow:0 4px 24px rgba(0,0,0,0.06);border:1px solid #f1f5f9;">
+            <div style="text-align:center;margin-bottom:32px;">
+                <h1 style="color:#2ecc71;margin:0;font-size:28px;font-weight:800;letter-spacing:-0.5px;">Eventra</h1>
+                <p style="color:#64748b;margin-top:8px;font-size:14px;">Bringing your events to life</p>
+            </div>
+            
+            <h2 style="color:#1e293b;font-size:20px;font-weight:700;margin-bottom:16px;">Confirm your email address</h2>
+            <p style="color:#475569;font-size:16px;line-height:1.6;margin-bottom:24px;">Hi <strong>{$safeName}</strong>,</p>
+            <p style="color:#475569;font-size:16px;line-height:1.6;margin-bottom:32px;">To complete your registration and start creating amazing events, please use the following verification code:</p>
+            
+            <div style="background:#f8fafc;padding:32px;text-align:center;border-radius:12px;margin:32px 0;border:1px solid #e2e8f0;">
+                <p style="margin:0 0 12px 0;color:#64748b;font-size:12px;text-transform:uppercase;letter-spacing:2px;font-weight:700;">Verification Code</p>
+                <div style="font-size:48px;font-weight:800;letter-spacing:8px;color:#1e293b;font-family:monospace;">{$otp}</div>
+            </div>
+            
+            <p style="color:#64748b;font-size:14px;line-height:1.6;margin-bottom:32px;">This code will expire in 15 minutes. If you didn't request this email, you can safely ignore it.</p>
+            
+            <hr style="border:0;border-top:1px solid #f1f5f9;margin:32px 0;">
+            
+            <div style="text-align:center;">
+                <p style="font-size:12px;color:#94a3b8;margin:0;">&copy; {$year} Eventra Inc. All rights reserved.</p>
+                <p style="font-size:11px;color:#cbd5e1;margin-top:8px;">You are receiving this because you signed up for an Eventra account.</p>
+            </div>
+        </div>
+        HTML;
+
+        return self::sendEmail($to, $subject, $body);
+    }
+
+    /**
      * Send a rich ticket email with styled HTML ticket, PDF attachment,
      * and optional download button.
      *

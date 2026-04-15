@@ -15,8 +15,134 @@ $otp = $data['otp'] ?? null;
 $intent = $data['intent'] ?? 'password_reset';
 
 try {
+    // 0. Ensure session is started for deferred registration storage
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
+
     require_once __DIR__ . '/../../includes/helpers/entity-resolver.php';
 
+    // 1. Handle Registration Verification Intent
+    if ($intent === 'registration_verify') {
+        if (!isset($_SESSION['pending_registration'])) {
+            echo json_encode(['success' => false, 'message' => 'Verification context expired or missing. Please try signing up again.']);
+            exit;
+        }
+
+        $pending = $_SESSION['pending_registration'];
+        
+        // Basic safety check for email mismatch
+        if ($pending['email'] !== $identity) {
+             echo json_encode(['success' => false, 'message' => 'Email mismatch.']);
+             exit;
+        }
+
+        // Verify OTP
+        if ($pending['otp'] !== $otp) {
+            echo json_encode(['success' => false, 'message' => 'Invalid verification code.']);
+            exit;
+        }
+
+        // Check expiry
+        if (time() > $pending['expires_at']) {
+            unset($_SESSION['pending_registration']);
+            echo json_encode(['success' => false, 'message' => 'Verification code expired. Please try signing up again.']);
+            exit;
+        }
+
+        // OTP is valid! Persist records.
+        $pdo->beginTransaction();
+        try {
+            // Load necessary utils
+            require_once __DIR__ . '/../utils/id-generator.php';
+            require_once __DIR__ . '/../utils/notification-helper.php';
+
+            $email = $pending['email'];
+            $hashedPassword = $pending['password'];
+            $role = $pending['role'];
+            $name = $pending['name'];
+
+            // Create auth_account
+            $username = explode('@', $email)[0] . '_' . substr(bin2hex(random_bytes(2)), 0, 4);
+            $stmt = $pdo->prepare("INSERT INTO auth_accounts (email, password, role, auth_provider, is_active, username, email_verified_at) VALUES (?, ?, ?, 'local', 1, ?, NOW())");
+            $stmt->execute([$email, $hashedPassword, $role, $username]);
+            $auth_id = $pdo->lastInsertId();
+
+            $role_id = null;
+            $customId = null;
+
+            // Insert into role-specific table
+            if ($role === 'client') {
+                $customId = generateClientId($pdo);
+                $stmt = $pdo->prepare("INSERT INTO clients (client_auth_id, custom_id, business_name, name) VALUES (?, ?, ?, ?)");
+                $stmt->execute([$auth_id, $customId, $name, $name]);
+            } elseif ($role === 'admin') {
+                $stmt = $pdo->prepare("INSERT INTO admins (admin_auth_id, name) VALUES (?, ?)");
+                $stmt->execute([$auth_id, $name]);
+                $role_id = $pdo->lastInsertId();
+            } elseif ($role === 'user') {
+                $customId = generateUserId($pdo);
+                $stmt = $pdo->prepare("INSERT INTO users (user_auth_id, custom_id, name) VALUES (?, ?, ?)");
+                $stmt->execute([$auth_id, $customId, $name]);
+                $role_id = $pdo->lastInsertId();
+            }
+
+            $pdo->commit();
+
+            // Clear session
+            unset($_SESSION['pending_registration']);
+
+            logSecurityEvent($auth_id, $email, 'registration_success', 'password', "New $role registered via OTP: $name");
+
+            // Complete Login Flow
+            $_SESSION['auth_id'] = $auth_id;
+            $_SESSION['user_role'] = $role;
+            $_SESSION['role'] = $role;
+            
+            // Set role-specific session ID
+            if ($role === 'client') {
+                $stmt = $pdo->prepare("SELECT id FROM clients WHERE client_auth_id = ?");
+                $stmt->execute([$auth_id]);
+                $_SESSION['client_id'] = $stmt->fetchColumn();
+                $dashboard = '/client/pages/clientDashboard.html';
+            } elseif ($role === 'admin') {
+                $stmt = $pdo->prepare("SELECT id FROM admins WHERE admin_auth_id = ?");
+                $stmt->execute([$auth_id]);
+                $_SESSION['admin_id'] = $stmt->fetchColumn();
+                $dashboard = '/admin/pages/adminDashboard.html';
+            } else {
+                $stmt = $pdo->prepare("SELECT id FROM users WHERE user_auth_id = ?");
+                $stmt->execute([$auth_id]);
+                $_SESSION['user_id'] = $stmt->fetchColumn();
+                $dashboard = '/public/pages/index.html';
+            }
+
+            // Generate access token
+            $token = bin2hex(random_bytes(32));
+            $expires_at_token = date('Y-m-d H:i:s', strtotime('+2 hours'));
+            $pdo->prepare("INSERT INTO auth_tokens (auth_id, token, expires_at, type) VALUES (?, ?, ?, 'access')")->execute([$auth_id, $token, $expires_at_token]);
+            $_SESSION['auth_token'] = $token;
+
+            echo json_encode([
+                'success' => true,
+                'message' => 'Verification successful! Logged in.',
+                'redirect' => $dashboard,
+                'user' => [
+                    'id' => $auth_id,
+                    'name' => $name,
+                    'role' => $role,
+                    'token' => $token
+                ]
+            ]);
+            exit;
+
+        } catch (Exception $e) {
+            if ($pdo->inTransaction()) $pdo->rollBack();
+            throw $e;
+        }
+    }
+
+    // ── LEGACY FLOWS (Login/Password Reset) ───────────────────────────
     // Resolve user by identity (email or phone)
     $user = resolveEntity($identity, 'client');
     $auth_id = $user['id'] ?? null;
@@ -26,7 +152,7 @@ try {
         exit;
     }
 
-    // Verify OTP
+    // Verify OTP for existing accounts
     $stmt = $pdo->prepare("
         SELECT id FROM auth_tokens 
         WHERE auth_id = ? AND token = ? AND type = 'otp' 
@@ -41,19 +167,16 @@ try {
         $pdo->prepare("UPDATE auth_tokens SET revoked = 1 WHERE id = ?")->execute([$token_row['id']]);
 
         if ($intent === 'client_login') {
-            // ── Complete Client Login Flow (Mirroring login.php) ──────────────────
+            // ... (rest of legacy login logic)
             // Reset failed attempts
             $pdo->prepare("UPDATE auth_accounts SET failed_attempts = 0, last_login_at = NOW(), is_online = 1 WHERE id = ?")->execute([$auth_id]);
             
-            // Set session name
-            session_name('EVENTRA_CLIENT_SESS');
-            if (session_status() === PHP_SESSION_NONE) {
-                session_start();
-            }
+            // Set session name if needed (optional here as it's already started)
+            // session_name('EVENTRA_CLIENT_SESS'); 
 
             // Generate access token
             $token = bin2hex(random_bytes(32));
-            $expires_at = date('Y-m-d H:i:s', strtotime('+30 minutes'));
+            $expires_at = date('Y-m-d H:i:s', strtotime('+2 hours'));
             $pdo->prepare("INSERT INTO auth_tokens (auth_id, token, expires_at, type) VALUES (?, ?, ?, 'access')")->execute([$auth_id, $token, $expires_at]);
 
             // Set role-specific PK
@@ -98,4 +221,7 @@ try {
 } catch (PDOException $e) {
     error_log("Verify OTP Error: " . $e->getMessage());
     echo json_encode(['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);
+} catch (Throwable $e) {
+    error_log("Verify OTP Critical Error: " . $e->getMessage());
+    echo json_encode(['success' => false, 'message' => 'Internal server error.']);
 }

@@ -151,26 +151,28 @@ document.addEventListener('DOMContentLoaded', () => {
             const result = await response.json();
 
             if (result.success) {
-                // ... Success handling ...
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Registration Successful!',
-                        text: result.message || 'Your account has been created. Please log in to continue.',
-                        timer: 3000,
-                        showConfirmButton: false,
-                        background: 'rgba(30, 41, 59, 0.95)',
-                        color: '#fff'
-                    });
-                } else if (successMessage) {
-                    successMessage.classList.add('show');
-                    successMessage.textContent = 'Account created! Redirecting to login...';
+                if (result.otp_required) {
+                    // Show OTP Verification Modal
+                    showRegistrationOTPModal(result.email || emailInput.value);
+                    signupButton.disabled = false;
+                    signupButton.innerHTML = originalBtnText;
+                } else {
+                    // legacy direct success handling
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Registration Successful!',
+                            text: result.message || 'Your account has been created.',
+                            timer: 3000,
+                            showConfirmButton: false,
+                            background: 'rgba(30, 41, 59, 0.95)',
+                            color: '#fff'
+                        });
+                    }
+                    setTimeout(() => {
+                        window.location.href = result.redirect || 'clientLogin.html';
+                    }, 3100);
                 }
-                
-                setTimeout(() => {
-                    const redirectUrl = result.redirect || `clientLogin.html`;
-                    window.location.href = redirectUrl;
-                }, 3100);
             } else {
                 // Display specific error message from server
                 showError('passwordError', result.message || 'Registration failed. Please try again.');
@@ -178,15 +180,110 @@ document.addEventListener('DOMContentLoaded', () => {
                 signupButton.innerHTML = originalBtnText;
             }
         } catch (error) {
-            console.error('Signup error details:', {
-                message: error.message,
-                stack: error.stack,
-                error: error
-            });
-            showError('passwordError', 'Registration failed. ' + (error.message || 'Please check your connection and try again.'));
+            console.error('Signup error details:', error);
+            showError('passwordError', 'Registration failed. ' + (error.message || 'Please try again later.'));
             signupButton.disabled = false;
             signupButton.innerHTML = originalBtnText;
         }
+    }
+
+    function showRegistrationOTPModal(email) {
+        if (typeof Swal === 'undefined') {
+            alert('Please check your email for the verification code.');
+            return;
+        }
+
+        Swal.fire({
+            title: 'Verify Your Email',
+            html: `
+                <div style="text-align: left;">
+                    <p style="color: #94a3b8; margin-bottom: 1.5rem; font-size: 0.95rem;">
+                        We've sent a 6-digit verification code to <strong>${email}</strong>. 
+                        Enter it below to complete your registration.
+                    </p>
+                    <div style="display: flex; justify-content: center;">
+                        <input type="text" id="regOtpCode" maxlength="6" placeholder="000000" 
+                               style="width: 200px; padding: 1rem; border: 2px solid #334155; background: #0f172a; color: #fff; border-radius: 12px; text-align: center; font-size: 2rem; letter-spacing: 0.5rem; font-weight: 800; font-family: monospace;" 
+                               inputmode="numeric" pattern="[0-9]*">
+                    </div>
+                    <p style="color: #64748b; margin-top: 1.5rem; font-size: 0.85rem; text-align: center;">
+                        Wait a few minutes if you don't see it, and check your spam folder.
+                    </p>
+                </div>
+            `,
+            background: 'rgba(15, 23, 42, 0.95)',
+            color: '#fff',
+            confirmButtonText: 'Verify & Create Account',
+            confirmButtonColor: '#2563eb',
+            showCancelButton: true,
+            cancelButtonText: 'Cancel',
+            cancelButtonColor: '#334155',
+            allowOutsideClick: false,
+            preConfirm: () => {
+                const otp = document.getElementById('regOtpCode').value;
+                if (!otp || otp.length !== 6) {
+                    Swal.showValidationMessage('Please enter the 6-digit code');
+                    return false;
+                }
+                return otp;
+            }
+        }).then(async (result) => {
+            if (result.isConfirmed) {
+                const otp = result.value;
+                
+                // Show loading state
+                Swal.fire({
+                    title: 'Verifying...',
+                    allowOutsideClick: false,
+                    didOpen: () => { Swal.showLoading(); }
+                });
+
+                try {
+                    const response = await apiFetch('/api/auth/verify-otp.php', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            identity: email,
+                            otp: otp,
+                            intent: 'registration_verify'
+                        })
+                    });
+
+                    const verifyResult = await response.json();
+
+                    if (verifyResult.success) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Success!',
+                            text: 'Email verified. Your account is ready.',
+                            timer: 2000,
+                            showConfirmButton: false
+                        });
+
+                        setTimeout(() => {
+                            window.location.href = verifyResult.redirect || 'clientDashboard.html';
+                        }, 2100);
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Verification Failed',
+                            text: verifyResult.message || 'The code is invalid or expired.',
+                            confirmButtonText: 'Try Again'
+                        }).then(() => {
+                            showRegistrationOTPModal(email);
+                        });
+                    }
+                } catch (error) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'An error occurred during verification. Please try again.'
+                    }).then(() => {
+                        showRegistrationOTPModal(email);
+                    });
+                }
+            }
+        });
     }
 
     async function handleGoogleSignUp() {

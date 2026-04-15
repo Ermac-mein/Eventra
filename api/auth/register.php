@@ -68,6 +68,11 @@ $email = trim($data['email']);
 $password = $data['password'];
 $role = $data['role'] ?? 'client'; // Default to client registration if not specified
 
+// 0. Ensure session is started for deferred registration storage
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
 try {
     // 1. Prevent Cross-Entity Collision
     $registrability = canRegisterAs($email, $role);
@@ -77,14 +82,7 @@ try {
         exit;
     }
 
-    // 2. Load ID Generator
-    $id_gen_path = __DIR__ . '/../utils/id-generator.php';
-    if (!file_exists($id_gen_path)) {
-         throw new Exception("ID generator utility missing at $id_gen_path");
-    }
-    require_once $id_gen_path;
-
-    // 3. Validate Password Strength (Uppercase, Digit, Special Character, Min 8 chars)
+    // 2. Validate Password Strength (Uppercase, Digit, Special Character, Min 8 chars)
     if (!preg_match('/^(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%^&*(),.?":{}|<>]).{8,}$/', $password)) {
         echo json_encode([
             'success' => false,
@@ -93,66 +91,43 @@ try {
         exit;
     }
 
-    // 4. Hash Password
+    // 3. Generate 6-digit OTP
+    $otp = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
     $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
 
-    $pdo->beginTransaction();
+    // 4. Store registration data in session
+    $_SESSION['pending_registration'] = [
+        'name' => $name,
+        'email' => $email,
+        'password' => $hashedPassword,
+        'role' => $role,
+        'otp' => $otp,
+        'expires_at' => time() + (15 * 60) // 15 minutes
+    ];
 
-    // 4. Insert into auth_accounts
-    // Using email prefix + random hex as username
-    $username = explode('@', $email)[0] . '_' . substr(bin2hex(random_bytes(2)), 0, 4);
-    $stmt = $pdo->prepare("INSERT INTO auth_accounts (email, password, role, auth_provider, is_active, username) VALUES (?, ?, ?, 'local', 1, ?)");
-    $stmt->execute([$email, $hashedPassword, $role, $username]);
-    $auth_id = $pdo->lastInsertId();
-
-    $role_id = null;
-    $customId = null;
-
-    // 5. Insert into role-specific table with custom_id
-    if ($role === 'client') {
-        $customId = generateClientId($pdo);
-        $stmt = $pdo->prepare("INSERT INTO clients (client_auth_id, custom_id, business_name, name) VALUES (?, ?, ?, ?)");
-        $stmt->execute([$auth_id, $customId, $name, $name]);
-    } elseif ($role === 'admin') {
-        $stmt = $pdo->prepare("INSERT INTO admins (admin_auth_id, name) VALUES (?, ?)");
-        $stmt->execute([$auth_id, $name]);
-        $role_id = $pdo->lastInsertId();
-    } elseif ($role === 'user') {
-        $customId = generateUserId($pdo);
-        $stmt = $pdo->prepare("INSERT INTO users (user_auth_id, custom_id, name) VALUES (?, ?, ?)");
-        $stmt->execute([$auth_id, $customId, $name]);
-        $role_id = $pdo->lastInsertId();
+    // 5. Send OTP via Email
+    $email_helper_path = __DIR__ . '/../../includes/helpers/email-helper.php';
+    if (!file_exists($email_helper_path)) {
+        throw new Exception("Email helper missing at $email_helper_path");
     }
+    require_once $email_helper_path;
 
-    $pdo->commit();
+    $mailResult = EmailHelper::sendRegistrationOTP($email, $name, $otp);
 
-    logSecurityEvent($auth_id, $email, 'registration_success', 'password', "New $role registered: $name (Role ID: " . ($role === 'client' ? $customId : ($role_id ?? 'N/A')) . ")");
-
-    // 6. Notify Admin and User using helper
-    $notify_path = __DIR__ . '/../utils/notification-helper.php';
-    if (file_exists($notify_path)) {
-        require_once $notify_path;
+    if (!$mailResult['success']) {
+        // Log the error but you might still want the user to know registration "started"
+        error_log("Failed to send registration OTP to $email: " . $mailResult['message']);
         
-        $admin_id = getAdminUserId();
-        if ($admin_id) {
-            $adminMsg = "New $role registered: $name ($email)";
-            createNotification($admin_id, $adminMsg, 'user_registered', $auth_id, 'admin', $role);
-        }
-
-        createNotification($auth_id, "Welcome to Eventra, $name! Your account has been created successfully.", 'welcome', $auth_id, $role, 'admin');
-    }
-
-    $redirect = '/client/pages/clientLogin.html';
-    if ($role === 'admin') {
-        $redirect = '/client/pages/clientLogin.html?role=admin';
-    } elseif ($role === 'user') {
-        $redirect = '/public/pages/index.html';
+        // In some cases, you might want to fail the request if the email can't be sent
+        echo json_encode(['success' => false, 'message' => 'Failed to send verification email. Please try again.']);
+        exit;
     }
 
     echo json_encode([
         'success' => true,
-        'message' => 'Registration successful! Please log in to continue.',
-        'redirect' => $redirect
+        'message' => 'Verification code sent! Please check your email to complete registration.',
+        'otp_required' => true,
+        'email' => $email
     ]);
 
 } catch (PDOException $e) {
