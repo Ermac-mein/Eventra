@@ -95,6 +95,32 @@
     </div>
 
 
+    <!-- OTP Modal -->
+    <div id="otpModal" class="modal-overlay" style="display: none;">
+        <div class="modal-content glass-effect">
+            <header class="modal-header">
+                <h2 class="modal-title">Secure Verification</h2>
+                <p class="modal-subtitle">A 6-digit code has been sent to your email.</p>
+            </header>
+            
+            <form id="otpForm" class="otp-form">
+                <div class="otp-input-wrapper">
+                    <input type="text" id="otpCode" class="otp-input" placeholder="000000" maxlength="6" pattern="\d{6}" required autocomplete="off">
+                </div>
+                <div id="otpError" class="error-message"></div>
+                
+                <div class="modal-actions">
+                    <button type="submit" id="verifyOtpButton" class="login-button">Verify & Sign In</button>
+                    <button type="button" id="cancelOtpButton" class="cancel-link">Cancel</button>
+                </div>
+            </form>
+            
+            <p class="resend-prompt">
+                Didn't receive a code? <a href="#" id="resendOtpLink">Resend Code</a>
+            </p>
+        </div>
+    </div>
+
     <!-- Scripts -->
     <script src="../../public/js/storage.js"></script>
     <script src="../../public/js/utils.js"></script>

@@ -80,65 +80,34 @@ try {
 
     createNotification($auth_id, "Welcome to Eventra, $name! Your account has been created successfully.", 'welcome', $auth_id, $role, 'admin');
 
-    // ─── AUTO-LOGIN LOGIC ───
-    
-    // Generate alphanumeric access token
-    $token = bin2hex(random_bytes(32));
-    $expires_at = date('Y-m-d H:i:s', strtotime('+30 minutes'));
-
-    // Store token in database
-    $stmt = $pdo->prepare("INSERT INTO auth_tokens (auth_id, token, expires_at, type) VALUES (?, ?, ?, 'access')");
-    $stmt->execute([$auth_id, $token, $expires_at]);
-
-    // Set correct session name
-    $sessionName = 'EVENTRA_USER_SESS';
+    // AUTO-LOGIN DISABLED: Users must log in manually to trigger OTP verification if required.
+    $redirect = '/client/pages/clientLogin.html';
     if ($role === 'admin') {
-        $sessionName = 'EVENTRA_ADMIN_SESS';
-    } elseif ($role === 'client') {
-        $sessionName = 'EVENTRA_CLIENT_SESS';
-    }
-    
-    session_name($sessionName);
-    require_once __DIR__ . '/../../config.php';
-
-    // Set session variables
-    $_SESSION['auth_id'] = $auth_id;
-    $_SESSION['user_role'] = $role;
-    $_SESSION['role'] = $role;
-    $_SESSION['auth_token'] = $token;
-    $_SESSION['last_activity'] = time();
-
-    if ($role === 'client') {
-        $_SESSION['client_id'] = $pdo->query("SELECT id FROM clients WHERE client_auth_id = $auth_id")->fetchColumn();
-    } elseif ($role === 'admin') {
-        $_SESSION['admin_id'] = $pdo->query("SELECT id FROM admins WHERE admin_auth_id = $auth_id")->fetchColumn();
+        $redirect = '/client/pages/clientLogin.html?role=admin';
     } elseif ($role === 'user') {
-        $_SESSION['user_id'] = $pdo->query("SELECT id FROM users WHERE user_auth_id = $auth_id")->fetchColumn();
+        $redirect = '/public/pages/index.html'; // Or user login page
     }
-
-    session_write_close();
 
     // Re-resolve user for consistent return object
     $fullUser = resolveEntity($email, $role);
 
     echo json_encode([
         'success' => true,
-        'message' => 'Registration successful!',
-        'user' => [
-            'id' => $auth_id,
-            'name' => $name,
-            'email' => $email,
-            'role' => $role,
-            'custom_id' => $fullUser['custom_id'] ?? null,
-            'token' => $token,
-            'profile_image' => null
-        ],
-        'redirect' => ($role === 'admin' ? '/admin/pages/adminDashboard.html' : ($role === 'client' ? '/client/pages/clientDashboard.html' : '/public/pages/index.html'))
+        'message' => 'Registration successful! Please log in to continue.',
+        'redirect' => $redirect
     ]);
 } catch (PDOException $e) {
     if ($pdo->inTransaction()) {
         $pdo->rollBack();
     }
+    
+    $message = 'Registration failed. Please try again.';
+    if ($e->getCode() == 23000) { // Integrity constraint violation
+        if (strpos($e->getMessage(), 'uq_auth_email') !== false) {
+            $message = 'This email address is already registered. Please use a different email or log in.';
+        }
+    }
+    
     error_log("Registration error: " . $e->getMessage());
-    echo json_encode(['success' => false, 'message' => 'Database error during registration: ' . $e->getMessage()]);
+    echo json_encode(['success' => false, 'message' => $message]);
 }

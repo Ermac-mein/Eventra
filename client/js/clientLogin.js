@@ -150,59 +150,64 @@ document.addEventListener('DOMContentLoaded', () => {
             const result = await response.json();
 
             if (result.success && result.otp_required) {
-                // --- OTP VERIFICATION FLOW ---
+                // --- CUSTOM OTP MODAL FLOW ---
                 loginButton.innerHTML = originalBtnText;
                 loginButton.disabled = false;
 
-                const { value: otp } = await Swal.fire({
-                    title: 'Verify Your Identity',
-                    text: result.message || 'Please enter the 6-digit code sent to your email.',
-                    input: 'text',
-                    inputPlaceholder: '000000',
-                    showCancelButton: true,
-                    confirmButtonText: 'Verify & Login',
-                    background: '#1e293b',
-                    color: '#fff',
-                    confirmButtonColor: '#722f37', // Wine theme color
-                    inputAttributes: {
-                        maxlength: 6,
-                        autocapitalize: 'off',
-                        autocorrect: 'off',
-                        style: 'text-align: center; letter-spacing: 12px; font-size: 2rem; font-weight: 800;'
-                    },
-                    inputValidator: (value) => {
-                        if (!value || value.length !== 6 || !/^\d+$/.test(value)) {
-                            return 'Please enter a valid 6-digit code';
+                const otpModal = document.getElementById('otpModal');
+                const otpForm = document.getElementById('otpForm');
+                const otpCodeInput = document.getElementById('otpCode');
+                const otpError = document.getElementById('otpError');
+                const cancelBtn = document.getElementById('cancelOtpButton');
+
+                if (otpModal) {
+                    otpModal.style.display = 'flex';
+                    otpCodeInput.focus();
+
+                    // Handle Cancellation
+                    cancelBtn.onclick = () => {
+                        otpModal.style.display = 'none';
+                        otpForm.reset();
+                    };
+
+                    // Handle Submission
+                    otpForm.onsubmit = async (e) => {
+                        e.preventDefault();
+                        const verifyBtn = document.getElementById('verifyOtpButton');
+                        const originalVerifyText = verifyBtn.innerHTML;
+                        
+                        verifyBtn.disabled = true;
+                        verifyBtn.innerHTML = '<span class="spinner"></span> Verifying...';
+                        otpError.style.display = 'none';
+
+                        try {
+                            const verifyRes = await apiFetch('/api/auth/verify-otp.php', {
+                                method: 'POST',
+                                body: JSON.stringify({
+                                    identity: emailInput.value,
+                                    otp: otpCodeInput.value,
+                                    intent: 'client_login'
+                                })
+                            });
+
+                            const verifyResult = await verifyRes.json();
+
+                            if (verifyResult.success) {
+                                otpModal.style.display = 'none';
+                                completeLoginSession(verifyResult);
+                            } else {
+                                otpError.textContent = verifyResult.message || 'Invalid code.';
+                                otpError.style.display = 'block';
+                                verifyBtn.disabled = false;
+                                verifyBtn.innerHTML = originalVerifyText;
+                            }
+                        } catch (err) {
+                            otpError.textContent = 'Verification failed. Try again.';
+                            otpError.style.display = 'block';
+                            verifyBtn.disabled = false;
+                            verifyBtn.innerHTML = originalVerifyText;
                         }
-                    }
-                });
-
-                if (!otp) return;
-
-                Swal.showLoading();
-
-                const verifyRes = await apiFetch('/api/auth/verify-otp.php', {
-                    method: 'POST',
-                    body: JSON.stringify({
-                        identity: emailInput.value,
-                        otp: otp,
-                        intent: 'client_login'
-                    })
-                });
-
-                const verifyResult = await verifyRes.json();
-
-                if (verifyResult.success) {
-                    // Logic to handle session storage (copied from primary success block below)
-                    completeLoginSession(verifyResult);
-                } else {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Verification Failed',
-                        text: verifyResult.message || 'Invalid or expired OTP.',
-                        background: '#1e293b',
-                        color: '#fff'
-                    });
+                    };
                 }
                 return;
             }

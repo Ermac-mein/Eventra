@@ -501,3 +501,31 @@ ALTER TABLE events
 
 SET FOREIGN_KEY_CHECKS = 1;
 
+-- =============================================================================
+-- CASCADING DELETION ENHANCEMENTS
+-- =============================================================================
+
+ALTER TABLE auth_logs DROP FOREIGN KEY IF EXISTS fk_auth_logs_auth;
+ALTER TABLE auth_logs 
+    ADD CONSTRAINT fk_auth_logs_auth 
+    FOREIGN KEY (auth_id) REFERENCES auth_accounts (id) 
+    ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- 2. Add Trigger to ensure deleting a client also removes their auth_account.
+-- This creates a reverse-cascade effect where deleting from the clients table 
+-- triggers deletion of the master auth record, which then cascades to everything else.
+
+DROP TRIGGER IF EXISTS tr_delete_client_auth;
+
+DELIMITER //
+
+CREATE TRIGGER tr_delete_client_auth
+BEFORE DELETE ON clients
+FOR EACH ROW
+BEGIN
+    -- Only delete from auth_accounts if it still exists to prevent loops 
+    -- (standard engine handles this, but safety first)
+    DELETE FROM auth_accounts WHERE id = OLD.client_auth_id;
+END //
+
+DELIMITER ;

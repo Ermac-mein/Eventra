@@ -151,50 +151,35 @@ document.addEventListener('DOMContentLoaded', () => {
             const result = await response.json();
 
             if (result.success) {
-                // AUTO-LOGIN: Store user and token
-                if (window.storage && typeof window.storage.setToken === 'function') {
-                    window.storage.setUser(result.user);
-                    if (result.user.token) {
-                        window.storage.setToken(result.user.token);
-                    }
-                } else {
-                    // Fallback
-                    localStorage.setItem('client_auth_token', result.user.token || '');
-                    localStorage.setItem('client_user', JSON.stringify(result.user));
-                }
-
-                // Signal fresh login
-                sessionStorage.setItem('just_logged_in', 'true');
-
+                // ... Success handling ...
                 if (typeof Swal !== 'undefined') {
                     Swal.fire({
                         icon: 'success',
-                        title: 'Welcome to Eventra!',
-                        text: result.message || 'Account created successfully. Redirecting to your dashboard...',
-                        timer: 2000,
+                        title: 'Registration Successful!',
+                        text: result.message || 'Your account has been created. Please log in to continue.',
+                        timer: 3000,
                         showConfirmButton: false,
                         background: 'rgba(30, 41, 59, 0.95)',
                         color: '#fff'
                     });
-
-                    // Clear saved form state
-                    clearFormState('signupForm');
                 } else if (successMessage) {
                     successMessage.classList.add('show');
-                    successMessage.textContent = 'Welcome! Redirecting to dashboard...';
+                    successMessage.textContent = 'Account created! Redirecting to login...';
                 }
                 
                 setTimeout(() => {
-                    const redirectUrl = result.redirect || `/client/pages/clientDashboard.html`;
+                    const redirectUrl = result.redirect || `clientLogin.html`;
                     window.location.href = redirectUrl;
-                }, 2100);
+                }, 3100);
             } else {
+                // Display specific error message from server
                 showError('passwordError', result.message || 'Registration failed. Please try again.');
                 signupButton.disabled = false;
                 signupButton.innerHTML = originalBtnText;
             }
         } catch (error) {
-            showError('passwordError', 'An error occurred. Please try again later.');
+            console.error('Signup error:', error);
+            showError('passwordError', 'Registration failed. ' + (error.message || 'Please check your connection and try again.'));
             signupButton.disabled = false;
             signupButton.innerHTML = originalBtnText;
         }
