@@ -78,10 +78,20 @@ function processSuccessfulPayment(PDO $pdo, array $order, array $psData): void
         $quantity    = max(1, (int)($metadata['quantity']    ?? 1));
         $ticket_type = $metadata['ticket_type'] ?? 'regular';
 
-        // Increment event attendee count by quantity
-        $pdo->prepare("
-            UPDATE events SET attendee_count = attendee_count + ? WHERE id = ?
-        ")->execute([$quantity, $order['event_id']]);
+        // Increment event attendee count and sales count, decrement stock atomically
+        $stmtStock = $pdo->prepare("
+            UPDATE events 
+            SET ticket_count = CASE WHEN ticket_count IS NULL THEN NULL ELSE ticket_count - ? END, 
+                sales_count = sales_count + ?,
+                attendee_count = attendee_count + ? 
+            WHERE id = ? AND (ticket_count IS NULL OR ticket_count >= ?)
+        ");
+        $stmtStock->execute([$quantity, $quantity, $quantity, $order['event_id'], $quantity]);
+        if ($stmtStock->rowCount() === 0) {
+            // Already handled by idempotency or sold out
+            $pdo->rollBack();
+            return;
+        }
 
         // Check if tickets already exist (idempotency) via payment reference
         $tStmt = $pdo->prepare("
@@ -284,12 +294,15 @@ try {
                 WHERE transaction_reference = ?
             ")->execute([$reference]);
 
-            // Mark ticket as cancelled
-            $oStmt = $pdo->prepare("SELECT id, amount FROM orders WHERE transaction_reference = ?");
+            // Mark ticket as cancelled and get quantities
+            $oStmt = $pdo->prepare("SELECT id, event_id, quantity, amount FROM orders WHERE transaction_reference = ?");
             $oStmt->execute([$reference]);
             $orderRow = $oStmt->fetch(PDO::FETCH_ASSOC);
 
             if ($orderRow) {
+                $quantity = (int)($orderRow['quantity'] ?? 1);
+                $event_id = $orderRow['event_id'];
+
                 $pdo->prepare("
                     UPDATE tickets SET status = 'cancelled' WHERE order_id = ?
                 ")->execute([$orderRow['id']]);
@@ -299,6 +312,34 @@ try {
                     UPDATE refund_requests SET status = 'approved', processed_at = NOW()
                     WHERE order_id = ? AND status IN ('pending', 'approved')
                 ")->execute([$orderRow['id']]);
+
+                // ── Update Sales Statistics ──
+                $pdo->prepare("
+                    UPDATE events 
+                    SET sales_count = GREATEST(0, sales_count - ?),
+                        attendee_count = GREATEST(0, attendee_count - ?)
+                    WHERE id = ?
+                ")->execute([$quantity, $quantity, $event_id]);
+
+                // ── Refund Rate Check (Banish Event if > 15%) ──
+                $stmtEv = $pdo->prepare("SELECT event_name, total_tickets FROM events WHERE id = ?");
+                $stmtEv->execute([$event_id]);
+                $ev = $stmtEv->fetch();
+                if ($ev && ($ev['total_tickets'] ?? 0) > 0) {
+                    $stmtRefunded = $pdo->prepare("SELECT COUNT(*) FROM tickets WHERE event_id = ? AND status = 'cancelled'");
+                    $stmtRefunded->execute([$event_id]);
+                    $refundedCount = $stmtRefunded->fetchColumn();
+
+                    $refundRate = $refundedCount / $ev['total_tickets'];
+                    if ($refundRate > 0.15) {
+                        $pdo->prepare("UPDATE events SET admin_status = 'banished' WHERE id = ?")->execute([$event_id]);
+                        // Admin-Only Notification
+                        $adminAuthId = getAdminUserId();
+                        if ($adminAuthId) {
+                            createNotification($adminAuthId, "ALERT: Event '{$ev['event_name']}' has been banished due to a high refund rate (".round($refundRate * 100)."%).", 'event_banished', null, 'admin');
+                        }
+                    }
+                }
 
                 $fullOrder = fetchOrder($pdo, $reference);
                 if ($fullOrder) {

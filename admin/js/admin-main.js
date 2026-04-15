@@ -427,22 +427,73 @@ function exportCurrentTableToCSV() {
 }
 
 function initSidebar() {
-    // Logic to handle mobile toggle if needed, or active state highlighting
+    const header = document.querySelector('.header');
+    const sidebar = document.querySelector('.sidebar');
+    const mainLayout = document.querySelector('.main-layout');
+
+    if (!header || !sidebar || !mainLayout) return;
+
+    // 1. Create Toggle Button
+    const toggleBtn = document.createElement('button');
+    toggleBtn.id = 'sidebarToggle';
+    toggleBtn.className = 'sidebar-toggle-btn';
+    toggleBtn.innerHTML = '<i data-lucide="menu"></i>';
+    toggleBtn.style.cssText = `
+        background: none;
+        border: none;
+        color: var(--admin-text-main);
+        cursor: pointer;
+        font-size: 1.25rem;
+        padding: 0.5rem;
+        display: flex;
+        align-items: center;
+        margin-right: 1.5rem;
+        transition: transform 0.3s ease;
+    `;
+
+    // 2. Insert Toggle Button BEFORE the search bar
+    const searchBar = header.querySelector('.header-search');
+    if (searchBar) {
+        header.insertBefore(toggleBtn, searchBar);
+    } else {
+        header.prepend(toggleBtn);
+    }
+
+    // 3. Handle Initial State from LocalStorage
+    const isCollapsed = localStorage.getItem('admin_sidebar_collapsed') === 'true';
+    if (isCollapsed && window.innerWidth > 768) {
+        sidebar.classList.add('collapsed');
+        mainLayout.classList.add('collapsed');
+    }
+
+    // 4. Toggle Event
+    toggleBtn.addEventListener('click', () => {
+        const nowCollapsed = sidebar.classList.toggle('collapsed');
+        mainLayout.classList.toggle('collapsed');
+        localStorage.setItem('admin_sidebar_collapsed', nowCollapsed);
+        
+        // Rotate icon
+        toggleBtn.style.transform = nowCollapsed ? 'rotate(180deg)' : 'rotate(0deg)';
+    });
+
+    // 5. Active State Highlighting
     const currentPath = window.location.pathname;
-    const menuItems = document.querySelectorAll('.menu-item a');
+    const menuItems = document.querySelectorAll('.sidebar-menu .menu-item a');
     
-    // Mark navigation initiated from sidebar to avoid immediate auth-guard redirect loop
     menuItems.forEach(item => {
         item.addEventListener('click', (e) => {
-            // Mark navigation initiated from sidebar to avoid immediate auth-guard redirect loop
             try { sessionStorage.setItem('skip_auth_redirect', '1'); } catch (err) {}
             try { localStorage.setItem('skip_auth_redirect', Date.now().toString()); } catch (err) {}
         });
 
-        if (currentPath.includes(item.getAttribute('href'))) {
+        const href = item.getAttribute('href');
+        if (href && currentPath.includes(href)) {
             item.parentElement.classList.add('active');
         }
     });
+
+    // Re-init icons
+    if (window.lucide) window.lucide.createIcons();
 }
 window.initPreviews = function() {
     // Create Modal Backdrop (if not exists)

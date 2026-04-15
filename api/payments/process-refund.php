@@ -20,11 +20,11 @@ require_once '../../api/utils/notification-helper.php';
  */
 function processRefund(PDO $pdo, int $refundRequestId): array
 {
-    // Fetch refund_request + order
+    // Fetch refund_request + order (Fixing SQL trailing comma bug + selecting missing fields)
     $stmt = $pdo->prepare("
         SELECT rr.id AS rr_id, rr.order_id, rr.user_id, rr.status AS rr_status,
-               o.transaction_reference, o.amount, o.payment_status, o.refund_status,
-               e.event_name,
+               o.transaction_reference, o.amount, o.payment_status, o.refund_status, o.quantity, o.event_id,
+               e.event_name, e.total_tickets
         FROM refund_requests rr
         JOIN orders o ON rr.order_id = o.id
         JOIN events e ON o.event_id = e.id
@@ -83,6 +83,32 @@ function processRefund(PDO $pdo, int $refundRequestId): array
     $pdo->prepare("
         UPDATE refund_requests SET status = 'approved', processed_at = NOW() WHERE id = ?
     ")->execute([$refundRequestId]);
+
+    // ── Atomic Sales/Attendee Decrement ──
+    $quantity = (int)($rr['quantity'] ?? 1);
+    $pdo->prepare("
+        UPDATE events 
+        SET sales_count = GREATEST(0, sales_count - ?), 
+            attendee_count = GREATEST(0, attendee_count - ?) 
+        WHERE id = ?
+    ")->execute([$quantity, $quantity, $rr['event_id']]);
+
+    // ── Refund Rate Monitor (15% Threshold) ──
+    if (($rr['total_tickets'] ?? 0) > 0) {
+        $stmtRefunded = $pdo->prepare("SELECT COUNT(*) FROM tickets WHERE event_id = ? AND status = 'cancelled'");
+        $stmtRefunded->execute([$rr['event_id']]);
+        $refundedCount = $stmtRefunded->fetchColumn();
+
+        $refundRate = $refundedCount / $rr['total_tickets'];
+        if ($refundRate > 0.15) {
+            $pdo->prepare("UPDATE events SET admin_status = 'banished' WHERE id = ?")->execute([$rr['event_id']]);
+            // Notify admin
+            $adminAuthId = getAdminUserId();
+            if ($adminAuthId) {
+                createNotification($adminAuthId, "ALERT: Event '{$rr['event_name']}' has been banished due to high refund rate (".round($refundRate * 100)."%).", 'event_banished', null, 'admin');
+            }
+        }
+    }
 
     // ── Notify buyer ─────────────────────────────────────────────────────────
     createRefundProcessedNotification($rr['user_id'], $rr['event_name'], $rr['amount']);

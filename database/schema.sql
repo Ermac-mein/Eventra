@@ -477,4 +477,27 @@ INSERT IGNORE INTO admins (
     JSON_OBJECT('created_by', 'system', 'immutable', true, 'note', 'Default system administrator account')
 );
 
+-- =============================================================================
+-- EVENTS TABLE: NEW COLUMNS (Refactor — priority deprecated, replaced by admin_status)
+-- =============================================================================
+ALTER TABLE events
+    ADD COLUMN IF NOT EXISTS ticket_count   INT UNSIGNED DEFAULT NULL COMMENT 'Atomic available ticket stock',
+    ADD COLUMN IF NOT EXISTS total_tickets  INT UNSIGNED DEFAULT NULL COMMENT 'Original capacity for sold-out % calc',
+    ADD COLUMN IF NOT EXISTS view_count     INT UNSIGNED NOT NULL DEFAULT 0 COMMENT 'Unique view tracking',
+    ADD COLUMN IF NOT EXISTS sales_count    INT UNSIGNED NOT NULL DEFAULT 0 COMMENT 'Successful checkouts minus refunds',
+    ADD COLUMN IF NOT EXISTS is_boosted     TINYINT(1) NOT NULL DEFAULT 0 COMMENT 'Admin secret override to push event',
+    ADD COLUMN IF NOT EXISTS admin_status   ENUM('pending','approved','banished','archived') NOT NULL DEFAULT 'pending' COMMENT 'Moderation status — replaces priority semantics';
+
+-- Backfill: sync ticket_count / total_tickets from existing max_capacity
+UPDATE events
+    SET total_tickets = max_capacity,
+        ticket_count  = GREATEST(0, IFNULL(max_capacity, 0) - IFNULL(attendee_count, 0))
+    WHERE max_capacity IS NOT NULL AND total_tickets IS NULL;
+
+-- Performance indexes
+ALTER TABLE events
+    ADD KEY IF NOT EXISTS idx_event_ranking (admin_status, event_date, ticket_count),
+    ADD KEY IF NOT EXISTS idx_event_lat_lng (latitude, longitude);
+
 SET FOREIGN_KEY_CHECKS = 1;
+

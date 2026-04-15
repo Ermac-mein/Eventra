@@ -154,9 +154,24 @@ try {
             WHERE id = ? AND payment_status != 'success'
         ")->execute([$result['data']['channel'] ?? 'card', $order['id']]);
 
-        // 2. Increment attendee count by quantity
-        $pdo->prepare("UPDATE events SET attendee_count = attendee_count + ? WHERE id = ?")
-            ->execute([$quantity, $order['event_id']]);
+        // 2. Atomic ticket decrement and attendee/sales count increment
+        // Ensures we don't oversell even with high concurrency.
+        $stmt = $pdo->prepare("
+            UPDATE events 
+            SET ticket_count = CASE WHEN ticket_count IS NULL THEN NULL ELSE ticket_count - ? END, 
+                attendee_count = attendee_count + ?, 
+                sales_count = sales_count + ? 
+            WHERE id = ? AND (ticket_count IS NULL OR ticket_count >= ?)
+        ");
+        $stmt->execute([$quantity, $quantity, $quantity, $order['event_id'], $quantity]);
+
+        if ($stmt->rowCount() === 0) {
+            // Check if it's because it's sold out or event doesn't exist
+            $pdo->rollBack();
+            http_response_code(409); // Conflict
+            echo json_encode(['success' => false, 'message' => 'Event sold out or tickets are no longer available in the requested quantity.']);
+            exit;
+        }
 
         // 3. Handle Payment and Ticket (Idempotent)
         $tStmt = $pdo->prepare("

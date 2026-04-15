@@ -191,15 +191,26 @@ try {
     $regular_quantity = !empty($_POST['regular_quantity']) ? intval($_POST['regular_quantity']) : null;
     $vip_quantity = !empty($_POST['vip_quantity']) ? intval($_POST['vip_quantity']) : null;
 
-    // Validate priority - default to nearby if empty
-    $allowed_priorities = ['nearby', 'hot', 'trending', 'upcoming', 'featured'];
-    $priority_input = !empty($_POST['priority']) ? $_POST['priority'] : 'nearby';
-    $priority = in_array($priority_input, $allowed_priorities) ? $priority_input : 'nearby';
+    // Compute ticket_count and total_tickets from submitted quantities
+    $total_tickets = null;
+    if ($regular_quantity !== null || $vip_quantity !== null) {
+        $total_tickets = ($regular_quantity ?? 0) + ($vip_quantity ?? 0);
+    } elseif (!empty($_POST['max_capacity'])) {
+        $total_tickets = intval($_POST['max_capacity']);
+    }
+    $ticket_count = $total_tickets; // Start at full capacity on creation
 
     $status = $_POST['status'] ?? 'draft';
     $scheduled_publish_time = !empty($_POST['scheduled_publish_time'])
         ? $_POST['scheduled_publish_time']
         : date('Y-m-d H:i:s');
+
+    // Date cap: event_date must be within 365 days from today
+    if (!empty($event_date) && strtotime($event_date) > strtotime('+365 days')) {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'message' => 'Event date cannot be more than 365 days from today.']);
+        exit;
+    }
 
     // Validate required fields (image optional if already provided as URL)
     if (
@@ -250,14 +261,15 @@ try {
     $base_url = $_ENV['APP_URL'] ?? 'http://localhost:8000';
     $external_link = $base_url . '/public/pages/event-details.html?event=' . $tag . '&client=' . $client_name;
 
-    // Insert event with new pricing fields
+    // Insert event with enriched columns (priority deprecated — admin_status drives moderation)
     $stmt = $pdo->prepare("
         INSERT INTO events (
             client_id, custom_id, event_name, description, event_type, event_date, event_time,
             phone_contact_1, phone_contact_2, state, address, visibility, tag,
-            external_link, price, regular_price, vip_price, regular_quantity, vip_quantity, 
-            image_path, priority, status, scheduled_publish_time, category, event_visibility, ticket_type_mode
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            external_link, price, regular_price, vip_price, regular_quantity, vip_quantity,
+            image_path, status, scheduled_publish_time, category, event_visibility, ticket_type_mode,
+            ticket_count, total_tickets, sales_count, view_count, is_boosted, admin_status
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ");
 
     $stmt->execute([
@@ -281,12 +293,17 @@ try {
         $regular_quantity,
         $vip_quantity,
         $image_path,
-        $priority,
         $status,
         $scheduled_publish_time,
-        $event_type,
+        $event_type,       // category mirrors event_type
         $event_visibility,
-        $ticket_type_mode
+        $ticket_type_mode,
+        $ticket_count,     // atomic stock
+        $total_tickets,    // original capacity
+        0,                 // sales_count starts at 0
+        0,                 // view_count starts at 0
+        0,                 // is_boosted — always false on client create
+        'pending'          // admin_status — awaits approval
     ]);
 
     $event_id = $pdo->lastInsertId();

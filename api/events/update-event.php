@@ -129,8 +129,8 @@ try {
         exit;
     }
 
-    // LOCKING: Prevent edit if there are payments/attendees
-    if ($event['attendee_count'] > 0) {
+    // LOCKING: Prevent client edit if tickets sold; admins can always edit
+    if ($role !== 'admin' && $event['attendee_count'] > 0) {
         http_response_code(403);
         echo json_encode(['success' => false, 'message' => 'This event is locked because tickets have already been sold. Please contact support for critical changes.']);
         exit;
@@ -220,11 +220,37 @@ try {
         }
     }
 
-    // Update event
-    $sql = "UPDATE events SET 
+    // Date cap: event_date must be within 365 days from today
+    if (!empty($_POST['event_date']) && strtotime($_POST['event_date']) > strtotime('+365 days')) {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'message' => 'Event date cannot be more than 365 days from today.']);
+        exit;
+    }
+
+    // Recalculate ticket_count / total_tickets when quantities change
+    $new_regular_qty = !empty($_POST['regular_quantity']) ? intval($_POST['regular_quantity']) : null;
+    $new_vip_qty     = !empty($_POST['vip_quantity'])     ? intval($_POST['vip_quantity'])     : null;
+    $new_total_tickets = null;
+    $new_ticket_count  = null;
+    if ($new_regular_qty !== null || $new_vip_qty !== null) {
+        $new_total_tickets = ($new_regular_qty ?? 0) + ($new_vip_qty ?? 0);
+        // Preserve tickets already sold
+        $already_sold = (int)($event['sales_count'] ?? $event['attendee_count'] ?? 0);
+        $new_ticket_count = max(0, $new_total_tickets - $already_sold);
+    }
+
+    // Admin-only fields
+    $new_admin_status = ($role === 'admin' && isset($_POST['admin_status']))
+        ? $_POST['admin_status']
+        : ($event['admin_status'] ?? 'pending');
+    $new_is_boosted = ($role === 'admin' && isset($_POST['is_boosted']))
+        ? (int)$_POST['is_boosted']
+        : (int)($event['is_boosted'] ?? 0);
+
+    // Build UPDATE (priority column intentionally omitted — deprecated)
+    $sql = "UPDATE events SET
             event_name = ?,
             event_type = ?,
-            priority = ?,
             event_date = ?,
             event_time = ?,
             price = ?,
@@ -243,6 +269,10 @@ try {
             phone_contact_2 = ?,
             image_path = ?,
             category = ?,
+            admin_status = ?,
+            is_boosted = ?,
+            total_tickets = COALESCE(?, total_tickets),
+            ticket_count  = COALESCE(?, ticket_count),
             updated_at = NOW()
             WHERE id = ?";
 
@@ -250,14 +280,13 @@ try {
     $stmt->execute([
         $_POST['event_name'],
         $_POST['event_type'],
-        $_POST['priority'] ?? 'nearby',
         $_POST['event_date'],
         $_POST['event_time'],
         $_POST['price'],
         $_POST['regular_price'] ?? 0,
         $_POST['vip_price'] ?? 0,
-        $_POST['regular_quantity'] ?? null,
-        $_POST['vip_quantity'] ?? null,
+        $new_regular_qty,
+        $new_vip_qty,
         $_POST['status'],
         $_POST['description'],
         $_POST['state'],
@@ -269,6 +298,10 @@ try {
         $_POST['phone_contact_2'] ?? null,
         $image_path,
         $_POST['category'] ?? $_POST['event_type'],
+        $new_admin_status,
+        $new_is_boosted,
+        $new_total_tickets,
+        $new_ticket_count,
         $event_id
     ]);
 

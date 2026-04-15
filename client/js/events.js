@@ -147,13 +147,13 @@ function updateEventsTable(events) {
         } else {
             thead.innerHTML = `
                 <th style="width: 40px;"><input type="checkbox" id="selectAll"></th>
-                <th>Event ID</th>
+                <th style="font-family: 'Courier New', monospace; font-size: 0.85rem; color: #635bff; font-weight: 700;">ID</th>
                 <th style="cursor: pointer;" onclick="sortEvents('event_name')">Event Name ${getSortIcon('event_name')}</th>
                 <th style="cursor: pointer;" onclick="sortEvents('event_date')">Date ${getSortIcon('event_date')}</th>
                 <th>Category</th>
                 <th style="cursor: pointer;" onclick="sortEvents('price')">Price ${getSortIcon('price')}</th>
-                <th style="cursor: pointer;" onclick="sortEvents('priority')">Priority ${getSortIcon('priority')}</th>
-                <th class="text-center">Attendees</th>
+                <th style="cursor: pointer;" onclick="sortEvents('total_tickets')">Capacity ${getSortIcon('total_tickets')}</th>
+                <th class="text-center">Sales</th>
                 <th>Status</th>
                 <th class="text-center">Actions</th>
             `;
@@ -213,7 +213,8 @@ function updateEventsTable(events) {
             data-phone="${event.phone_contact_1 || ''}"
             data-date="${event.event_date}"
             data-time="${event.event_time}"
-            data-priority="${event.priority}"
+            data-total-tickets="${event.total_tickets || 0}"
+            data-ticket-count="${event.ticket_count || 0}"
             data-image="${event.image_path || ''}"
             data-event-name="${event.event_name.replace(/\s*#\d+$/, '')}"
             data-category="${event.event_type}"
@@ -232,15 +233,13 @@ function updateEventsTable(events) {
                     : `₦${parseFloat(event.price).toLocaleString()}`}
             </td>
             <td>
-                <span style="padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600; text-transform: capitalize; 
-                      background: ${event.priority === 'featured' ? '#fef3c7' : event.priority === 'hot' ? '#fee2e2' : '#f3f4f6'}; 
-                      color: ${event.priority === 'featured' ? '#92400e' : event.priority === 'hot' ? '#991b1b' : '#374151'};">
-                    ${event.priority}
+                <span style="padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 700; color: #374151; background: #f3f4f6;">
+                    ${event.total_tickets || 'No Limit'}
                 </span>
             </td>
             <td class="text-center">
-                <div style="display: flex; align-items: center; justify-content: center; gap: 5px;">
-                    ${event.attendee_count || 0}
+                <div style="font-weight: 800; color: #10b981;">
+                    ${event.sales_count || event.attendee_count || 0}
                 </div>
             </td>
             <td>
@@ -337,16 +336,9 @@ function sortEvents(key, toggle = true) {
         let valB = b[key];
 
         // Handle numeric values
-        if (key === 'price') {
-            valA = parseFloat(valA);
-            valB = parseFloat(valB);
-        }
-        
-        // Handle priority order
-        if (key === 'priority') {
-            const weights = { 'featured': 3, 'hot': 2, 'standard': 1, 'low': 0 };
-            valA = weights[valA] ?? 0;
-            valB = weights[valB] ?? 0;
+        if (key === 'price' || key === 'total_tickets' || key === 'sales_count') {
+            valA = parseFloat(valA) || 0;
+            valB = parseFloat(valB) || 0;
         }
 
         if (valA < valB) return sortConfig.direction === 'asc' ? -1 : 1;
@@ -733,7 +725,8 @@ async function previewEvent(eventId) {
                 state: data.state,
                 date: data.event_date,
                 time: data.event_time,
-                priority: data.priority ? data.priority.charAt(0).toUpperCase() + data.priority.slice(1) : 'Normal',
+                total_tickets: data.total_tickets || 'No Limit',
+                ticket_count: data.ticket_count === null ? '∞' : data.ticket_count,
                 phone: data.phone_contact_1 || 'N/A'
             };
         } else {
@@ -758,10 +751,11 @@ async function previewEvent(eventId) {
     const address = event.address;
     const date = event.date;
     const time = event.time;
-    const priority = event.priority;
     const phone = event.phone;
     const clientName = event.client_name;
     const state = event.state;
+    const totalTickets = event.total_tickets;
+    const remainingTickets = event.ticket_count;
 
     // Create Modal Backdrop (if not exists)
     let backdrop = document.querySelector('.preview-modal-backdrop');

@@ -196,6 +196,13 @@ function showCreateEventModal() {
                                             </select>
                                         </div>
                                     </div>
+
+                                    <!-- Max Capacity (Hidden by default, shown for Free events) -->
+                                    <div class="form-group" id="maxCapacityGroup" style="display: none;">
+                                        <label style="display: block; font-size: 0.875rem; font-weight: 600; color: #6b7280; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.5px;">Max Capacity <span style="color: #ef4444">*</span></label>
+                                        <input type="number" name="max_capacity" id="maxCapacityInput" placeholder="Total tickets available" min="1" 
+                                               style="width: 100%; padding: 1rem 1.25rem; border: 2px solid #e5e7eb; border-radius: 12px; font-size: 1rem; background: white; transition: all 0.3s; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
+                                    </div>
                                 </div>
 
                                 <!-- Ticket Type Configuration -->
@@ -251,23 +258,10 @@ function showCreateEventModal() {
                                 </div>
 
                                 <!-- Additional Fields -->
-                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
                                     <div class="form-group">
                                         <label style="display: block; font-size: 0.875rem; font-weight: 600; color: #6b7280; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.5px;">Secondary Contact</label>
                                         <input type="tel" name="phone_contact_2" placeholder="+234... (optional)" 
                                                style="width: 100%; padding: 1rem 1.25rem; border: 2px solid #e5e7eb; border-radius: 12px; font-size: 1rem; background: white; transition: all 0.3s; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
-                                    </div>
-
-                                    <div class="form-group">
-                                        <label style="display: block; font-size: 0.875rem; font-weight: 600; color: #6b7280; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.5px;">Priority Level <span style="color: #ef4444">*</span></label>
-                                        <select name="priority" id="prioritySelect" required style="width: 100%; padding: 1rem 1.25rem; border: 2px solid #e5e7eb; border-radius: 12px; font-size: 1rem; background: white; transition: all 0.3s; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
-                                            <option value="">Select Priority</option>
-                                            <option value="nearby">📍 Nearby</option>
-                                            <option value="hot">🔥 Hot</option>
-                                            <option value="trending">📈 Trending</option>
-                                            <option value="featured">⭐ Featured</option>
-                                            <option value="upcoming">🕒 Upcoming</option>
-                                        </select>
                                     </div>
                                 </div>
 
@@ -447,14 +441,23 @@ function showCreateEventModal() {
     const ticketConfig = document.getElementById('ticketTypeConfigSection');
 
     freeCheckbox.addEventListener('change', function() {
+        const maxCapacityGroup = document.getElementById('maxCapacityGroup');
+        const maxCapacityInput = document.getElementById('maxCapacityInput');
+
         if (this.checked) {
             // If free, hide ticket config and set hidden inputs to 0
             if (ticketConfig) ticketConfig.style.display = 'none';
+            if (maxCapacityGroup) maxCapacityGroup.style.display = 'block';
+            if (maxCapacityInput) maxCapacityInput.required = true;
+            
             if (regularPriceInput) { regularPriceInput.value = 0; regularPriceInput.required = false; }
             if (vipPriceInput) { vipPriceInput.value = 0; vipPriceInput.required = false; }
         } else {
             // Restore visibility and requirements
             if (ticketConfig) ticketConfig.style.display = 'block';
+            if (maxCapacityGroup) maxCapacityGroup.style.display = 'none';
+            if (maxCapacityInput) maxCapacityInput.required = false;
+            
             updateTicketTypeSections(); // Recalculate requirements
         }
     });

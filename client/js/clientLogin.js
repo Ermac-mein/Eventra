@@ -116,6 +116,14 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // Forgot Password Link Handler
+    if (forgotPasswordLink) {
+        forgotPasswordLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            handleForgotPassword();
+        });
+    }
+
     async function handleLogin() {
         const originalBtnText = loginButton.innerHTML;
         loginButton.disabled = true;
@@ -141,51 +149,66 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const result = await response.json();
 
-            if (result.success) {
-                // Show Success SweetAlert
-                if (typeof Swal !== 'undefined') {
+            if (result.success && result.otp_required) {
+                // --- OTP VERIFICATION FLOW ---
+                loginButton.innerHTML = originalBtnText;
+                loginButton.disabled = false;
+
+                const { value: otp } = await Swal.fire({
+                    title: 'Verify Your Identity',
+                    text: result.message || 'Please enter the 6-digit code sent to your email.',
+                    input: 'text',
+                    inputPlaceholder: '000000',
+                    showCancelButton: true,
+                    confirmButtonText: 'Verify & Login',
+                    background: '#1e293b',
+                    color: '#fff',
+                    confirmButtonColor: '#722f37', // Wine theme color
+                    inputAttributes: {
+                        maxlength: 6,
+                        autocapitalize: 'off',
+                        autocorrect: 'off',
+                        style: 'text-align: center; letter-spacing: 12px; font-size: 2rem; font-weight: 800;'
+                    },
+                    inputValidator: (value) => {
+                        if (!value || value.length !== 6 || !/^\d+$/.test(value)) {
+                            return 'Please enter a valid 6-digit code';
+                        }
+                    }
+                });
+
+                if (!otp) return;
+
+                Swal.showLoading();
+
+                const verifyRes = await apiFetch('/api/auth/verify-otp.php', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        identity: emailInput.value,
+                        otp: otp,
+                        intent: 'client_login'
+                    })
+                });
+
+                const verifyResult = await verifyRes.json();
+
+                if (verifyResult.success) {
+                    // Logic to handle session storage (copied from primary success block below)
+                    completeLoginSession(verifyResult);
+                } else {
                     Swal.fire({
-                        icon: 'success',
-                        title: 'Login Successful',
-                        text: 'Welcome back!',
-                        toast: true,
-                        position: 'top-end',
-                        showConfirmButton: false,
-                        timer: 1500,
-                        timerProgressBar: true,
+                        icon: 'error',
+                        title: 'Verification Failed',
+                        text: verifyResult.message || 'Invalid or expired OTP.',
                         background: '#1e293b',
                         color: '#fff'
                     });
                 }
+                return;
+            }
 
-                // Isolate session storage by role - store BOTH user and token
-                if (window.storage && typeof window.storage.setToken === 'function') {
-                    window.storage.setUser(result.user);
-                    if (result.user.token) {
-                        window.storage.setToken(result.user.token);
-                    }
-                } else {
-                    // Fallback: store directly to localStorage if storage manager not ready
-                    try {
-                        localStorage.setItem('client_auth_token', result.user.token || '');
-                        localStorage.setItem('client_user', JSON.stringify(result.user));
-                    } catch (e) {
-                    }
-                }
-
-                // Signal a fresh login to help the auth-guard be more patient
-                sessionStorage.setItem('just_logged_in', 'true');
-                
-                setTimeout(() => {
-                    const redirectUrl = result.redirect || '/client/pages/clientDashboard.html';
-                    
-                    // Use unified redirect handler if available for consistency
-                    if (window.authController && typeof window.authController.handleRedirect === 'function') {
-                        window.authController.handleRedirect(redirectUrl);
-                    } else {
-                        window.location.href = redirectUrl;
-                    }
-                }, 1600);
+            if (result.success) {
+                completeLoginSession(result);
             } else {
                 // Clear any stale state on failure
                 if (window.authController) window.authController.clearLocalState();
@@ -202,6 +225,56 @@ document.addEventListener('DOMContentLoaded', () => {
             loginButton.innerHTML = originalBtnText;
         }
     }
+
+    /**
+     * Shared logic to finalize session after successful password or OTP verification
+     */
+    function completeLoginSession(result) {
+        // Show Success SweetAlert
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                icon: 'success',
+                title: 'Login Successful',
+                text: 'Welcome back!',
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 1500,
+                timerProgressBar: true,
+                background: '#1e293b',
+                color: '#fff'
+            });
+        }
+
+        // Isolate session storage by role - store BOTH user and token
+        if (window.storage && typeof window.storage.setToken === 'function') {
+            window.storage.setUser(result.user);
+            if (result.user.token) {
+                window.storage.setToken(result.user.token);
+            }
+        } else {
+            // Fallback: store directly to localStorage if storage manager not ready
+            try {
+                localStorage.setItem('client_auth_token', result.user.token || '');
+                localStorage.setItem('client_user', JSON.stringify(result.user));
+            } catch (e) {}
+        }
+
+        // Signal a fresh login to help the auth-guard be more patient
+        sessionStorage.setItem('just_logged_in', 'true');
+        
+        setTimeout(() => {
+            const redirectUrl = result.redirect || '/client/pages/clientDashboard.html';
+            
+            // Use unified redirect handler if available for consistency
+            if (window.authController && typeof window.authController.handleRedirect === 'function') {
+                window.authController.handleRedirect(redirectUrl);
+            } else {
+                window.location.href = redirectUrl;
+            }
+        }, 1600);
+    }
+
 
     // Unified Google Init (Handled by AuthController)
     async function initGoogleAuth() {

@@ -252,8 +252,69 @@ window.updateClientNameDisplay = updateClientNameDisplay;
  */
 document.addEventListener('DOMContentLoaded', () => {
     initMobileSidebar();
+    initDesktopSidebar();
 });
 
+/**
+ * Desktop Sidebar Toggle
+ */
+function initDesktopSidebar() {
+    const header = document.querySelector('.header');
+    const sidebar = document.querySelector('.sidebar');
+    const mainLayout = document.querySelector('.main-layout');
+
+    if (!header || !sidebar || !mainLayout) return;
+
+    // 1. Create Toggle Button
+    const toggleBtn = document.createElement('button');
+    toggleBtn.id = 'sidebarToggle';
+    toggleBtn.className = 'sidebar-toggle-btn';
+    toggleBtn.innerHTML = '<i data-lucide="menu"></i>';
+    toggleBtn.style.cssText = `
+        background: none;
+        border: none;
+        color: var(--client-text-main);
+        cursor: pointer;
+        font-size: 1.25rem;
+        padding: 0.5rem;
+        display: flex;
+        align-items: center;
+        margin-right: 1.5rem;
+        transition: transform 0.3s ease;
+    `;
+
+    // 2. Insert Toggle Button BEFORE the search bar
+    const searchBar = header.querySelector('.header-search');
+    if (searchBar) {
+        header.insertBefore(toggleBtn, searchBar);
+    } else {
+        header.prepend(toggleBtn);
+    }
+
+    // 3. Handle Initial State from LocalStorage
+    const isCollapsed = localStorage.getItem('sidebar_collapsed') === 'true';
+    if (isCollapsed && window.innerWidth > 768) {
+        sidebar.classList.add('collapsed');
+        mainLayout.classList.add('collapsed');
+    }
+
+    // 4. Toggle Event
+    toggleBtn.addEventListener('click', () => {
+        const nowCollapsed = sidebar.classList.toggle('collapsed');
+        mainLayout.classList.toggle('collapsed');
+        localStorage.setItem('sidebar_collapsed', nowCollapsed);
+        
+        // Rotate icon or change if needed
+        toggleBtn.style.transform = nowCollapsed ? 'rotate(180deg)' : 'rotate(0deg)';
+    });
+
+    // Re-init icons
+    if (window.lucide) window.lucide.createIcons();
+}
+
+/**
+ * Mobile Sidebar Toggle Functionality
+ */
 function initMobileSidebar() {
     // Check if we're on a mobile device
     function isMobile() {

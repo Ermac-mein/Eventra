@@ -25,7 +25,22 @@ try {
         echo " - Cleared $expiredCount expired pending payments.\n";
     }
 
-    // 3. Trigger Scheduled Notifications
+    // 3. Archive Passed Events
+    // Automatically set admin_status = 'archived' for all events whose event_date has passed.
+    $stmtArchive = $pdo->prepare("
+        UPDATE events 
+        SET admin_status = 'archived' 
+        WHERE event_date < CURDATE() 
+          AND admin_status NOT IN ('archived', 'banished')
+          AND deleted_at IS NULL
+    ");
+    $stmtArchive->execute();
+    $archivedCount = $stmtArchive->rowCount();
+    if ($archivedCount > 0) {
+        echo " - Archived $archivedCount past events.\n";
+    }
+
+    // 4. Trigger Scheduled Notifications
     // We execute the existing notification cron using absolute path
     $notificationCron = __DIR__ . '/../api/events/schedule-notification-cron.php';
     if (file_exists($notificationCron)) {
@@ -34,7 +49,7 @@ try {
         $phpPath = PHP_BINARY ?: 'php';
         $output = shell_exec(escapeshellarg($phpPath) . ' ' . escapeshellarg($notificationCron));
         if ($output) {
-            echo $output;
+            echo "   " . str_replace("\n", "\n   ", trim($output)) . "\n";
         }
     } else {
         echo " - ERROR: Notification cron script not found at $notificationCron\n";

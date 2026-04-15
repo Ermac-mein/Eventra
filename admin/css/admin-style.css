@@ -12,6 +12,7 @@
     --admin-border: rgba(226, 232, 240, 0.6);
     --admin-header-height: 80px;
     --admin-sidebar-width: 260px;
+    --admin-sidebar-collapsed-width: 88px;
     --admin-radius: 16px;
     --admin-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
     
@@ -76,9 +77,37 @@ body {
     flex-direction: column;
     position: fixed;
     height: 100vh;
-    transition: all 0.3s ease;
+    transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     z-index: 1000;
     box-shadow: 4px 0 24px rgba(0, 0, 0, 0.2);
+    overflow: hidden;
+}
+
+/* Sidebar Collapsed State */
+.sidebar.collapsed {
+    width: var(--admin-sidebar-collapsed-width);
+}
+
+.sidebar.collapsed .sidebar-logo {
+    padding: 2rem 0;
+    text-align: center;
+    font-size: 1.25rem;
+}
+
+.sidebar.collapsed .menu-item a {
+    padding: 1rem;
+    justify-content: center;
+    gap: 0;
+}
+
+.sidebar.collapsed .menu-item a span,
+.sidebar.collapsed .sidebar-footer a span {
+    display: none;
+}
+
+.sidebar.collapsed .menu-item a i {
+    margin: 0;
+    font-size: 1.5rem;
 }
 
 .sidebar-logo {
@@ -138,6 +167,12 @@ body {
     flex-direction: column;
     max-width: calc(100vw - var(--admin-sidebar-width));
     overflow-x: hidden;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.main-layout.collapsed {
+    margin-left: var(--admin-sidebar-collapsed-width);
+    max-width: calc(100vw - var(--admin-sidebar-collapsed-width));
 }
 
 /* Header Styles */

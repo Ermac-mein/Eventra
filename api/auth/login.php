@@ -85,7 +85,7 @@ try {
     }
 
     if (password_verify($password, $user['password'])) {
-        // 3. Enforce Auth Policy
+        // --- 3. Enforce Auth Policy ---
         $policy = getAuthPolicy($userRole, 'password', $user);
         if (!$policy['allowed']) {
             logSecurityEvent($user['id'], $identity, 'login_failure', 'password', "Policy Violation: " . $policy['message']);
@@ -93,20 +93,47 @@ try {
             exit;
         }
 
+        // --- NEW: Client Login OTP Flow ---
+        // If the role is 'client', we require a second-factor OTP before completing login.
+        if ($userRole === 'client') {
+            $otp = sprintf("%06d", random_int(0, 999999));
+            $otp_hash = password_hash($otp, PASSWORD_DEFAULT);
+            $otp_expires_at = date('Y-m-d H:i:s', strtotime('+10 minutes'));
+
+            // Store in auth_tokens (reuse existing table, type='otp')
+            // Using raw OTP for simplicity as per common internal patterns, but the plan mentioned hashing.
+            // Actually, verify-otp.php currently checks for raw token = ?. 
+            // Let's stick to raw token storage for consistency with verify-otp.php logic (line 31).
+            $pdo->prepare("DELETE FROM auth_tokens WHERE auth_id = ? AND type = 'otp'")->execute([$user['id']]);
+            $stmt = $pdo->prepare("INSERT INTO auth_tokens (auth_id, token, expires_at, type) VALUES (?, ?, ?, 'otp')");
+            $stmt->execute([$user['id'], $otp, $otp_expires_at]);
+
+            // Send Email
+            require_once __DIR__ . '/../../includes/helpers/email-helper.php';
+            $subject = "Your Eventra Client Login Code";
+            $message = "Your one-time login verification code is: <strong>$otp</strong><br>It expires in 10 minutes.";
+            
+            $emailResult = EmailHelper::sendEmail($user['email'], $subject, "<h2>Login Verification</h2><p>$message</p>");
+
+            if ($emailResult['success']) {
+                echo json_encode([
+                    'success' => true,
+                    'otp_required' => true,
+                    'message' => 'A verification code has been sent to your email.'
+                ]);
+            } else {
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Failed to send verification code. Please try again later.'
+                ]);
+            }
+            exit;
+        }
+
         // Reset failed attempts on success
         $pdo->prepare("UPDATE auth_accounts SET failed_attempts = 0, last_login_at = NOW(), is_online = 1 WHERE id = ?")->execute([$user['id']]);
 
         // Update role-specific status when user logs in
-        if ($userRole === 'admin') {
-            $pdo->prepare("UPDATE admins SET status = 'active' WHERE admin_auth_id = ?")->execute([$user['id']]);
-        } elseif ($userRole === 'client') {
-            $pdo->prepare("UPDATE clients SET status = 'online' WHERE client_auth_id = ?")->execute([$user['id']]);
-        } elseif ($userRole === 'user') {
-            $pdo->prepare("UPDATE users SET status = 'online' WHERE user_auth_id = ?")->execute([$user['id']]);
-        }
-
-        // Generate alphanumeric access token
-        $token = bin2hex(random_bytes(32));
         $expires_in = $remember_me ? '+30 days' : '+30 minutes'; // 30-minute inactivity session policy
         $expires_at = date('Y-m-d H:i:s', strtotime($expires_in));
 

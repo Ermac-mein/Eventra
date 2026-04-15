@@ -11,7 +11,8 @@ if ((!isset($data['identity']) && !isset($data['email'])) || !isset($data['otp']
 }
 
 $identity = $data['identity'] ?? $data['email'];
-$otp = $data['otp'];
+$otp = $data['otp'] ?? null;
+$intent = $data['intent'] ?? 'password_reset';
 
 try {
     require_once __DIR__ . '/../../includes/helpers/entity-resolver.php';
@@ -39,22 +40,62 @@ try {
         // OTP is valid. Revoke it.
         $pdo->prepare("UPDATE auth_tokens SET revoked = 1 WHERE id = ?")->execute([$token_row['id']]);
 
-        // Generate a temporary reset token
-        $reset_token = bin2hex(random_bytes(32));
-        $expires_at = date('Y-m-d H:i:s', strtotime('+30 minutes'));
+        if ($intent === 'client_login') {
+            // ── Complete Client Login Flow (Mirroring login.php) ──────────────────
+            // Reset failed attempts
+            $pdo->prepare("UPDATE auth_accounts SET failed_attempts = 0, last_login_at = NOW(), is_online = 1 WHERE id = ?")->execute([$auth_id]);
+            
+            // Set session name
+            session_name('EVENTRA_CLIENT_SESS');
+            if (session_status() === PHP_SESSION_NONE) {
+                session_start();
+            }
 
-        $stmt = $pdo->prepare("INSERT INTO auth_tokens (auth_id, token, type, expires_at) VALUES (?, ?, 'reset_password', ?)");
-        $stmt->execute([$auth_id, $reset_token, $expires_at]);
+            // Generate access token
+            $token = bin2hex(random_bytes(32));
+            $expires_at = date('Y-m-d H:i:s', strtotime('+30 minutes'));
+            $pdo->prepare("INSERT INTO auth_tokens (auth_id, token, expires_at, type) VALUES (?, ?, ?, 'access')")->execute([$auth_id, $token, $expires_at]);
 
-        echo json_encode([
-            'success' => true,
-            'message' => 'OTP verified successfully.',
-            'reset_token' => $reset_token
-        ]);
+            // Set role-specific PK
+            $stmt = $pdo->prepare("SELECT id, name, business_name FROM clients WHERE client_auth_id = ?");
+            $stmt->execute([$auth_id]);
+            $client = $stmt->fetch();
+            
+            $_SESSION['auth_id'] = $auth_id;
+            $_SESSION['client_id'] = $client['id'];
+            $_SESSION['user_role'] = 'client';
+            $_SESSION['role'] = 'client';
+            $_SESSION['auth_token'] = $token;
+
+            echo json_encode([
+                'success' => true,
+                'message' => 'Login verified.',
+                'redirect' => '/client/pages/clientDashboard.html',
+                'user' => [
+                    'id' => $auth_id,
+                    'name' => $client['name'],
+                    'role' => 'client',
+                    'token' => $token
+                ]
+            ]);
+        } else {
+            // ── Legacy Password Reset Flow ──────────────────────────────────────
+            $reset_token = bin2hex(random_bytes(32));
+            $expires_at  = date('Y-m-d H:i:s', strtotime('+30 minutes'));
+
+            $stmt = $pdo->prepare("INSERT INTO auth_tokens (auth_id, token, type, expires_at) VALUES (?, ?, 'reset_password', ?)");
+            $stmt->execute([$auth_id, $reset_token, $expires_at]);
+
+            echo json_encode([
+                'success' => true,
+                'message' => 'OTP verified successfully.',
+                'reset_token' => $reset_token
+            ]);
+        }
     } else {
         echo json_encode(['success' => false, 'message' => 'Invalid or expired OTP.']);
     }
 } catch (PDOException $e) {
     error_log("Verify OTP Error: " . $e->getMessage());
-    echo json_encode(['success' => false, 'message' => 'Database error.']);
+    echo json_encode(['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);
 }
