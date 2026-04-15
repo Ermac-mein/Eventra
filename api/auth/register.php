@@ -1,18 +1,70 @@
 <?php
+/**
+ * Eventra — User Registration Handler
+ * Handles creation of new accounts for Admins, Clients, and Users.
+ */
+
+// 0. Emergency Error Capture for 500 debugging
+set_error_handler(function($errno, $errstr, $errfile, $errline) {
+    if (!(error_reporting() & $errno)) return false;
+    header('Content-Type: application/json');
+    http_response_code(500);
+    echo json_encode([
+        'success' => false,
+        'message' => 'Internal Server Error detected by handler.',
+        'error' => $errstr,
+        'file' => basename($errfile),
+        'line' => $errline
+    ]);
+    exit;
+});
+
+set_exception_handler(function($e) {
+    header('Content-Type: application/json');
+    http_response_code(500);
+    echo json_encode([
+        'success' => false,
+        'message' => 'Uncaught Exception detected by handler.',
+        'error' => $e->getMessage(),
+        'type' => get_class($e),
+        'file' => basename($e->getFile()),
+        'line' => $e->getLine()
+    ]);
+    exit;
+});
 
 header('Content-Type: application/json');
-require_once __DIR__ . '/../../config/database.php';
-require_once __DIR__ . '/../../includes/helpers/entity-resolver.php';
+
+// Check if dependencies exist before requiring
+$db_path = __DIR__ . '/../../config/database.php';
+$resolver_path = __DIR__ . '/../../includes/helpers/entity-resolver.php';
+
+if (!file_exists($db_path)) {
+    echo json_encode(['success' => false, 'message' => 'Configuration error: database file missing.']);
+    exit;
+}
+require_once $db_path;
+
+if (!file_exists($resolver_path)) {
+    echo json_encode(['success' => false, 'message' => 'Configuration error: resolver helper missing.']);
+    exit;
+}
+require_once $resolver_path;
 
 $data = json_decode(file_get_contents("php://input"), true);
+
+if (!$data) {
+    echo json_encode(['success' => false, 'message' => 'Invalid JSON input.']);
+    exit;
+}
 
 if (!isset($data['name']) || !isset($data['email']) || !isset($data['password'])) {
     echo json_encode(['success' => false, 'message' => 'All fields are required.']);
     exit;
 }
 
-$name = $data['name'];
-$email = $data['email'];
+$name = trim($data['name']);
+$email = trim($data['email']);
 $password = $data['password'];
 $role = $data['role'] ?? 'client'; // Default to client registration if not specified
 
@@ -26,7 +78,11 @@ try {
     }
 
     // 2. Load ID Generator
-    require_once __DIR__ . '/../utils/id-generator.php';
+    $id_gen_path = __DIR__ . '/../utils/id-generator.php';
+    if (!file_exists($id_gen_path)) {
+         throw new Exception("ID generator utility missing at $id_gen_path");
+    }
+    require_once $id_gen_path;
 
     // 3. Validate Password Strength (Uppercase, Digit, Special Character, Min 8 chars)
     if (!preg_match('/^(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%^&*(),.?":{}|<>]).{8,}$/', $password)) {
@@ -49,6 +105,9 @@ try {
     $stmt->execute([$email, $hashedPassword, $role, $username]);
     $auth_id = $pdo->lastInsertId();
 
+    $role_id = null;
+    $customId = null;
+
     // 5. Insert into role-specific table with custom_id
     if ($role === 'client') {
         $customId = generateClientId($pdo);
@@ -69,45 +128,64 @@ try {
 
     logSecurityEvent($auth_id, $email, 'registration_success', 'password', "New $role registered: $name (Role ID: " . ($role === 'client' ? $customId : ($role_id ?? 'N/A')) . ")");
 
-    // 5. Notify Admin and User using helper
-    require_once __DIR__ . '/../utils/notification-helper.php';
+    // 6. Notify Admin and User using helper
+    $notify_path = __DIR__ . '/../utils/notification-helper.php';
+    if (file_exists($notify_path)) {
+        require_once $notify_path;
+        
+        $admin_id = getAdminUserId();
+        if ($admin_id) {
+            $adminMsg = "New $role registered: $name ($email)";
+            createNotification($admin_id, $adminMsg, 'user_registered', $auth_id, 'admin', $role);
+        }
 
-    $admin_id = getAdminUserId();
-    if ($admin_id) {
-        $adminMsg = "New $role registered: $name ($email)";
-        createNotification($admin_id, $adminMsg, 'user_registered', $auth_id, 'admin', $role);
+        createNotification($auth_id, "Welcome to Eventra, $name! Your account has been created successfully.", 'welcome', $auth_id, $role, 'admin');
     }
 
-    createNotification($auth_id, "Welcome to Eventra, $name! Your account has been created successfully.", 'welcome', $auth_id, $role, 'admin');
-
-    // AUTO-LOGIN DISABLED: Users must log in manually to trigger OTP verification if required.
     $redirect = '/client/pages/clientLogin.html';
     if ($role === 'admin') {
         $redirect = '/client/pages/clientLogin.html?role=admin';
     } elseif ($role === 'user') {
-        $redirect = '/public/pages/index.html'; // Or user login page
+        $redirect = '/public/pages/index.html';
     }
-
-    // Re-resolve user for consistent return object
-    $fullUser = resolveEntity($email, $role);
 
     echo json_encode([
         'success' => true,
         'message' => 'Registration successful! Please log in to continue.',
         'redirect' => $redirect
     ]);
+
 } catch (PDOException $e) {
-    if ($pdo->inTransaction()) {
+    if (isset($pdo) && $pdo->inTransaction()) {
         $pdo->rollBack();
     }
     
     $message = 'Registration failed. Please try again.';
-    if ($e->getCode() == 23000) { // Integrity constraint violation
-        if (strpos($e->getMessage(), 'uq_auth_email') !== false) {
+    $errorCode = $e->getCode();
+    
+    if ($errorCode == 23000) { // Integrity constraint violation
+        if (strpos($e->getMessage(), 'uq_auth_email') !== false || strpos($e->getMessage(), 'Duplicate entry') !== false) {
             $message = 'This email address is already registered. Please use a different email or log in.';
+        } else {
+            $message = 'Registration failed: Duplicate entry or constraint violation.';
         }
+    } else {
+        error_log("Registration PDO Error ($errorCode): " . $e->getMessage());
     }
     
-    error_log("Registration error: " . $e->getMessage());
     echo json_encode(['success' => false, 'message' => $message]);
+
+} catch (Throwable $e) {
+    if (isset($pdo) && $pdo->inTransaction()) {
+        $pdo->rollBack();
+    }
+    
+    error_log("Registration Critical Error: " . $e->getMessage() . " in " . $e->getFile() . " on line " . $e->getLine());
+    
+    echo json_encode([
+        'success' => false, 
+        'message' => 'An unexpected error occurred during registration. Details: ' . $e->getMessage(),
+        'error_type' => get_class($e)
+    ]);
 }
+

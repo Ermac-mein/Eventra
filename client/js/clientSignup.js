@@ -178,7 +178,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 signupButton.innerHTML = originalBtnText;
             }
         } catch (error) {
-            console.error('Signup error:', error);
+            console.error('Signup error details:', {
+                message: error.message,
+                stack: error.stack,
+                error: error
+            });
             showError('passwordError', 'Registration failed. ' + (error.message || 'Please check your connection and try again.'));
             signupButton.disabled = false;
             signupButton.innerHTML = originalBtnText;
