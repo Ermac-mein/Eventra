@@ -18,6 +18,7 @@ header('Content-Type: application/json');
 // 2. Load Dependencies
 $db_path = __DIR__ . '/../../config/database.php';
 $resolver_path = __DIR__ . '/../../includes/helpers/entity-resolver.php';
+$autoload_path = __DIR__ . '/../../vendor/autoload.php';
 
 if (!file_exists($db_path)) {
     error_log("Registration failed: Database configuration file missing at $db_path");
@@ -32,12 +33,12 @@ if (!file_exists($resolver_path)) {
     exit;
 }
 require_once $resolver_path;
-if (!file_exists(__DIR__ . '/../../vendor/autoload.php')) {
-    error_log("Registration failed: vendor/autoload.php missing.");
-    ob_clean(); echo json_encode(['success' => false, 'message' => 'System configuration error: dependencies missing.']);
-    exit;
+
+if (file_exists($autoload_path)) {
+    require_once $autoload_path;
+} else {
+    error_log("Registration notice: vendor/autoload.php missing. Continuing with native fallbacks.");
 }
-require_once __DIR__ . '/../../vendor/autoload.php';
 
 
 // 3. Capture and Validate Input
