@@ -15,13 +15,14 @@ $otp = $data['otp'] ?? null;
 $intent = $data['intent'] ?? 'password_reset';
 
 try {
-    // 0. Ensure standardized session initialization
+    // 0. Connect to temporary pending session to retrieve registration data
     if ($intent === 'registration_verify') {
-        session_name('EVENTRA_CLIENT_SESS');
+        session_name('EVENTRA_PENDING_SESS');
     }
     require_once __DIR__ . '/../../config/session-config.php';
     require_once __DIR__ . '/../../includes/helpers/entity-resolver.php';
     $pdo = getPDO(); // Singleton
+
 
     // 1. Handle Registration Verification Intent
     if ($intent === 'registration_verify') {
@@ -65,7 +66,8 @@ try {
 
             // Create auth_account
             $username = explode('@', $email)[0] . '_' . substr(bin2hex(random_bytes(2)), 0, 4);
-            $stmt = $pdo->prepare("INSERT INTO auth_accounts (email, password, role, auth_provider, is_active, username, email_verified_at) VALUES (?, ?, ?, 'local', 1, ?, NOW())");
+            // Create auth account WITHOUT marking email as verified yet. Verification status is managed per-profile.
+            $stmt = $pdo->prepare("INSERT INTO auth_accounts (email, password, role, auth_provider, is_active, username) VALUES (?, ?, ?, 'local', 1, ?)");
             $stmt->execute([$email, $hashedPassword, $role, $username]);
             $auth_id = $pdo->lastInsertId();
 
@@ -76,7 +78,8 @@ try {
             if ($role === 'client') {
                 $customId = generateClientId($pdo);
                 $business_name = $pending['business_name'] ?? $name;
-                $stmt = $pdo->prepare("INSERT INTO clients (client_auth_id, custom_id, business_name, name) VALUES (?, ?, ?, ?)");
+                // Insert client with verification_status = 'pending' to indicate admin review or email confirmation workflow
+                $stmt = $pdo->prepare("INSERT INTO clients (client_auth_id, custom_id, business_name, name, verification_status) VALUES (?, ?, ?, ?, 'pending')");
                 $stmt->execute([$auth_id, $customId, $business_name, $name]);
             } elseif ($role === 'admin') {
                 $stmt = $pdo->prepare("INSERT INTO admins (admin_auth_id, name) VALUES (?, ?)");
@@ -91,8 +94,18 @@ try {
 
             $pdo->commit();
 
-            // Clear session
-            unset($_SESSION['pending_registration']);
+            // Clear pending session and switch to authenticated session
+            session_unset();
+            session_destroy();
+            
+            if ($role === 'client') {
+                session_name('EVENTRA_CLIENT_SESS');
+            } elseif ($role === 'admin') {
+                session_name('EVENTRA_ADMIN_SESS');
+            } else {
+                session_name('EVENTRA_USER_SESS');
+            }
+            session_start();
 
             logSecurityEvent($auth_id, $email, 'registration_success', 'password', "New $role registered via OTP: $name");
 

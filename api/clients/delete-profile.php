@@ -11,7 +11,14 @@ require_once '../../config/database.php';
 require_once '../../includes/middleware/auth.php';
 
 // Check authentication
-$auth_id = checkAuth('client');
+$current_auth_id = checkAuth(['client', 'admin']);
+$target_auth_id = $current_auth_id;
+
+// If admin is performing deletion, allow target id from request
+$role = $_SESSION['role'] ?? 'user';
+if ($role === 'admin' && isset($_REQUEST['target_auth_id'])) {
+    $target_auth_id = (int)$_REQUEST['target_auth_id'];
+}
 
 if ($_SERVER['REQUEST_METHOD'] !== 'DELETE' && $_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
@@ -20,17 +27,18 @@ if ($_SERVER['REQUEST_METHOD'] !== 'DELETE' && $_SERVER['REQUEST_METHOD'] !== 'P
 }
 
 try {
+    $pdo = getPDO();
     $pdo->beginTransaction();
 
-    // Get client id for directory deletion
+    // Get client id for directory deletion before we delete the account
     $stmt = $pdo->prepare("SELECT id FROM clients WHERE client_auth_id = ?");
-    $stmt->execute([$auth_id]);
+    $stmt->execute([$target_auth_id]);
     $client_id = $stmt->fetchColumn();
 
     // Delete the auth_accounts record. Due to ON DELETE CASCADE constraints,
     // this will automatically delete from clients, events, media, tickets, orders, etc.
-    $deleteStmt = $pdo->prepare("DELETE FROM auth_accounts WHERE id = ? AND role = 'client'");
-    $deleteStmt->execute([$auth_id]);
+    $deleteStmt = $pdo->prepare("DELETE FROM auth_accounts WHERE id = ?");
+    $deleteStmt->execute([$target_auth_id]);
 
     if ($deleteStmt->rowCount() > 0) {
         $pdo->commit();

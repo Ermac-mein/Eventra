@@ -73,6 +73,26 @@ async function loadClientProfile() {
                 window.stateManager.setState({ user: user, profilePicture: user.profile_pic });
             }
 
+            // Show verification banner if pending or rejected
+            const banner = document.getElementById('verificationBanner');
+            if (banner) {
+                if (user.verification_status === 'verified') {
+                    banner.style.display = 'none';
+                } else if (user.verification_status === 'rejected') {
+                    banner.style.display = 'block';
+                    banner.style.background = '#fee2e2';
+                    banner.style.color = '#991b1b';
+                    banner.style.borderColor = '#fecaca';
+                    banner.innerHTML = `<strong>Verification Declined:</strong> Your account details were rejected. <a href="javascript:void(0)" onclick="window.showProfileEditModal()" style="font-weight:700; margin-left:8px; color: inherit; text-decoration: underline;">Update Profile</a>`;
+                } else {
+                    banner.style.display = 'block';
+                    banner.style.background = '#fff3cd';
+                    banner.style.color = '#856404';
+                    banner.style.borderColor = '#ffeeba';
+                    banner.innerHTML = `<strong>Verification Pending:</strong> You cannot create or publish events until your account is verified. This usually takes 24-48 hours.`;
+                }
+            }
+
             storage.setUser(user);
         }
     } catch (error) {

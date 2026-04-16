@@ -150,71 +150,67 @@ function checkAuth($requiredRole = null)
         require_once __DIR__ . '/../../config.php';
     }
 
-    // First, try Bearer token authentication (for API requests)
-    $auth_id = validateBearerToken($requiredRole);
-    if ($auth_id) {
-        try {
-            $pdo = getPDO();
-
-            // Set session variables for Bearer token auth
-            // This ensures getAuthId() and other functions work properly
-            
-            // Get complete role and profile info from auth_accounts
-            $stmt = $pdo->prepare("SELECT id, role FROM auth_accounts WHERE id = ?");
-            $stmt->execute([$auth_id]);
-            $account = $stmt->fetch(PDO::FETCH_ASSOC);
-            
-            if ($account) {
-                $role = $account['role'];
-                
-                // Set auth_id and role in session
-                $_SESSION['auth_id'] = $auth_id;
-                $_SESSION['user_role'] = $role;
-                $_SESSION['role'] = $role;
-                
-                // Get the profile-specific ID (admin_id, client_id, or user_id)
-                $profileId = null;
-                if ($role === 'admin') {
-                    $stmt = $pdo->prepare("SELECT id FROM admins WHERE admin_auth_id = ? LIMIT 1");
-                    $stmt->execute([$auth_id]);
-                    $profileId = $stmt->fetchColumn();
-                    if ($profileId) {
-                        $_SESSION['admin_id'] = $profileId;
-                    }
-                } elseif ($role === 'client') {
-                    $stmt = $pdo->prepare("SELECT id FROM clients WHERE client_auth_id = ? LIMIT 1");
-                    $stmt->execute([$auth_id]);
-                    $profileId = $stmt->fetchColumn();
-                    if ($profileId) {
-                        $_SESSION['client_id'] = $profileId;
-                    }
-                } else { // user
-                    $stmt = $pdo->prepare("SELECT id FROM users WHERE user_auth_id = ? LIMIT 1");
-                    $stmt->execute([$auth_id]);
-                    $profileId = $stmt->fetchColumn();
-                    if ($profileId) {
-                        $_SESSION['user_id'] = $profileId;
-                    }
-                }
-                
-                // Return the profile-specific ID (or auth_id if profile lookup failed)
-                return $profileId ?? $auth_id;
-            }
-        } catch (PDOException $e) {
-            error_log("Auth DB error: " . $e->getMessage());
-            if (isset($_SERVER['REQUEST_URI']) && strpos($_SERVER['REQUEST_URI'], '/api/') !== false) {
-                if (!headers_sent()) header('Content-Type: application/json');
-                http_response_code(503);
-                echo json_encode(['success' => false, 'message' => 'Service temporarily unavailable.']);
-                exit;
-            }
-            return null;
-        }
+    // 1. Check if native PHP session already has the authenticated user data
+    $role = $_SESSION['role'] ?? null;
+    $userId = null;
+    
+    if ($role) {
+        $userId = $_SESSION[$role . '_id'] ?? null;
     }
 
-    // Fall back to session-based authentication
-    $role = $_SESSION['role'] ?? null;
-    $userId = $_SESSION[$role . '_id'] ?? null;
+    // 2. Fallback to Bearer token authentication only if session is missing
+    if (!$userId) {
+        $auth_id = validateBearerToken($requiredRole);
+        if ($auth_id) {
+            try {
+                $pdo = getPDO();
+
+                // Set session variables for Bearer token auth
+                $stmt = $pdo->prepare("SELECT id, role FROM auth_accounts WHERE id = ?");
+                $stmt->execute([$auth_id]);
+                $account = $stmt->fetch(PDO::FETCH_ASSOC);
+                
+                if ($account) {
+                    $role = $account['role'];
+                    
+                    // Set auth_id and role in session
+                    $_SESSION['auth_id'] = $auth_id;
+                    $_SESSION['user_role'] = $role;
+                    $_SESSION['role'] = $role;
+                    
+                    // Get the profile-specific ID
+                    $profileId = null;
+                    if ($role === 'admin') {
+                        $stmt = $pdo->prepare("SELECT id FROM admins WHERE admin_auth_id = ? LIMIT 1");
+                        $stmt->execute([$auth_id]);
+                        $profileId = $stmt->fetchColumn();
+                        if ($profileId) $_SESSION['admin_id'] = $profileId;
+                    } elseif ($role === 'client') {
+                        $stmt = $pdo->prepare("SELECT id FROM clients WHERE client_auth_id = ? LIMIT 1");
+                        $stmt->execute([$auth_id]);
+                        $profileId = $stmt->fetchColumn();
+                        if ($profileId) $_SESSION['client_id'] = $profileId;
+                    } else { // user
+                        $stmt = $pdo->prepare("SELECT id FROM users WHERE user_auth_id = ? LIMIT 1");
+                        $stmt->execute([$auth_id]);
+                        $profileId = $stmt->fetchColumn();
+                        if ($profileId) $_SESSION['user_id'] = $profileId;
+                    }
+                    
+                    $userId = $profileId ?? $auth_id;
+                }
+            } catch (PDOException $e) {
+                error_log("Auth DB error: " . $e->getMessage());
+                if (isset($_SERVER['REQUEST_URI']) && strpos($_SERVER['REQUEST_URI'], '/api/') !== false) {
+                    if (!headers_sent()) header('Content-Type: application/json');
+                    http_response_code(503);
+                    echo json_encode(['success' => false, 'message' => 'Service temporarily unavailable.']);
+                    exit;
+                }
+                return null;
+            }
+        }
+    }
 
     $hasAuthorizedRole = true;
     if ($requiredRole) {

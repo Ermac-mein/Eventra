@@ -9,18 +9,7 @@ class Database {
     private $pdo;
 
     private function __construct() {
-        // The connection is already established in config/database.php and available as $pdo
-        // or we can re-establish it here if it's not available.
-        global $pdo;
-
-        if (isset($pdo)) {
-            $this->pdo = $pdo;
-        } else {
-            // Include config if not already included
-            require_once __DIR__ . '/../../config/database.php';
-            global $pdo;
-            $this->pdo = $pdo;
-        }
+        $this->pdo = getPDO();
     }
 
     public static function getInstance() {

@@ -9,7 +9,84 @@ document.addEventListener('DOMContentLoaded', () => {
     // initNotifications(); // Handled by drawer-system.js
     initProfileClick();
     loadGlobalProfile();
+    initInactivityMonitor();
 });
+
+function initInactivityMonitor() {
+    const SESSION_TIMEOUT = 30 * 60 * 1000; // 30 mins
+    const WARNING_TIME = 28 * 60 * 1000; // 28 mins
+    let inactivityTimer;
+    let warningTimer;
+    let isWarningShown = false;
+
+    function resetTimers() {
+        if (isWarningShown) return;
+        
+        clearTimeout(inactivityTimer);
+        clearTimeout(warningTimer);
+
+        warningTimer = setTimeout(showWarning, WARNING_TIME);
+        inactivityTimer = setTimeout(() => {
+            if (window.logout) window.logout();
+            else window.location.href = '../../client/pages/clientLogin.html';
+        }, SESSION_TIMEOUT);
+    }
+
+    function showWarning() {
+        if (isWarningShown) return;
+        isWarningShown = true;
+        
+        let timeLeft = 120; // 2 minutes
+        
+        Swal.fire({
+            title: 'Session Expiring Soon',
+            html: `You will be logged out in <strong style="color: #ef4444; font-size: 1.2rem;">${timeLeft}</strong> seconds due to inactivity.`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#10b981',
+            cancelButtonColor: '#ef4444',
+            confirmButtonText: 'Stay Logged In',
+            cancelButtonText: 'Log Out Now',
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            didOpen: () => {
+                const timerElement = Swal.getHtmlContainer().querySelector('strong');
+                const countdown = setInterval(() => {
+                    timeLeft--;
+                    if (timerElement) timerElement.textContent = timeLeft;
+                    if (timeLeft <= 0) {
+                        clearInterval(countdown);
+                        Swal.close();
+                        if (window.logout) window.logout();
+                    }
+                }, 1000);
+                Swal.getPopup().dataset.intervalId = countdown;
+            },
+            willClose: () => {
+                const countdown = Swal.getPopup().dataset.intervalId;
+                if (countdown) clearInterval(countdown);
+            }
+        }).then((result) => {
+            isWarningShown = false;
+            if (result.isConfirmed) {
+                // Heartbeat API will refresh PHP session timestamp
+                if (typeof apiFetch !== 'undefined') {
+                    apiFetch('/api/heartbeat.php').then(() => resetTimers());
+                } else {
+                    fetch('/api/heartbeat.php').then(() => resetTimers());
+                }
+            } else if (result.dismiss === Swal.DismissReason.cancel) {
+                if (window.logout) window.logout();
+            }
+        });
+    }
+
+    ['mousedown', 'keydown', 'scroll', 'touchstart'].forEach(evt => {
+        window.addEventListener(evt, resetTimers, { passive: true });
+    });
+
+    resetTimers();
+}
 
 /**
  * Loads the user profile globally to update header avatar
@@ -144,40 +221,52 @@ function initLogout() {
         });
     });
 
-    // Centralized Global Listeners (Export, Notifications, Profile)
-    document.addEventListener('click', (e) => {
-        // Global Export Button
-        const exportBtn = e.target.closest('#globalExportBtn');
-        if (exportBtn) {
-            const path = window.location.pathname;
-            let dataType = 'events';
-            if (path.includes('tickets.html')) dataType = 'tickets';
-            else if (path.includes('payments.html')) dataType = 'payments';
-            else if (path.includes('users.html')) dataType = 'users';
-            else if (path.includes('media.html')) dataType = 'media';
-
-            if (typeof window.showExportModal === 'function') {
-                window.showExportModal(dataType);
-            }
-        }
-
-        // Global Notifications
-        const notificationIcon = e.target.closest('[data-drawer="notifications"]');
-        if (notificationIcon) {
-            if (window.drawerSystem && typeof window.drawerSystem.open === 'function') {
-                window.drawerSystem.open('notifications');
-            }
-        }
-
-        // Global Profile Click
-        const profileAvatar = e.target.closest('.user-profile') || e.target.closest('.user-avatar');
-        if (profileAvatar) {
-            if (typeof window.showProfileEditModal === 'function') {
-                window.showProfileEditModal();
-            }
-        }
-    });
+    // Specific listeners if needed (e.g. ID-based)
+    if (logoutBtn) {
+        logoutBtn.onclick = (e) => {
+            e.preventDefault();
+            logout();
+        };
+    }
 }
+
+    // Delete Account Listener
+    const deleteAccountBtn = document.getElementById('deleteAccountBtn');
+    if (deleteAccountBtn) {
+        deleteAccountBtn.addEventListener('click', async () => {
+            const result = await Swal.fire({
+                title: 'Delete Your Account?',
+                text: 'This action is PERMANENT. All your events, media, and data will be erased forever.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: 'Yes, Delete Everything',
+                cancelButtonText: 'Cancel'
+            });
+
+            if (result.isConfirmed) {
+                try {
+                    const response = await apiFetch('/api/clients/delete-profile.php', {
+                        method: 'DELETE'
+                    });
+                    const data = await response.json();
+                    if (data.success) {
+                        Swal.fire('Deleted', 'Your account has been successfully removed.', 'success').then(() => {
+                            window.location.href = '../../client/pages/clientLogin.html';
+                        });
+                    } else {
+                        Swal.fire('Error', data.message || 'Deletion failed', 'error');
+                    }
+                } catch (e) {
+                    Swal.fire('Error', 'An unexpected error occurred.', 'error');
+                }
+            }
+        });
+    }
+
+    // Centralized Global Listeners (Export, Notifications, Profile)
+
 
 
 function initProfileClick() {

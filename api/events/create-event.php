@@ -93,6 +93,12 @@ try {
         throw new Exception("Client profile not found for this account.");
     }
 
+    if ($client_data['verification_status'] !== 'verified') {
+        http_response_code(403);
+        echo json_encode(['success' => false, 'message' => 'Unauthorized: Your account must be verified by an administrator before you can create events.']);
+        exit;
+    }
+
     $real_client_id = $client_data['id'];
     $raw_client_name = $client_data['name'] ?? 'client';
     $client_name = strtolower(str_replace(' ', '-', preg_replace('/[^A-Za-z0-9 ]/', '', $raw_client_name)));

@@ -3,6 +3,19 @@ function showCreateEventModal() {
     const user = storage.getUser();
     if (!user) return;
 
+    if (user.verification_status !== 'verified') {
+        Swal.fire({
+            title: 'Action Restricted',
+            text: 'Your account is currently pending verification. You cannot create events until your profile is approved by an administrator.',
+            icon: 'lock',
+            confirmButtonColor: '#722f37',
+            confirmButtonText: 'View Profile Status'
+        }).then(() => {
+            if (typeof window.showProfileEditModal === 'function') window.showProfileEditModal();
+        });
+        return;
+    }
+
     const modalHTML = `
         <link rel="stylesheet" href="../../public/css/time-picker.css">
         <div id="createEventModal" class="modal-backdrop active" role="dialog" aria-modal="true" aria-hidden="false" 

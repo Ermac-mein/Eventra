@@ -4,12 +4,15 @@
  * Handles creation of new accounts for Admins, Clients, and Users.
  */
 
-// 1. Surgical Error Logging & Performance
+// Surgical Error Logging & Performance
 require_once __DIR__ . '/../../config.php'; // Centralized config & error reporting
 
-// Ensure standardized session initialization for Clients
-session_name('EVENTRA_CLIENT_SESS');
-require_once __DIR__ . '/../../config/session-config.php';
+// Do NOT set EVENTRA_CLIENT_SESS here. Use a temporary session for pending registration.
+if (session_status() === PHP_SESSION_NONE) {
+    session_name('EVENTRA_PENDING_SESS');
+    session_start();
+}
+
 
 header('Content-Type: application/json');
 
@@ -23,7 +26,6 @@ if (!file_exists($db_path)) {
     exit;
 }
 require_once $db_path;
-$pdo = getPDO(); // Ensure singleton instance
 
 if (!file_exists($resolver_path)) {
     error_log("Registration failed: Resolver helper missing at $resolver_path");

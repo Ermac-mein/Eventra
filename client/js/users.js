@@ -221,6 +221,39 @@ function updatePagination(users) {
     }
 }
 
+// Delete account handler (client self-service)
+document.addEventListener('DOMContentLoaded', () => {
+    const deleteBtn = document.getElementById('deleteAccountBtn');
+    if (!deleteBtn) return;
+    deleteBtn.addEventListener('click', async (e) => {
+        e.preventDefault();
+        const confirmed = await Swal.fire({
+            title: 'Delete Account?',
+            text: 'This will permanently delete your account and all associated data. This action cannot be undone.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#e74c3c',
+            cancelButtonColor: '#95a5a6',
+            confirmButtonText: 'Yes, delete my account'
+        });
+        if (!confirmed.isConfirmed) return;
+        try {
+            const res = await apiFetch('/api/clients/delete-profile.php', { method: 'POST' });
+            const data = await res.json();
+            if (data.success) {
+                Swal.fire('Deleted', data.message, 'success').then(() => {
+                    // Redirect to login
+                    window.location.href = '../../client/pages/clientLogin.html';
+                });
+            } else {
+                Swal.fire('Error', data.message || 'Failed to delete account.', 'error');
+            }
+        } catch (err) {
+            Swal.fire('Error', 'Server error occurred while deleting account.', 'error');
+        }
+    });
+});
+
 function formatDate(dateString) {
     if (!dateString) return 'N/A';
     const date = new Date(dateString);

@@ -1,9 +1,12 @@
 <?php
 // Centralized Error Reporting
+if (!headers_sent()) {
+    ob_start();
+}
 ini_set('display_errors', 0);
 ini_set('log_errors', 1);
 ini_set('error_log', __DIR__ . '/../logs/php-errors.log');
-error_reporting(E_ALL);
+error_reporting(0);
 
 // Database configuration
 require_once __DIR__ . '/env-loader.php';
@@ -34,50 +37,65 @@ if (!defined('DB_PASS')) define('DB_PASS', get_env_var('DB_PASSWORD', ''));
 
 /**
  * Singleton Database Connection Provider
- * Uses $GLOBALS['__EVENTRA_PDO'] so shutdown function can release the reference.
  */
 function getPDO() {
-    // Reuse existing global PDO if present
-    if (isset($GLOBALS['__EVENTRA_PDO']) && $GLOBALS['__EVENTRA_PDO'] instanceof PDO) {
-        return $GLOBALS['__EVENTRA_PDO'];
+    static $instance = null;
+    
+    if ($instance !== null) {
+        return $instance;
     }
 
     try {
         $dsn = "mysql:host=" . DB_HOST . ";port=" . DB_PORT . ";dbname=" . DB_NAME . ";charset=utf8mb4";
-        $pdo = new PDO($dsn, DB_USER, DB_PASS, [
+        $instance = new PDO($dsn, DB_USER, DB_PASS, [
             PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
             PDO::ATTR_PERSISTENT => false,
             PDO::ATTR_TIMEOUT => 5
         ]);
 
-        $GLOBALS['__EVENTRA_PDO'] = $pdo;
+        return $instance;
 
     } catch (PDOException $e) {
         error_log("[" . date('Y-m-d H:i:s') . "] Database connection failed: " . $e->getMessage());
-        
+
+        // Attempt to derive SQLSTATE and driver code for robust overload detection
+        $sqlstate = null;
+        if (is_array($e->errorInfo) && isset($e->errorInfo[0])) {
+            $sqlstate = $e->errorInfo[0];
+        }
+
+        $isOverload = (
+            $e->getCode() == 1040 ||
+            $sqlstate === '08004' ||
+            $e->getCode() === '08004' ||
+            strpos($e->getMessage(), '1040') !== false
+        );
+
+        // API endpoints should receive a friendly message; web pages get a generic die
         if (isset($_SERVER['REQUEST_URI']) && strpos($_SERVER['REQUEST_URI'], '/api/') !== false) {
+            if (function_exists('ob_get_length') && ob_get_length()) { ob_clean(); }
             if (!headers_sent()) header('Content-Type: application/json');
             http_response_code(503);
-            echo json_encode(['success' => false, 'message' => 'Service temporarily unavailable. Please try again later.']);
+            echo json_encode([
+                'success' => false,
+                'message' => 'Service temporarily unavailable. Please try again in a moment.',
+                'code' => $isOverload ? 'DB_OVERLOAD' : 'DB_ERROR'
+            ]);
             exit;
         }
+
+        // Non-API flows: terminate with a generic, non-sensitive message
         die("Database connection failed. Please check error logs.");
     }
-
-    return $GLOBALS['__EVENTRA_PDO'];
 }
 
-// Ensure the PDO is released at the end of the request to avoid leaking connections
+// Ensure the PDO is released at the end of the request
 register_shutdown_function(function() {
-    if (isset($GLOBALS['__EVENTRA_PDO'])) {
-        try {
-            $GLOBALS['__EVENTRA_PDO'] = null;
-        } catch (Throwable $e) {
-            // ignore
-        }
-    }
+    // Release the static instance by setting to null in caller or just let PHP garbage collect
+    // (In PHP, $instance is scoped to the function, but persistent until script end)
 });
 
-// Global variable assignment for backward compatibility.
-$pdo = getPDO();
+// Global variable assignment REMOVED to prevent opening connection at file-include time.
+// $pdo = getPDO(); 
+

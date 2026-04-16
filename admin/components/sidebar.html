@@ -1,35 +1,42 @@
 <aside class="sidebar">
-    <div class="sidebar-logo">EVENTRA</div>
+    <div class="sidebar-logo">
+        <span class="logo-text">EVENTRA</span>
+    </div>
     <ul class="sidebar-menu">
-        <li class="menu-item active">
+        <li class="menu-item">
             <a href="adminDashboard.html">
-                <span>📊</span> Dashboard
+                <i data-lucide="layout-dashboard"></i> <span>Dashboard</span>
             </a>
         </li>
         <li class="menu-item">
             <a href="events.html">
-                <span>📅</span> Events
+                <i data-lucide="calendar"></i> <span>Events</span>
             </a>
         </li>
         <li class="menu-item">
             <a href="tickets.html">
-                <span>🎫</span> Tickets
+                <i data-lucide="ticket"></i> <span>Tickets</span>
             </a>
         </li>
         <li class="menu-item">
             <a href="users.html">
-                <span>👥</span> Users
+                <i data-lucide="users"></i> <span>Users</span>
             </a>
         </li>
         <li class="menu-item">
             <a href="clients.html">
-                <span>📁</span> Clients
+                <i data-lucide="briefcase"></i> <span>Clients</span>
             </a>
         </li>
     </ul>
+    
+    <button id="sidebarToggle" class="sidebar-toggle-btn" aria-label="Toggle sidebar">
+        <i data-lucide="chevron-left"></i>
+    </button>
+
     <div class="sidebar-footer">
-        <a href="#" style="color: rgba(255,255,255,0.5); text-decoration: none; font-size: 0.9rem; display: flex; align-items: center; gap: 10px;">
-            <span>🚪</span> Logout
+        <a href="javascript:void(0)" onclick="logout()" class="logout-link">
+            <i data-lucide="log-out"></i> <span>Logout</span>
         </a>
     </div>
 </aside>

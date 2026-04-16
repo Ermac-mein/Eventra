@@ -20,7 +20,87 @@ document.addEventListener('DOMContentLoaded', () => {
     if (typeof initHeartbeat === 'function') {
         initHeartbeat();
     }
+    
+    // Initialize inactivity monitor
+    initInactivityMonitor();
 });
+
+function initInactivityMonitor() {
+    const SESSION_TIMEOUT = 30 * 60 * 1000; // 30 mins
+    const WARNING_TIME = 28 * 60 * 1000; // 28 mins
+    let inactivityTimer;
+    let warningTimer;
+    let isWarningShown = false;
+
+    function resetTimers() {
+        if (isWarningShown) return;
+        
+        clearTimeout(inactivityTimer);
+        clearTimeout(warningTimer);
+
+        warningTimer = setTimeout(showWarning, WARNING_TIME);
+        inactivityTimer = setTimeout(() => {
+            if (window.logout) window.logout();
+            else window.location.href = '../../admin/pages/adminLogin.html';
+        }, SESSION_TIMEOUT);
+    }
+
+    function showWarning() {
+        if (isWarningShown) return;
+        isWarningShown = true;
+        
+        let timeLeft = 120; // 2 minutes
+        
+        Swal.fire({
+            title: 'Session Expiring Soon',
+            html: `You will be logged out in <strong style="color: #ef4444; font-size: 1.2rem;">${timeLeft}</strong> seconds due to inactivity.`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#10b981',
+            cancelButtonColor: '#ef4444',
+            confirmButtonText: 'Stay Logged In',
+            cancelButtonText: 'Log Out Now',
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            didOpen: () => {
+                const timerElement = Swal.getHtmlContainer().querySelector('strong');
+                const countdown = setInterval(() => {
+                    timeLeft--;
+                    if (timerElement) timerElement.textContent = timeLeft;
+                    if (timeLeft <= 0) {
+                        clearInterval(countdown);
+                        Swal.close();
+                        if (window.logout) window.logout();
+                    }
+                }, 1000);
+                Swal.getPopup().dataset.intervalId = countdown;
+            },
+            willClose: () => {
+                const countdown = Swal.getPopup().dataset.intervalId;
+                if (countdown) clearInterval(countdown);
+            }
+        }).then((result) => {
+            isWarningShown = false;
+            if (result.isConfirmed) {
+                // Heartbeat API will refresh PHP session timestamp
+                if (typeof apiFetch !== 'undefined') {
+                    apiFetch('/api/heartbeat.php').then(() => resetTimers());
+                } else {
+                    fetch('/api/heartbeat.php').then(() => resetTimers());
+                }
+            } else if (result.dismiss === Swal.DismissReason.cancel) {
+                if (window.logout) window.logout();
+            }
+        });
+    }
+
+    ['mousedown', 'keydown', 'scroll', 'touchstart'].forEach(evt => {
+        window.addEventListener(evt, resetTimers, { passive: true });
+    });
+
+    resetTimers();
+}
+
 
 function initDrawers() {
     // Create overlay backdrop for drawers
@@ -433,34 +513,37 @@ function initSidebar() {
 
     if (!header || !sidebar || !mainLayout) return;
 
-    // 1. Create Toggle Button (inside the sidebar)
-    const toggleBtn = document.createElement('button');
-    toggleBtn.id = 'sidebarToggle';
-    toggleBtn.className = 'sidebar-toggle-btn';
-    toggleBtn.innerHTML = '<i data-lucide="chevron-left"></i>';
-    toggleBtn.style.cssText = `
-        position: absolute;
-        bottom: 16px;
-        right: 12px;
-        width: 40px;
-        height: 40px;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: 8px;
-        background: rgba(255,255,255,0.04);
-        border: none;
-        color: var(--admin-text-white);
-        cursor: pointer;
-        transition: transform 0.2s ease, background 0.2s ease;
-        z-index: 1100;
-    `;
+    // 1. Create or reuse Toggle Button (inside the sidebar)
+    let toggleBtn = document.getElementById('sidebarToggle');
+    if (!toggleBtn) {
+        toggleBtn = document.createElement('button');
+        toggleBtn.id = 'sidebarToggle';
+        toggleBtn.className = 'sidebar-toggle-btn';
+        toggleBtn.innerHTML = '<i data-lucide="chevron-left"></i>';
+        toggleBtn.style.cssText = `
+            position: absolute;
+            bottom: 16px;
+            right: 12px;
+            width: 40px;
+            height: 40px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            background: rgba(255,255,255,0.04);
+            border: none;
+            color: var(--admin-text-white);
+            cursor: pointer;
+            transition: transform 0.2s ease, background 0.2s ease;
+            z-index: 1100;
+        `;
+        sidebar.appendChild(toggleBtn);
+    } else {
+        // Ensure it's placed inside the sidebar for layout correctness
+        if (toggleBtn.parentElement !== sidebar) sidebar.appendChild(toggleBtn);
+    }
 
-    // 2. Insert Toggle Button INSIDE the sidebar
-    sidebar.style.position = 'fixed'; // ensure relative positioning context
-    sidebar.appendChild(toggleBtn);
-
-    // 3. Handle Initial State from LocalStorage (persisted key: eventra_sidebar_collapsed)
+    // 2. Handle Initial State from LocalStorage (persisted key: eventra_sidebar_collapsed)
     const isCollapsed = localStorage.getItem('eventra_sidebar_collapsed') === 'true';
     if (isCollapsed && window.innerWidth > 768) {
         sidebar.classList.add('sidebar-collapsed');
@@ -469,7 +552,7 @@ function initSidebar() {
         toggleBtn.innerHTML = '<i data-lucide="chevron-right"></i>';
     }
 
-    // 4. Toggle Event
+    // 3. Toggle Event
     toggleBtn.addEventListener('click', () => {
         const nowCollapsed = sidebar.classList.toggle('sidebar-collapsed');
         mainLayout.classList.toggle('collapsed');
@@ -814,11 +897,17 @@ window.initPreviews = function() {
                                             </div>
                                         ` : `
                                             <div style="background: #fff7ed; border: 1px dashed #fdba74; border-radius: 16px; padding: 2rem; text-align: center;">
+                                            <div style="background: #fff7ed; padding: 1.5rem; border-radius: 12px; border: 1px dashed #fdba74; text-align: center; margin-top: 1rem;">
                                                 <i data-lucide="lock" style="width: 40px; height: 40px; color: #f97316; margin-bottom: 1rem;"></i>
                                                 <h4 style="font-weight: 800; color: #9a3412; margin-bottom: 0.5rem;">Verification Required</h4>
                                                 <p style="font-size: 0.85rem; color: #c2410c; max-width: 250px; margin: 0 auto;">Event listings and buyer analytics are locked until this client has been fully verified.</p>
                                             </div>
                                         `}
+                                        <div style="margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid #f1f5f9; display: flex; justify-content: flex-end;">
+                                            <button onclick="deleteClient(${clientId}, '${data.client.email}')" style="background: #fef2f2; color: #ef4444; border: 1px solid #fee2e2; padding: 0.6rem 1rem; border-radius: 8px; font-size: 0.85rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: all 0.2s;">
+                                                <i data-lucide="trash-2" style="width: 16px;"></i> Delete Client Account
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                             `;
@@ -1015,6 +1104,94 @@ window.approveClient = async function(clientId, status, btnElement) {
 
     if (!isConfirmed) return;
 
+    if (window.showToast) window.showToast('Updating status...', 'info');
+
+    try {
+        const response = await apiFetch('/api/clients/verify-client.php', {
+            method: 'POST',
+            body: JSON.stringify({
+                client_id: clientId,
+                status: status ? 'verified' : 'rejected',
+                admin_notes: adminNotes
+            })
+        });
+
+        const data = await response.json();
+        if (data.success) {
+            Swal.fire('Updated!', `Client has been ${status ? 'verified' : 'rejected'}.`, 'success');
+            if (typeof refreshData === 'function') refreshData();
+            // Close preview backdrop if open
+            const previewBackdrop = document.querySelector('.preview-modal-backdrop');
+            if (previewBackdrop) {
+                previewBackdrop.classList.remove('active');
+                setTimeout(() => previewBackdrop.style.display = 'none', 300);
+            }
+        } else {
+            Swal.fire('Error', data.message, 'error');
+        }
+    } catch (error) {
+        Swal.fire('Error', 'Something went wrong while updating.', 'error');
+    }
+};
+
+window.deleteClient = async function(clientId, email) {
+    const { value: confirmEmail } = await Swal.fire({
+        title: 'Are you absolutely sure?',
+        html: `
+            <div style="text-align: left; background: #fff1f2; padding: 1rem; border-radius: 8px; border: 1px solid #fecaca; margin-bottom: 1rem;">
+                <p style="color: #991b1b; font-size: 0.9rem; margin-bottom: 0.5rem;"><strong>Warning:</strong> This action is permanent and cannot be undone.</p>
+                <ul style="color: #991b1b; font-size: 0.85rem; padding-left: 1.25rem;">
+                    <li>Delete authentication account</li>
+                    <li>Permanently delete business profile</li>
+                    <li>Wipe all associated events and media</li>
+                    <li>Invalidate all active tickets and orders</li>
+                </ul>
+            </div>
+            <p style="font-size: 0.9rem; margin-bottom: 0.5rem;">Type <strong>${email}</strong> to confirm:</p>
+        `,
+        input: 'text',
+        inputPlaceholder: 'Confirm email address',
+        showCancelButton: true,
+        confirmButtonColor: '#ef4444',
+        cancelButtonColor: '#64748b',
+        confirmButtonText: 'Permanently Delete Client',
+        cancelButtonText: 'Cancel',
+        inputValidator: (value) => {
+            if (!value || value !== email) {
+                return 'Email does not match!';
+            }
+        }
+    });
+
+    if (confirmEmail) {
+        if (window.showToast) window.showToast('Deleting client...', 'info');
+        try {
+            // Need to get the auth_id of the client first, or pass client_id to a modified delete-profile
+            // For now, let's assume we pass target_auth_id (which we'll need to fetch)
+            // Strategy: Update delete-profile.php to accept client_id too
+            
+            const response = await apiFetch(`/api/clients/delete-profile.php?target_auth_id=${clientId}`, {
+                method: 'DELETE'
+            });
+
+            const data = await response.json();
+            if (data.success) {
+                Swal.fire('Deleted!', 'Client account and all data have been erased.', 'success');
+                if (typeof refreshData === 'function') refreshData();
+                const previewBackdrop = document.querySelector('.preview-modal-backdrop');
+                if (previewBackdrop) {
+                    previewBackdrop.classList.remove('active');
+                    setTimeout(() => previewBackdrop.style.display = 'none', 300);
+                }
+            } else {
+                Swal.fire('Error', data.message, 'error');
+            }
+        } catch (error) {
+            Swal.fire('Error', 'Deletion failed.', 'error');
+        }
+    }
+};
+
     btnElement.disabled = true;
     const ogText = btnElement.innerText;
     btnElement.innerText = 'Processing...';
@@ -1055,7 +1232,6 @@ window.approveClient = async function(clientId, status, btnElement) {
         btnElement.disabled = false;
         btnElement.innerText = ogText;
     }
-}
 
 window.toggleVerification = async function(clientId, type, status) {
     if (!clientId || !type) return;
