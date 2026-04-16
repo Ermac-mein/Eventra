@@ -34,6 +34,10 @@ if (!file_exists($resolver_path)) {
     exit;
 }
 require_once $resolver_path;
+if (!file_exists(__DIR__ . '/../../vendor/autoload.php')) {
+    error_log("Registration Audit: vendor/autoload.php is missing. Registrar will fail to send emails.");
+}
+
 
 // 3. Capture and Validate Input
 $data = json_decode(file_get_contents("php://input"), true);

@@ -84,7 +84,31 @@ document.addEventListener('DOMContentLoaded', () => {
         // Restore saved state
         restoreFormState('signupForm');
 
+        // Business Name Auto-Fill Logic
+        if (intent === 'client' && fullNameInput && businessNameInput) {
+            let userHasEditedBusinessName = false;
+
+            // Track manual edits to business name
+            businessNameInput.addEventListener('input', () => {
+                if (businessNameInput.value.trim() !== '') {
+                    userHasEditedBusinessName = true;
+                } else {
+                    userHasEditedBusinessName = false;
+                }
+            });
+
+            // Sync Full Name to Business Name
+            fullNameInput.addEventListener('input', () => {
+                if (!userHasEditedBusinessName) {
+                    businessNameInput.value = fullNameInput.value;
+                    // Trigger Lucide icons refresh if needed, or simply update value
+                    saveFormState('signupForm');
+                }
+            });
+        }
+
         signupForm.addEventListener('submit', (e) => {
+
             e.preventDefault();
             
             // Basic validation

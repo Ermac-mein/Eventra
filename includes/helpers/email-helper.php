@@ -8,7 +8,10 @@
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
 
-require_once __DIR__ . '/../../vendor/autoload.php';
+if (file_exists(__DIR__ . '/../../vendor/autoload.php')) {
+    require_once __DIR__ . '/../../vendor/autoload.php';
+}
+
 require_once __DIR__ . '/../../config/email.php';
 
 class EmailHelper
@@ -35,7 +38,16 @@ class EmailHelper
             return ['success' => false, 'message' => 'SMTP credentials not configured.'];
         }
 
+        if (!class_exists('PHPMailer\PHPMailer\PHPMailer')) {
+            error_log('[EmailHelper] PHPMailer class not found. Ensure "composer install" has been run.');
+            return [
+                'success' => false, 
+                'message' => 'Email service is currently unavailable. Please contact support or try again later.'
+            ];
+        }
+
         $mail = new PHPMailer(true);
+
 
         try {
             $mail->isSMTP();
