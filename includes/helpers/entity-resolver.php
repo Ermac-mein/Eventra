@@ -14,7 +14,7 @@
  */
 function resolveEntity($identifier, $role = null)
 {
-    global $pdo;
+    $pdo = getPDO();
 
     if (is_numeric($identifier)) {
         $query = "SELECT a.* FROM auth_accounts a WHERE a.id = ?";
@@ -120,7 +120,7 @@ function getAuthPolicy($role, $method, $user)
  */
 function canRegisterAs($email, $role)
 {
-    global $pdo;
+    $pdo = getPDO();
 
     // Check if email already exists in auth_accounts (considering active accounts only)
     $stmt = $pdo->prepare("SELECT role, deleted_at FROM auth_accounts WHERE email = ?");
@@ -144,7 +144,7 @@ function canRegisterAs($email, $role)
 if (!function_exists('logSecurityEvent')) {
     function logSecurityEvent($auth_id, $username, $event_type, $method, $details)
     {
-        global $pdo;
+        $pdo = getPDO();
         try {
             $stmt = $pdo->prepare("INSERT INTO auth_logs (auth_id, username, event_type, auth_method, details, ip_address, user_agent) VALUES (?, ?, ?, ?, ?, ?, ?)");
             $stmt->execute([

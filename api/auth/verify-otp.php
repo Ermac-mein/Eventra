@@ -16,9 +16,12 @@ $intent = $data['intent'] ?? 'password_reset';
 
 try {
     // 0. Ensure standardized session initialization
+    if ($intent === 'registration_verify') {
+        session_name('EVENTRA_CLIENT_SESS');
+    }
     require_once __DIR__ . '/../../config/session-config.php';
-
     require_once __DIR__ . '/../../includes/helpers/entity-resolver.php';
+    $pdo = getPDO(); // Singleton
 
     // 1. Handle Registration Verification Intent
     if ($intent === 'registration_verify') {

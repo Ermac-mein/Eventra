@@ -896,7 +896,7 @@ HTML;
             $dbConfigPath = __DIR__ . '/../../config/database.php';
             if (file_exists($dbConfigPath)) {
                 require_once $dbConfigPath;
-                global $pdo;
+                $pdo = getPDO();
 
                 if (isset($pdo) && $pdo instanceof \PDO) {
                     try {

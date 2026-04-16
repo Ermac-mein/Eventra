@@ -108,11 +108,12 @@ try {
 
             // Store in auth_tokens (reuse existing table, type='otp')
             // Using raw OTP for simplicity as per common internal patterns, but the plan mentioned hashing.
-            // Actually, verify-otp.php currently checks for raw token = ?. 
-            // Let's stick to raw token storage for consistency with verify-otp.php logic (line 31).
-            $pdo->prepare("DELETE FROM auth_tokens WHERE auth_id = ? AND type = 'otp'")->execute([$user['id']]);
-            $stmt = $pdo->prepare("INSERT INTO auth_tokens (auth_id, token, expires_at, type) VALUES (?, ?, ?, 'otp')");
-            $stmt->execute([$user['id'], $otp, $otp_expires_at]);
+        // Actually, verify-otp.php currently checks for raw token = ?. 
+        // Let's stick to raw token storage for consistency with verify-otp.php logic (line 31).
+        $pdo = getPDO();
+        $pdo->prepare("DELETE FROM auth_tokens WHERE auth_id = ? AND type = 'otp'")->execute([$user['id']]);
+        $stmt = $pdo->prepare("INSERT INTO auth_tokens (auth_id, token, expires_at, type) VALUES (?, ?, ?, 'otp')");
+        $stmt->execute([$user['id'], $otp, $otp_expires_at]);
 
             // Send Email
             require_once __DIR__ . '/../../includes/helpers/email-helper.php';

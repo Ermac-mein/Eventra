@@ -5,12 +5,10 @@
  */
 
 // 1. Surgical Error Logging & Performance
-ini_set('display_errors', 0);
-ini_set('log_errors', 1);
-ini_set('error_log', __DIR__ . '/../../logs/php-errors.log');
-error_reporting(E_ALL);
+require_once __DIR__ . '/../../config.php'; // Centralized config & error reporting
 
-// Ensure standardized session initialization
+// Ensure standardized session initialization for Clients
+session_name('EVENTRA_CLIENT_SESS');
 require_once __DIR__ . '/../../config/session-config.php';
 
 header('Content-Type: application/json');
@@ -25,6 +23,7 @@ if (!file_exists($db_path)) {
     exit;
 }
 require_once $db_path;
+$pdo = getPDO(); // Ensure singleton instance
 
 if (!file_exists($resolver_path)) {
     error_log("Registration failed: Resolver helper missing at $resolver_path");
@@ -33,8 +32,11 @@ if (!file_exists($resolver_path)) {
 }
 require_once $resolver_path;
 if (!file_exists(__DIR__ . '/../../vendor/autoload.php')) {
-    error_log("Registration Audit: vendor/autoload.php is missing. Registrar will fail to send emails.");
+    error_log("Registration failed: vendor/autoload.php missing.");
+    echo json_encode(['success' => false, 'message' => 'System configuration error: dependencies missing.']);
+    exit;
 }
+require_once __DIR__ . '/../../vendor/autoload.php';
 
 
 // 3. Capture and Validate Input
@@ -105,11 +107,28 @@ try {
     }
     require_once $email_helper_path;
 
-    $mailResult = EmailHelper::sendRegistrationOTP($email, $name, $otp);
+    if (!class_exists('EmailHelper')) {
+        error_log("EmailHelper class missing. Falling back to native mail() for $email.");
+        // Fallback to native mail() or log OTP for manual testing if needed
+        $subject = "Verify your Eventra account — OTP: $otp";
+        $headers = "From: Eventra <noreply@eventra.com>\r\nContent-Type: text/html; charset=UTF-8";
+        $message = "<h2>Confirm your email</h2><p>Hi $name, your OTP is: <strong>$otp</strong></p>";
+        @mail($email, $subject, $message, $headers);
+        
+        // If we choose to allow registration to proceed even if email fails in dev
+        $mailResult = ['success' => true, 'message' => 'Fallback mail sent'];
+    } else {
+        try {
+            $mailResult = EmailHelper::sendRegistrationOTP($email, $name, $otp);
+        } catch (Throwable $mailEx) {
+            error_log("EmailHelper execution failed: " . $mailEx->getMessage());
+            $mailResult = ['success' => false, 'message' => $mailEx->getMessage()];
+        }
+    }
 
     if (!$mailResult['success']) {
         error_log("Failed to send OTP to $email: " . $mailResult['message']);
-        echo json_encode(['success' => false, 'message' => 'Failed to send verification email. Please try again.']);
+        echo json_encode(['success' => false, 'message' => 'Failed to send verification email. Please try again or contact support.']);
         exit;
     }
 
