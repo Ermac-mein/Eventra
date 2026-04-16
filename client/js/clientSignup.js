@@ -3,6 +3,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const fullNameInput = document.getElementById('fullName');
     const emailInput = document.getElementById('email');
     const passwordInput = document.getElementById('password');
+    const businessNameInput = document.getElementById('businessName');
+    const businessNameGroup = document.getElementById('businessNameGroup');
     const signupButton = document.getElementById('signupButton');
     const successMessage = document.getElementById('successMessage');
     const togglePassword = document.getElementById('togglePassword');
@@ -38,6 +40,14 @@ document.addEventListener('DOMContentLoaded', () => {
         if (signupTitle) signupTitle.textContent = (intent === 'client') ? 'Client Registration' : 'Create Account';
         if (signupButton) signupButton.textContent = (intent === 'client') ? 'Create Client Account' : 'Sign Up';
         if (loginLink) loginLink.href = `clientLogin.html?role=${intent}`;
+    }
+
+    // Handle Business Name Visibility
+    if (businessNameGroup) {
+        businessNameGroup.style.display = (intent === 'client') ? 'block' : 'none';
+        if (businessNameInput && intent === 'client') {
+            businessNameInput.required = true;
+        }
     }
 
     // Toggle password visibility
@@ -145,6 +155,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     name: fullNameInput.value,
                     email: emailInput.value,
                     password: passwordInput.value,
+                    business_name: businessNameInput ? businessNameInput.value : '',
                     role: intent
                 })
             });

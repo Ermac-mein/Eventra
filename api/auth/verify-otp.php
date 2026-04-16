@@ -74,8 +74,9 @@ try {
             // Insert into role-specific table
             if ($role === 'client') {
                 $customId = generateClientId($pdo);
+                $business_name = $pending['business_name'] ?? $name;
                 $stmt = $pdo->prepare("INSERT INTO clients (client_auth_id, custom_id, business_name, name) VALUES (?, ?, ?, ?)");
-                $stmt->execute([$auth_id, $customId, $name, $name]);
+                $stmt->execute([$auth_id, $customId, $business_name, $name]);
             } elseif ($role === 'admin') {
                 $stmt = $pdo->prepare("INSERT INTO admins (admin_auth_id, name) VALUES (?, ?)");
                 $stmt->execute([$auth_id, $name]);
