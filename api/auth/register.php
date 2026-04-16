@@ -22,14 +22,16 @@ $autoload_path = __DIR__ . '/../../vendor/autoload.php';
 
 if (!file_exists($db_path)) {
     error_log("Registration failed: Database configuration file missing at $db_path");
-    ob_clean(); echo json_encode(['success' => false, 'message' => 'Configuration error: database file missing.']);
+    ob_clean();
+    echo json_encode(['success' => false, 'message' => 'Configuration error: database file missing.']);
     exit;
 }
 require_once $db_path;
 
 if (!file_exists($resolver_path)) {
     error_log("Registration failed: Resolver helper missing at $resolver_path");
-    ob_clean(); echo json_encode(['success' => false, 'message' => 'Configuration error: resolver helper missing.']);
+    ob_clean();
+    echo json_encode(['success' => false, 'message' => 'Configuration error: resolver helper missing.']);
     exit;
 }
 require_once $resolver_path;
@@ -45,7 +47,8 @@ if (file_exists($autoload_path)) {
 $data = json_decode(file_get_contents("php://input"), true);
 
 if (!$data) {
-    ob_clean(); echo json_encode(['success' => false, 'message' => 'Invalid JSON input.']);
+    ob_clean();
+    echo json_encode(['success' => false, 'message' => 'Invalid JSON input.']);
     exit;
 }
 
@@ -56,7 +59,8 @@ $business_name = trim($data['business_name'] ?? '');
 $role = $data['role'] ?? 'client';
 
 if (empty($name) || empty($email) || empty($password)) {
-    ob_clean(); echo json_encode(['success' => false, 'message' => 'Name, Email, and Password are required.']);
+    ob_clean();
+    echo json_encode(['success' => false, 'message' => 'Name, Email, and Password are required.']);
     exit;
 }
 
@@ -71,7 +75,8 @@ try {
     // Check if email already exists
     $registrability = canRegisterAs($email, $role);
     if (!$registrability['success']) {
-        ob_clean(); echo json_encode(['success' => false, 'message' => $registrability['message']]);
+        ob_clean();
+        echo json_encode(['success' => false, 'message' => $registrability['message']]);
         exit;
     }
 
@@ -116,7 +121,7 @@ try {
         $headers = "From: Eventra <noreply@eventra.com>\r\nContent-Type: text/html; charset=UTF-8";
         $message = "<h2>Confirm your email</h2><p>Hi $name, your OTP is: <strong>$otp</strong></p>";
         @mail($email, $subject, $message, $headers);
-        
+
         // If we choose to allow registration to proceed even if email fails in dev
         $mailResult = ['success' => true, 'message' => 'Fallback mail sent'];
     } else {
@@ -129,7 +134,7 @@ try {
     }
 
     // TEMPORARY: Bypass email check for local verification
-    $mailResult['success'] = true; 
+    $mailResult['success'] = true;
 
     if (!$mailResult['success']) {
         error_log("Failed to send OTP to $email: " . $mailResult['message']);
@@ -137,7 +142,8 @@ try {
         exit;
     }
 
-    ob_clean(); echo json_encode([
+    ob_clean();
+    echo json_encode([
         'success' => true,
         'message' => 'Verification code sent! Please check your email to complete registration.',
         'otp_required' => true,
@@ -148,7 +154,7 @@ try {
     error_log("Registration Critical Error: " . $e->getMessage() . " in " . $e->getFile() . " on line " . $e->getLine());
     http_response_code(500);
     echo json_encode([
-        'success' => false, 
+        'success' => false,
         'message' => 'An internal server error occurred. Please try again later.',
         'error_type' => get_class($e)
     ]);

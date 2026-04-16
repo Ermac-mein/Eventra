@@ -108,18 +108,18 @@ try {
 
             // Store in auth_tokens (reuse existing table, type='otp')
             // Using raw OTP for simplicity as per common internal patterns, but the plan mentioned hashing.
-        // Actually, verify-otp.php currently checks for raw token = ?. 
-        // Let's stick to raw token storage for consistency with verify-otp.php logic (line 31).
-        $pdo = getPDO();
-        $pdo->prepare("DELETE FROM auth_tokens WHERE auth_id = ? AND type = 'otp'")->execute([$user['id']]);
-        $stmt = $pdo->prepare("INSERT INTO auth_tokens (auth_id, token, expires_at, type) VALUES (?, ?, ?, 'otp')");
-        $stmt->execute([$user['id'], $otp, $otp_expires_at]);
+            // Actually, verify-otp.php currently checks for raw token = ?. 
+            // Let's stick to raw token storage for consistency with verify-otp.php logic (line 31).
+            $pdo = getPDO();
+            $pdo->prepare("DELETE FROM auth_tokens WHERE auth_id = ? AND type = 'otp'")->execute([$user['id']]);
+            $stmt = $pdo->prepare("INSERT INTO auth_tokens (auth_id, token, expires_at, type) VALUES (?, ?, ?, 'otp')");
+            $stmt->execute([$user['id'], $otp, $otp_expires_at]);
 
             // Send Email
             require_once __DIR__ . '/../../includes/helpers/email-helper.php';
             $subject = "Your Eventra Client Login Code";
             $message = "Your one-time login verification code is: <strong>$otp</strong><br>It expires in 10 minutes.";
-            
+
             $emailResult = EmailHelper::sendEmail($user['email'], $subject, "<h2>Login Verification</h2><p>$message</p>");
 
             if (!$emailResult['success']) {
@@ -180,10 +180,10 @@ try {
         if (session_status() === PHP_SESSION_ACTIVE) {
             // Save old CSRF token before regenerating
             $oldCsrfToken = $_SESSION['csrf_token'] ?? null;
-            
+
             // Regenerate session ID with delete_old_session = true
             session_regenerate_id(true);
-            
+
             // Restore CSRF token if it existed
             if ($oldCsrfToken) {
                 $_SESSION['csrf_token'] = $oldCsrfToken;
@@ -308,5 +308,5 @@ try {
     }
 } catch (Throwable $e) {
     error_log("[" . date('Y-m-d H:i:s') . "] AUTH ERROR in " . __FILE__ . ":" . __LINE__ . " - " . $e->getMessage() . "\nStack trace:\n" . $e->getTraceAsString());
-    echo json_encode(['success' => false, 'message' => 'Database error occurred. Reference: ' . uniqid()]);
+    echo json_encode(['success' => false, 'message' => 'Database error occurred']);
 }
