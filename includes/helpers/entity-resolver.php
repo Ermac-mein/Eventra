@@ -29,6 +29,9 @@ function resolveEntity($identifier, $role = null)
         $params[] = $role;
     }
 
+    // Ensure we only resolve active, non-deleted accounts
+    $query .= " AND a.deleted_at IS NULL AND a.is_active = 1";
+
     $stmt = $pdo->prepare($query);
     $stmt->execute($params);
     $account = $stmt->fetch();
@@ -86,6 +89,16 @@ function getAuthPolicy($role, $method, $user)
         if ($method !== 'password') {
             return ['allowed' => false, 'message' => 'Admin accounts must use password authentication.'];
         }
+        
+        // Admin specific status check
+        if (isset($user['status']) && $user['status'] !== 'active') {
+            return ['allowed' => false, 'message' => "This admin account is " . $user['status'] . "."];
+        }
+    } elseif ($role === 'client') {
+        // Client specific status checks if needed
+        if (isset($user['status']) && $user['status'] === 'suspended') {
+            return ['allowed' => false, 'message' => 'Account is suspended. Please contact support.'];
+        }
     }
 
     // 3. Check for account lock
@@ -109,12 +122,12 @@ function canRegisterAs($email, $role)
 {
     global $pdo;
 
-    // Check if email already exists in auth_accounts
-    $stmt = $pdo->prepare("SELECT role FROM auth_accounts WHERE email = ?");
+    // Check if email already exists in auth_accounts (considering active accounts only)
+    $stmt = $pdo->prepare("SELECT role, deleted_at FROM auth_accounts WHERE email = ?");
     $stmt->execute([$email]);
     $existing = $stmt->fetch();
 
-    if ($existing) {
+    if ($existing && $existing['deleted_at'] === null) {
         if ($existing['role'] === $role) {
             return ['success' => false, 'message' => 'An account with this email already exists for this role.'];
         } else {

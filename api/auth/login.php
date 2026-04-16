@@ -1,4 +1,10 @@
 <?php
+// Enable error logging without breaking JSON output
+ini_set('display_errors', 0);
+ini_set('log_errors', 1);
+ini_set('error_log', __DIR__ . '/../../logs/php-errors.log');
+error_reporting(E_ALL);
+
 
 // Parse intent FIRST to set correct session name before ANY session initialization
 $data = json_decode(file_get_contents("php://input"), true);
@@ -136,6 +142,9 @@ try {
         // Update role-specific status when user logs in
         $expires_in = $remember_me ? '+30 days' : '+30 minutes'; // 30-minute inactivity session policy
         $expires_at = date('Y-m-d H:i:s', strtotime($expires_in));
+
+        // Generate a new access token
+        $token = bin2hex(random_bytes(32));
 
         // Delete old tokens for this auth identity
         $stmt = $pdo->prepare("DELETE FROM auth_tokens WHERE auth_id = ?");
@@ -296,6 +305,7 @@ try {
         $fieldLabel = ($intent === 'admin') ? 'username' : 'email';
         echo json_encode(['success' => false, 'message' => "Invalid $fieldLabel or password."]);
     }
-} catch (PDOException $e) {
-    echo json_encode(['success' => false, 'message' => 'Database error occurred.']);
+} catch (Throwable $e) {
+    error_log("[" . date('Y-m-d H:i:s') . "] AUTH ERROR in " . __FILE__ . ":" . __LINE__ . " - " . $e->getMessage() . "\nStack trace:\n" . $e->getTraceAsString());
+    echo json_encode(['success' => false, 'message' => 'Database error occurred. Reference: ' . uniqid()]);
 }

@@ -99,7 +99,7 @@ CREATE TABLE IF NOT EXISTS admins (
 -- =============================================================================
 -- CLIENTS PROFILE
 -- =============================================================================
-CREATE TABLE IF NOT EXISTS clients (
+ CREATE TABLE IF NOT EXISTS clients (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     custom_id VARCHAR(20) DEFAULT NULL,
     client_auth_id BIGINT UNSIGNED NOT NULL,

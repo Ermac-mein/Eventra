@@ -7,7 +7,7 @@
 // 1. Surgical Error Logging & Performance
 ini_set('display_errors', 0);
 ini_set('log_errors', 1);
-ini_set('error_log', __DIR__ . '/../../logs/php-error.log');
+ini_set('error_log', __DIR__ . '/../../logs/php-errors.log');
 error_reporting(E_ALL);
 
 // Ensure session is started at the VERY top for deferred registration
