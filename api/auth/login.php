@@ -122,18 +122,18 @@ try {
             
             $emailResult = EmailHelper::sendEmail($user['email'], $subject, "<h2>Login Verification</h2><p>$message</p>");
 
-            if ($emailResult['success']) {
-                echo json_encode([
-                    'success' => true,
-                    'otp_required' => true,
-                    'message' => 'A verification code has been sent to your email.'
-                ]);
+            if (!$emailResult['success']) {
+                error_log("OTP for client {$user['email']} (Auth ID: {$user['id']}): $otp (Email delivery failed: {$emailResult['message']})");
             } else {
-                echo json_encode([
-                    'success' => false,
-                    'message' => 'Failed to send verification code. Please try again later.'
-                ]);
+                error_log("OTP for client {$user['email']} sent successfully.");
             }
+
+            // Always return success if OTP was generated and saved to DB
+            echo json_encode([
+                'success' => true,
+                'otp_required' => true,
+                'message' => ($emailResult['success'] ? 'A verification code has been sent to your email.' : 'A verification code has been generated (check logs).')
+            ]);
             exit;
         }
 

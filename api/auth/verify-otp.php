@@ -98,6 +98,11 @@ try {
             session_unset();
             session_destroy();
             
+            // Ensure no lingering session ID
+            if (isset($_COOKIE[session_name()])) {
+                setcookie(session_name(), '', time() - 3600, '/');
+            }
+
             if ($role === 'client') {
                 session_name('EVENTRA_CLIENT_SESS');
             } elseif ($role === 'admin') {
@@ -105,6 +110,7 @@ try {
             } else {
                 session_name('EVENTRA_USER_SESS');
             }
+            
             session_start();
 
             logSecurityEvent($auth_id, $email, 'registration_success', 'password', "New $role registered via OTP: $name");
