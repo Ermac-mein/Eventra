@@ -74,7 +74,11 @@ if (session_status() === PHP_SESSION_NONE) {
             session_name('EVENTRA_USER_SESS');
         }
     }
-    // Session is started by config.php (session_start guarded by PHP_SESSION_NONE).
+}
+
+// Ensure session is started WITH the custom name set above
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
 }
 
 if (!isset($_SESSION['csrf_token'])) {

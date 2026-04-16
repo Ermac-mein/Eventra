@@ -13,9 +13,8 @@ if ($host !== 'localhost' && $host !== '127.0.0.1') {
     ini_set('session.cookie_samesite', 'Lax');
 }
 
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
+// Centralized session management
+require_once __DIR__ . '/config/session-config.php';
 
 if (!defined('SITE_URL')) define('SITE_URL',   $base_url);
 if (!defined('MEDIA_PATH')) define('MEDIA_PATH', __DIR__ . '/media/');

@@ -15,10 +15,8 @@ $otp = $data['otp'] ?? null;
 $intent = $data['intent'] ?? 'password_reset';
 
 try {
-    // 0. Ensure session is started for deferred registration storage
-    if (session_status() === PHP_SESSION_NONE) {
-        session_start();
-    }
+    // 0. Ensure standardized session initialization
+    require_once __DIR__ . '/../../config/session-config.php';
 
     require_once __DIR__ . '/../../includes/helpers/entity-resolver.php';
 
