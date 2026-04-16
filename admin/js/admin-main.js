@@ -433,47 +433,51 @@ function initSidebar() {
 
     if (!header || !sidebar || !mainLayout) return;
 
-    // 1. Create Toggle Button
+    // 1. Create Toggle Button (inside the sidebar)
     const toggleBtn = document.createElement('button');
     toggleBtn.id = 'sidebarToggle';
     toggleBtn.className = 'sidebar-toggle-btn';
-    toggleBtn.innerHTML = '<i data-lucide="menu"></i>';
+    toggleBtn.innerHTML = '<i data-lucide="chevron-left"></i>';
     toggleBtn.style.cssText = `
-        background: none;
-        border: none;
-        color: var(--admin-text-main);
-        cursor: pointer;
-        font-size: 1.25rem;
-        padding: 0.5rem;
-        display: flex;
+        position: absolute;
+        bottom: 16px;
+        right: 12px;
+        width: 40px;
+        height: 40px;
+        display: inline-flex;
         align-items: center;
-        margin-right: 1.5rem;
-        transition: transform 0.3s ease;
+        justify-content: center;
+        border-radius: 8px;
+        background: rgba(255,255,255,0.04);
+        border: none;
+        color: var(--admin-text-white);
+        cursor: pointer;
+        transition: transform 0.2s ease, background 0.2s ease;
+        z-index: 1100;
     `;
 
-    // 2. Insert Toggle Button BEFORE the search bar
-    const searchBar = header.querySelector('.header-search');
-    if (searchBar) {
-        header.insertBefore(toggleBtn, searchBar);
-    } else {
-        header.prepend(toggleBtn);
-    }
+    // 2. Insert Toggle Button INSIDE the sidebar
+    sidebar.style.position = 'fixed'; // ensure relative positioning context
+    sidebar.appendChild(toggleBtn);
 
-    // 3. Handle Initial State from LocalStorage
-    const isCollapsed = localStorage.getItem('admin_sidebar_collapsed') === 'true';
+    // 3. Handle Initial State from LocalStorage (persisted key: eventra_sidebar_collapsed)
+    const isCollapsed = localStorage.getItem('eventra_sidebar_collapsed') === 'true';
     if (isCollapsed && window.innerWidth > 768) {
-        sidebar.classList.add('collapsed');
+        sidebar.classList.add('sidebar-collapsed');
         mainLayout.classList.add('collapsed');
+        // adjust icon to point right when collapsed
+        toggleBtn.innerHTML = '<i data-lucide="chevron-right"></i>';
     }
 
     // 4. Toggle Event
     toggleBtn.addEventListener('click', () => {
-        const nowCollapsed = sidebar.classList.toggle('collapsed');
+        const nowCollapsed = sidebar.classList.toggle('sidebar-collapsed');
         mainLayout.classList.toggle('collapsed');
-        localStorage.setItem('admin_sidebar_collapsed', nowCollapsed);
+        localStorage.setItem('eventra_sidebar_collapsed', nowCollapsed);
         
-        // Rotate icon
-        toggleBtn.style.transform = nowCollapsed ? 'rotate(180deg)' : 'rotate(0deg)';
+        // Swap icon direction
+        toggleBtn.innerHTML = nowCollapsed ? '<i data-lucide="chevron-right"></i>' : '<i data-lucide="chevron-left"></i>';
+        if (window.lucide) window.lucide.createIcons();
     });
 
     // 5. Active State Highlighting

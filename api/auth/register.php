@@ -19,7 +19,7 @@ $resolver_path = __DIR__ . '/../../includes/helpers/entity-resolver.php';
 
 if (!file_exists($db_path)) {
     error_log("Registration failed: Database configuration file missing at $db_path");
-    echo json_encode(['success' => false, 'message' => 'Configuration error: database file missing.']);
+    ob_clean(); echo json_encode(['success' => false, 'message' => 'Configuration error: database file missing.']);
     exit;
 }
 require_once $db_path;
@@ -27,13 +27,13 @@ $pdo = getPDO(); // Ensure singleton instance
 
 if (!file_exists($resolver_path)) {
     error_log("Registration failed: Resolver helper missing at $resolver_path");
-    echo json_encode(['success' => false, 'message' => 'Configuration error: resolver helper missing.']);
+    ob_clean(); echo json_encode(['success' => false, 'message' => 'Configuration error: resolver helper missing.']);
     exit;
 }
 require_once $resolver_path;
 if (!file_exists(__DIR__ . '/../../vendor/autoload.php')) {
     error_log("Registration failed: vendor/autoload.php missing.");
-    echo json_encode(['success' => false, 'message' => 'System configuration error: dependencies missing.']);
+    ob_clean(); echo json_encode(['success' => false, 'message' => 'System configuration error: dependencies missing.']);
     exit;
 }
 require_once __DIR__ . '/../../vendor/autoload.php';
@@ -43,7 +43,7 @@ require_once __DIR__ . '/../../vendor/autoload.php';
 $data = json_decode(file_get_contents("php://input"), true);
 
 if (!$data) {
-    echo json_encode(['success' => false, 'message' => 'Invalid JSON input.']);
+    ob_clean(); echo json_encode(['success' => false, 'message' => 'Invalid JSON input.']);
     exit;
 }
 
@@ -54,7 +54,7 @@ $business_name = trim($data['business_name'] ?? '');
 $role = $data['role'] ?? 'client';
 
 if (empty($name) || empty($email) || empty($password)) {
-    echo json_encode(['success' => false, 'message' => 'Name, Email, and Password are required.']);
+    ob_clean(); echo json_encode(['success' => false, 'message' => 'Name, Email, and Password are required.']);
     exit;
 }
 
@@ -69,7 +69,7 @@ try {
     // Check if email already exists
     $registrability = canRegisterAs($email, $role);
     if (!$registrability['success']) {
-        echo json_encode(['success' => false, 'message' => $registrability['message']]);
+        ob_clean(); echo json_encode(['success' => false, 'message' => $registrability['message']]);
         exit;
     }
 
@@ -132,7 +132,7 @@ try {
         exit;
     }
 
-    echo json_encode([
+    ob_clean(); echo json_encode([
         'success' => true,
         'message' => 'Verification code sent! Please check your email to complete registration.',
         'otp_required' => true,

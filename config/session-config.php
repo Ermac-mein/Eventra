@@ -1,6 +1,9 @@
 <?php
-// Enable strict error reporting for debugging
-error_reporting(E_ALL);
+// Silence warnings/notice output to prevent JSON corruption
+if (!headers_sent()) {
+    ob_start();
+}
+error_reporting(0);
 ini_set('display_errors', 0);
 date_default_timezone_set('Africa/Lagos'); 
 

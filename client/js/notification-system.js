@@ -6,7 +6,7 @@
 class NotificationManager {
     constructor() {
         this.pollingInterval = null;
-        this.pollDuration = 15000; // Poll every 15 seconds (reduced from 30)
+        this.pollDuration = 30000; // Poll every 30 seconds (throttled to reduce DB load)
         this.lastNotificationId = 0;
         this.isPolling = false;
         this.currentAbortController = null;

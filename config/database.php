@@ -7,7 +7,7 @@ error_reporting(E_ALL);
 
 // Database configuration
 require_once __DIR__ . '/env-loader.php';
-// Session configuration is now deferred - endpoints should handle session initialization explicitly
+// Session configuration is deferred - endpoints should handle session initialization explicitly
 // require_once __DIR__ . '/session-config.php'; // DEFERRED: Moved to individual endpoints
 require_once __DIR__ . '/cors-config.php'; // CORS handling for API requests
 
@@ -34,37 +34,50 @@ if (!defined('DB_PASS')) define('DB_PASS', get_env_var('DB_PASSWORD', ''));
 
 /**
  * Singleton Database Connection Provider
- * Ensures only one PDO instance is created per request.
+ * Uses $GLOBALS['__EVENTRA_PDO'] so shutdown function can release the reference.
  */
 function getPDO() {
-    static $pdo = null;
-    
-    if ($pdo === null) {
+    // Reuse existing global PDO if present
+    if (isset($GLOBALS['__EVENTRA_PDO']) && $GLOBALS['__EVENTRA_PDO'] instanceof PDO) {
+        return $GLOBALS['__EVENTRA_PDO'];
+    }
+
+    try {
+        $dsn = "mysql:host=" . DB_HOST . ";port=" . DB_PORT . ";dbname=" . DB_NAME . ";charset=utf8mb4";
+        $pdo = new PDO($dsn, DB_USER, DB_PASS, [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+            PDO::ATTR_PERSISTENT => false,
+            PDO::ATTR_TIMEOUT => 5
+        ]);
+
+        $GLOBALS['__EVENTRA_PDO'] = $pdo;
+
+    } catch (PDOException $e) {
+        error_log("[" . date('Y-m-d H:i:s') . "] Database connection failed: " . $e->getMessage());
+        
+        if (isset($_SERVER['REQUEST_URI']) && strpos($_SERVER['REQUEST_URI'], '/api/') !== false) {
+            if (!headers_sent()) header('Content-Type: application/json');
+            http_response_code(503);
+            echo json_encode(['success' => false, 'message' => 'Service temporarily unavailable. Please try again later.']);
+            exit;
+        }
+        die("Database connection failed. Please check error logs.");
+    }
+
+    return $GLOBALS['__EVENTRA_PDO'];
+}
+
+// Ensure the PDO is released at the end of the request to avoid leaking connections
+register_shutdown_function(function() {
+    if (isset($GLOBALS['__EVENTRA_PDO'])) {
         try {
-            $dsn = "mysql:host=" . DB_HOST . ";port=" . DB_PORT . ";dbname=" . DB_NAME . ";charset=utf8mb4";
-            $pdo = new PDO($dsn, DB_USER, DB_PASS, [
-                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-                PDO::ATTR_PERSISTENT => false,
-                PDO::ATTR_TIMEOUT => 5
-            ]);
-
-            // error_log("[Database] New PDO connection initialized.");
-
-        } catch (PDOException $e) {
-            error_log("[" . date('Y-m-d H:i:s') . "] Database connection failed: " . $e->getMessage());
-            
-            if (isset($_SERVER['REQUEST_URI']) && strpos($_SERVER['REQUEST_URI'], '/api/') !== false) {
-                if (!headers_sent()) header('Content-Type: application/json');
-                http_response_code(500);
-                echo json_encode(['success' => false, 'message' => 'Database connection failed. Please try again later.']);
-                exit;
-            }
-            die("Database connection failed. Please check error logs.");
+            $GLOBALS['__EVENTRA_PDO'] = null;
+        } catch (Throwable $e) {
+            // ignore
         }
     }
-    return $pdo;
-}
+});
 
 // Global variable assignment for backward compatibility.
 $pdo = getPDO();

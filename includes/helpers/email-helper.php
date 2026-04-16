@@ -30,8 +30,8 @@ class EmailHelper
         string $to,
         string $subject,
         string $body,
-        array  $attachments = [],
-        string $altBody     = ''
+        array $attachments = [],
+        string $altBody = ''
     ): array {
         if (empty(SMTP_HOST) || empty(SMTP_USER) || empty(SMTP_PASS)) {
             error_log('[EmailHelper] SMTP credentials not configured.');
@@ -41,7 +41,7 @@ class EmailHelper
         if (!class_exists('PHPMailer\PHPMailer\PHPMailer')) {
             error_log('[EmailHelper] PHPMailer class not found. Ensure "composer install" has been run.');
             return [
-                'success' => false, 
+                'success' => false,
                 'message' => 'Email service is currently unavailable. Please contact support or try again later.'
             ];
         }
@@ -51,12 +51,12 @@ class EmailHelper
 
         try {
             $mail->isSMTP();
-            $mail->Host       = SMTP_HOST;
-            $mail->SMTPAuth   = true;
-            $mail->Username   = SMTP_USER;
-            $mail->Password   = SMTP_PASS;
+            $mail->Host = SMTP_HOST;
+            $mail->SMTPAuth = true;
+            $mail->Username = SMTP_USER;
+            $mail->Password = SMTP_PASS;
             $mail->SMTPSecure = SMTP_SECURE;
-            $mail->Port       = (int) SMTP_PORT;
+            $mail->Port = (int) SMTP_PORT;
 
             $mail->setFrom(EMAIL_FROM, EMAIL_FROM_NAME);
             $mail->addAddress($to);
@@ -71,7 +71,7 @@ class EmailHelper
 
             $mail->isHTML(true);
             $mail->Subject = $subject;
-            $mail->Body    = $body;
+            $mail->Body = $body;
             $mail->AltBody = $altBody ?: strip_tags($body);
 
             $mail->send();
@@ -98,11 +98,11 @@ class EmailHelper
         string $barcode,
         string $pdfPath = ''
     ): array {
-        $subject     = "Your Ticket for {$eventName}";
-        $safeUser    = htmlspecialchars($userName,  ENT_QUOTES, 'UTF-8');
-        $safeEvent   = htmlspecialchars($eventName, ENT_QUOTES, 'UTF-8');
-        $safeBarcode = htmlspecialchars($barcode,   ENT_QUOTES, 'UTF-8');
-        $year        = date('Y');
+        $subject = "Your Ticket for {$eventName}";
+        $safeUser = htmlspecialchars($userName, ENT_QUOTES, 'UTF-8');
+        $safeEvent = htmlspecialchars($eventName, ENT_QUOTES, 'UTF-8');
+        $safeBarcode = htmlspecialchars($barcode, ENT_QUOTES, 'UTF-8');
+        $year = date('Y');
 
         $body = <<<HTML
         <div style="font-family:Arial,sans-serif;max-width:600px;margin:auto;padding:20px;border:1px solid #eee;">
@@ -146,30 +146,30 @@ class EmailHelper
             : 'font-family:\'Barlow Condensed\',Arial,sans-serif;font-size:15px;font-weight:600;color:#d4af37;line-height:1.2;display:block;';
 
         return '<div style="margin-bottom:14px;">'
-             . '<span style="display:block;font-family:\'Barlow Condensed\',Arial,sans-serif;'
-             . 'font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;'
-             . 'color:rgba(255,255,255,0.30);margin-bottom:3px;">'
-             . self::esc($label)
-             . '</span>'
-             . '<span style="' . $valueStyle . '">' . $value . '</span>'
-             . '</div>';
+            . '<span style="display:block;font-family:\'Barlow Condensed\',Arial,sans-serif;'
+            . 'font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;'
+            . 'color:rgba(255,255,255,0.30);margin-bottom:3px;">'
+            . self::esc($label)
+            . '</span>'
+            . '<span style="' . $valueStyle . '">' . $value . '</span>'
+            . '</div>';
     }
 
     public static function buildTicketHtml(array $ticketData, string $downloadUrl = ''): string
     {
         /* ── 1. Sanitise text fields ──────────────────────────── */
-        $barcode     = self::esc($ticketData['barcode']             ?? '');
-        $ticketId    = self::esc($ticketData['ticket_id']           ?? ($ticketData['barcode'] ?? ''));
-        $eventTitle  = self::esc($ticketData['event_name']          ?? 'Your Event');
-        $userName    = self::esc($ticketData['user_name']           ?? 'Attendee');
-        $location    = self::esc($ticketData['location']            ?? '—');
-        $state       = self::esc($ticketData['state']               ?? '');
-        $organizer   = self::esc($ticketData['organizer']           ?? '');
-        $ticketType  = self::esc($ticketData['ticket_type']         ?? '');
+        $barcode = self::esc($ticketData['barcode'] ?? '');
+        $ticketId = self::esc($ticketData['ticket_id'] ?? ($ticketData['barcode'] ?? ''));
+        $eventTitle = self::esc($ticketData['event_name'] ?? 'Your Event');
+        $userName = self::esc($ticketData['user_name'] ?? 'Attendee');
+        $location = self::esc($ticketData['location'] ?? '—');
+        $state = self::esc($ticketData['state'] ?? '');
+        $organizer = self::esc($ticketData['organizer'] ?? '');
+        $ticketType = self::esc($ticketData['ticket_type'] ?? '');
         $tickDispRaw = $ticketData['ticket_type_display']
-                       ?? ($ticketData['ticket_type'] ?? '');
-        $tickDisp    = self::esc($tickDispRaw);
-        $year        = date('Y');
+            ?? ($ticketData['ticket_type'] ?? '');
+        $tickDisp = self::esc($tickDispRaw);
+        $year = date('Y');
 
         /* ── 2. Date & time ──────────────────────────────────── */
         $eventDate = !empty($ticketData['event_date'])
@@ -191,7 +191,7 @@ class EmailHelper
         /* ── 4. QR code ──────────────────────────────────────── */
         // IMPORTANT: Never run htmlspecialchars on a base64 data-URI —
         // it corrupts the payload.  Validate the prefix instead.
-        $qrRaw  = trim((string) ($ticketData['qr_base64'] ?? ''));
+        $qrRaw = trim((string) ($ticketData['qr_base64'] ?? ''));
         $qrSafe = (str_starts_with($qrRaw, 'data:image/') && strlen($qrRaw) > 100)
             ? $qrRaw
             : '';
@@ -206,11 +206,11 @@ class EmailHelper
                            border-radius:4px;">NO QR</div>';
 
         /* ── 5. Event banner image ────────────────────────────── */
-        $imgRaw  = trim((string) ($ticketData['event_image'] ?? ''));
+        $imgRaw = trim((string) ($ticketData['event_image'] ?? ''));
         // Accept data-URIs and absolute http(s) URLs
         $imgSafe = ($imgRaw !== '' && (
-            str_starts_with($imgRaw, 'data:image/')  ||
-            str_starts_with($imgRaw, 'http://')      ||
+            str_starts_with($imgRaw, 'data:image/') ||
+            str_starts_with($imgRaw, 'http://') ||
             str_starts_with($imgRaw, 'https://')
         )) ? $imgRaw : '';
 
@@ -230,24 +230,30 @@ class EmailHelper
         $badgeFg = '#111111';
         if ($tickDisp !== '') {
             $lower = strtolower($tickDispRaw);
-            if (str_contains($lower, 'vip'))  { $badgeBg = '#c0392b'; $badgeFg = '#ffffff'; }
-            if (str_contains($lower, 'free')) { $badgeBg = '#27ae60'; $badgeFg = '#ffffff'; }
+            if (str_contains($lower, 'vip')) {
+                $badgeBg = '#c0392b';
+                $badgeFg = '#ffffff';
+            }
+            if (str_contains($lower, 'free')) {
+                $badgeBg = '#27ae60';
+                $badgeFg = '#ffffff';
+            }
         }
         // Wrap in a block container so it never becomes a stretched flex child
         $badgeWrapStyle = 'line-height:1;margin-bottom:16px;min-height:22px;';
         $badgeHtml = $tickDisp !== ''
             ? '<div style="' . $badgeWrapStyle . '">'
-              . '<span style="display:inline-block;background:' . $badgeBg . ';color:' . $badgeFg . ';'
-              . 'font-family:\'Barlow Condensed\',Arial,sans-serif;'
-              . 'font-size:9px;font-weight:800;letter-spacing:2px;text-transform:uppercase;'
-              . 'padding:4px 14px;border-radius:20px;">'
-              . $tickDisp
-              . '</span></div>'
+            . '<span style="display:inline-block;background:' . $badgeBg . ';color:' . $badgeFg . ';'
+            . 'font-family:\'Barlow Condensed\',Arial,sans-serif;'
+            . 'font-size:9px;font-weight:800;letter-spacing:2px;text-transform:uppercase;'
+            . 'padding:4px 14px;border-radius:20px;">'
+            . $tickDisp
+            . '</span></div>'
             : '<div style="' . $badgeWrapStyle . '"></div>';
 
         /* ── 7. Build Col A (left detail column) ─────────────── */
-        $colA = self::detailRow('Date',  $eventDate);
-        $colA .= self::detailRow('Time',  $eventTime);
+        $colA = self::detailRow('Date', $eventDate);
+        $colA .= self::detailRow('Time', $eventTime);
         $colA .= self::detailRow('Venue', $location);
         if ($amountDisplay !== '') {
             $colA .= self::detailRow('Price', $amountDisplay, true);
@@ -255,14 +261,17 @@ class EmailHelper
 
         /* ── 8. Build Col B (right detail column) ────────────── */
         $colB = '';
-        if ($state     !== '') $colB .= self::detailRow('State',       $state);
-        if ($ticketType  !== '') $colB .= self::detailRow('Ticket Type',  $tickDisp ?: $ticketType);
-        if ($organizer !== '') $colB .= self::detailRow('Organizer',    $organizer);
+        if ($state !== '')
+            $colB .= self::detailRow('State', $state);
+        if ($ticketType !== '')
+            $colB .= self::detailRow('Ticket Type', $tickDisp ?: $ticketType);
+        if ($organizer !== '')
+            $colB .= self::detailRow('Organizer', $organizer);
 
         /* ── 9. Download button ──────────────────────────────── */
         $dlButtonHtml = '';
         if ($downloadUrl !== '') {
-            $safeUrl      = self::esc($downloadUrl);
+            $safeUrl = self::esc($downloadUrl);
             $dlButtonHtml = <<<BTN
             <div style="text-align:center;margin-top:28px;">
                 <a href="{$safeUrl}" download="ticket.pdf"
@@ -885,8 +894,8 @@ HTML;
      * @return array ['success' => bool, 'message' => string]
      */
     public static function sendTicketEmailFull(
-        string       $to,
-        array        $ticketData,
+        string $to,
+        array $ticketData,
         string|array $pdfPath = ''
     ): array {
         /* ── 1. Sync from DB to ensure data persistence ───────── */
@@ -943,11 +952,13 @@ HTML;
 
         /* ── 2. Subject & download URL ───────────────────────── */
         $eventName = htmlspecialchars(
-            $ticketData['event_name'] ?? 'Your Event', ENT_QUOTES, 'UTF-8'
+            $ticketData['event_name'] ?? 'Your Event',
+            ENT_QUOTES,
+            'UTF-8'
         );
         $subject = "Your Ticket for {$eventName} — Eventra";
 
-        $appUrl      = rtrim((string) ($_ENV['APP_URL'] ?? ''), '/');
+        $appUrl = rtrim((string) ($_ENV['APP_URL'] ?? ''), '/');
         $downloadUrl = ($appUrl !== '' && $barcode !== '')
             ? $appUrl . '/api/tickets/download-ticket.php?code=' . urlencode($barcode)
             : '';
@@ -961,7 +972,7 @@ HTML;
         // blank/missing PDFs. Fix: accept any valid file as-is; only skip
         // truly missing or empty paths.
         $attachments = [];
-        $rawPaths    = is_array($pdfPath) ? $pdfPath : [$pdfPath];
+        $rawPaths = is_array($pdfPath) ? $pdfPath : [$pdfPath];
 
         foreach ($rawPaths as $path) {
             $path = trim((string) $path);
@@ -1016,11 +1027,11 @@ if (!function_exists('sendTicketEmailFull')) {
 if (!function_exists('_detailCell')) {
     function _detailCell(string $label, string $value, string $class = ''): string
     {
-        $classAttr  = $class !== '' ? ' ' . htmlspecialchars($class, ENT_QUOTES, 'UTF-8') : '';
-        $safeLabel  = htmlspecialchars($label, ENT_QUOTES, 'UTF-8');
+        $classAttr = $class !== '' ? ' ' . htmlspecialchars($class, ENT_QUOTES, 'UTF-8') : '';
+        $safeLabel = htmlspecialchars($label, ENT_QUOTES, 'UTF-8');
         return '<div class="detail-item' . $classAttr . '">'
-             . '<span class="detail-label">' . $safeLabel . '</span>'
-             . '<span class="detail-value">' . $value . '</span>'
-             . '</div>';
+            . '<span class="detail-label">' . $safeLabel . '</span>'
+            . '<span class="detail-value">' . $value . '</span>'
+            . '</div>';
     }
 }

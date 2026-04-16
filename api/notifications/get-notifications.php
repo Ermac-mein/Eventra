@@ -5,8 +5,8 @@
  */
 
 // MUST be the first two lines — no whitespace, no BOM before <?php
-require_once __DIR__ . '/../../config.php'; 
-require_once __DIR__ . '/../../config/database.php';
+require_once __DIR__ . '/../../config.php';
+// database.php is loaded lazily by the auth middleware when needed
 require_once __DIR__ . '/../../includes/middleware/auth.php';
 
 // Then immediately set JSON response header
@@ -18,22 +18,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit();
 }
 
-// Check authentication
+// Lightweight auth short-circuit: if there's no session cookie and no Authorization header, return 401 WITHOUT opening DB
+$hasSessionCookie = isset($_COOKIE['EVENTRA_ADMIN_SESS']) || isset($_COOKIE['EVENTRA_CLIENT_SESS']) || isset($_COOKIE['EVENTRA_USER_SESS']);
+$hasAuthHeader = !empty($_SERVER['HTTP_AUTHORIZATION']) || !empty($_SERVER['REDIRECT_HTTP_AUTHORIZATION']) || !empty($_SERVER['HTTP_ACCESS_TOKEN']);
+
+if (!$hasSessionCookie && !$hasAuthHeader) {
+    http_response_code(401);
+    ob_clean();
+    echo json_encode(['success' => false, 'message' => 'Unauthorized. Please log in.']);
+    exit;
+}
+
+// Proceed with standard auth (this may lazily open DB if a bearer token is present)
 checkAuth();
 $auth_id = getAuthId();
 $role = $_SESSION['role'] ?? $_SESSION['user_role'] ?? 'user';
 
-    $limit = $_GET['limit'] ?? 20;
-    $offset = $_GET['offset'] ?? 0;
-    $is_read = $_GET['is_read'] ?? null;
+$limit = $_GET['limit'] ?? 20;
+$offset = $_GET['offset'] ?? 0;
+$is_read = $_GET['is_read'] ?? null;
 
 if (!$auth_id) {
     http_response_code(401);
+    ob_clean();
     echo json_encode(['success' => false, 'message' => 'Unauthorized. Please log in.']);
     exit;
 }
 
 try {
+    // Lazy-load PDO
+    $pdo = getPDO();
+
     // Auto-delete notifications older than 30 days
     $cleanup_stmt = $pdo->prepare("DELETE FROM notifications WHERE created_at < DATE_SUB(NOW(), INTERVAL 30 DAY)");
     $cleanup_stmt->execute();
@@ -90,12 +105,14 @@ try {
     $count_stmt->execute([$auth_id, $role]);
     $unread_count = $count_stmt->fetch()['unread'];
 
+    ob_clean();
     echo json_encode([
         'success' => true,
         'notifications' => $notifications,
         'unread_count' => $unread_count
     ]);
 } catch (PDOException $e) {
-    http_response_code(500);
-    echo json_encode(['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);
+    http_response_code(503);
+    ob_clean();
+    echo json_encode(['success' => false, 'message' => 'Service temporarily unavailable.']);
 }

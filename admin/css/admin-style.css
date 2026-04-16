@@ -84,27 +84,36 @@ body {
 }
 
 /* Sidebar Collapsed State */
-.sidebar.collapsed {
+.sidebar.collapsed,
+.sidebar.sidebar-collapsed {
     width: var(--admin-sidebar-collapsed-width);
 }
 
+.sidebar.sidebar-collapsed .sidebar-logo,
 .sidebar.collapsed .sidebar-logo {
-    padding: 2rem 0;
-    text-align: center;
-    font-size: 1.25rem;
+    /* Hide the wordmark but keep layout stable */
+    opacity: 0;
+    width: 0;
+    height: 0;
+    overflow: hidden;
+    transition: opacity 0.2s ease, width 0.2s ease;
 }
 
+.sidebar.sidebar-collapsed .menu-item a,
 .sidebar.collapsed .menu-item a {
     padding: 1rem;
     justify-content: center;
     gap: 0;
 }
 
+.sidebar.sidebar-collapsed .menu-item a span,
 .sidebar.collapsed .menu-item a span,
+.sidebar.sidebar-collapsed .sidebar-footer a span,
 .sidebar.collapsed .sidebar-footer a span {
     display: none;
 }
 
+.sidebar.sidebar-collapsed .menu-item a i,
 .sidebar.collapsed .menu-item a i {
     margin: 0;
     font-size: 1.5rem;
