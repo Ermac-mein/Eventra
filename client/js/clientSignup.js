@@ -172,51 +172,50 @@ document.addEventListener('DOMContentLoaded', () => {
         signupButton.innerHTML = '<span class="spinner"></span> Creating account...';
 
         try {
-            const response = await apiFetch('/api/auth/register.php', {
+            const formData = {
+                name: fullNameInput.value,
+                email: emailInput.value,
+                password: passwordInput.value,
+                business_name: businessNameInput ? businessNameInput.value : '',
+                role: intent
+            };
+
+            const response = await fetch('/api/auth/register.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    name: fullNameInput.value,
-                    email: emailInput.value,
-                    password: passwordInput.value,
-                    business_name: businessNameInput ? businessNameInput.value : '',
-                    role: intent
-                })
+                body: JSON.stringify(formData),
+                credentials: 'include'
             });
-            const result = await response.json();
 
-            if (result.success) {
-                if (result.otp_required) {
-                    // Show OTP Verification Modal
-                    showRegistrationOTPModal(result.email || emailInput.value);
-                    signupButton.disabled = false;
-                    signupButton.innerHTML = originalBtnText;
-                } else {
-                    // legacy direct success handling
-                    if (typeof Swal !== 'undefined') {
-                        Swal.fire({
-                            icon: 'success',
-                            title: 'Registration Successful!',
-                            text: result.message || 'Your account has been created.',
-                            timer: 3000,
-                            showConfirmButton: false,
-                            background: 'rgba(30, 41, 59, 0.95)',
-                            color: '#fff'
-                        });
-                    }
-                    setTimeout(() => {
-                        window.location.href = result.redirect || 'clientLogin.html';
-                    }, 3100);
+            // Always parse JSON regardless of HTTP status
+            const data = await response.json();
+            console.log('✅ Registration response:', data);
+
+            if (data.success) {
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Registration Successful!',
+                        text: data.message || 'Your account has been created. You may now log in.',
+                        timer: 2000,
+                        showConfirmButton: false,
+                        background: 'rgba(30, 41, 59, 0.95)',
+                        color: '#fff'
+                    });
                 }
+                setTimeout(() => {
+                    const loginUrl = (intent === 'admin') ? 'clientLogin.html?role=admin' : `clientLogin.html?role=${intent}`;
+                    window.location.href = `${loginUrl}&registered=${encodeURIComponent(data.email || emailInput.value)}`;
+                }, 2100);
             } else {
                 // Display specific error message from server
-                showError('passwordError', result.message || 'Registration failed. Please try again.');
+                showError('passwordError', data.message || 'Registration failed. Please try again.');
                 signupButton.disabled = false;
                 signupButton.innerHTML = originalBtnText;
             }
         } catch (error) {
-            console.error('Signup error details:', error);
-            showError('passwordError', 'Registration failed. ' + (error.message || 'Please try again later.'));
+            console.error('❌ Network/parsing error:', error);
+            showError('passwordError', 'Registration failed. ' + (error.message || 'Please check your connection.'));
             signupButton.disabled = false;
             signupButton.innerHTML = originalBtnText;
         }
