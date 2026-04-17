@@ -1,28 +1,24 @@
 <?php
 /**
- * Eventra — User Registration Handler
- * Enhanced with detailed logging for troubleshooting frontend/backend issues.
+ * Eventra — User Registration Handler (No OTP, Immediate Account Creation)
+ * Schema: auth_accounts + role-specific tables (admins, clients, users)
  */
 
-// ─── 1. Bootstrap & Logging Setup ────────────────────────────────────────────
 ob_start();
 ini_set('display_errors', 0);
-ini_set('display_startup_errors', 0);
-error_reporting(E_ALL); // Report all errors, but don't display
+error_reporting(E_ALL);
 ini_set('log_errors', 1);
-ini_set('error_log', __DIR__ . '/../../logs/php-errors.log'); // Adjust path if needed
+ini_set('error_log', __DIR__ . '/../../logs/php-errors.log');
 
-// Custom log function for structured messages
-function regLog(string $level, string $message, array $context = []): void
+function regLog($level, $message, $context = [])
 {
-    $logEntry = date('Y-m-d H:i:s') . " [REGISTER] [$level] $message";
-    if (!empty($context)) {
-        $logEntry .= ' | Context: ' . json_encode($context, JSON_UNESCAPED_SLASHES);
+    $entry = date('Y-m-d H:i:s') . " [REGISTER] [$level] $message";
+    if ($context) {
+        $entry .= ' | ' . json_encode($context, JSON_UNESCAPED_SLASHES);
     }
-    error_log($logEntry);
+    error_log($entry);
 }
 
-// ─── 2. CORS & Headers ──────────────────────────────────────────────────────
 header('Access-Control-Allow-Origin: https://eventra-website.liveblog365.com');
 header('Access-Control-Allow-Credentials: true');
 header('Access-Control-Allow-Methods: POST, OPTIONS');
@@ -34,105 +30,60 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit;
 }
 
-// ─── 3. Session Initialisation ───────────────────────────────────────────────
 if (session_status() === PHP_SESSION_NONE) {
     session_name('EVENTRA_PENDING_SESS');
     session_start();
 }
 $sessionId = session_id();
-regLog('INFO', "Request started", ['session_id' => $sessionId, 'method' => $_SERVER['REQUEST_METHOD']]);
+regLog('INFO', 'Request started', ['session_id' => $sessionId]);
 
-// ─── 4. Centralised JSON Responder (with logging) ───────────────────────────
-function sendJsonResponse(
-    bool $success,
-    string $message,
-    int $httpCode = 200,
-    array $extra = []
-): void {
+function sendJsonResponse($success, $message, $httpCode = 200, $extra = [])
+{
     global $sessionId;
-
-    // Log the response being sent
-    regLog($success ? 'SUCCESS' : 'ERROR', "Response: $message", [
-        'http_code' => $httpCode,
-        'extra' => $extra,
-        'session_id' => $sessionId
-    ]);
-
-    if (ob_get_length()) {
+    regLog($success ? 'SUCCESS' : 'ERROR', $message, ['http_code' => $httpCode, 'extra' => $extra]);
+    if (ob_get_length())
         ob_clean();
-    }
     http_response_code($httpCode);
     header('Content-Type: application/json');
-    header('Access-Control-Allow-Origin: https://eventra-website.liveblog365.com');
-    header('Access-Control-Allow-Credentials: true');
-
-    $response = array_merge([
-        'success' => $success,
-        'message' => $message,
-    ], $extra);
-
-    echo json_encode($response);
+    echo json_encode(array_merge(['success' => $success, 'message' => $message], $extra));
     exit;
 }
 
-// ─── 5. Load Configuration & Dependencies ────────────────────────────────────
+// Load config
 $config_path = __DIR__ . '/../../config.php';
-if (file_exists($config_path)) {
+if (file_exists($config_path))
     require_once $config_path;
-}
 
+// Load database
 $db_path = __DIR__ . '/../../config/database.php';
 if (!file_exists($db_path)) {
-    regLog('CRITICAL', "database.php missing", ['path' => $db_path]);
-    sendJsonResponse(false, 'Service configuration error. Please try again later.', 500);
+    regLog('CRITICAL', 'database.php missing');
+    sendJsonResponse(false, 'Service configuration error.', 500);
 }
+require_once $db_path;
+
 try {
-    require_once $db_path;
-    regLog('INFO', "Database loaded successfully");
-} catch (Throwable $e) {
-    regLog('CRITICAL', "DB load failed: " . $e->getMessage(), ['code' => $e->getCode()]);
-    if (stripos($e->getMessage(), 'Too many connections') !== false || strpos($e->getCode(), '1040') !== false) {
-        sendJsonResponse(false, 'Service temporarily overloaded. Please wait a moment.', 503, ['code' => 'DB_OVERLOAD']);
-    }
+    $pdo = getPDO();
+} catch (Exception $e) {
+    regLog('CRITICAL', 'Failed to get PDO: ' . $e->getMessage());
     sendJsonResponse(false, 'Database connection failed.', 500);
 }
 
+// Optional entity resolver
 $resolver_path = __DIR__ . '/../../includes/helpers/entity-resolver.php';
-if (!file_exists($resolver_path)) {
-    regLog('CRITICAL', "entity-resolver.php missing", ['path' => $resolver_path]);
-    sendJsonResponse(false, 'Service configuration error.', 500);
-}
-try {
+if (file_exists($resolver_path))
     require_once $resolver_path;
-} catch (Throwable $e) {
-    regLog('CRITICAL', "Resolver load failed: " . $e->getMessage());
-    sendJsonResponse(false, 'Service configuration error.', 500);
-}
 
-// Optional autoload
-$autoload_path = __DIR__ . '/../../vendor/autoload.php';
-if (file_exists($autoload_path)) {
-    try {
-        require_once $autoload_path;
-    } catch (Throwable $e) {
-        regLog('WARNING', "Autoload failed: " . $e->getMessage());
-    }
-}
-
-// ─── 6. Parse Input ──────────────────────────────────────────────────────────
+// Parse input
 $rawInput = file_get_contents('php://input');
 $data = json_decode($rawInput, true);
-
-// Log sanitized input (hide password)
 $logData = $data ?? [];
-if (isset($logData['password'])) {
-    $logData['password'] = '***REDACTED***';
-}
-regLog('INFO', "Received payload", ['input' => $logData]);
+if (isset($logData['password']))
+    $logData['password'] = '***';
+regLog('INFO', 'Payload received', ['input' => $logData]);
 
 if (!$data || !is_array($data)) {
-    regLog('ERROR', "Invalid JSON input", ['raw' => substr($rawInput, 0, 200)]);
-    sendJsonResponse(false, 'Invalid request format. Please provide JSON data.', 400);
+    sendJsonResponse(false, 'Invalid request format.', 400);
 }
 
 $name = trim($data['name'] ?? $data['fullName'] ?? '');
@@ -142,114 +93,94 @@ $business_name = trim($data['business_name'] ?? '');
 $role = $data['role'] ?? 'client';
 
 if (empty($name) || empty($email) || empty($password)) {
-    regLog('ERROR', "Missing required fields", ['name' => $name, 'email' => $email, 'has_password' => !empty($password)]);
     sendJsonResponse(false, 'Name, email, and password are required.', 400);
 }
-
 if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-    regLog('ERROR', "Invalid email format", ['email' => $email]);
-    sendJsonResponse(false, 'Please provide a valid email address.', 400);
+    sendJsonResponse(false, 'Invalid email address.', 400);
 }
-
 if ($role === 'client' && empty($business_name)) {
-    $business_name = $name;
+    $business_name = $name; // fallback
 }
 
-// ─── 7. Main Registration Logic ──────────────────────────────────────────────
+// Password strength validation
+if (!preg_match('/^(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%^&*(),.?":{}|<>]).{8,}$/', $password)) {
+    sendJsonResponse(false, 'Password must be at least 8 characters with uppercase, number, and special character.', 400);
+}
+
+// Generate a unique username from email prefix
+$baseUsername = explode('@', $email)[0];
+$username = $baseUsername;
+$counter = 1;
+while (true) {
+    $stmt = $pdo->prepare("SELECT id FROM auth_accounts WHERE username = ?");
+    $stmt->execute([$username]);
+    if (!$stmt->fetch())
+        break;
+    $username = $baseUsername . $counter;
+    $counter++;
+}
+
 try {
-    // 7a. Check email already registered
-    $registrability = canRegisterAs($email, $role);
-    if (!$registrability['success']) {
-        regLog('WARNING', "Email already registered", ['email' => $email, 'role' => $role]);
-        sendJsonResponse(false, $registrability['message'], 409);
+    // Check if email already exists
+    $stmt = $pdo->prepare("SELECT id FROM auth_accounts WHERE email = ?");
+    $stmt->execute([$email]);
+    if ($stmt->fetch()) {
+        sendJsonResponse(false, 'Email already registered.', 409);
     }
 
-    // 7b. Password strength
-    if (!preg_match('/^(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%^&*(),.?":{}|<>]).{8,}$/', $password)) {
-        regLog('ERROR', "Weak password", ['email' => $email]);
-        sendJsonResponse(false, 'Password must be at least 8 characters with uppercase, number, and special character.', 400);
-    }
-
-    // 7c. Generate OTP and hash
-    $otp = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
     $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
 
-    // 7d. Store in session
-    $_SESSION['pending_registration'] = [
-        'name' => $name,
-        'email' => $email,
-        'password' => $hashedPassword,
-        'business_name' => $business_name,
-        'role' => $role,
-        'otp' => $otp,
-        'expires_at' => time() + (15 * 60),
-    ];
+    $pdo->beginTransaction();
 
+    // 1. Insert into auth_accounts
+    $stmt = $pdo->prepare("
+        INSERT INTO auth_accounts (email, username, password, auth_provider, role, role_locked, is_active, email_verified_at)
+        VALUES (?, ?, ?, 'local', ?, 1, 1, NOW())
+    ");
+    $stmt->execute([$email, $username, $hashedPassword, $role]);
+    $authId = $pdo->lastInsertId();
+
+    // 2. Insert into role-specific profile table
+    switch ($role) {
+        case 'client':
+            $stmt = $pdo->prepare("
+                INSERT INTO clients (client_auth_id, name, business_name, created_at)
+                VALUES (?, ?, ?, NOW())
+            ");
+            $stmt->execute([$authId, $name, $business_name]);
+            break;
+        default:
+            throw new Exception("Invalid role specified.");
+    }
+
+    $pdo->commit();
+
+    unset($_SESSION['pending_registration']);
     session_write_close();
-    regLog('INFO', "Session data stored", ['session_id' => $sessionId, 'email' => $email]);
 
-    // 7e. Send OTP email
-    $email_helper_path = __DIR__ . '/../../includes/helpers/email-helper.php';
-    if (!file_exists($email_helper_path)) {
-        regLog('ERROR', "Email helper missing", ['path' => $email_helper_path]);
-        throw new Exception("Email helper missing.");
-    }
-    require_once $email_helper_path;
-
-    $mailSent = false;
-    $mailError = '';
-
-    if (!class_exists('EmailHelper')) {
-        $subject = "Verify your Eventra account — OTP: {$otp}";
-        $headers = "From: Eventra <noreply@eventra.com>\r\nContent-Type: text/html; charset=UTF-8";
-        $body = "<h2>Confirm your email</h2><p>Hi {$name}, your OTP is: <strong>{$otp}</strong></p>";
-        $mailSent = @mail($email, $subject, $body, $headers);
-        $mailError = $mailSent ? '' : (error_get_last()['message'] ?? 'Unknown mail error');
-        regLog($mailSent ? 'INFO' : 'ERROR', "Native mail() result", ['success' => $mailSent, 'error' => $mailError]);
-    } else {
-        try {
-            $mailResult = EmailHelper::sendRegistrationOTP($email, $name, $otp);
-            $mailSent = $mailResult['success'] ?? false;
-            $mailError = $mailResult['message'] ?? '';
-            regLog($mailSent ? 'INFO' : 'ERROR', "EmailHelper result", ['success' => $mailSent, 'message' => $mailError]);
-        } catch (Throwable $e) {
-            $mailError = $e->getMessage();
-            regLog('ERROR', "EmailHelper exception: " . $mailError);
-        }
-    }
-
-    // TEMPORARY BYPASS (remove in production)
-    // $mailSent = true;
-
-    if (!$mailSent) {
-        sendJsonResponse(false, 'We could not send the verification email. Please try again.', 500, [
-            'email_status' => 'failed',
-            'can_retry' => true
-        ]);
-    }
-
-    // Success
-    sendJsonResponse(true, 'Verification code sent! Please check your email.', 200, [
-        'next_step' => 'verify_otp',
-        'email' => $email,
-        'otp_required' => true,
+    regLog('INFO', 'User created', ['auth_id' => $authId, 'email' => $email, 'role' => $role]);
+    sendJsonResponse(true, 'Account created successfully! You may now log in.', 200, [
+        'user_id' => $authId,
+        'email' => $email
     ]);
 
 } catch (PDOException $e) {
-    regLog('CRITICAL', "PDOException: " . $e->getMessage(), [
-        'code' => $e->getCode(),
-        'file' => $e->getFile(),
-        'line' => $e->getLine()
-    ]);
-    if ($e->getCode() === '1040' || stripos($e->getMessage(), 'Too many connections') !== false) {
-        sendJsonResponse(false, 'Service temporarily overloaded.', 503, ['code' => 'DB_OVERLOAD']);
+    if ($pdo->inTransaction())
+        $pdo->rollBack();
+    regLog('CRITICAL', 'PDO Error: ' . $e->getMessage() . ' | Code: ' . $e->getCode());
+
+    if ($e->getCode() == 23000) {
+        if (strpos($e->getMessage(), 'auth_accounts.email') !== false || strpos($e->getMessage(), 'Duplicate entry') !== false) {
+            sendJsonResponse(false, 'Email already registered.', 409);
+        }
+        if (strpos($e->getMessage(), 'auth_accounts.username') !== false) {
+            sendJsonResponse(false, 'Username already taken. Please try a different email.', 409);
+        }
     }
-    sendJsonResponse(false, 'A database error occurred.', 500);
+    sendJsonResponse(false, 'Database error. Please try again.', 500);
 } catch (Throwable $e) {
-    regLog('CRITICAL', "Throwable: " . $e->getMessage(), [
-        'class' => get_class($e),
-        'file' => $e->getFile(),
-        'line' => $e->getLine()
-    ]);
-    sendJsonResponse(false, 'An internal error occurred.', 500);
+    if (isset($pdo) && $pdo->inTransaction())
+        $pdo->rollBack();
+    regLog('CRITICAL', 'Exception: ' . $e->getMessage());
+    sendJsonResponse(false, 'Internal server error.', 500);
 }

@@ -42,7 +42,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (loginLink) loginLink.href = `clientLogin.html?role=${intent}`;
     }
 
-    // Handle Business Name Visibility
+    // Handle Business Name Visibility (client only)
     if (businessNameGroup) {
         businessNameGroup.style.display = (intent === 'client') ? 'block' : 'none';
         if (businessNameInput && intent === 'client') {
@@ -84,31 +84,9 @@ document.addEventListener('DOMContentLoaded', () => {
         // Restore saved state
         restoreFormState('signupForm');
 
-        // Business Name Auto-Fill Logic
-        if (intent === 'client' && fullNameInput && businessNameInput) {
-            let userHasEditedBusinessName = false;
-
-            // Track manual edits to business name
-            businessNameInput.addEventListener('input', () => {
-                if (businessNameInput.value.trim() !== '') {
-                    userHasEditedBusinessName = true;
-                } else {
-                    userHasEditedBusinessName = false;
-                }
-            });
-
-            // Sync Full Name to Business Name
-            fullNameInput.addEventListener('input', () => {
-                if (!userHasEditedBusinessName) {
-                    businessNameInput.value = fullNameInput.value;
-                    // Trigger Lucide icons refresh if needed, or simply update value
-                    saveFormState('signupForm');
-                }
-            });
-        }
+        // NO AUTO-SYNC between full name and business name – they are separate fields
 
         signupForm.addEventListener('submit', (e) => {
-
             e.preventDefault();
             
             // Basic validation
@@ -166,17 +144,40 @@ document.addEventListener('DOMContentLoaded', () => {
         inputs.forEach(input => input.classList.remove('error'));
     }
 
+    // Helper to show a general error message (not tied to a specific field)
+    function showGeneralError(message) {
+        // Try a dedicated general error container first
+        const generalError = document.getElementById('generalError');
+        if (generalError) {
+            generalError.textContent = message;
+            generalError.style.display = 'block';
+        } else {
+            // Fallback to passwordError field (common location)
+            const passwordError = document.getElementById('passwordError');
+            if (passwordError) {
+                passwordError.textContent = message;
+                passwordError.style.display = 'block';
+            } else {
+                // Last resort: alert (avoid if possible)
+                alert(message);
+            }
+        }
+    }
+
     async function handleSignup() {
         const originalBtnText = signupButton.innerHTML;
         signupButton.disabled = true;
         signupButton.innerHTML = '<span class="spinner"></span> Creating account...';
 
+        // Clear any previous errors
+        resetErrors();
+
         try {
             const formData = {
-                name: fullNameInput.value,
-                email: emailInput.value,
+                name: fullNameInput.value.trim(),
+                email: emailInput.value.trim(),
                 password: passwordInput.value,
-                business_name: businessNameInput ? businessNameInput.value : '',
+                business_name: businessNameInput ? businessNameInput.value.trim() : '',
                 role: intent
             };
 
@@ -187,11 +188,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 credentials: 'include'
             });
 
-            // Always parse JSON regardless of HTTP status
             const data = await response.json();
             console.log('✅ Registration response:', data);
 
             if (data.success) {
+                // Success – show message and redirect to login
                 if (typeof Swal !== 'undefined') {
                     Swal.fire({
                         icon: 'success',
@@ -205,23 +206,26 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 setTimeout(() => {
                     const loginUrl = (intent === 'admin') ? 'clientLogin.html?role=admin' : `clientLogin.html?role=${intent}`;
-                    window.location.href = `${loginUrl}&registered=${encodeURIComponent(data.email || emailInput.value)}`;
+                    window.location.href = `${loginUrl}?registered=${encodeURIComponent(data.email || emailInput.value)}`;
                 }, 2100);
             } else {
-                // Display specific error message from server
-                showError('passwordError', data.message || 'Registration failed. Please try again.');
+                // Backend returned success: false – show the exact error
+                const errorMsg = data.message || 'Registration failed. Please try again.';
+                showGeneralError(errorMsg);
                 signupButton.disabled = false;
                 signupButton.innerHTML = originalBtnText;
             }
         } catch (error) {
             console.error('❌ Network/parsing error:', error);
-            showError('passwordError', 'Registration failed. ' + (error.message || 'Please check your connection.'));
+            showGeneralError('Network error. Please check your connection and try again.');
             signupButton.disabled = false;
             signupButton.innerHTML = originalBtnText;
         }
     }
 
+    // Legacy OTP modal (kept for reference, not used in new flow)
     function showRegistrationOTPModal(email) {
+        // This is a legacy function – OTP is now sent at login.
         if (typeof Swal === 'undefined') {
             alert('Please check your email for the verification code.');
             return;
@@ -265,7 +269,6 @@ document.addEventListener('DOMContentLoaded', () => {
             if (result.isConfirmed) {
                 const otp = result.value;
                 
-                // Show loading state
                 Swal.fire({
                     title: 'Verifying...',
                     allowOutsideClick: false,
@@ -321,8 +324,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function handleGoogleSignUp() {
-        // This leverages the same handler as login, which creates account if it doesn't exist
-        // We'll mimic the login logic to check for config and initialize Google
         try {
             const configResponse = await apiFetch('/api/config/get-google-config.php');
             const configData = await configResponse.json();
@@ -370,7 +371,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const result = await res.json();
 
             if (result.success) {
-                // Isolate session storage by role
                 const storageKey = intent === 'admin' ? 'admin_user' : (intent === 'client' ? 'client_user' : 'user');
                 const tokenKey = intent === 'admin' ? 'admin_auth_token' : (intent === 'client' ? 'client_auth_token' : 'auth_token');
 
@@ -401,18 +401,14 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Event Image Slider Logic - RESTRICTED: Only show when user is authenticated to prevent data leakage
+    // Event Image Slider Logic
     async function initSlider() {
         const sliderContainer = document.querySelector('.slider-images');
         if (!sliderContainer) return;
 
-        // Check if user is already authenticated
         const isAuthenticated = window.storage && typeof window.storage.getUser === 'function' && window.storage.getUser();
         
-        // Don't fetch or display events on signup page when user is not authenticated
-        // This prevents showing other clients' events to unauthenticated users
         if (!isAuthenticated) {
-            // Show placeholder or empty state instead
             sliderContainer.innerHTML = '';
             return;
         }
@@ -445,6 +441,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 setInterval(updateSlider, 5000);
             }
         } catch (error) {
+            // Silently fail – slider is not critical
         }
     }
 
