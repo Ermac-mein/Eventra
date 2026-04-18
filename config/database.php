@@ -96,6 +96,6 @@ register_shutdown_function(function() {
     // (In PHP, $instance is scoped to the function, but persistent until script end)
 });
 
-// Global variable assignment REMOVED to prevent opening connection at file-include time.
-// $pdo = getPDO(); 
+// Global variable assignment restored because removing it broke all endpoints relying on $pdo
+$pdo = getPDO();
 
