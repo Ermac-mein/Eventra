@@ -140,6 +140,7 @@ try {
             // Return explicit next_step for frontend
             echo json_encode([
                 'success' => true,
+                'otp_required' => true,
                 'next_step' => 'otp_verification',
                 'message' => $emailHelperLoaded ? ($emailSent ? 'A verification code has been sent to your email.' : 'A verification code has been generated (email delivery issue).') : 'A verification code has been generated (check logs).',
                 'user_email' => $user['email'], // optional: to display on OTP modal

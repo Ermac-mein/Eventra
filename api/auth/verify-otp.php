@@ -59,8 +59,8 @@ if ($intent === 'client_login_otp') {
 
         // 5. Fetch user details (must be client)
         $stmt = $pdo->prepare("
-            SELECT a.id, a.email, a.name, a.role, a.profile_pic,
-                   c.id as client_id, c.business_name
+            SELECT a.id, a.email, a.role, 
+                   c.id as client_id, c.business_name, c.name, c.profile_pic
             FROM auth_accounts a
             LEFT JOIN clients c ON c.client_auth_id = a.id
             WHERE a.id = ? AND a.role = 'client'
