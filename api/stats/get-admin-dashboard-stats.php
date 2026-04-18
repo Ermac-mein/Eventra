@@ -70,10 +70,10 @@ try {
         FROM clients c
         JOIN auth_accounts a ON c.client_auth_id = a.id
         LEFT JOIN events e ON c.id = e.client_id AND e.deleted_at IS NULL
-        WHERE c.deleted_at IS NULL AND c.verification_status = 'verified'
-        GROUP BY c.id
-        ORDER BY event_count DESC
-        LIMIT 5
+        WHERE c.deleted_at IS NULL
+        GROUP BY c.id, a.is_online
+        ORDER BY a.is_online DESC, event_count DESC
+        LIMIT 10
     ");
     $active_clients_stmt->execute();
     $active_clients = $active_clients_stmt->fetchAll(PDO::FETCH_ASSOC);

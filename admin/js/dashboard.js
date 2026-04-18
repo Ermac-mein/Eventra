@@ -167,15 +167,18 @@ function displayAdminStatsCards(stats) {
     const activeUsersEl = document.getElementById('activeUsersCount');
     if (activeUsersEl) activeUsersEl.textContent = stats.active_users || 0;
 
+    // "Active Clients" in UI (clientsVerifiedCount) now syncs with total registered clients
     const verifiedClientsEl = document.getElementById('clientsVerifiedCount');
     if (verifiedClientsEl) verifiedClientsEl.textContent = stats.total_clients || 0;
 
+    // Unverified count
     const unverifiedClientsEl = document.getElementById('clientsUnverifiedCount');
     if (unverifiedClientsEl) unverifiedClientsEl.textContent = stats.clients_unverified || 0;
 
     const totalRevenueEl = document.getElementById('totalRevenue');
     if (totalRevenueEl) totalRevenueEl.textContent = '₦' + parseFloat(stats.total_revenue || 0).toLocaleString();
 
+    // Check for platform earnings (optional/hidden in some layouts)
     const platformEarningsEl = document.getElementById('platformEarnings');
     if (platformEarningsEl) platformEarningsEl.textContent = '₦' + parseFloat(stats.platform_earnings || 0).toLocaleString();
 }

@@ -1,12 +1,19 @@
 <?php
-// Protect output and silence warnings
+/**
+ * Get Admin Notifications API
+ * Retrieves notifications specifically for administrators
+ */
+
+// Protect output
 if (!headers_sent()) {
     ob_start();
 }
-error_reporting(0);
 
-header('Content-Type: application/json');
+require_once '../../config/database.php';
 require_once '../../includes/middleware/auth.php';
+
+// Set JSON response header
+header('Content-Type: application/json');
 
 // Lightweight short-circuit: if no session cookie and no Authorization header, return 401 without opening DB
 $hasSessionCookie = isset($_COOKIE['EVENTRA_ADMIN_SESS']) || isset($_COOKIE['EVENTRA_CLIENT_SESS']) || isset($_COOKIE['EVENTRA_USER_SESS']);
@@ -14,65 +21,87 @@ $hasAuthHeader = !empty($_SERVER['HTTP_AUTHORIZATION']) || !empty($_SERVER['REDI
 
 if (!$hasSessionCookie && !$hasAuthHeader) {
     http_response_code(401);
-    ob_clean();
+    if (ob_get_length()) ob_clean();
     echo json_encode(['success' => false, 'message' => 'Unauthorized. Please log in.']);
     exit;
 }
 
-// Perform auth check (may open DB lazily)
-checkAuth('admin');
-$admin_auth_id = getAuthId();
-$role = $_SESSION['role'] ?? 'admin';
-
-// Check if user is admin
-if ($role !== 'admin') {
-    http_response_code(403);
-    ob_clean();
-    echo json_encode(['success' => false, 'message' => 'Access denied. Admin only.']);
-    exit;
-}
-
+// Perform auth check
 try {
+    checkAuth('admin');
+    $admin_auth_id = getAuthId();
+    $role = $_SESSION['role'] ?? 'admin';
+
+    // Verify user is indeed admin
+    if ($role !== 'admin' || !$admin_auth_id) {
+        http_response_code(403);
+        if (ob_get_length()) ob_clean();
+        echo json_encode(['success' => false, 'message' => 'Access denied. Admin only.']);
+        exit;
+    }
+
     // Lazy-load PDO
     $pdo = getPDO();
 
-    // Auto-delete notifications older than 2 days (non-critical)
+    // Auto-delete notifications older than 7 days (non-critical cleanup)
     try {
-        $pdo->prepare("DELETE FROM notifications WHERE created_at < DATE_SUB(NOW(), INTERVAL 2 DAY)")->execute();
+        $pdo->prepare("DELETE FROM notifications WHERE created_at < DATE_SUB(NOW(), INTERVAL 7 DAY)")->execute();
     } catch (Exception $e) {
-        // ignore cleanup errors
+        // silence cleanup errors
     }
 
     // Fetch notifications for admin, ordered by newest first
+    // Join with clients, admins, and users to get sender details regardless of role
     $stmt = $pdo->prepare("
-        SELECT n.*, c.business_name as client_name, c.profile_pic as client_profile_pic
+        SELECT n.*, 
+               CASE 
+                   WHEN n.sender_role = 'client' THEN c.business_name 
+                   WHEN n.sender_role = 'admin' THEN ad.name
+                   ELSE u.name 
+               END as sender_name,
+               CASE 
+                   WHEN n.sender_role = 'client' THEN c.profile_pic 
+                   WHEN n.sender_role = 'admin' THEN ad.profile_pic
+                   ELSE u.profile_pic 
+               END as sender_profile_pic
         FROM notifications n
         LEFT JOIN clients c ON n.sender_auth_id = c.client_auth_id AND n.sender_role = 'client'
-        WHERE n.recipient_auth_id = ?
+        LEFT JOIN admins ad ON n.sender_auth_id = ad.admin_auth_id AND n.sender_role = 'admin'
+        LEFT JOIN users u ON n.sender_auth_id = u.user_auth_id AND (n.sender_role = 'user' OR n.sender_role IS NULL)
+        WHERE n.recipient_auth_id = ? AND n.recipient_role = 'admin'
         ORDER BY n.created_at DESC
-        LIMIT 10
+        LIMIT 20
     ");
     $stmt->execute([$admin_auth_id]);
-    $notifications = $stmt->fetchAll();
+    $notifications = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     // Get unread count
-    $stmt = $pdo->prepare("SELECT COUNT(*) as unread_count FROM notifications WHERE recipient_auth_id = ? AND is_read = 0");
+    $stmt = $pdo->prepare("SELECT COUNT(*) as unread_count FROM notifications WHERE recipient_auth_id = ? AND recipient_role = 'admin' AND is_read = 0");
     $stmt->execute([$admin_auth_id]);
-    $unread_result = $stmt->fetch();
-    $unread_count = $unread_result['unread_count'];
+    $unread_result = $stmt->fetch(PDO::FETCH_ASSOC);
+    $unread_count = $unread_result ? $unread_result['unread_count'] : 0;
 
-    ob_clean();
+    if (ob_get_length()) ob_clean();
     echo json_encode([
         'success' => true,
         'notifications' => $notifications,
-        'unread_count' => (int) $unread_count
+        'unread_count' => (int) $unread_count,
+        'timestamp' => date('Y-m-d H:i:s')
     ]);
 } catch (PDOException $e) {
     error_log('Admin notifications DB error: ' . $e->getMessage());
     http_response_code(503);
-    ob_clean();
+    if (ob_get_length()) ob_clean();
     echo json_encode([
         'success' => false,
-        'message' => 'Service temporarily unavailable.'
+        'message' => 'Service temporarily unavailable. Please try again later.'
+    ]);
+} catch (Exception $e) {
+    error_log('Admin notifications error: ' . $e->getMessage());
+    http_response_code(500);
+    if (ob_get_length()) ob_clean();
+    echo json_encode([
+        'success' => false,
+        'message' => 'An internal server error occurred.'
     ]);
 }
