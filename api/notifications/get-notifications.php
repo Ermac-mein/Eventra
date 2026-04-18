@@ -47,6 +47,9 @@ if (!$auth_id) {
 
 try {
     // Lazy-load PDO
+    if (!function_exists('getPDO')) {
+        require_once __DIR__ . '/../../config/database.php';
+    }
     $pdo = getPDO();
 
     // Auto-delete notifications older than 30 days

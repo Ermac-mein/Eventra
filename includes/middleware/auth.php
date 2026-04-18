@@ -90,6 +90,9 @@ function validateBearerToken($requiredRole = null)
 
     try {
         // Lazy-load PDO only when needed
+        if (!function_exists('getPDO')) {
+            require_once __DIR__ . '/../../config/database.php';
+        }
         $pdo = getPDO();
 
         $stmt = $pdo->prepare("
@@ -163,6 +166,9 @@ function checkAuth($requiredRole = null)
         $auth_id = validateBearerToken($requiredRole);
         if ($auth_id) {
             try {
+                if (!function_exists('getPDO')) {
+                    require_once __DIR__ . '/../../config/database.php';
+                }
                 $pdo = getPDO();
 
                 // Set session variables for Bearer token auth
@@ -280,6 +286,9 @@ function checkAuthOptional()
     $auth_id = validateBearerToken();
     if ($auth_id) {
         try {
+            if (!function_exists('getPDO')) {
+                require_once __DIR__ . '/../../config/database.php';
+            }
             $pdo = getPDO();
             // Sync session if token is valid
             $stmt = $pdo->prepare("SELECT role FROM auth_accounts WHERE id = ?");
