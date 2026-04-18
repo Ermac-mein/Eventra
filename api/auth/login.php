@@ -5,7 +5,6 @@ ini_set('log_errors', 1);
 ini_set('error_log', __DIR__ . '/../../logs/php-errors.log');
 error_reporting(E_ALL);
 
-
 // Parse intent FIRST to set correct session name before ANY session initialization
 $data = json_decode(file_get_contents("php://input"), true);
 $intent = $auth_intent ?? (isset($data['intent']) ? $data['intent'] : 'client');
@@ -81,8 +80,6 @@ try {
 
     // Account Status Check
     if (isset($user['is_active']) && $user['is_active'] == 0) {
-        // Only allow login if account is active, or handle activation logic if required.
-        // For now, let's keep the user's requirement: check is_active = 1
         logSecurityEvent($user['id'], $identity, 'login_failure', 'password', "Account is inactive.");
         echo json_encode(['success' => false, 'message' => "Your account is inactive. Please contact support."]);
         exit;
@@ -103,40 +100,50 @@ try {
             exit;
         }
 
-        // --- NEW: Client Login OTP Flow ---
-        // If the role is 'client', we require a second-factor OTP before completing login.
+        // --- CLIENT LOGIN OTP FLOW (with fault‑tolerant email helper) ---
         if ($userRole === 'client') {
             $otp = sprintf("%06d", random_int(0, 999999));
             $otp_hash = password_hash($otp, PASSWORD_DEFAULT);
             $otp_expires_at = date('Y-m-d H:i:s', strtotime('+10 minutes'));
 
-            // Store in auth_tokens (reuse existing table, type='otp')
-            // Using raw OTP for simplicity as per common internal patterns, but the plan mentioned hashing.
-            // Actually, verify-otp.php currently checks for raw token = ?. 
-            // Let's stick to raw token storage for consistency with verify-otp.php logic (line 31).
             $pdo = getPDO();
             $pdo->prepare("DELETE FROM auth_tokens WHERE auth_id = ? AND type = 'otp'")->execute([$user['id']]);
             $stmt = $pdo->prepare("INSERT INTO auth_tokens (auth_id, token, expires_at, type) VALUES (?, ?, ?, 'otp')");
-            $stmt->execute([$user['id'], $otp, $otp_expires_at]);
+            $stmt->execute([$user['id'], $otp_hash, $otp_expires_at]);
 
-            // Send Email
-            require_once __DIR__ . '/../../includes/helpers/email-helper.php';
-            $subject = "Your Eventra Client Login Code";
-            $message = "Your one-time login verification code is: <strong>$otp</strong><br>It expires in 10 minutes.";
+            // Load email helper (new version is fault‑tolerant)
+            $emailSent = false;
+            $emailMessage = 'Email service unavailable (check logs).';
+            $emailHelperLoaded = false;
 
-            $emailResult = EmailHelper::sendEmail($user['email'], $subject, "<h2>Login Verification</h2><p>$message</p>");
-
-            if (!$emailResult['success']) {
-                error_log("OTP for client {$user['email']} (Auth ID: {$user['id']}): $otp (Email delivery failed: {$emailResult['message']})");
-            } else {
-                error_log("OTP for client {$user['email']} sent successfully.");
+            $emailHelperPath = __DIR__ . '/../../includes/helpers/email-helper.php';
+            if (file_exists($emailHelperPath)) {
+                include_once $emailHelperPath;
             }
 
-            // Always return success if OTP was generated and saved to DB
+            if (class_exists('EmailHelper')) {
+                $emailHelperLoaded = true;
+                $subject = "Your Eventra Client Login Code";
+                $message = "Your one-time login verification code is: <strong>$otp</strong><br>It expires in 10 minutes.";
+                $emailResult = EmailHelper::sendEmail($user['email'], $subject, "<h2>Login Verification</h2><p>$message</p>");
+                $emailSent = $emailResult['success'];
+                if (!$emailSent) {
+                    error_log("OTP for client {$user['email']} (Auth ID: {$user['id']}): $otp (Email delivery failed: {$emailResult['message']})");
+                } else {
+                    error_log("OTP for client {$user['email']} sent successfully.");
+                }
+                $emailMessage = $emailResult['message'];
+            } else {
+                error_log("OTP for client {$user['email']} (Auth ID: {$user['id']}): $otp (EmailHelper class not available)");
+            }
+
+            // Return explicit next_step for frontend
             echo json_encode([
                 'success' => true,
-                'otp_required' => true,
-                'message' => ($emailResult['success'] ? 'A verification code has been sent to your email.' : 'A verification code has been generated (check logs).')
+                'next_step' => 'otp_verification',
+                'message' => $emailHelperLoaded ? ($emailSent ? 'A verification code has been sent to your email.' : 'A verification code has been generated (email delivery issue).') : 'A verification code has been generated (check logs).',
+                'user_email' => $user['email'], // optional: to display on OTP modal
+                'auth_id' => $user['id']        // optional: for resend OTP functionality
             ]);
             exit;
         }
@@ -197,17 +204,12 @@ try {
         // Strict Role-Specific Session Keys + Universal auth_id
         $_SESSION['auth_id'] = $user['id']; // Global auth account ID
         if ($userRole === 'admin') {
-            // resolveEntity merged the admins table data, so 'id' from admins is not directly available because auth_accounts also has 'id'
-            // Let's re-fetch the role-specific PK if not already distinct.
-            // In resolveEntity: array_merge($profile, $account), account 'id' overwrote profile 'id'.
-            // I need to ensure the profile ID is preserved.
             $stmt = $pdo->prepare("SELECT id FROM admins WHERE admin_auth_id = ?");
             $stmt->execute([$user['id']]);
             $adminId = $stmt->fetchColumn();
             if ($adminId) {
                 $_SESSION['admin_id'] = $adminId;
             } else {
-                // Fallback to creating admin profile if it doesn't exist
                 $stmt = $pdo->prepare("INSERT INTO admins (admin_auth_id, name) VALUES (?, ?)");
                 $stmt->execute([$user['id'], $user['name'] ?? 'Admin']);
                 $_SESSION['admin_id'] = $pdo->lastInsertId();
@@ -219,7 +221,6 @@ try {
             if ($clientId) {
                 $_SESSION['client_id'] = $clientId;
             } else {
-                // Fallback to creating client profile if it doesn't exist
                 $stmt = $pdo->prepare("INSERT INTO clients (client_auth_id, name, business_name) VALUES (?, ?, ?)");
                 $stmt->execute([$user['id'], $user['name'] ?? 'Client', $user['business_name'] ?? '']);
                 $_SESSION['client_id'] = $pdo->lastInsertId();
@@ -231,7 +232,6 @@ try {
             if ($userId) {
                 $_SESSION['user_id'] = $userId;
             } else {
-                // Fallback to creating user profile if it doesn't exist
                 $stmt = $pdo->prepare("INSERT INTO users (user_auth_id, name) VALUES (?, ?)");
                 $stmt->execute([$user['id'], $user['name'] ?? 'User']);
                 $_SESSION['user_id'] = $pdo->lastInsertId();
@@ -258,7 +258,6 @@ try {
             } elseif ($userRole === 'user') {
                 createUserLoginNotification($admin_id, $user['id'], $user['name'] ?? 'User', $identity);
             } elseif ($userRole === 'admin') {
-                // Create admin login notification for themselves
                 createAdminLoginNotification($user['id']);
             }
         }
@@ -273,6 +272,7 @@ try {
 
         echo json_encode([
             'success' => true,
+            'next_step' => 'complete',
             'message' => 'Login successful',
             'role' => $userRole,
             'redirect' => $redirect,

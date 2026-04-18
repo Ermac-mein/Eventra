@@ -26,7 +26,7 @@ function showCreateEventModal() {
                 max-height: 92vh;
                 overflow-y: auto;
                 background: linear-gradient(135deg, #f5f3ff 0%, #fdf4ff 50%, ##1f2937 50%);
-                border-radius: 24px;
+                border-radius: 15px;
                 box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
                 position: relative;
                 animation: slideIn 0.3s ease-out;">

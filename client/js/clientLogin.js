@@ -149,7 +149,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const result = await response.json();
 
-            if (result.success && result.otp_required) {
+            if (result.success && (result.otp_required || result.next_step === 'otp_verification')) {
                 // --- CUSTOM OTP MODAL FLOW ---
                 loginButton.innerHTML = originalBtnText;
                 loginButton.disabled = false;
@@ -185,8 +185,9 @@ document.addEventListener('DOMContentLoaded', () => {
                                 method: 'POST',
                                 body: JSON.stringify({
                                     identity: emailInput.value,
+                                    auth_id: result.auth_id,
                                     otp: otpCodeInput.value,
-                                    intent: 'client_login'
+                                    intent: 'client_login_otp'
                                 })
                             });
 
