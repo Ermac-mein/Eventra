@@ -74,6 +74,8 @@ $resolver_path = __DIR__ . '/../../includes/helpers/entity-resolver.php';
 if (file_exists($resolver_path))
     require_once $resolver_path;
 
+require_once __DIR__ . '/../utils/id-generator.php';
+
 // Parse input
 $rawInput = file_get_contents('php://input');
 $data = json_decode($rawInput, true);
@@ -128,6 +130,14 @@ try {
         sendJsonResponse(false, 'Email already registered.', 409);
     }
 
+    if ($role === 'client' && !empty($business_name)) {
+        $stmt = $pdo->prepare("SELECT id FROM clients WHERE business_name = ? AND deleted_at IS NULL");
+        $stmt->execute([$business_name]);
+        if ($stmt->fetch()) {
+            sendJsonResponse(false, 'Business name already in use. Please choose another.', 409);
+        }
+    }
+
     $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
 
     $pdo->beginTransaction();
@@ -143,11 +153,20 @@ try {
     // 2. Insert into role-specific profile table
     switch ($role) {
         case 'client':
+            $customId = generateClientId($pdo);
             $stmt = $pdo->prepare("
-                INSERT INTO clients (client_auth_id, name, business_name, created_at)
+                INSERT INTO clients (client_auth_id, custom_id, name, business_name, created_at)
+                VALUES (?, ?, ?, ?, NOW())
+            ");
+            $stmt->execute([$authId, $customId, $name, $business_name]);
+            break;
+        case 'user':
+            $customId = generateUserId($pdo);
+            $stmt = $pdo->prepare("
+                INSERT INTO users (user_auth_id, custom_id, name, created_at)
                 VALUES (?, ?, ?, NOW())
             ");
-            $stmt->execute([$authId, $name, $business_name]);
+            $stmt->execute([$authId, $customId, $name]);
             break;
         default:
             throw new Exception("Invalid role specified.");
