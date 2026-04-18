@@ -101,7 +101,7 @@
             </div>
 
             <div id="verificationBanner" style="display:none; background:#fff3cd; border:1px solid #ffeeba; color:#856404; padding: 12px; border-radius:8px; margin-bottom:1rem; max-width: 1200px;">
-                Your account is pending verification. You cannot create or publish events until your account is verified. <a href="/client/verification" style="font-weight:700; margin-left:8px; color: inherit; text-decoration: underline;">Learn more</a>
+                To create events your profile must be verified, so properly fill your profile so it'll be approved before you proceed. <a href="javascript:void(0)" onclick="window.showProfileEditModal()" style="font-weight:700; margin-left:8px; color: inherit; text-decoration: underline;">Update Profile</a>
             </div>
 
             <!-- Stats Grid -->
@@ -142,7 +142,7 @@
                 <div class="dash-panel">
                     <div class="events-feed-header">
                         <h3 style="font-size: 1.25rem; font-weight: 700;">Events</h3>
-                        <button class="btn btn-primary" onclick="showCreateEventModal()">
+                        <button class="btn btn-primary" id="dashboardCreateEventBtn" onclick="handleCreateEventClick()">
                             <i data-lucide="plus"></i>
                             <span>Create Event</span>
                         </button>

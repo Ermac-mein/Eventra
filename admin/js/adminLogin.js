@@ -109,7 +109,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            const response = await apiFetch('/api/admin/login.php', {
+            const response = await apiFetch('/api/auth/login.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -119,6 +119,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     remember_me: rememberMeInput?.checked || false,
                 })
             });
+
+            const contentType = response.headers.get("content-type");
+            if (!contentType || !contentType.includes("application/json")) {
+                const text = await response.text();
+                throw new Error("Server returned non-JSON response. Status: " + response.status);
+            }
 
             // apiFetch now handles non-ok responses by throwing, 
             // but for login we want to parse the JSON if it's a 200
