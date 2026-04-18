@@ -8,12 +8,16 @@ error_reporting(E_ALL);
 
 // Parse intent FIRST to set correct session name before ANY session initialization
 $data = json_decode(file_get_contents("php://input"), true);
-$intent = $data['intent'] ?? 'client';
+$intent = $auth_intent ?? (isset($data['intent']) ? $data['intent'] : 'client');
+
+// Force normalization to remove trailing spaces or handle 'clients' -> 'client'
+$intent = strtolower(trim($intent));
+$intent = rtrim($intent, 's'); // e.g., 'clients' becomes 'client'
 
 // Set session name BEFORE database.php which might access sessions
 if (!in_array($intent, ['admin', 'client', 'user'])) {
     header('Content-Type: application/json');
-    echo json_encode(['success' => false, 'message' => 'Invalid authentication path.']);
+    echo json_encode(['success' => false, 'message' => 'Invalid authentication path: ' . htmlspecialchars($intent)]);
     exit;
 }
 
