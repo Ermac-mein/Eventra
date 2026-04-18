@@ -448,6 +448,17 @@ async function deleteMedia(id, type = 'file', e, fileCount = 0) {
             text = `This folder contains ${fileCount} files. Deleting it will move all files to trash. Continue?`;
         }
         
+        const confirmResult = await Swal.fire({
+            title: title,
+            text: text,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#ef4444',
+            cancelButtonColor: '#9ca3af',
+            confirmButtonText: 'Yes, Delete',
+            cancelButtonText: 'Keep it'
+        });
+        
         if (!confirmResult.isConfirmed) return;
         
         try {

@@ -90,8 +90,22 @@ $account_name = trim($_POST['account_name']);
 try {
     $pdo->beginTransaction();
 
+    // Fetch existing data for comparison and filling missing fields
+    $stmt_existing = $pdo->prepare("
+        SELECT c.business_name, c.custom_id, a.email, c.nin, c.bvn, c.nin_verified, c.bvn_verified, c.subaccount_code, c.account_number, c.bank_code, c.verification_status, c.account_name 
+        FROM clients c
+        JOIN auth_accounts a ON c.client_auth_id = a.id
+        WHERE c.client_auth_id = ?
+    ");
+    $stmt_existing->execute([$client_auth_id]);
+    $existing = $stmt_existing->fetch();
+
+    if (empty($business_name) && $existing) {
+        $business_name = $existing['business_name'];
+    }
+
     // Check if trying to update business name and if it exists
-    if (!empty($business_name)) {
+    if (!empty($business_name) && $existing && $business_name !== $existing['business_name']) {
         $stmt = $pdo->prepare("SELECT id FROM clients WHERE business_name = ? AND client_auth_id != ? AND deleted_at IS NULL");
         $stmt->execute([$business_name, $client_auth_id]);
         if ($stmt->fetch()) {
@@ -120,20 +134,6 @@ try {
                 $profile_pic = 'uploads/profiles/' . $new_filename;
             }
         }
-    }
-
-    // Fetch existing data for comparison and filling missing fields
-    $stmt_existing = $pdo->prepare("
-        SELECT c.business_name, a.email, c.nin, c.bvn, c.nin_verified, c.bvn_verified, c.subaccount_code, c.account_number, c.bank_code, c.verification_status, c.account_name 
-        FROM clients c
-        JOIN auth_accounts a ON c.client_auth_id = a.id
-        WHERE c.client_auth_id = ?
-    ");
-    $stmt_existing->execute([$client_auth_id]);
-    $existing = $stmt_existing->fetch();
-
-    if (empty($business_name) && $existing) {
-        $business_name = $existing['business_name'];
     }
 
     // Preserve existing nin_verified / bvn_verified by default
@@ -182,10 +182,17 @@ try {
         }
     }
 
+    // Generate custom_id for existing clients who don't have one
+    $customId = $existing['custom_id'] ?? null;
+    if (empty($customId)) {
+        require_once __DIR__ . '/../../api/utils/id-generator.php';
+        $customId = generateClientId($pdo);
+    }
+
     // Prepare Update Query
-    $query = "UPDATE clients SET name = ?, business_name = ?, phone = ?, address = ?, city = ?, state = ?, country = ?, job_title = ?, company = ?, dob = ?, gender = ?, nin = ?, bvn = ?, nin_verified = ?, bvn_verified = ?, account_name = ?, account_number = ?, bank_name = ?, bank_code = ?, verification_status = ?, updated_at = NOW()";
+    $query = "UPDATE clients SET custom_id = ?, name = ?, business_name = ?, phone = ?, address = ?, city = ?, state = ?, country = ?, job_title = ?, company = ?, dob = ?, gender = ?, nin = ?, bvn = ?, nin_verified = ?, bvn_verified = ?, account_name = ?, account_number = ?, bank_name = ?, bank_code = ?, verification_status = ?, updated_at = NOW()";
     $params = [
-        $name, $business_name, $phone, $address, $city, $state, $country, $job_title, $company, $dob, $gender,
+        $customId, $name, $business_name, $phone, $address, $city, $state, $country, $job_title, $company, $dob, $gender,
         $nin, $bvn,
         $nin_verified,
         $bvn_verified,
