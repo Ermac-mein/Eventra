@@ -1,4 +1,3 @@
-
 function showCreateEventModal() {
     const user = storage.getUser();
     if (!user) return;
@@ -33,22 +32,22 @@ function showCreateEventModal() {
                 max-height: 92vh;
                 overflow-y: auto;
                 background: linear-gradient(135deg, #f5f3ff 0%, #fdf4ff 50%, ##1f2937 50%);
-                border-radius: 15px;
+                border-radius: 10px;
                 box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
                 position: relative;
                 animation: slideIn 0.3s ease-out;">
                 
                 <!-- Decorative Background Pattern -->
-                <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; overflow: hidden; border-radius: 24px; opacity: 0.4; pointer-events: none;">
-                    <div style="position: absolute; top: -50px; right: -50px; width: 200px; height: 200px; background: radial-gradient(circle, rgba(2, 36, 41, 0.88), transparent); border-radius: 50%;"></div>
-                    <div style="position: absolute; bottom: -30px; left: -30px; width: 150px; height: 150px; background: radial-gradient(circle, rgba(8, 88, 102, 0.3), transparent); border-radius: 50%;"></div>
-                    <div style="position: absolute; top: 50%; left: 50%; width: 300px; height: 300px; background: radial-gradient(circle, rgba(8, 27, 68, 0.2), transparent); border-radius: 50%; transform: translate(-50%, -50%);"></div>
+                <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; overflow: hidden; border-radius: 10px; opacity: 0.4; pointer-events: none;">
+                    <div style="position: absolute; top: -50px; right: -50px; width: 200px; height: 200px; background: radial-gradient(circle, rgba(2, 36, 41, 0.88), transparent); border-radius: 20%;"></div>
+                    <div style="position: absolute; bottom: -30px; left: -30px; width: 150px; height: 150px; background: radial-gradient(circle, rgba(8, 88, 102, 0.3), transparent); border-radius: 20%;"></div>
+                    <div style="position: absolute; top: 50%; left: 50%; width: 300px; height: 300px; background: radial-gradient(circle, rgba(8, 27, 68, 0.2), transparent); border-radius: 20%; transform: translate(-50%, -50%);"></div>
                 </div>
                 
                 <div style="position: relative; z-index: 1;">
                     <div class="modal-header" style="padding: 2.5rem 3rem 1.5rem; border-bottom: 1px solid rgba(9, 29, 143, 0.1);">
                         <div style="text-align: center;">
-                            <div style="display: inline-block; background: linear-gradient(135deg, #09287eff, #48aaecff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-size: 1rem; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 0.5rem;">EVENTRA</div>
+                            <div style="display: inline-block; background: linear-gradient(135deg, #09287eff, #722f37); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-size: 1rem; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 0.5rem;">EVENTRA</div>
                             <h2 style="font-size: 2rem; font-weight: 800; color: #1f2937; margin: 0;">Create Event</h2>
                         </div>
                         <button class="modal-close" onclick="closeCreateEventModal()" 
@@ -218,14 +217,6 @@ function showCreateEventModal() {
                                             <input type="checkbox" id="freeEventCheckbox" style="width: 1.2rem; height: 1.2rem; accent-color: #722f37;"> FREE EVENT
                                         </label>
                                     </div>
-                                    <div class="form-group">
-                                        <label style="display: block; font-size: 0.875rem; font-weight: 600; color: #6b7280; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.5px;">Visibility</label>
-                                        <select id="eventVisibilitySelect" name="event_visibility"
-                                                style="width: 100%; padding: 1rem 1.25rem; border: 2px solid #e5e7eb; border-radius: 12px; font-size: 1rem; font-weight: 600; background: white; color: #374151; box-shadow: 0 2px 8px rgba(0,0,0,0.04); cursor: pointer; height: 56px;">
-                                            <option value="public">🌐 Public</option>
-                                            <option value="private">🔒 Private</option>
-                                        </select>
-                                    </div>
                                 </div>
 
                                 <!-- Max Capacity (shown only when FREE is checked) -->
@@ -286,7 +277,15 @@ function showCreateEventModal() {
                                         </label>
                                     </div>
                                 </div>
+                                </div>
 
+                                <div class="form-group">
+                                    <label style="display: block; font-size: 0.875rem; font-weight: 600; color: #6b7280; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.5px;">Visibility</label>
+                                    <select id="eventVisibilitySelect" name="event_visibility"
+                                            style="width: 100%; padding: 1rem 1.25rem; border: 2px solid #e5e7eb; border-radius: 12px; font-size: 1rem; font-weight: 600; background: white; color: #374151; box-shadow: 0 2px 8px rgba(0,0,0,0.04); cursor: pointer; height: 56px;">
+                                        <option value="public">🌐 Public</option>
+                                        <option value="private">🔒 Private</option>
+                                    </select>
                                 </div>
 
                                 <div class="form-group">
@@ -324,8 +323,8 @@ function showCreateEventModal() {
 
                                 <!-- Submit Buttons -->
                                 <div style="display: flex; gap: 1.25rem; margin-top: 1rem;">
-                                    <button type="submit" class="btn btn-primary" style="flex: 2; padding: 1.25rem; font-size: 1.125rem; font-weight: 700; justify-content: center; background: #4f46e5; border: none; border-radius: 14px; color: white; cursor: pointer; box-shadow: 0 10px 25px rgba(79, 70, 229, 0.3); transition: all 0.3s;">
-                                        Create Event ✨
+                                    <button type="submit" class="btn btn-primary" style="flex: 2; padding: 1.25rem; font-size: 1.125rem; font-weight: 700; justify-content: center; background: #722f37; border: none; border-radius: 14px; color: white; cursor: pointer; box-shadow: 0 10px 25px rgba(79, 70, 229, 0.3); transition: all 0.3s;">
+                                        Create Event
                                     </button>
                                     <button type="button" class="btn btn-secondary" onclick="closeCreateEventModal()" style="flex: 1; padding: 1.25rem; font-size: 1.125rem; justify-content: center; background: white; border: 2px solid #e5e7eb; border-radius: 14px; color: #6b7280; cursor: pointer; font-weight: 600; transition: all 0.3s;">
                                         Cancel

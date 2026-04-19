@@ -468,7 +468,19 @@ function initDesktopSidebar() {
         if (icon) icon.setAttribute('data-lucide', 'chevron-right');
 
         const logoEl = sidebar.querySelector('.sidebar-logo');
-        if (logoEl) logoEl.style.opacity = '0';
+        if (logoEl) {
+            logoEl.style.fontSize = '0';
+            logoEl.style.minHeight = '80px';
+            logoEl.style.height = '80px';
+            logoEl.style.padding = '0';
+            logoEl.style.overflow = 'hidden';
+            logoEl.style.opacity = '0';
+            logoEl.style.pointerEvents = 'none';
+            logoEl.style.display = 'flex';
+            logoEl.style.alignItems = 'center';
+            logoEl.style.justifyContent = 'center';
+            logoEl.style.flexShrink = '0';
+        }
     }
 
     toggleBtn.addEventListener('click', () => {
@@ -483,7 +495,33 @@ function initDesktopSidebar() {
         }
 
         const logoEl = sidebar.querySelector('.sidebar-logo');
-        if (logoEl) logoEl.style.opacity = nowCollapsed ? '0' : '1';
+        if (logoEl) {
+            if (nowCollapsed) {
+                logoEl.style.fontSize = '0';
+                logoEl.style.minHeight = '80px';
+                logoEl.style.height = '80px';
+                logoEl.style.padding = '0';
+                logoEl.style.overflow = 'hidden';
+                logoEl.style.opacity = '0';
+                logoEl.style.pointerEvents = 'none';
+                logoEl.style.display = 'flex';
+                logoEl.style.alignItems = 'center';
+                logoEl.style.justifyContent = 'center';
+                logoEl.style.flexShrink = '0';
+            } else {
+                logoEl.style.fontSize = '';
+                logoEl.style.minHeight = '';
+                logoEl.style.height = '';
+                logoEl.style.padding = '';
+                logoEl.style.overflow = '';
+                logoEl.style.opacity = '';
+                logoEl.style.pointerEvents = '';
+                logoEl.style.display = '';
+                logoEl.style.alignItems = '';
+                logoEl.style.justifyContent = '';
+                logoEl.style.flexShrink = '';
+            }
+        }
     });
 
     // Wire up Create Event buttons - remove inline onclick dependency

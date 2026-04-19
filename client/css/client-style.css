@@ -34,7 +34,7 @@
     
     /* Dimensions & Spacing */
     --client-sidebar-width: 280px;
-    --client-sidebar-collapsed-width: 88px;
+    --client-sidebar-collapsed-width: 72px;   /* was 88px — tighter but icons still have full 52px touch targets with 10px margin each side */
     --client-header-height: 80px;
     --client-radius: 16px;
     --client-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
@@ -91,17 +91,43 @@ body {
 }
 
 .sidebar.collapsed .sidebar-logo {
+    height: 80px;            /* matches header height — creates visual alignment */
+    padding: 0;
+    font-size: 0;            /* hides EVENTRA text */
+    overflow: hidden;
     opacity: 0;
     pointer-events: none;
-    height: 0;
-    padding: 0;
-    margin: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;          /* prevents it from collapsing under flex pressure */
+    min-height: 80px;        /* hard floor so flex cannot squash it */
+}
+
+.sidebar.collapsed .sidebar-menu {
+    padding: 0.75rem 0;      /* vertical breathing room top and bottom */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;                  /* gap handled per menu-item below */
+}
+
+.sidebar.collapsed .menu-item {
+    width: 100%;
+    margin-bottom: 4px;      /* consistent gap between every icon */
+    display: flex;
+    justify-content: center;
 }
 
 .sidebar.collapsed .menu-item a {
-    padding: 1rem;
+    padding: 0.875rem;       /* equal padding all sides = square touch target */
     justify-content: center;
     gap: 0;
+    width: 52px;             /* fixed square width */
+    height: 52px;            /* fixed square height */
+    display: flex;
+    align-items: center;
+    border-radius: 12px;     /* maintain pill shape */
 }
 
 .sidebar.collapsed .menu-item a span,
@@ -111,7 +137,36 @@ body {
 
 .sidebar.collapsed .menu-item a i {
     margin: 0;
-    font-size: 1.5rem;
+    font-size: 1.35rem;      /* slightly reduced so icon fits cleanly in 52px box */
+    flex-shrink: 0;
+}
+
+.sidebar.collapsed .sidebar-footer {
+    padding: 1rem 0;
+    display: flex;
+    justify-content: center;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.sidebar.collapsed .sidebar-footer a {
+    padding: 0.875rem;
+    width: 52px;
+    height: 52px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    transition: var(--transition-base);
+    gap: 0;
+}
+
+.sidebar.collapsed .sidebar-footer a:hover {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.sidebar.collapsed .sidebar-footer a i {
+    font-size: 1.35rem;
+    margin: 0;
 }
 
 .sidebar-logo {
