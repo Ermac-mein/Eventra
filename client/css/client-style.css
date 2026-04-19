@@ -93,7 +93,10 @@ body {
 .sidebar.collapsed .sidebar-logo {
     padding: 2rem 0;
     text-align: center;
-    font-size: 1.25rem;
+    font-size: 0;          /* hides EVENTRA text */
+    overflow: hidden;
+    height: 0;             /* collapses the entire logo block */
+    padding: 0;
 }
 
 .sidebar.collapsed .menu-item a {
@@ -275,7 +278,7 @@ body {
 }
 
 .verification-badge.verified, .badge-verified {
-    background-color: #3b82f6;
+    background-color: #047857;
     color: white;
 }
 

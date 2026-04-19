@@ -87,8 +87,11 @@ body {
     width: var(--admin-sidebar-collapsed-width);
 }
 
-.sidebar.sidebar-collapsed .logo-text {
-    display: none;
+.sidebar.sidebar-collapsed .sidebar-logo {
+    padding: 0;
+    font-size: 0;
+    height: 0;
+    overflow: hidden;
 }
 
 .sidebar.sidebar-collapsed .menu-item a span,

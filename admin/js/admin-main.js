@@ -550,6 +550,15 @@ function initSidebar() {
         mainLayout.classList.add('collapsed');
         // adjust icon to point right when collapsed
         toggleBtn.innerHTML = '<i data-lucide="chevron-right"></i>';
+
+        // Set correct initial logo state (Parity with client)
+        const logoEl = sidebar.querySelector('.sidebar-logo');
+        if (logoEl) {
+            logoEl.style.fontSize = '0';
+            logoEl.style.padding = '0';
+            logoEl.style.height = '0';
+            logoEl.style.overflow = 'hidden';
+        }
     }
 
     // 3. Toggle Event
@@ -561,6 +570,15 @@ function initSidebar() {
         // Swap icon direction
         toggleBtn.innerHTML = nowCollapsed ? '<i data-lucide="chevron-right"></i>' : '<i data-lucide="chevron-left"></i>';
         if (window.lucide) window.lucide.createIcons();
+
+        // Toggle logo text visibility (Parity with client)
+        const logoEl = sidebar.querySelector('.sidebar-logo');
+        if (logoEl) {
+            logoEl.style.fontSize = nowCollapsed ? '0' : '';
+            logoEl.style.padding = nowCollapsed ? '0' : '';
+            logoEl.style.height = nowCollapsed ? '0' : '';
+            logoEl.style.overflow = nowCollapsed ? 'hidden' : '';
+        }
     });
 
     // 5. Active State Highlighting
