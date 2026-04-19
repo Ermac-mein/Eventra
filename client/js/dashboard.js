@@ -1,4 +1,28 @@
+window.handleCreateEventClick = function() {
+    let user = null;
+    if (window.storage) user = window.storage.getUser();
+    if (!user && window.stateManager) user = window.stateManager.getState().user;
+    
+    if (user && user.verification_status !== 'verified') {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Action Restricted',
+            text: "To create events your profile must be verified, so properly fill your profile so it'll be approved before you proceed",
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 4000
+        });
+        return;
+    }
+    
+    if (typeof showCreateEventModal === 'function') {
+        showCreateEventModal();
+    }
+};
+
 document.addEventListener('DOMContentLoaded', async () => {
+
     // Load cached stats immediately for better UX
     loadCachedStats();
 
@@ -74,14 +98,15 @@ async function loadClientProfile() {
             }
 
             const banner = document.getElementById('verificationBanner');
+            const bannerText = document.getElementById('verificationBannerText');
+
             if (banner) {
                 const createBtn = document.getElementById('dashboardCreateEventBtn');
                 
                 if (user.verification_status === 'verified') {
                     banner.style.display = 'none';
                     if (createBtn) {
-                        createBtn.style.opacity = '1';
-                        createBtn.style.cursor = 'pointer';
+                        createBtn.disabled = false;
                     }
                     
                     if (!localStorage.getItem('create_event_toast_' + user.id)) {
@@ -97,24 +122,26 @@ async function loadClientProfile() {
                     }
                 } else if (user.verification_status === 'rejected') {
                     if (createBtn) {
-                        createBtn.style.opacity = '0.5';
-                        createBtn.style.cursor = 'not-allowed';
+                        createBtn.disabled = true;
                     }
                     banner.style.display = 'block';
                     banner.style.background = '#fee2e2';
                     banner.style.color = '#991b1b';
                     banner.style.borderColor = '#fecaca';
-                    banner.innerHTML = `<strong>Verification Declined:</strong> Your account details were rejected. <a href="javascript:void(0)" onclick="window.showProfileEditModal()" style="font-weight:700; margin-left:8px; color: inherit; text-decoration: underline;">Update Profile</a>`;
+                    if (bannerText) {
+                        bannerText.innerHTML = `<strong>Verification Declined:</strong> Your account details were rejected. <a href="javascript:void(0)" onclick="window.showProfileEditModal()" style="font-weight:700; margin-left:8px; color: inherit; text-decoration: underline;">Update Profile</a>`;
+                    }
                 } else {
                     if (createBtn) {
-                        createBtn.style.opacity = '0.5';
-                        createBtn.style.cursor = 'not-allowed';
+                        createBtn.disabled = true;
                     }
                     banner.style.display = 'block';
                     banner.style.background = '#fff3cd';
                     banner.style.color = '#856404';
                     banner.style.borderColor = '#ffeeba';
-                    banner.innerHTML = `To create events your profile must be verified, so properly fill your profile so it'll be approved before you proceed. <a href="javascript:void(0)" onclick="window.showProfileEditModal()" style="font-weight:700; margin-left:8px; color: inherit; text-decoration: underline;">Update Profile</a>`;
+                    if (bannerText) {
+                        bannerText.innerHTML = `To create events your profile must be verified, so properly fill your profile so it'll be approved before you proceed. <a href="javascript:void(0)" onclick="window.showProfileEditModal()" style="font-weight:700; margin-left:8px; color: inherit; text-decoration: underline;">Update Profile</a>`;
+                    }
                 }
             }
 
@@ -124,28 +151,6 @@ async function loadClientProfile() {
     }
 }
 
-window.handleCreateEventClick = function() {
-    let user = null;
-    if (window.storage) user = window.storage.getUser();
-    if (!user && window.stateManager) user = window.stateManager.getState().user;
-    
-    if (user && user.verification_status !== 'verified') {
-        Swal.fire({
-            icon: 'warning',
-            title: 'Action Restricted',
-            text: "To create events your profile must be verified, so properly fill your profile so it'll be approved before you proceed",
-            toast: true,
-            position: 'top-end',
-            showConfirmButton: false,
-            timer: 4000
-        });
-        return;
-    }
-    
-    if (typeof showCreateEventModal === 'function') {
-        showCreateEventModal();
-    }
-};
 
 async function loadDashboardStats() {
     try {

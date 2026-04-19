@@ -536,6 +536,36 @@ td { padding: 1.25rem 2rem; border-bottom: 1px solid var(--client-border); font-
 .btn-primary { background: var(--client-primary); color: white; }
 .btn-primary:hover { background: var(--client-primary-dark); }
 
+.btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed !important;
+    pointer-events: none;
+}
+
+/* Verification Banner Sliding Text */
+.banner-marquee-container {
+    overflow: hidden;
+    white-space: nowrap;
+    width: 100%;
+    position: relative;
+}
+
+.banner-marquee-text {
+    display: inline-block;
+    padding-left: 100%;
+    animation: marquee 25s linear infinite;
+}
+
+@keyframes marquee {
+    0%   { transform: translateX(0); }
+    100% { transform: translateX(-100%); }
+}
+
+.banner-marquee-container:hover .banner-marquee-text {
+    animation-play-state: paused;
+}
+
+
 /* Standardized Modal System */
 .modal-backdrop {
     position: fixed;

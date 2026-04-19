@@ -362,8 +362,18 @@ function getStatusColor(status) {
 }
 
 function initCreateEventButton() {
-    // The button already has onclick="showCreateEventModal()" in events.html
-    // This function is kept for compatibility but no longer adds redundant listeners.
+    const user = storage.getUser();
+    const createBtn = document.getElementById('eventsCreateEventBtn');
+    
+    if (createBtn && user) {
+        if (user.verification_status !== 'verified') {
+            createBtn.disabled = true;
+            createBtn.title = 'Complete profile and wait for approval to create events';
+        } else {
+            createBtn.disabled = false;
+            createBtn.title = '';
+        }
+    }
 }
 
 // showCreateEventModal is defined in create-event.js
