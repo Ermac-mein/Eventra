@@ -3,15 +3,22 @@ function showCreateEventModal() {
     const user = storage.getUser();
     if (!user) return;
 
-    if (user.verification_status !== 'verified') {
+    if (!user.verification_status || user.verification_status !== 'verified') {
         Swal.fire({
-            title: 'Action Restricted',
-            text: 'Your account is currently pending approval. You cannot create events until your profile is approved by an administrator.',
-            icon: 'lock',
+            title: 'Account Not Approved',
+            html: user.verification_status === 'rejected'
+                ? '<strong>Your account was rejected.</strong><br>Please update your profile and resubmit for administrator review before creating events.'
+                : '<strong>Your account is pending approval.</strong><br>You cannot create events until an administrator approves your profile.',
+            icon: 'warning',
             confirmButtonColor: '#722f37',
-            confirmButtonText: 'View Profile Status'
-        }).then(() => {
-            if (typeof window.showProfileEditModal === 'function') window.showProfileEditModal();
+            confirmButtonText: 'Update My Profile',
+            showCancelButton: true,
+            cancelButtonText: 'Close',
+            cancelButtonColor: '#9ca3af'
+        }).then((result) => {
+            if (result.isConfirmed && typeof window.showProfileEditModal === 'function') {
+                window.showProfileEditModal();
+            }
         });
         return;
     }
@@ -189,33 +196,43 @@ function showCreateEventModal() {
                                     </div>
                                 </div>
 
-                                <!-- Contact & Price -->
+                                <!-- Primary Contact - Full width -->
+                                <div class="form-group">
+                                    <label style="display: block; font-size: 0.875rem; font-weight: 600; color: #6b7280; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.5px;">Primary Contact <span style="color: #ef4444">*</span></label>
+                                    <input type="tel" name="phone_contact_1" required placeholder="+234..." 
+                                           style="width: 100%; padding: 1rem 1.25rem; border: 2px solid #e5e7eb; border-radius: 12px; font-size: 1rem; background: white; transition: all 0.3s; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
+                                </div>
+
+                                <!-- Secondary Contact - Full width -->
+                                <div class="form-group">
+                                    <label style="display: block; font-size: 0.875rem; font-weight: 600; color: #6b7280; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.5px;">Secondary Contact</label>
+                                    <input type="tel" name="phone_contact_2" placeholder="+234... (optional)" 
+                                           style="width: 100%; padding: 1rem 1.25rem; border: 2px solid #e5e7eb; border-radius: 12px; font-size: 1rem; background: white; transition: all 0.3s; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
+                                </div>
+
+                                <!-- FREE checkbox + Visibility - Two column row -->
                                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
                                     <div class="form-group">
-                                        <label style="display: block; font-size: 0.875rem; font-weight: 600; color: #6b7280; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.5px;">Primary Contact <span style="color: #ef4444">*</span></label>
-                                        <input type="tel" name="phone_contact_1" required placeholder="+234..." 
-                                               style="width: 100%; padding: 1rem 1.25rem; border: 2px solid #e5e7eb; border-radius: 12px; font-size: 1rem; background: white; transition: all 0.3s; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
+                                        <label style="display: block; font-size: 0.875rem; font-weight: 600; color: #6b7280; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.5px;">Ticket Pricing</label>
+                                        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; user-select: none; font-weight: 600; color: #6b7280; background: white; padding: 1rem 1.25rem; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); border: 2px solid #e5e7eb; height: 56px;">
+                                            <input type="checkbox" id="freeEventCheckbox" style="width: 1.2rem; height: 1.2rem; accent-color: #722f37;"> FREE EVENT
+                                        </label>
                                     </div>
+                                    <div class="form-group">
+                                        <label style="display: block; font-size: 0.875rem; font-weight: 600; color: #6b7280; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.5px;">Visibility</label>
+                                        <select id="eventVisibilitySelect" name="event_visibility"
+                                                style="width: 100%; padding: 1rem 1.25rem; border: 2px solid #e5e7eb; border-radius: 12px; font-size: 1rem; font-weight: 600; background: white; color: #374151; box-shadow: 0 2px 8px rgba(0,0,0,0.04); cursor: pointer; height: 56px;">
+                                            <option value="public">🌐 Public</option>
+                                            <option value="private">🔒 Private</option>
+                                        </select>
+                                    </div>
+                                </div>
 
-                                    <div class="form-group" id="priceInputGroup">
-                                        <label style="display: block; font-size: 0.875rem; font-weight: 600; color: #6b7280; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.5px;">Event Type & Visibility</label>
-                                        <div style="display: flex; align-items: center; gap: 0.75rem; min-height: 52px; flex-wrap: wrap;">
-                                            <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; user-select: none; font-weight: 600; color: #6b7280; background: white; padding: 0.75rem 1.25rem; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); border: 2px solid #e5e7eb;">
-                                                <input type="checkbox" id="freeEventCheckbox" style="width: 1.2rem; height: 1.2rem; accent-color: #722f37;"> FREE
-                                            </label>
-                                            <select id="eventVisibilitySelect" name="event_visibility" style="padding: 0.75rem 1.25rem; border-radius: 12px; border: 2px solid #e5e7eb; font-size: 0.95rem; font-weight: 600; background: white; color: #374151; box-shadow: 0 2px 8px rgba(0,0,0,0.04); cursor: pointer;">
-                                                <option value="public">🌐 Public</option>
-                                                <option value="private">🔒 Private</option>
-                                            </select>
-                                        </div>
-                                    </div>
-
-                                    <!-- Max Capacity (Hidden by default, shown for Free events) -->
-                                    <div class="form-group" id="maxCapacityGroup" style="display: none;">
-                                        <label style="display: block; font-size: 0.875rem; font-weight: 600; color: #6b7280; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.5px;">Max Capacity <span style="color: #ef4444">*</span></label>
-                                        <input type="number" name="max_capacity" id="maxCapacityInput" placeholder="Total tickets available" min="1" 
-                                               style="width: 100%; padding: 1rem 1.25rem; border: 2px solid #e5e7eb; border-radius: 12px; font-size: 1rem; background: white; transition: all 0.3s; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
-                                    </div>
+                                <!-- Max Capacity (shown only when FREE is checked) -->
+                                <div class="form-group" id="maxCapacityGroup" style="display: none;">
+                                    <label style="display: block; font-size: 0.875rem; font-weight: 600; color: #6b7280; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.5px;">Max Capacity <span style="color: #ef4444">*</span></label>
+                                    <input type="number" name="max_capacity" id="maxCapacityInput" placeholder="Total tickets available" min="1" 
+                                           style="width: 100%; padding: 1rem 1.25rem; border: 2px solid #e5e7eb; border-radius: 12px; font-size: 1rem; background: white; transition: all 0.3s; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
                                 </div>
 
                                 <!-- Ticket Type Configuration -->
@@ -270,12 +287,6 @@ function showCreateEventModal() {
                                     </div>
                                 </div>
 
-                                <!-- Additional Fields -->
-                                    <div class="form-group">
-                                        <label style="display: block; font-size: 0.875rem; font-weight: 600; color: #6b7280; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.5px;">Secondary Contact</label>
-                                        <input type="tel" name="phone_contact_2" placeholder="+234... (optional)" 
-                                               style="width: 100%; padding: 1rem 1.25rem; border: 2px solid #e5e7eb; border-radius: 12px; font-size: 1rem; background: white; transition: all 0.3s; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
-                                    </div>
                                 </div>
 
                                 <div class="form-group">

@@ -17,10 +17,17 @@ try {
     $offset    = (int)($_GET['offset'] ?? 0);
     $user_role = $_SESSION['user_role'] ?? 'guest';
 
-    // ── Merit Score Expression ──────────────────────────────────────────────
-    // Score = (view_count * 0.3 + sales_count * 0.7) * freshness_boost
     $meritScore = "((IFNULL(e.view_count,0) * 0.3 + IFNULL(e.sales_count,0) * 0.7)
                     * IF(e.created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY), 1.2, 1.0))";
+
+    // Dynamic Priority Label Logic
+    $priorityLabel = "CASE 
+        WHEN e.is_boosted = 1 THEN '⭐ Featured'
+        WHEN $meritScore > 200 THEN '📈 Trending'
+        WHEN $meritScore > 100 THEN '🔥 Hot'
+        WHEN e.created_at >= DATE_SUB(NOW(), INTERVAL 2 DAY) THEN '🕒 Upcoming'
+        ELSE '📍 Nearby'
+    END";
 
     // ── Waterfall Fallback Feed ─────────────────────────────────────────────
     if (($_GET['feed'] ?? '') === 'waterfall') {
@@ -32,7 +39,7 @@ try {
             LEFT JOIN clients u ON e.client_id = u.id
             WHERE e.deleted_at IS NULL
               AND e.status = 'published'
-              AND e.admin_status NOT IN ('banished', 'archived')";
+              AND e.admin_status = 'approved'";
 
         $ticketFilter = "AND (e.ticket_count > 0 OR e.ticket_count IS NULL)";
 
@@ -46,6 +53,7 @@ try {
                 (u.verification_status = 'verified') AS is_verified,
                 0 AS is_favorite,
                 $meritScore AS merit_score,
+                $priorityLabel AS priority_label,
                 (6371 * ACOS(
                     COS(RADIANS(?)) * COS(RADIANS(e.latitude)) *
                     COS(RADIANS(e.longitude) - RADIANS(?)) +
@@ -68,7 +76,8 @@ try {
                 u.verification_status,
                 (u.verification_status = 'verified') AS is_verified,
                 0 AS is_favorite,
-                $meritScore AS merit_score
+                $meritScore AS merit_score,
+                $priorityLabel AS priority_label
                 $publicBase AND e.state = ? $ticketFilter
                 ORDER BY merit_score DESC LIMIT 10");
             $s->execute([$state]);
@@ -83,7 +92,8 @@ try {
                 u.verification_status,
                 (u.verification_status = 'verified') AS is_verified,
                 0 AS is_favorite,
-                $meritScore AS merit_score
+                $meritScore AS merit_score,
+                $priorityLabel AS priority_label
                 $publicBase $ticketFilter
                 ORDER BY merit_score DESC LIMIT 10");
             $s->execute([]);
@@ -98,7 +108,8 @@ try {
                 u.verification_status,
                 (u.verification_status = 'verified') AS is_verified,
                 0 AS is_favorite,
-                0 AS merit_score
+                0 AS merit_score,
+                $priorityLabel AS priority_label
                 $publicBase
                 ORDER BY e.created_at DESC LIMIT 10");
             $s->execute([]);
@@ -109,6 +120,7 @@ try {
         if ($user_role !== 'admin') {
             $events = array_map(function($ev) {
                 unset($ev['is_boosted']);
+                unset($ev['priority']); // legacy
                 return $ev;
             }, $events);
         }
@@ -144,8 +156,7 @@ try {
         $params[]        = $status;
     } elseif ($user_role !== 'admin' && $user_role !== 'client') {
         $where_clauses[] = "e.status = 'published'";
-        // Hide banished/archived from public feeds
-        $where_clauses[] = "e.admin_status NOT IN ('banished','archived')";
+        $where_clauses[] = "e.admin_status = 'approved'";
     }
 
     // Exclude soft-deleted
@@ -185,6 +196,7 @@ try {
             u.profile_pic   AS client_profile_pic,
             u.verification_status,
             (u.verification_status = 'verified') AS is_verified,
+            $priorityLabel AS priority_label,
             $favoriteSubquery
         FROM events e
         LEFT JOIN clients u ON e.client_id = u.id
@@ -209,6 +221,7 @@ try {
     if ($user_role !== 'admin') {
         $events = array_map(function($ev) {
             unset($ev['is_boosted']);
+            unset($ev['priority']); // legacy
             return $ev;
         }, $events);
     }

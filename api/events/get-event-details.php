@@ -25,6 +25,9 @@ if (!$event_id) {
 }
 
 try {
+    // Increment view count atomically
+    $pdo->prepare("UPDATE events SET view_count = view_count + 1 WHERE id = ?")->execute([$event_id]);
+
     // Get event details with client information
     $stmt = $pdo->prepare("
         SELECT e.*, c.business_name as client_name, c.profile_pic as client_profile_pic, (c.verification_status = 'verified') as client_is_verified

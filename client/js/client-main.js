@@ -340,63 +340,51 @@ window.updateClientNameDisplay = updateClientNameDisplay;
 
 function syncVerificationBanner(user) {
     const banner = document.getElementById('verificationBanner');
+    const createBtn = document.getElementById('dashboardCreateEventBtn');
     if (!banner) return;
 
-    const status = user.verification_status; // values: 'pending', 'verified', 'rejected'
+    const status = user.verification_status; // 'pending', 'verified', 'rejected'
 
     if (status === 'verified') {
         banner.style.display = 'none';
-        
-        // Reset button state
-        const createBtn = document.getElementById('dashboardCreateEventBtn');
         if (createBtn) {
             createBtn.disabled = false;
-            createBtn.title = '';
-            createBtn.style.opacity = '';
-            createBtn.style.cursor = '';
-            createBtn.style.filter = '';
+            createBtn.style.opacity = '1';
+            createBtn.style.cursor = 'pointer';
+            createBtn.style.filter = 'none';
+            createBtn.title = 'Create a new event';
         }
         return;
     }
 
-    // Build the appropriate message based on status
-    const messages = {
-        pending: 'Your account is pending admin approval. You cannot create events until your profile is approved. <a href="javascript:void(0)" onclick="window.showProfileEditModal()" style="font-weight:700; margin-left:8px; color:inherit; text-decoration:underline;">Review Profile</a>',
-        rejected: 'Your account was rejected. Please update your profile and resubmit for review. <a href="javascript:void(0)" onclick="window.showProfileEditModal()" style="font-weight:700; margin-left:8px; color:inherit; text-decoration:underline;">Update Profile</a>'
-    };
+    // Messaging and Styling
+    const isRejected = (status === 'rejected');
+    const message = isRejected
+        ? '<strong>Account Rejected:</strong> Please update your profile with valid details and resubmit for review. <a href="javascript:void(0)" onclick="window.showProfileEditModal()" style="color:inherit; text-decoration:underline; font-weight:800; margin-left:10px;">Fix Profile</a>'
+        : '<strong>Account Pending:</strong> Your profile is currently under review. Event creation will be enabled once approved. <a href="javascript:void(0)" onclick="window.showProfileEditModal()" style="color:inherit; text-decoration:underline; font-weight:800; margin-left:10px;">Review Profile</a>';
 
-    // Apply status-specific banner color
-    if (status === 'rejected') {
-        banner.style.background = '#fee2e2';
-        banner.style.borderColor = '#fca5a5';
-        banner.style.color = '#991b1b';
-    } else {
-        // pending — keep existing yellow styling
-        banner.style.background = '#fff3cd';
-        banner.style.borderColor = '#ffeeba';
-        banner.style.color = '#856404';
-    }
+    banner.style.background = isRejected ? '#fee2e2' : '#fff3cd';
+    banner.style.border = `1px solid ${isRejected ? '#fca5a5' : '#ffeeba'}`;
+    banner.style.color = isRejected ? '#991b1b' : '#856404';
 
     const textEl = document.getElementById('verificationBannerText');
-    if (textEl) textEl.innerHTML = messages[status] || messages['pending'];
+    if (textEl) textEl.innerHTML = message;
 
     banner.style.display = 'block';
 
-    // Visually disable the button
-    const createBtn = document.getElementById('dashboardCreateEventBtn');
+    // Gate the create button
     if (createBtn) {
         createBtn.disabled = true;
-        createBtn.title = status === 'rejected'
-            ? 'Your account was rejected. Update your profile to reapply.'
-            : 'Your account is pending approval. Create Event will be enabled once approved.';
         createBtn.style.opacity = '0.5';
         createBtn.style.cursor = 'not-allowed';
-        createBtn.style.filter = 'grayscale(0.4)';
+        createBtn.style.filter = 'grayscale(1)';
+        createBtn.title = isRejected ? 'Fix your profile to re-apply' : 'Awaiting admin approval';
     }
 }
 window.syncVerificationBanner = syncVerificationBanner;
 
 function handleCreateEventClick() {
+    // Single gate for account verification
     const user = storage.getUser();
     if (!user) return;
 
@@ -404,11 +392,14 @@ function handleCreateEventClick() {
         Swal.fire({
             title: 'Account Not Approved',
             html: user.verification_status === 'rejected'
-                ? 'Your account was <strong>rejected</strong>. Please update your profile and resubmit for admin review.'
-                : 'Your account is <strong>pending approval</strong>. You cannot create events until an administrator approves your profile.',
+                ? '<strong>Your account was rejected.</strong><br>Please update your profile and resubmit for administrator review before creating events.'
+                : '<strong>Your account is pending approval.</strong><br>You cannot create events until an administrator approves your profile.',
             icon: 'warning',
             confirmButtonColor: '#722f37',
-            confirmButtonText: 'Update Profile'
+            confirmButtonText: 'Update My Profile',
+            showCancelButton: true,
+            cancelButtonText: 'Close',
+            cancelButtonColor: '#9ca3af'
         }).then((result) => {
             if (result.isConfirmed && typeof window.showProfileEditModal === 'function') {
                 window.showProfileEditModal();
@@ -442,7 +433,6 @@ function initDesktopSidebar() {
 
     if (!header || !sidebar || !mainLayout) return;
 
-    // 1. Create Toggle Button (Moved inside sidebar for cleaner layout)
     let toggleBtn = document.getElementById('sidebarToggle');
     if (!toggleBtn) {
         toggleBtn = document.createElement('button');
@@ -469,59 +459,46 @@ function initDesktopSidebar() {
         sidebar.appendChild(toggleBtn);
     }
 
-    // 2. Handle Initial State from LocalStorage
     const isCollapsed = localStorage.getItem('sidebar_collapsed') === 'true';
     if (isCollapsed && window.innerWidth > 768) {
         sidebar.classList.add('collapsed');
         mainLayout.classList.add('collapsed');
         
-        // Set correct initial icon and logo state
         const icon = document.getElementById('sidebarToggleIcon');
-        if (icon) {
-            icon.setAttribute('data-lucide', 'chevron-right');
-        }
+        if (icon) icon.setAttribute('data-lucide', 'chevron-right');
+
         const logoEl = sidebar.querySelector('.sidebar-logo');
-        if (logoEl) {
-            logoEl.style.fontSize = '0';
-            logoEl.style.padding = '2rem 0';
-            logoEl.style.overflow = 'hidden';
-            logoEl.style.height = '0';
-        }
+        if (logoEl) logoEl.style.opacity = '0';
     }
 
-    // 3. Toggle Event
     toggleBtn.addEventListener('click', () => {
         const nowCollapsed = sidebar.classList.toggle('collapsed');
         mainLayout.classList.toggle('collapsed');
         localStorage.setItem('sidebar_collapsed', nowCollapsed);
         
-        // Swap arrow direction
         const icon = document.getElementById('sidebarToggleIcon');
         if (icon) {
             icon.setAttribute('data-lucide', nowCollapsed ? 'chevron-right' : 'chevron-left');
             if (window.lucide) window.lucide.createIcons();
         }
 
-        // Toggle logo text visibility
         const logoEl = sidebar.querySelector('.sidebar-logo');
-        if (logoEl) {
-            logoEl.style.fontSize = nowCollapsed ? '0' : '';
-            logoEl.style.padding = nowCollapsed ? '0' : '';
-            logoEl.style.height = nowCollapsed ? '0' : '';
-            logoEl.style.overflow = nowCollapsed ? 'hidden' : '';
+        if (logoEl) logoEl.style.opacity = nowCollapsed ? '0' : '1';
+    });
+
+    // Wire up Create Event buttons - remove inline onclick dependency
+    const btns = ['dashboardCreateEventBtn', 'eventsCreateEventBtn'];
+    btns.forEach(id => {
+        const btn = document.getElementById(id);
+        if (btn) {
+            btn.onclick = null; // Clear any old inline handler
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                handleCreateEventClick();
+            });
         }
     });
 
-    // 4. Wire up Create Event button if it exists
-    const createBtn = document.getElementById('dashboardCreateEventBtn');
-    if (createBtn) {
-        createBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            handleCreateEventClick();
-        });
-    }
-
-    // Re-init icons
     if (window.lucide) window.lucide.createIcons();
 }
 

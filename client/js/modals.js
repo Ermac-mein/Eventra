@@ -851,14 +851,15 @@ function showEditEventModal(event) {
                             </div>
 
                             <div class="form-group">
-                                <label>Priority Level</label>
-                                <select name="priority" id="editPrioritySelect">
-                                    <option value="nearby" ${event.priority === 'nearby' || event.priority === 'normal' ? 'selected' : ''}>📍 Nearby</option>
-                                    <option value="hot" ${event.priority === 'hot' ? 'selected' : ''}>🔥 Hot</option>
-                                    <option value="trending" ${event.priority === 'trending' ? 'selected' : ''}>📈 Trending</option>
-                                    <option value="featured" ${event.priority === 'featured' ? 'selected' : ''}>⭐ Featured</option>
-                                    <option value="upcoming" ${event.priority === 'upcoming' ? 'selected' : ''}>🕒 Upcoming</option>
-                                </select>
+                                <label>System Ranking</label>
+                                <div style="padding: 0.85rem 1.25rem; background: #f3f4f6; border-radius: 10px; border: 1px solid #e5e7eb; display: flex; align-items: center; gap: 8px; font-weight: 700; color: #374151;">
+                                    <span style="font-size: 1.1rem;">${(event.priority_label || '📍 Nearby').split(' ')[0]}</span> 
+                                    <span style="text-transform: uppercase; letter-spacing: 0.5px;">${(event.priority_label || 'Nearby').split(' ').slice(1).join(' ') || 'Nearby'}</span>
+                                    <input type="hidden" name="priority_label" value="${event.priority_label || 'nearby'}">
+                                </div>
+                                <p style="font-size: 0.75rem; color: #6b7280; margin-top: 0.5rem; font-weight: 500;">
+                                    * Ranking is automatically assigned based on merit score and fresh proximity.
+                                </p>
                             </div>
 
                             <div class="form-group">

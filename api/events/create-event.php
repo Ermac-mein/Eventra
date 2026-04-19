@@ -206,10 +206,34 @@ try {
     }
     $ticket_count = $total_tickets; // Start at full capacity on creation
 
-    $status = $_POST['status'] ?? 'draft';
     $scheduled_publish_time = !empty($_POST['scheduled_publish_time'])
         ? $_POST['scheduled_publish_time']
         : date('Y-m-d H:i:s');
+
+    // Nigerian State Centroid Mapping (Approximate coordinates)
+    $state_centroids = [
+        'Abia' => ['lat' => 5.4527, 'lng' => 7.5248], 'Adamawa' => ['lat' => 9.3265, 'lng' => 12.3984], 
+        'Akwa Ibom' => ['lat' => 5.0148, 'lng' => 7.9128], 'Anambra' => ['lat' => 6.2209, 'lng' => 7.0670], 
+        'Bauchi' => ['lat' => 10.3010, 'lng' => 9.8236], 'Bayelsa' => ['lat' => 4.7725, 'lng' => 6.0699], 
+        'Benue' => ['lat' => 7.3369, 'lng' => 8.7404], 'Borno' => ['lat' => 11.8311, 'lng' => 13.1507], 
+        'Cross River' => ['lat' => 5.8702, 'lng' => 8.5988], 'Delta' => ['lat' => 5.7040, 'lng' => 5.9339], 
+        'Ebonyi' => ['lat' => 6.2649, 'lng' => 8.0137], 'Edo' => ['lat' => 6.6342, 'lng' => 5.9304], 
+        'Ekiti' => ['lat' => 7.6303, 'lng' => 5.2327], 'Enugu' => ['lat' => 6.4584, 'lng' => 7.5464], 
+        'FCT' => ['lat' => 9.0765, 'lng' => 7.3986], 'Gombe' => ['lat' => 10.2791, 'lng' => 11.1731], 
+        'Imo' => ['lat' => 5.5720, 'lng' => 7.0588], 'Jigawa' => ['lat' => 12.1471, 'lng' => 9.3265], 
+        'Kaduna' => ['lat' => 10.5105, 'lng' => 7.4165], 'Kano' => ['lat' => 12.0022, 'lng' => 8.5920], 
+        'Katsina' => ['lat' => 12.9808, 'lng' => 7.6191], 'Kebbi' => ['lat' => 11.4584, 'lng' => 4.1976], 
+        'Kogi' => ['lat' => 7.7337, 'lng' => 6.6906], 'Kwara' => ['lat' => 8.4799, 'lng' => 4.5418], 
+        'Lagos' => ['lat' => 6.5244, 'lng' => 3.3792], 'Nasarawa' => ['lat' => 8.4904, 'lng' => 8.1904], 
+        'Niger' => ['lat' => 9.9309, 'lng' => 5.5983], 'Ogun' => ['lat' => 7.1604, 'lng' => 3.3483], 
+        'Ondo' => ['lat' => 7.1000, 'lng' => 4.8417], 'Osun' => ['lat' => 7.5629, 'lng' => 4.5600], 
+        'Oyo' => ['lat' => 8.1196, 'lng' => 3.4196], 'Plateau' => ['lat' => 9.2182, 'lng' => 9.5179], 
+        'Rivers' => ['lat' => 4.8156, 'lng' => 7.0498], 'Sokoto' => ['lat' => 13.0033, 'lng' => 5.2476], 
+        'Taraba' => ['lat' => 7.8927, 'lng' => 10.7423], 'Yobe' => ['lat' => 12.2939, 'lng' => 11.4390], 
+        'Zamfara' => ['lat' => 12.1222, 'lng' => 6.2236]
+    ];
+    $latitude = $state_centroids[$state]['lat'] ?? 0;
+    $longitude = $state_centroids[$state]['lng'] ?? 0;
 
     // Date cap: event_date must be within 365 days from today
     if (!empty($event_date) && strtotime($event_date) > strtotime('+365 days')) {
@@ -274,8 +298,9 @@ try {
             phone_contact_1, phone_contact_2, state, address, visibility, tag,
             external_link, price, regular_price, vip_price, regular_quantity, vip_quantity,
             image_path, status, scheduled_publish_time, category, event_visibility, ticket_type_mode,
-            ticket_count, total_tickets, sales_count, view_count, is_boosted, admin_status
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ticket_count, total_tickets, sales_count, view_count, is_boosted, admin_status,
+            latitude, longitude
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ");
 
     $stmt->execute([
@@ -309,7 +334,9 @@ try {
         0,                 // sales_count starts at 0
         0,                 // view_count starts at 0
         0,                 // is_boosted — always false on client create
-        'pending'          // admin_status — awaits approval
+        'pending',         // admin_status — awaits approval
+        $latitude,
+        $longitude
     ]);
 
     $event_id = $pdo->lastInsertId();
