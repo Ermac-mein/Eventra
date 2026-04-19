@@ -368,7 +368,7 @@ function initCreateEventButton() {
     if (createBtn && user) {
         if (user.verification_status !== 'verified') {
             createBtn.disabled = true;
-            createBtn.title = 'Complete profile and wait for approval to create events';
+            createBtn.title = 'Your profile must be approved to create events';
         } else {
             createBtn.disabled = false;
             createBtn.title = '';
@@ -545,6 +545,7 @@ async function refreshStats(clientId) {
         if (result.success && result.stats) {
             updateStatsCards(result.stats);
             updateTrashBadge(result.stats.deleted_events || 0);
+            initCreateEventButton(); // Re-evaluate button state
         }
     } catch (e) {
         // silent

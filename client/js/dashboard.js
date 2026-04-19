@@ -99,49 +99,57 @@ async function loadClientProfile() {
 
             const banner = document.getElementById('verificationBanner');
             const bannerText = document.getElementById('verificationBannerText');
+            const createBtn = document.getElementById('dashboardCreateEventBtn');
 
             if (banner) {
-                const createBtn = document.getElementById('dashboardCreateEventBtn');
-                
                 if (user.verification_status === 'verified') {
                     banner.style.display = 'none';
                     if (createBtn) {
                         createBtn.disabled = false;
+                        createBtn.title = '';
                     }
                     
-                    if (!localStorage.getItem('create_event_toast_' + user.id)) {
+                    // Show approved notification once per verify
+                    if (!localStorage.getItem('approved_notification_shown_' + user.id)) {
                         Swal.fire({
                             icon: 'success',
-                            text: 'You can now create events!',
+                            title: 'Profile Approved!',
+                            text: 'Your profile has been approved! You can now create events.',
                             toast: true,
                             position: 'top-end',
                             showConfirmButton: false,
-                            timer: 3000
+                            timer: 5000,
+                            timerProgressBar: true
                         });
-                        localStorage.setItem('create_event_toast_' + user.id, 'true');
-                    }
-                } else if (user.verification_status === 'rejected') {
-                    if (createBtn) {
-                        createBtn.disabled = true;
-                    }
-                    banner.style.display = 'block';
-                    banner.style.background = '#fee2e2';
-                    banner.style.color = '#991b1b';
-                    banner.style.borderColor = '#fecaca';
-                    if (bannerText) {
-                        bannerText.innerHTML = `<strong>Verification Declined:</strong> Your account details were rejected. <a href="javascript:void(0)" onclick="window.showProfileEditModal()" style="font-weight:700; margin-left:8px; color: inherit; text-decoration: underline;">Update Profile</a>`;
+                        localStorage.setItem('approved_notification_shown_' + user.id, 'true');
                     }
                 } else {
+                    // Restricted State (Pending or Rejected)
+                    banner.style.display = 'block';
                     if (createBtn) {
                         createBtn.disabled = true;
+                        createBtn.title = 'Your profile must be approved to create events';
                     }
-                    banner.style.display = 'block';
-                    banner.style.background = '#fff3cd';
-                    banner.style.color = '#856404';
-                    banner.style.borderColor = '#ffeeba';
-                    if (bannerText) {
-                        bannerText.innerHTML = `To create events your profile must be verified, so properly fill your profile so it'll be approved before you proceed. <a href="javascript:void(0)" onclick="window.showProfileEditModal()" style="font-weight:700; margin-left:8px; color: inherit; text-decoration: underline;">Update Profile</a>`;
+
+                    if (user.verification_status === 'rejected') {
+                        banner.style.background = '#fee2e2';
+                        banner.style.color = '#991b1b';
+                        banner.style.borderColor = '#fecaca';
+                        if (bannerText) {
+                            bannerText.innerHTML = `<strong>Verification Declined:</strong> Your account details were rejected. <a href="javascript:void(0)" onclick="window.showProfileEditModal()" style="font-weight:700; margin-left:8px; color: inherit; text-decoration: underline;">Update Profile</a>`;
+                        }
+                    } else {
+                        // Pending
+                        banner.style.background = '#fff3cd';
+                        banner.style.color = '#856404';
+                        banner.style.borderColor = '#ffeeba';
+                        if (bannerText) {
+                            bannerText.innerHTML = `To create events your profile must be verified, so properly fill your profile so it'll be approved before you proceed. <a href="javascript:void(0)" onclick="window.showProfileEditModal()" style="font-weight:700; margin-left:8px; color: inherit; text-decoration: underline;">Update Profile</a>`;
+                        }
                     }
+                    
+                    // Reset notification flag if status is no longer verified (shouldn't really happen normally but good for testing)
+                    localStorage.removeItem('approved_notification_shown_' + user.id);
                 }
             }
 

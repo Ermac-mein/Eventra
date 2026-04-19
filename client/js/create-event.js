@@ -6,7 +6,7 @@ function showCreateEventModal() {
     if (user.verification_status !== 'verified') {
         Swal.fire({
             title: 'Action Restricted',
-            text: 'Your account is currently pending verification. You cannot create events until your profile is approved by an administrator.',
+            text: 'Your account is currently pending approval. You cannot create events until your profile is approved by an administrator.',
             icon: 'lock',
             confirmButtonColor: '#722f37',
             confirmButtonText: 'View Profile Status'
