@@ -63,6 +63,10 @@ function resolveEntity($identifier, $role = null)
     // Profiles (admins, clients, users) take priority for specific fields like 'status'
     $merged = array_merge($account, $profile);
 
+    // CRITICAL: Ensure 'id' always refers to auth_accounts.id (the global auth ID)
+    // role-specific tables also have an 'id' which can overwrite the auth ID during merge.
+    $merged['id'] = $userId;
+
     // Ensure account email/username always wins as it is the auth source of truth
     if (isset($account['email'])) {
         $merged['email'] = $account['email'];

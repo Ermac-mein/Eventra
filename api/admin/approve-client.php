@@ -7,6 +7,7 @@
 
 header('Content-Type: application/json');
 require_once '../../config/database.php';
+require_once '../../config/payment.php';
 require_once '../../includes/middleware/auth.php';
 
 // Unified admin middleware (consistent with other admin APIs)
@@ -28,9 +29,10 @@ try {
     // 1. If approving, check that client has payment setup (bank details + subaccount code)
     if ($status) {
         $checkPaymentStmt = $pdo->prepare("
-            SELECT account_number, bank_code, subaccount_code 
-            FROM clients 
-            WHERE id = ? AND deleted_at IS NULL
+            SELECT c.account_number, c.bank_code, c.subaccount_code, c.name, c.business_name, c.client_auth_id, a.email
+            FROM clients c
+            JOIN auth_accounts a ON c.client_auth_id = a.id
+            WHERE c.id = ? AND c.deleted_at IS NULL
         ");
         $checkPaymentStmt->execute([$client_id]);
         $paymentInfo = $checkPaymentStmt->fetch(PDO::FETCH_ASSOC);
@@ -52,10 +54,24 @@ try {
             exit;
         }
 
-        // If no subaccount_code, admin should have created one or client needs to
+        // If no subaccount_code, create one now using the payment helper
         if (empty($paymentInfo['subaccount_code'])) {
-            // Log warning but allow approval - subaccount will be created on first event publish
-            error_log("[approve-client.php] Warning: Client {$client_id} approved without subaccount_code. Will be created on first event publish.");
+            $subResult = ensureSubaccount(
+                $pdo,
+                $paymentInfo['client_auth_id'],
+                $paymentInfo['bank_code'],
+                $paymentInfo['account_number'],
+                $paymentInfo['business_name'] ?: $paymentInfo['name'],
+                $paymentInfo['email']
+            );
+
+            if (!$subResult['success']) {
+                // Log the error but we might still allow approval if fallback is working, 
+                // but usually, it's better to log it clearly.
+                error_log("[approve-client.php] Subaccount creation failed for Client {$client_id}: " . $subResult['message']);
+            } else {
+                error_log("[approve-client.php] Subaccount created/linked for Client {$client_id}: " . $subResult['subaccount_code']);
+            }
         }
     }
 
