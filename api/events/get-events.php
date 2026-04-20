@@ -38,8 +38,7 @@ try {
         $publicBase = "FROM events e
             LEFT JOIN clients u ON e.client_id = u.id
             WHERE e.deleted_at IS NULL
-              AND e.status = 'published'
-              AND e.admin_status = 'approved'";
+              AND e.status = 'published'";
 
         $ticketFilter = "AND (e.ticket_count > 0 OR e.ticket_count IS NULL)";
 
@@ -156,7 +155,6 @@ try {
         $params[]        = $status;
     } elseif ($user_role !== 'admin' && $user_role !== 'client') {
         $where_clauses[] = "e.status = 'published'";
-        $where_clauses[] = "e.admin_status = 'approved'";
     }
 
     // Exclude soft-deleted
