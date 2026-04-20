@@ -199,12 +199,17 @@ try {
         $stmt->execute([$user_id]);
         $user = $stmt->fetch();
 
+        // Resolve client_auth_id (auth_accounts.id) for the event organizer
+        $clientAuthStmt = $pdo->prepare("SELECT client_auth_id FROM clients WHERE id = ?");
+        $clientAuthStmt->execute([$event['client_id']]);
+        $client_auth_id = $clientAuthStmt->fetchColumn();
+
         $admin_id = function_exists('getAdminUserId') ? getAdminUserId() : null;
-        if ($admin_id && function_exists('createTicketPurchaseNotification')) {
+        if ($admin_id && $client_auth_id && function_exists('createTicketPurchaseNotification')) {
             createTicketPurchaseNotification(
                 $admin_id,
-                $event['client_id'],
-                $user_id,
+                $client_auth_id,  // auth_accounts.id of the organizer
+                $auth_id,         // auth_accounts.id of the buyer (from checkAuth)
                 $user['name'],
                 $user['email'],
                 $event['event_name'],

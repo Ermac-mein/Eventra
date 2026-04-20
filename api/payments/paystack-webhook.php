@@ -36,8 +36,8 @@ function fetchOrder(PDO $pdo, string $reference): ?array
         SELECT o.*,
                e.event_name, e.event_date, e.event_time, e.address, e.location, e.image_path,
                u.id AS user_id, u.name AS user_name,
-               a.email AS user_email, u.phone AS user_phone,
-               c.id AS organizer_auth_id,
+               a.id AS user_auth_id, a.email AS user_email, u.phone AS user_phone,
+               c.client_auth_id AS organizer_auth_id,
                c.email AS organizer_email
         FROM orders o
         JOIN events  e  ON o.event_id    = e.id
@@ -227,11 +227,11 @@ function processSuccessfulPayment(PDO $pdo, array $order, array $psData): void
         }
 
         // In-app: buyer
-        createPaymentSuccessNotification($order['user_id'], $order['event_name'], $order['amount']);
-        createTicketIssuedNotification($order['user_id'], $order['event_name'], $barcode ?? '');
+        createPaymentSuccessNotification($order['user_auth_id'], $order['event_name'], $order['amount']);
+        createTicketIssuedNotification($order['user_auth_id'], $order['event_name'], $barcode ?? '');
 
         // In-app: organizer (new sale alert)
-        createNewSaleNotification($order['organizer_auth_id'], $order['user_name'], $order['event_name'], $order['amount']);
+        createNewSaleNotification($order['organizer_auth_id'], $order['user_name'], $order['event_name'], $order['amount'], $order['user_auth_id']);
     } catch (Throwable $e) {
         if ($pdo->inTransaction()) {
             $pdo->rollBack();
@@ -273,9 +273,11 @@ try {
             $order = fetchOrder($pdo, $reference);
             if ($order) {
                 createNotification(
-                    $order['user_id'],
+                    $order['user_auth_id'],
                     "Your payment for {$order['event_name']} failed. Please try again.",
-                    'payment_failed'
+                    'payment_failed',
+                    null,
+                    'user'
                 );
             }
             break;
@@ -344,7 +346,7 @@ try {
                 $fullOrder = fetchOrder($pdo, $reference);
                 if ($fullOrder) {
                     createRefundProcessedNotification(
-                        $fullOrder['user_id'],
+                        $fullOrder['user_auth_id'],
                         $fullOrder['event_name'],
                         $fullOrder['amount']
                     );

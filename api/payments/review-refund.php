@@ -71,16 +71,23 @@ try {
             UPDATE orders SET refund_status = 'declined', updated_at = NOW() WHERE id = ?
         ")->execute([$rr['order_id']]);
 
+        // Resolve user's auth_accounts.id for the notification recipient
+        $userAuthStmt = $pdo->prepare("SELECT user_auth_id FROM users WHERE id = ?");
+        $userAuthStmt->execute([$rr['user_id']]);
+        $user_auth_id = $userAuthStmt->fetchColumn();
+
         // Notify buyer of decline
-        createNotification(
-            $rr['user_id'],
-            "Your refund request for \"{$rr['event_name']}\" was declined by the organizer." .
-            ($note ? " Note: {$note}" : ''),
-            'refund_declined',
-            $client_id,
-            'user',
-            'client'
-        );
+        if ($user_auth_id) {
+            createNotification(
+                $user_auth_id,
+                "Your refund request for \"{$rr['event_name']}\" was declined by the organizer." .
+                ($note ? " Note: {$note}" : ''),
+                'refund_declined',
+                $client_id,
+                'user',
+                'client'
+            );
+        }
 
         echo json_encode(['success' => true, 'message' => 'Refund request declined.']);
     }
