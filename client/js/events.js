@@ -890,7 +890,7 @@ async function previewEvent(eventId) {
                             <div style="display: flex; flex-direction: column; gap: 12px;">
                                 <div style="display: flex; justify-content: space-between; font-size: 0.875rem;">
                                     <span style="color: #64748b; font-weight: 600;">Priority</span>
-                                    <span style="color: #1e293b; font-weight: 700; text-transform: uppercase;">${escapeHTML(priority) || 'Normal'}</span>
+                                    <span style="color: #1e293b; font-weight: 700; text-transform: uppercase;">${escapeHTML(event.priority || 'Normal')}</span>
                                 </div>
                                 <div style="display: flex; justify-content: space-between; font-size: 0.875rem;">
                                     <span style="color: #64748b; font-weight: 600;">Type</span>

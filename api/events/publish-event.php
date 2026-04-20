@@ -47,8 +47,8 @@ try {
         exit;
     }
 
-    // Update event status to published
-    $stmt = $pdo->prepare("UPDATE events SET status = 'published' WHERE id = ?");
+    // Update event status to published and ensure admin_status is approved
+    $stmt = $pdo->prepare("UPDATE events SET status = 'published', admin_status = 'approved' WHERE id = ?");
     $stmt->execute([$event_id]);
 
     require_once '../utils/notification-helper.php';

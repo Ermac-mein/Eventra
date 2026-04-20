@@ -206,14 +206,10 @@ try {
     }
     $ticket_count = $total_tickets; // Start at full capacity on creation
 
-    $scheduled_publish_time = !empty($_POST['scheduled_publish_time'])
-        ? $_POST['scheduled_publish_time']
-        : date('Y-m-d H:i:s');
-
     // Determine status based on scheduled publish time
     $current_time = date('Y-m-d H:i:s');
-    // If scheduled for more than 1 minute in the future, mark as scheduled, otherwise published
-    $status = (strtotime($scheduled_publish_time) > strtotime($current_time) + 60) ? 'scheduled' : 'published';
+    // By default, events are created in 'draft' mode so clients can review and publish later.
+    $status = 'draft';
 
     // Nigerian State Centroid Mapping (Approximate coordinates)
     $state_centroids = [
@@ -334,7 +330,7 @@ try {
         0,                 // sales_count starts at 0
         0,                 // view_count starts at 0
         0,                 // is_boosted — always false on client create
-        'pending',         // admin_status — awaits approval
+        'approved',        // admin_status — automatically approved to be visible when published
         $latitude,
         $longitude
     ]);
