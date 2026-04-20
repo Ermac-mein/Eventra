@@ -17,5 +17,6 @@ return [
     'client_id' => $_ENV['GOOGLE_CLIENT_ID'] ?? '',
     'client_secret' => $_ENV['GOOGLE_CLIENT_SECRET'] ?? '',
     'redirect_uri' => $redirect_uri,
+    'origin' => $protocol . $host,
     'maps_api_key' => $_ENV['GOOGLE_MAPS_API_KEY'] ?? ''
-];
+];

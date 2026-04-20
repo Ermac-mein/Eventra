@@ -805,31 +805,23 @@ function createEventCard(event, index) {
         </div>
         
         <div class="event-card-description">${desc}</div>
-        <div class="event-organizer" style="display: flex; align-items: center; gap: 4px;">
+        <div class="event-organizer">
             By ${organizer} 
-            ${typeof getVerificationBadge === 'function' ? getVerificationBadge(event.verification_status) : (event.is_verified == 1 ? '<span class="verified-check" title="Verified">✓</span>' : '')}
+            ${event.is_verified == 1 ? '<i data-lucide="check-circle-2" class="organizer-verified" title="Verified"></i>' : ''}
         </div>
       </div>
 
-      <div class="event-footer" style="padding: 0 1.5rem 1.5rem 1.5rem;">
-        <div style="display: flex; align-items: center; justify-content: space-between;">
-          <div class="event-price">${price}</div>
-          ${vipBadge}
-        </div>
-        <div class="event-card-actions">
-          <button class="card-action-btn fav-btn ${isFavorite}" onclick="toggleFavorite(event, ${event.id}); event.stopPropagation();" title="Favorite">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="${isFavorite ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2">
-              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
-            </svg>
-          </button>
-          <button class="card-action-btn share-btn" onclick="shareEvent(event, ${event.id}, '${escapeHTML(shareTitle)}', '${escapeHTML(shareText)}'); event.stopPropagation();" title="Share">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><polyline points="16 6 12 2 8 6"></polyline><line x1="12" y1="2" x2="12" y2="15"></line>
-            </svg>
-          </button>
-        </div>
+      <div class="event-footer">
+          <div class="event-price ${price === 'Free' ? 'free' : ''}">${price}</div>
+          <div class="event-card-actions">
+            <button class="card-action-btn fav-btn ${isFavorite}" onclick="toggleFavorite(event, ${event.id}); event.stopPropagation();" title="Favorite">
+              <i data-lucide="heart" class="${isFavorite ? 'active' : ''}" style="width: 18px; height: 18px; ${isFavorite ? 'fill: currentColor;' : ''}"></i>
+            </button>
+            <button class="card-action-btn share-btn" onclick="shareEvent(event, ${event.id}, '${escapeHTML(shareTitle)}', '${escapeHTML(shareText)}'); event.stopPropagation();" title="Share">
+              <i data-lucide="share-2" style="width: 18px; height: 18px;"></i>
+            </button>
+          </div>
       </div>
-    </div>
     </div>
   `;
 }

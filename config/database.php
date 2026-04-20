@@ -45,44 +45,60 @@ function getPDO() {
         return $instance;
     }
 
-    try {
-        $dsn = "mysql:host=" . DB_HOST . ";port=" . DB_PORT . ";dbname=" . DB_NAME . ";charset=utf8mb4";
-        $instance = new PDO($dsn, DB_USER, DB_PASS, [
-            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-            PDO::ATTR_PERSISTENT => false,
-            PDO::ATTR_TIMEOUT => 3 // Fail fast to avoid hanging connections
-        ]);
+    $attempts = 0;
+    $maxAttempts = 3;
+    $retryDelay = 500000; // 500ms in microseconds
 
-        return $instance;
-
-    } catch (PDOException $e) {
-        error_log("[" . date('Y-m-d H:i:s') . "] Database connection failed: " . $e->getMessage());
-
-        $sqlstate = null;
-        if (is_array($e->errorInfo) && isset($e->errorInfo[0])) {
-            $sqlstate = $e->errorInfo[0];
-        }
-
-        $isOverload = (
-            $e->getCode() == 1040 ||
-            $sqlstate === '08004' ||
-            strpos($e->getMessage(), '1040') !== false
-        );
-
-        if (isset($_SERVER['REQUEST_URI']) && strpos($_SERVER['REQUEST_URI'], '/api/') !== false) {
-            if (function_exists('ob_get_length') && ob_get_length()) { ob_clean(); }
-            if (!headers_sent()) header('Content-Type: application/json');
-            http_response_code(503);
-            echo json_encode([
-                'success' => false,
-                'message' => 'Service temporarily unavailable. Please try again.',
-                'code' => $isOverload ? 'DB_OVERLOAD' : 'DB_ERROR'
+    while ($attempts < $maxAttempts) {
+        try {
+            $dsn = "mysql:host=" . DB_HOST . ";port=" . DB_PORT . ";dbname=" . DB_NAME . ";charset=utf8mb4";
+            $instance = new PDO($dsn, DB_USER, DB_PASS, [
+                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+                PDO::ATTR_PERSISTENT => true,
+                PDO::ATTR_TIMEOUT => 3 // Fail fast to avoid hanging connections
             ]);
-            exit;
-        }
 
-        die("Database connection failed. Please check error logs.");
+            return $instance;
+
+        } catch (PDOException $e) {
+            $attempts++;
+            
+            $sqlstate = null;
+            if (is_array($e->errorInfo) && isset($e->errorInfo[0])) {
+                $sqlstate = $e->errorInfo[0];
+            }
+
+            $isOverload = (
+                $e->getCode() == 1040 ||
+                $sqlstate === '08004' ||
+                strpos($e->getMessage(), '1040') !== false
+            );
+
+            // Only retry if it's a connection overload issue
+            if ($isOverload && $attempts < $maxAttempts) {
+                usleep($retryDelay);
+                continue;
+            }
+
+            error_log("[" . date('Y-m-d H:i:s') . "] Database connection failed (Attempt $attempts): " . $e->getMessage());
+
+            if (isset($_SERVER['REQUEST_URI']) && strpos($_SERVER['REQUEST_URI'], '/api/') !== false) {
+                if (function_exists('ob_get_length') && ob_get_length()) { ob_clean(); }
+                if (!headers_sent()) header('Content-Type: application/json');
+                http_response_code(503);
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Service temporarily unavailable. Please try again.',
+                    'code' => $isOverload ? 'DB_OVERLOAD' : 'DB_ERROR'
+                ]);
+                exit;
+            }
+
+            if ($attempts >= $maxAttempts) {
+                die("Database connection failed after $maxAttempts attempts. Please check error logs.");
+            }
+        }
     }
 }
 

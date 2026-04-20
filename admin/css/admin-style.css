@@ -106,7 +106,9 @@ body {
 
 .sidebar.sidebar-collapsed .menu-item a i {
     margin: 0;
-    font-size: 0;
+    font-size: 1.25rem;
+    width: 20px;
+    height: 20px;
 }
 
 .sidebar-logo {
@@ -142,6 +144,14 @@ body {
     font-weight: 500;
 }
 
+.menu-item a i {
+    margin: 0;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
 .menu-item.active a,
 .menu-item a:hover {
     color: var(--admin-text-white);
@@ -161,7 +171,7 @@ body {
 /* Sidebar toggle button */
 .sidebar-toggle-btn {
     position: absolute;
-    bottom: 16px;
+    bottom: 80px; /* Moved up to avoid overlap with logout */
     right: 12px;
     width: 40px;
     height: 40px;
