@@ -922,7 +922,7 @@ window.initPreviews = function() {
                                             </div>
                                         `}
                                         <div style="margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid #f1f5f9; display: flex; justify-content: flex-end;">
-                                            <button onclick="deleteClient(${clientId}, '${data.client.email}')" style="background: #fef2f2; color: #ef4444; border: 1px solid #fee2e2; padding: 0.6rem 1rem; border-radius: 8px; font-size: 0.85rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: all 0.2s;">
+                                            <button onclick="deleteClient(${client.client_auth_id}, '${client.email}')" style="background: #fef2f2; color: #ef4444; border: 1px solid #fee2e2; padding: 0.6rem 1rem; border-radius: 8px; font-size: 0.85rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: all 0.2s;">
                                                 <i data-lucide="trash-2" style="width: 16px;"></i> Delete Client Account
                                             </button>
                                         </div>
@@ -1125,11 +1125,11 @@ window.approveClient = async function(clientId, status, btnElement) {
     if (window.showToast) window.showToast('Updating status...', 'info');
 
     try {
-        const response = await apiFetch('/api/clients/verify-client.php', {
+        const response = await apiFetch('/api/admin/approve-client.php', {
             method: 'POST',
             body: JSON.stringify({
                 client_id: clientId,
-                status: status ? 'verified' : 'rejected',
+                status: status ? 1 : 0,
                 admin_notes: adminNotes
             })
         });

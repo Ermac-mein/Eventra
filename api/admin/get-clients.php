@@ -19,7 +19,7 @@ try {
     $search = $_GET['search'] ?? '';
 
     $params = [];
-    $where_clause = "WHERE 1=1";
+    $where_clause = "WHERE p.deleted_at IS NULL AND a.deleted_at IS NULL";
 
     if (!empty($search)) {
         $where_clause .= " AND (p.business_name LIKE ? OR a.email LIKE ? OR p.company LIKE ? OR p.state LIKE ?)";

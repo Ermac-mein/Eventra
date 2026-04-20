@@ -28,7 +28,7 @@ try {
     $search = $_GET['search'] ?? '';
 
     $params = [];
-    $where_clause = "WHERE 1=1";
+    $where_clause = "WHERE p.deleted_at IS NULL AND a.deleted_at IS NULL";
 
     if (!empty($search)) {
         $where_clause .= " AND (p.name LIKE ? OR a.email LIKE ? OR p.phone LIKE ?)";
@@ -74,9 +74,9 @@ try {
 
     // Get Global Summary Stats (combined into single query)
     $summary_sql = "SELECT 
-        (SELECT COUNT(*) FROM users WHERE deleted_at IS NULL) as total_registered,
-        (SELECT COUNT(*) FROM users u JOIN auth_accounts a ON u.user_auth_id = a.id WHERE a.is_active = 1 AND u.deleted_at IS NULL) as total_active,
-        (SELECT COUNT(*) FROM users u JOIN auth_accounts a ON u.user_auth_id = a.id WHERE a.is_online = 1 AND u.deleted_at IS NULL) as total_checked_in";
+        (SELECT COUNT(*) FROM users u JOIN auth_accounts a ON u.user_auth_id = a.id WHERE u.deleted_at IS NULL AND a.deleted_at IS NULL) as total_registered,
+        (SELECT COUNT(*) FROM users u JOIN auth_accounts a ON u.user_auth_id = a.id WHERE a.is_active = 1 AND u.deleted_at IS NULL AND a.deleted_at IS NULL) as total_active,
+        (SELECT COUNT(*) FROM users u JOIN auth_accounts a ON u.user_auth_id = a.id WHERE a.is_online = 1 AND u.deleted_at IS NULL AND a.deleted_at IS NULL) as total_checked_in";
     
     $summary_stmt = $pdo->prepare($summary_sql);
     $summary_stmt->execute();

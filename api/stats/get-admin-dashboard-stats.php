@@ -17,16 +17,16 @@ try {
     // 1. Consolidated count stats (single query)
     $stats_sql = "
         SELECT 
-            (SELECT COUNT(*) FROM users WHERE deleted_at IS NULL) as total_users,
-            (SELECT COUNT(*) FROM clients WHERE deleted_at IS NULL) as total_clients,
+            (SELECT COUNT(*) FROM users u JOIN auth_accounts a ON u.user_auth_id = a.id WHERE u.deleted_at IS NULL AND a.deleted_at IS NULL) as total_users,
+            (SELECT COUNT(*) FROM clients c JOIN auth_accounts a ON c.client_auth_id = a.id WHERE c.deleted_at IS NULL AND a.deleted_at IS NULL) as total_clients,
             (SELECT COUNT(*) FROM events WHERE status = 'published' AND deleted_at IS NULL) as total_events,
             (SELECT COUNT(*) FROM auth_accounts WHERE is_online = 1 AND last_seen >= DATE_SUB(NOW(), INTERVAL 10 MINUTE) AND role = 'user' AND deleted_at IS NULL) as online_users,
             (SELECT COUNT(*) FROM auth_accounts WHERE is_online = 1 AND last_seen >= DATE_SUB(NOW(), INTERVAL 10 MINUTE) AND role = 'client' AND deleted_at IS NULL) as online_clients,
             (SELECT COALESCE(SUM(p.amount), 0) FROM payments p WHERE p.status = 'paid') as total_revenue,
             (SELECT COUNT(*) FROM payments WHERE status = 'pending') as pending_payments,
             (SELECT COUNT(*) FROM tickets WHERE used = 1 AND DATE(used_at) = CURDATE()) as user_checked_in,
-            (SELECT COUNT(*) FROM clients WHERE verification_status = 'verified' AND deleted_at IS NULL) as clients_verified,
-            (SELECT COUNT(*) FROM clients WHERE verification_status != 'verified' AND deleted_at IS NULL) as clients_unverified
+            (SELECT COUNT(*) FROM clients c JOIN auth_accounts a ON c.client_auth_id = a.id WHERE c.verification_status = 'verified' AND c.deleted_at IS NULL AND a.deleted_at IS NULL) as clients_verified,
+            (SELECT COUNT(*) FROM clients c JOIN auth_accounts a ON c.client_auth_id = a.id WHERE c.verification_status != 'verified' AND c.deleted_at IS NULL AND a.deleted_at IS NULL) as clients_unverified
     ";
     
     $stmt = $pdo->prepare($stats_sql);
@@ -70,7 +70,7 @@ try {
         FROM clients c
         JOIN auth_accounts a ON c.client_auth_id = a.id
         LEFT JOIN events e ON c.id = e.client_id AND e.deleted_at IS NULL
-        WHERE c.deleted_at IS NULL
+        WHERE c.deleted_at IS NULL AND a.deleted_at IS NULL
         GROUP BY c.id, a.is_online
         ORDER BY a.is_online DESC, event_count DESC
         LIMIT 10
