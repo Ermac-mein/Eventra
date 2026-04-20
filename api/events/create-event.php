@@ -301,11 +301,11 @@ try {
         INSERT INTO events (
             client_id, custom_id, event_name, description, event_type, event_date, event_time,
             phone_contact_1, phone_contact_2, state, address, visibility, tag,
-            external_link, price, regular_price, vip_price, regular_quantity, vip_quantity,
-            image_path, status, scheduled_publish_time, category, event_visibility, ticket_type_mode,
-            ticket_count, total_tickets, sales_count, view_count, is_boosted, admin_status,
+            external_link, price, image_path, status, scheduled_publish_time, 
+            category, event_visibility, ticket_count, total_tickets, 
+            sales_count, view_count, is_boosted, admin_status,
             latitude, longitude
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ");
 
     $stmt->execute([
@@ -324,16 +324,11 @@ try {
         $tag,
         $external_link,
         $price,
-        $regular_price,
-        $vip_price,
-        $regular_quantity,
-        $vip_quantity,
         $image_path,
         $status,
         $scheduled_publish_time,
         $event_type,       // category mirrors event_type
         $event_visibility,
-        $ticket_type_mode,
         $ticket_count,     // atomic stock
         $total_tickets,    // original capacity
         0,                 // sales_count starts at 0

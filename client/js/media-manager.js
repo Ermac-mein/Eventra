@@ -128,7 +128,7 @@ function displayMediaGrid(media, stats) {
         if (deletedEl) deletedEl.textContent = stats.total_deleted || 0;
         
         const restoredEl = document.getElementById('restoredFilesCount');
-        if (restoredEl) restoredEl.textContent = stats.total_files || 0;
+        if (restoredEl) restoredEl.textContent = stats.total_restored || 0;
     }
 
     const mediaGrid = document.getElementById('mediaGrid');

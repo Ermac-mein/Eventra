@@ -38,7 +38,7 @@ if (is_writable($session_path)) {
 }
 
 // Default timeout (can be overridden by roles)
-$timeout_duration = 1800; // 30 minutes (Updated to meet security requirements)
+$timeout_duration = 86400; // 24 hours (Increased to prevent frequent logouts)
 
 ini_set('session.cookie_lifetime', 0); // Session cookie (expires on browser close)
 ini_set('session.gc_maxlifetime', $timeout_duration);

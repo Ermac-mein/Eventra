@@ -27,11 +27,11 @@ try {
 
     if ($type === 'folder') {
         // Restore folder
-        $stmt = $pdo->prepare("UPDATE media_folders SET is_deleted = 0, deleted_at = NULL WHERE id = ? AND client_id = ?");
+        $stmt = $pdo->prepare("UPDATE media_folders SET is_deleted = 0 WHERE id = ? AND client_id = ?");
         $stmt->execute([$id, $client_id]);
 
         // Restore all contents
-        $stmt2 = $pdo->prepare("UPDATE media SET is_deleted = 0, deleted_at = NULL, restoration_count = restoration_count + 1 WHERE folder_id = ? AND client_id = ?");
+        $stmt2 = $pdo->prepare("UPDATE media SET is_deleted = 0, restoration_count = restoration_count + 1 WHERE folder_id = ? AND client_id = ?");
         $stmt2->execute([$id, $client_id]);
     } else {
         // Get file name before update
@@ -40,7 +40,7 @@ try {
         $item_name = $stmt_name->fetchColumn();
 
         // Restore file
-        $stmt = $pdo->prepare("UPDATE media SET is_deleted = 0, deleted_at = NULL, restoration_count = restoration_count + 1 WHERE id = ? AND client_id = ?");
+        $stmt = $pdo->prepare("UPDATE media SET is_deleted = 0, restoration_count = restoration_count + 1 WHERE id = ? AND client_id = ?");
         $stmt->execute([$id, $client_id]);
 
         // Auto-restore parent folder if missing
@@ -49,7 +49,7 @@ try {
         $folder_id = $check->fetchColumn();
 
         if ($folder_id) {
-            $pdo->prepare("UPDATE media_folders SET is_deleted = 0, deleted_at = NULL WHERE id = ? AND client_id = ?")->execute([$folder_id, $client_id]);
+            $pdo->prepare("UPDATE media_folders SET is_deleted = 0 WHERE id = ? AND client_id = ?")->execute([$folder_id, $client_id]);
         }
     }
 
