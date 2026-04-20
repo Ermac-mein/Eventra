@@ -37,6 +37,10 @@ if (!defined('DB_PASS')) define('DB_PASS', get_env_var('DB_PASSWORD', ''));
 
 /**
  * Singleton Database Connection Provider
+ * 
+ * NOTE: If you encounter "Too many connections", execute this SQL in your database:
+ * SET GLOBAL max_connections = 500;
+ * Or update your my.cnf / my.ini: [mysqld] max_connections = 500
  */
 function getPDO() {
     static $instance = null;
@@ -46,8 +50,8 @@ function getPDO() {
     }
 
     $attempts = 0;
-    $maxAttempts = 3;
-    $retryDelay = 500000; // 500ms in microseconds
+    $maxAttempts = 5;
+    $baseRetryDelay = 500000; // 500ms
 
     while ($attempts < $maxAttempts) {
         try {
@@ -55,8 +59,8 @@ function getPDO() {
             $instance = new PDO($dsn, DB_USER, DB_PASS, [
                 PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-                PDO::ATTR_PERSISTENT => true,
-                PDO::ATTR_TIMEOUT => 3 // Fail fast to avoid hanging connections
+                PDO::ATTR_PERSISTENT => false,
+                PDO::ATTR_TIMEOUT => 5
             ]);
 
             return $instance;
@@ -69,15 +73,17 @@ function getPDO() {
                 $sqlstate = $e->errorInfo[0];
             }
 
-            $isOverload = (
+            $isRetryable = (
                 $e->getCode() == 1040 ||
+                $e->getCode() == 2002 ||
                 $sqlstate === '08004' ||
-                strpos($e->getMessage(), '1040') !== false
+                strpos($e->getMessage(), '1040') !== false ||
+                strpos($e->getMessage(), 'refused') !== false
             );
 
-            // Only retry if it's a connection overload issue
-            if ($isOverload && $attempts < $maxAttempts) {
-                usleep($retryDelay);
+            if ($isRetryable && $attempts < $maxAttempts) {
+                $delay = $baseRetryDelay * pow(2, $attempts - 1);
+                usleep($delay);
                 continue;
             }
 
@@ -90,7 +96,7 @@ function getPDO() {
                 echo json_encode([
                     'success' => false,
                     'message' => 'Service temporarily unavailable. Please try again.',
-                    'code' => $isOverload ? 'DB_OVERLOAD' : 'DB_ERROR'
+                    'code' => $isRetryable ? 'DB_CONNECT_ERROR' : 'DB_ERROR'
                 ]);
                 exit;
             }

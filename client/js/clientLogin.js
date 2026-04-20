@@ -163,6 +163,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (otpModal) {
                     otpModal.style.display = 'flex';
                     otpCodeInput.focus();
+                    otpError.style.display = 'none';
+                    otpForm.reset();
 
                     // Handle Cancellation
                     cancelBtn.onclick = () => {
@@ -170,12 +172,92 @@ document.addEventListener('DOMContentLoaded', () => {
                         otpForm.reset();
                     };
 
+                    // Handle Resend logic
+                    const resendBtn = document.getElementById('resendOtpLink');
+                    let resendCooldown = 0;
+                    let cooldownTimer;
+
+                    const startCooldown = (seconds) => {
+                        resendCooldown = seconds;
+                        resendBtn.style.pointerEvents = 'none';
+                        resendBtn.style.opacity = '0.5';
+                        
+                        if (cooldownTimer) clearInterval(cooldownTimer);
+                        
+                        cooldownTimer = setInterval(() => {
+                            resendCooldown--;
+                            if (resendCooldown <= 0) {
+                                clearInterval(cooldownTimer);
+                                resendBtn.textContent = 'Resend Code';
+                                resendBtn.style.pointerEvents = 'auto';
+                                resendBtn.style.opacity = '1';
+                            } else {
+                                resendBtn.textContent = `Resend in ${resendCooldown}s`;
+                            }
+                        }, 1000);
+                    };
+
+                    if (resendBtn) {
+                        resendBtn.onclick = async (e) => {
+                            e.preventDefault();
+                            if (resendCooldown > 0) return;
+
+                            const originalText = resendBtn.textContent;
+                            resendBtn.textContent = 'Sending...';
+                            otpError.style.display = 'none';
+
+                            try {
+                                const res = await apiFetch('/api/clients/login.php', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({
+                                        email: emailInput.value,
+                                        password: passwordInput.value,
+                                        remember_me: rememberMeInput?.checked || false,
+                                        intent: intent
+                                    })
+                                });
+                                const data = await res.json();
+                                if (data.success) {
+                                    if (typeof Swal !== 'undefined') {
+                                        Swal.fire({
+                                            icon: 'success',
+                                            title: 'Code Resent',
+                                            text: 'A new verification code has been sent to your email.',
+                                            toast: true,
+                                            position: 'top-end',
+                                            showConfirmButton: false,
+                                            timer: 3000,
+                                            background: '#1e293b',
+                                            color: '#fff'
+                                        });
+                                    }
+                                    startCooldown(60);
+                                } else {
+                                    otpError.textContent = data.message || 'Failed to resend code.';
+                                    otpError.style.display = 'block';
+                                    resendBtn.textContent = originalText;
+                                }
+                            } catch (err) {
+                                otpError.textContent = 'Failed to resend code. Try again.';
+                                otpError.style.display = 'block';
+                                resendBtn.textContent = originalText;
+                            }
+                        };
+                    }
+
                     // Handle Submission
                     otpForm.onsubmit = async (e) => {
                         e.preventDefault();
                         const verifyBtn = document.getElementById('verifyOtpButton');
                         const originalVerifyText = verifyBtn.innerHTML;
                         
+                        if (otpCodeInput.value.length !== 6) {
+                            otpError.textContent = 'Please enter all 6 digits.';
+                            otpError.style.display = 'block';
+                            return;
+                        }
+
                         verifyBtn.disabled = true;
                         verifyBtn.innerHTML = '<span class="spinner"></span> Verifying...';
                         otpError.style.display = 'none';
@@ -194,6 +276,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             const verifyResult = await verifyRes.json();
 
                             if (verifyResult.success) {
+                                if (cooldownTimer) clearInterval(cooldownTimer);
                                 otpModal.style.display = 'none';
                                 completeLoginSession(verifyResult);
                             } else {
