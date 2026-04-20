@@ -1210,46 +1210,6 @@ window.deleteClient = async function(clientId, email) {
     }
 };
 
-    btnElement.disabled = true;
-    const ogText = btnElement.innerText;
-    btnElement.innerText = 'Processing...';
-
-    try {
-        const res = await apiFetch('/api/admin/approve-client.php', {
-            method: 'POST',
-            body: JSON.stringify({ client_id: clientId, status: status, admin_notes: adminNotes || '' })
-        });
-        const data = await res.json();
-        if (data.success) {
-            Swal.fire({
-                icon: 'success',
-                title: `Client ${status ? 'Approved' : 'Declined'}`,
-                text: data.message,
-                confirmButtonColor: '#6366f1'
-            });
-            
-            // Mark button as handled
-            btnElement.disabled = true;
-            btnElement.style.opacity = '0.5';
-            btnElement.innerText = status ? 'Approved' : 'Declined';
-            
-            // Close preview and refresh table after delay
-            setTimeout(() => {
-                const closeBtn = document.querySelector('.preview-close');
-                if (closeBtn) closeBtn.click();
-                // Trigger clients table reload if on clients page
-                if (typeof loadClients === 'function') loadClients();
-            }, 1000);
-        } else {
-            Swal.fire('Error', data.message || 'Verification failed', 'error');
-            btnElement.disabled = false;
-            btnElement.innerText = ogText;
-        }
-    } catch(e) {
-        Swal.fire('Error', 'Network error. Please try again.', 'error');
-        btnElement.disabled = false;
-        btnElement.innerText = ogText;
-    }
 
 window.toggleVerification = async function(clientId, type, status) {
     if (!clientId || !type) return;

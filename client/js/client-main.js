@@ -441,7 +441,7 @@ function initDesktopSidebar() {
         toggleBtn.innerHTML = '<i data-lucide="chevron-left" id="sidebarToggleIcon"></i>';
         toggleBtn.style.cssText = `
             position: absolute;
-            bottom: 2rem;
+            bottom: 6rem;
             right: 1.5rem;
             background: rgba(255, 255, 255, 0.05);
             border: 1px solid rgba(255, 255, 255, 0.1);

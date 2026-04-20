@@ -61,6 +61,15 @@ function getBearerToken()
         return trim($_SERVER['HTTP_ACCESS_TOKEN']);
     }
 
+    // Method 3b: Direct custom headers (standard on some environments)
+    if (!empty($_SERVER['HTTP_X_ACCESS_TOKEN'])) {
+        return trim($_SERVER['HTTP_X_ACCESS_TOKEN']);
+    }
+
+    if (!empty($_SERVER['HTTP_X_EVENTRA_TOKEN'])) {
+        return trim($_SERVER['HTTP_X_EVENTRA_TOKEN']);
+    }
+
     // Method 4: From session (if token was stored at login)
     if (!empty($_SESSION['api_token'])) {
         return $_SESSION['api_token'];

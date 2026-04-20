@@ -299,6 +299,7 @@ async function apiFetch(url, options = {}) {
   const token = window.storage ? window.storage.getToken() : null;
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
+    headers['X-Access-Token'] = token;
   }
   
   options.headers = headers;
