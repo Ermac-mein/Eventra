@@ -60,10 +60,15 @@ function resolveEntity($identifier, $role = null)
     }
 
     // Merge account and profile data
-    // In case of duplicate keys (like email), account data wins as it's the auth source
-    $merged = array_merge($profile, $account);
-    if (!isset($merged['email']) && isset($account['email'])) {
+    // Profiles (admins, clients, users) take priority for specific fields like 'status'
+    $merged = array_merge($account, $profile);
+
+    // Ensure account email/username always wins as it is the auth source of truth
+    if (isset($account['email'])) {
         $merged['email'] = $account['email'];
+    }
+    if (isset($account['username'])) {
+        $merged['username'] = $account['username'];
     }
     return $merged;
 }
@@ -91,7 +96,7 @@ function getAuthPolicy($role, $method, $user)
         }
         
         // Admin specific status check
-        if (isset($user['status']) && $user['status'] !== 'active') {
+        if (isset($user['status']) && !empty($user['status']) && $user['status'] !== 'active') {
             return ['allowed' => false, 'message' => "This admin account is " . $user['status'] . "."];
         }
     } elseif ($role === 'client') {

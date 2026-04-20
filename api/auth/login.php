@@ -96,6 +96,7 @@ try {
         $policy = getAuthPolicy($userRole, 'password', $user);
         if (!$policy['allowed']) {
             logSecurityEvent($user['id'], $identity, 'login_failure', 'password', "Policy Violation: " . $policy['message']);
+            http_response_code(403);
             echo json_encode(['success' => false, 'message' => $policy['message']]);
             exit;
         }
