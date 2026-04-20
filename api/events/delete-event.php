@@ -82,7 +82,7 @@ try {
 
     // Define metadata for notifications
     $metadata = ['event_id' => $event_id, 'event_name' => $event['event_name']];
-    $auth_id = $_SESSION['auth_id'];
+    $auth_id = getAuthId();
 
     // Send notifications for deletion activity
     if ($user_role === 'client') {

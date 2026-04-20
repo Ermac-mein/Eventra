@@ -6,7 +6,9 @@
  */
 
 header('Content-Type: application/json');
+require_once '../../config/database.php';
 require_once '../../includes/middleware/auth.php';
+require_once '../utils/notification-helper.php';
 
 /**
  * Compress event image for storage
@@ -306,7 +308,7 @@ try {
     ]);
 
     $message = "Event '{$_POST['event_name']}' has been updated";
-    $auth_id = $_SESSION['auth_id'];
+    $auth_id = getAuthId();
     $client_auth_id = $event['client_auth_id'] ?? null;
     if (!$client_auth_id) {
         $stmt = $pdo->prepare("SELECT client_auth_id FROM clients WHERE id = ?");

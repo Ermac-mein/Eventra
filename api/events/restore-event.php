@@ -68,8 +68,8 @@ try {
         exit;
     }
 
-    // Restore the event (set deleted_at to NULL and status to 'restored')
-    $stmt = $pdo->prepare("UPDATE events SET deleted_at = NULL, status = 'restored' WHERE id = ?");
+    // Restore the event (set deleted_at to NULL and status to 'draft')
+    $stmt = $pdo->prepare("UPDATE events SET deleted_at = NULL, status = 'draft' WHERE id = ?");
     $stmt->execute([$event_id]);
 
     // Metadata for notifications

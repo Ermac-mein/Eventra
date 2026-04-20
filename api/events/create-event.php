@@ -210,6 +210,11 @@ try {
         ? $_POST['scheduled_publish_time']
         : date('Y-m-d H:i:s');
 
+    // Determine status based on scheduled publish time
+    $current_time = date('Y-m-d H:i:s');
+    // If scheduled for more than 1 minute in the future, mark as scheduled, otherwise published
+    $status = (strtotime($scheduled_publish_time) > strtotime($current_time) + 60) ? 'scheduled' : 'published';
+
     // Nigerian State Centroid Mapping (Approximate coordinates)
     $state_centroids = [
         'Abia' => ['lat' => 5.4527, 'lng' => 7.5248], 'Adamawa' => ['lat' => 9.3265, 'lng' => 12.3984], 
