@@ -80,3 +80,18 @@ foreach ($envKeys as $key) {
 
 // Auto-load when this file is included
 loadEnv();
+
+// Dynamic APP_URL fallback for local/production consistency
+if (!isset($_ENV['APP_URL']) || empty($_ENV['APP_URL']) || strpos($_ENV['APP_URL'], 'localhost') !== false) {
+    if (isset($_SERVER['HTTP_HOST'])) {
+        $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || 
+                     (!empty($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https') ||
+                     (isset($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] == 443)) ? "https://" : "http://";
+        $host = $_SERVER['HTTP_HOST'];
+        $_ENV['APP_URL'] = $protocol . $host;
+        $_SERVER['APP_URL'] = $_ENV['APP_URL'];
+        putenv("APP_URL=" . $_ENV['APP_URL']);
+    }
+}
+
+

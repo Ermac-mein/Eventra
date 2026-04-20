@@ -511,16 +511,15 @@ body {
 
 .events-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     gap: 2rem;
     width: 100%;
 }
 
 .events-grid .event-card {
-    flex: none;
     width: 100%;
-    max-width: none;
-    margin: 0;
+    max-width: 400px;
+    margin: 0 auto;
 }
 
 /* Pagination Styles */
@@ -614,7 +613,8 @@ body {
 }
 
 .event-card {
-  flex: 0 0 300px;
+  width: 100%;
+  max-width: 400px;
   background: var(--bg-white);
   border-radius: var(--radius-xl);
   overflow: hidden;

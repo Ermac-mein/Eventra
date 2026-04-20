@@ -51,7 +51,7 @@ function getPDO() {
             PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
             PDO::ATTR_PERSISTENT => false,
-            PDO::ATTR_TIMEOUT => 5
+            PDO::ATTR_TIMEOUT => 3 // Fail fast to avoid hanging connections
         ]);
 
         return $instance;
@@ -59,7 +59,6 @@ function getPDO() {
     } catch (PDOException $e) {
         error_log("[" . date('Y-m-d H:i:s') . "] Database connection failed: " . $e->getMessage());
 
-        // Attempt to derive SQLSTATE and driver code for robust overload detection
         $sqlstate = null;
         if (is_array($e->errorInfo) && isset($e->errorInfo[0])) {
             $sqlstate = $e->errorInfo[0];
@@ -68,34 +67,30 @@ function getPDO() {
         $isOverload = (
             $e->getCode() == 1040 ||
             $sqlstate === '08004' ||
-            $e->getCode() === '08004' ||
             strpos($e->getMessage(), '1040') !== false
         );
 
-        // API endpoints should receive a friendly message; web pages get a generic die
         if (isset($_SERVER['REQUEST_URI']) && strpos($_SERVER['REQUEST_URI'], '/api/') !== false) {
             if (function_exists('ob_get_length') && ob_get_length()) { ob_clean(); }
             if (!headers_sent()) header('Content-Type: application/json');
             http_response_code(503);
             echo json_encode([
                 'success' => false,
-                'message' => 'Service temporarily unavailable. Please try again in a moment.',
+                'message' => 'Service temporarily unavailable. Please try again.',
                 'code' => $isOverload ? 'DB_OVERLOAD' : 'DB_ERROR'
             ]);
             exit;
         }
 
-        // Non-API flows: terminate with a generic, non-sensitive message
         die("Database connection failed. Please check error logs.");
     }
 }
 
-// Ensure the PDO is released at the end of the request
-register_shutdown_function(function() {
-    // Release the static instance by setting to null in caller or just let PHP garbage collect
-    // (In PHP, $instance is scoped to the function, but persistent until script end)
-});
-
-// Global variable assignment restored because removing it broke all endpoints relying on $pdo
+// Global variable assignment
 $pdo = getPDO();
 
+// Ensure the PDO is released at the end of the request
+register_shutdown_function(function() {
+    global $pdo;
+    $pdo = null;
+});
