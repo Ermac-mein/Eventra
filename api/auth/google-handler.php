@@ -48,9 +48,12 @@ if (!isset($payload['sub']) || empty($payload['sub']) || !isset($payload['email'
 }
 
 // Verify if email is verified by Google
-if (!isset($payload['email_verified']) || $payload['email_verified'] !== true) {
-    // Log as a warning but proceed - some Google accounts (like workspace or special accounts) may return false
-    error_log("Google Auth Warning: Email " . $payload['email'] . " is not marked as verified by Google.");
+if (empty($payload['email_verified']) || $payload['email_verified'] !== true) {
+    echo json_encode([
+        'success' => false,
+        'message' => 'Your Google account email is not verified. Please verify your Google account email before signing in.'
+    ]);
+    exit;
 }
 
 $google_id = $payload['sub'];

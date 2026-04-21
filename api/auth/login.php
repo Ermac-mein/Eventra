@@ -117,9 +117,15 @@ try {
             $emailMessage = 'Email service unavailable (check logs).';
             $emailHelperLoaded = false;
 
-            $emailHelperPath = __DIR__ . '/../../includes/helpers/email-helper.php';
-            if (file_exists($emailHelperPath)) {
-                include_once $emailHelperPath;
+            try {
+                $emailHelperPath = __DIR__ . '/../../includes/helpers/email-helper.php';
+                if (file_exists($emailHelperPath)) {
+                    include_once $emailHelperPath;
+                }
+            } catch (Throwable $e) {
+                error_log('[AUTH] EmailHelper load failed: ' . $e->getMessage());
+                echo json_encode(['success' => false, 'message' => 'Login service temporarily unavailable. Please try again.']);
+                exit;
             }
 
             if (class_exists('EmailHelper')) {

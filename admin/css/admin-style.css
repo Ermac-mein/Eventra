@@ -90,16 +90,16 @@ body {
 .sidebar.sidebar-collapsed .sidebar-logo {
     padding: 0;
     font-size: 0;
-    height: 40px; /* Give it some height instead of 0 to provide top spacing */
+    height: 60px; /* Increased height for better top spacing in collapsed state */
     overflow: hidden;
 }
 
 .sidebar.sidebar-collapsed .sidebar-menu {
-    padding-top: 20px; /* Add top spacing for the dashboard icon */
+    padding-top: 30px; /* Increased top spacing for the dashboard icon */
 }
 
 .sidebar.sidebar-collapsed .sidebar-footer {
-    padding-bottom: 100px; /* Push the logout link up to avoid overlap with the toggle button */
+    padding-bottom: 110px; /* Sufficient space to prevent overlap with the toggle button */
 }
 
 .sidebar.sidebar-collapsed .menu-item a span,
@@ -179,7 +179,7 @@ body {
 /* Sidebar toggle button */
 .sidebar-toggle-btn {
     position: absolute;
-    bottom: 80px; /* Moved up to avoid overlap with logout */
+    bottom: 40px; /* Positioned clearly at the bottom */
     right: 12px;
     width: 40px;
     height: 40px;

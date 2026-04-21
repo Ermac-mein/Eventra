@@ -10,6 +10,13 @@ require_once '../../config/database.php';
 require_once '../../config/env-loader.php';
 
 require_once '../../includes/middleware/auth.php';
+require_once '../../includes/helpers/email-helper.php'; // Included to ensure autoloader guard is active globally
+
+// Force error reporting to be caught by Throwable if needed, but in production we rely on try-catch
+set_error_handler(function($errno, $errstr, $errfile, $errline) {
+    if (!(error_reporting() & $errno)) return;
+    throw new ErrorException($errstr, 0, $errno, $errfile, $errline);
+});
 
 /**
  * Compress event image for storage
@@ -107,7 +114,7 @@ try {
     // 2. Handle file upload if present using standardized path
     $image_path = null;
     if (isset($_FILES['event_image']) && $_FILES['event_image']['error'] === UPLOAD_ERR_OK) {
-        $upload_dir = "../../uploads/events/";
+        $upload_dir = __DIR__ . "/../../uploads/events/";
 
         if (!is_dir($upload_dir)) {
             mkdir($upload_dir, 0777, true);
@@ -176,6 +183,8 @@ try {
     require_once '../utils/id-generator.php';
     $custom_id = generateEventId($pdo);
 
+    $scheduled_publish_time = $_POST['scheduled_publish_time'] ?? null;
+
     $event_name = $_POST['event_name'] ?? '';
     $description = $_POST['description'] ?? '';
     $event_type = $_POST['event_type'] ?? '';
@@ -206,10 +215,32 @@ try {
     }
     $ticket_count = $total_tickets; // Start at full capacity on creation
 
-    // Determine status based on scheduled publish time
-    $current_time = date('Y-m-d H:i:s');
-    // By default, events are created in 'draft' mode so clients can review and publish later.
-    $status = 'draft';
+    // Determine status - Default to 'draft', but allow 'scheduled' if requested
+    $status = $_POST['status'] ?? 'draft';
+    
+    // Validate status
+    if (!in_array($status, ['draft', 'scheduled'])) {
+        $status = 'draft'; // Safety fallback
+    }
+
+    // Validation for scheduled events
+    if ($status === 'scheduled') {
+        if (empty($scheduled_publish_time)) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'Scheduled publish time is required for scheduled events.']);
+            exit;
+        }
+        if (strtotime($scheduled_publish_time) <= time()) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'Scheduled publish time must be in the future.']);
+            exit;
+        }
+    } else {
+        // For draft, ensure it's null if not explicitly provided or just allow what's sent
+        if (empty($scheduled_publish_time)) {
+            $scheduled_publish_time = null;
+        }
+    }
 
     // Nigerian State Centroid Mapping (Approximate coordinates)
     $state_centroids = [

@@ -15,6 +15,7 @@ $client_id = clientMiddleware();
 
 $data = json_decode(file_get_contents("php://input"), true);
 $media_id = $data['media_id'] ?? null;
+$permanent = $data['permanent'] ?? false;
 
 if (!$media_id) {
     echo json_encode(['success' => false, 'message' => 'Media ID is required']);
@@ -28,26 +29,44 @@ try {
     $media = $stmt->fetch();
 
     if (!$media) {
-        echo json_encode(['success' => false, 'message' => 'Media not found']);
+        echo json_encode(['success' => false, 'message' => 'Media not found or permission denied']);
         exit;
     }
 
-    // Soft delete from database
-    $stmt = $pdo->prepare("UPDATE media SET is_deleted = 1, deleted_at = NOW() WHERE id = ?");
-    $stmt->execute([$media_id]);
+    if ($permanent) {
+        // Permanent (hard) delete
+        $filePath = $_SERVER['DOCUMENT_ROOT'] . $media['file_path'];
+        if (file_exists($filePath) && is_file($filePath)) {
+            @unlink($filePath);
+        }
+        
+        $stmt = $pdo->prepare("DELETE FROM media WHERE id = ?");
+        $stmt->execute([$media_id]);
+        
+        $msg = 'Media permanently deleted from disk and database';
+    } else {
+        // Soft delete (trash)
+        $stmt = $pdo->prepare("UPDATE media SET is_deleted = 1, deleted_at = NOW() WHERE id = ?");
+        $stmt->execute([$media_id]);
+        
+        $msg = 'Media moved to trash';
+    }
 
     if ($stmt->rowCount() > 0) {
         // Create notification
-        createMediaDeletedNotification($client_id, $media['file_name'], 'file');
+        if (function_exists('createMediaDeletedNotification')) {
+            createMediaDeletedNotification($client_id, $media['file_name'], 'file');
+        }
 
         echo json_encode([
             'success' => true,
-            'message' => 'Media deleted successfully'
+            'message' => $msg
         ]);
     } else {
-        echo json_encode(['success' => false, 'message' => 'Failed to delete media or already in trash']);
+        echo json_encode(['success' => false, 'message' => 'Action failed or item already processed']);
     }
-} catch (PDOException $e) {
+} catch (Throwable $e) {
     http_response_code(500);
-    echo json_encode(['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);
+    error_log("[DeleteMedia] Error: " . $e->getMessage());
+    echo json_encode(['success' => false, 'message' => 'Internal server error: ' . $e->getMessage()]);
 }

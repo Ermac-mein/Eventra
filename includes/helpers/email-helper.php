@@ -1,4 +1,7 @@
 <?php
+use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\SMTP;
+use PHPMailer\PHPMailer\Exception as MailerException;
 
 /**
  * Email Helper using PHPMailer
@@ -6,44 +9,75 @@
  * Redesigned concert ticket layout.
  */
 
-// -------------------------------------------------------------------
 // 1. ROBUST PHPMailer LOADING (handles broken Composer autoloader)
 // -------------------------------------------------------------------
+$GLOBALS['EVENTRA_AUTOLOADER_ERROR'] = null;
+
+if (!file_exists(__DIR__ . '/../../vendor/autoload.php')) {
+    $GLOBALS['EVENTRA_AUTOLOADER_ERROR'] = 'Composer autoloader missing - vendor directory incomplete.';
+    error_log('[EmailHelper] ' . $GLOBALS['EVENTRA_AUTOLOADER_ERROR'] . ' Action required: run "composer dump-autoload"');
+}
+
 $phpmailerLoaded = class_exists('PHPMailer\PHPMailer\PHPMailer');
 
-if (!$phpmailerLoaded) {
-    // Attempt to load Composer autoloader with error suppression
-    $autoloadPath = __DIR__ . '/../../vendor/autoload.php';
-    if (file_exists($autoloadPath)) {
-        $prev = error_reporting(0);
-        @include_once $autoloadPath;
-        error_reporting($prev);
+if (!$phpmailerLoaded && !$GLOBALS['EVENTRA_AUTOLOADER_ERROR']) {
+    // Attempt to load Composer autoloader
+    try {
+        $autoloadPath = __DIR__ . '/../../vendor/autoload.php';
+        if (file_exists($autoloadPath)) {
+            // Use include instead of require to prevent fatal crash if autoloader internal requires fail
+            // though in PHP 7+ missing require is a catchable Error.
+            if (!(@include_once $autoloadPath)) {
+                throw new Exception("include_once returned false for $autoloadPath");
+            }
+        }
+    } catch (Throwable $e) {
+        $GLOBALS['EVENTRA_AUTOLOADER_ERROR'] = $e->getMessage();
+        error_log('[EmailHelper] Composer autoloader failed: ' . $e->getMessage());
+        
+        // Check specifically for thecodingmachine/safe missing file
+        if (strpos($e->getMessage(), 'thecodingmachine/safe/generated/stream.php') !== false) {
+             error_log('[EmailHelper] CRITICAL: thecodingmachine/safe package is missing or corrupted.');
+        }
     }
 
-    // If still not loaded, try manual inclusion of PHPMailer files
+    // If PHPMailer still not found (either autoloader failed or didn't include it), try manual inclusion
     if (!class_exists('PHPMailer\PHPMailer\PHPMailer')) {
         $phpmailerBase = __DIR__ . '/../../vendor/phpmailer/phpmailer/src/';
         $files = ['Exception.php', 'PHPMailer.php', 'SMTP.php'];
         foreach ($files as $file) {
             $path = $phpmailerBase . $file;
             if (file_exists($path)) {
-                include_once $path;
+                @include_once $path;
             }
         }
     }
 
-    // Final check
+    // Final check and emergency alias to prevent fatal errors
     if (!class_exists('PHPMailer\PHPMailer\PHPMailer')) {
-        // Define a dummy class to prevent fatal errors elsewhere
+        error_log('[EmailHelper] CRITICAL: PHPMailer files not found in vendor directory.');
         if (!class_exists('PHPMailer\PHPMailer\PHPMailer')) {
             class_alias('stdClass', 'PHPMailer\PHPMailer\PHPMailer');
         }
     }
 }
 
-// Import namespaces after loading
-use PHPMailer\PHPMailer\PHPMailer;
-use PHPMailer\PHPMailer\Exception;
+// 2. SAFE LIBRARY FALLBACK (handles missing thecodingmachine/safe)
+// -------------------------------------------------------------------
+if (!class_exists('Safe\Stream')) {
+    // If the library is missing, we define compatibility wrappers or just fallback to native
+    if (!function_exists('Safe\file_get_contents')) {
+        function safe_file_get_contents($filename) {
+            return file_exists($filename) ? file_get_contents($filename) : false;
+        }
+    }
+} else {
+    function safe_file_get_contents($filename) {
+        return \Safe\file_get_contents($filename);
+    }
+}
+
+
 
 require_once __DIR__ . '/../../config/email.php';
 
@@ -71,11 +105,16 @@ class EmailHelper
             return ['success' => false, 'message' => 'SMTP credentials not configured.'];
         }
 
+        // If autoloader failed, we check if PHPMailer was loaded manually
         if (!class_exists('PHPMailer\PHPMailer\PHPMailer')) {
-            error_log('[EmailHelper] PHPMailer class not found. Manual loading failed.');
+            $msg = 'Email service is currently unavailable (PHPMailer load failed)';
+            if (!empty($GLOBALS['EVENTRA_AUTOLOADER_ERROR'])) {
+                $msg .= ': ' . $GLOBALS['EVENTRA_AUTOLOADER_ERROR'];
+            }
+            error_log('[EmailHelper] ' . $msg);
             return [
                 'success' => false,
-                'message' => 'Email service is currently unavailable. Please contact support or try again later.'
+                'message' => $msg
             ];
         }
 
@@ -90,7 +129,14 @@ class EmailHelper
             $mail->SMTPSecure = SMTP_SECURE;
             $mail->Port = (int) SMTP_PORT;
 
+            // Low-level SMTP Debugging
+            $mail->SMTPDebug = 2; // Output level 2: client and server messages
+            $mail->Debugoutput = function($str) {
+                error_log("[EmailHelper SMTP DEBUG] " . trim($str));
+            };
+
             $mail->setFrom(EMAIL_FROM, EMAIL_FROM_NAME);
+            $mail->addReplyTo($_ENV['MAIL_REPLY_TO'] ?? EMAIL_FROM, EMAIL_FROM_NAME);
             $mail->addAddress($to);
 
             foreach ($attachments as $filePath) {
@@ -106,13 +152,21 @@ class EmailHelper
             $mail->Body = $body;
             $mail->AltBody = $altBody ?: strip_tags($body);
 
-            $mail->send();
-            error_log("[EmailHelper] Sent to: {$to} | Subject: {$subject}");
-            return ['success' => true, 'message' => 'Email sent successfully'];
+            $sent = @$mail->send();
+            if ($sent) {
+                error_log("[EmailHelper] Sent to: {$to} | Subject: {$subject}");
+                return ['success' => true, 'message' => 'Email sent successfully'];
+            } else {
+                error_log("[EmailHelper] Failed to send to: {$to}. Reason: " . $mail->ErrorInfo);
+                return ['success' => false, 'message' => 'Email delivery failed: ' . $mail->ErrorInfo];
+            }
 
-        } catch (Exception $ex) {
-            error_log("[EmailHelper] Mailer error to {$to}: {$mail->ErrorInfo}");
-            return ['success' => false, 'message' => "Email delivery failed: {$mail->ErrorInfo}"];
+        } catch (MailerException $ex) {
+            error_log("[EmailHelper] Mailer error to {$to}: {$ex->getMessage()}");
+            return ['success' => false, 'message' => "Email delivery failed: {$ex->getMessage()}"];
+        } catch (Throwable $ex) {
+            error_log("[EmailHelper] Critical error sending to {$to}: {$ex->getMessage()}");
+            return ['success' => false, 'message' => "Email service encounterd a critical configuration error."];
         }
     }
 

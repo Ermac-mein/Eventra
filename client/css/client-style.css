@@ -545,8 +545,6 @@ body {
     box-shadow: var(--client-shadow);
 }
 
-
-
 .event-feed-img {
     width: 100%;
     height: 180px;
@@ -2667,4 +2665,23 @@ input[type="date"]::-webkit-datetime-edit-text {
 
 .swal2-cancel:hover {
     background: #4b5563 !important;
+}
+
+/* ─── RESPONSIVE FIXES: Small Mobile (≤ 480px) ────────────────────────── */
+@media (max-width: 480px) {
+    .action-arrow-icon {
+        margin-left: 8px; /* Offset if nested */
+        position: relative;
+        right: auto;
+    }
+    
+    /* Ensure containers with icons don't squash items */
+    .icon-container, .media-actions, .header-actions {
+        gap: 12px !important;
+    }
+
+    .btn-primary, .btn-secondary {
+        padding: 0.65rem 1rem;
+        font-size: 0.85rem;
+    }
 }

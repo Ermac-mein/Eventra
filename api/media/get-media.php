@@ -22,40 +22,7 @@ try {
     $client_id = checkAuth('client');  // checkAuth now returns client_id directly
 
     // ──────────────────────────────────────────────────────────────────────────
-    // 1. Auto-create 'Event Assets' folder and Sync Logic
-    // ──────────────────────────────────────────────────────────────────────────
-    $check_folder = $pdo->prepare("SELECT id FROM media_folders WHERE client_id = ? AND name = 'Event Assets' AND is_deleted = 0");
-    $check_folder->execute([$client_id]);
-    $folder_row = $check_folder->fetch();
-
-    if (!$folder_row) {
-        $pdo->prepare("INSERT INTO media_folders (client_id, name, created_at) VALUES (?, 'Event Assets', NOW())")
-            ->execute([$client_id]);
-        $event_assets_folder_id = $pdo->lastInsertId();
-    } else {
-        $event_assets_folder_id = $folder_row['id'];
-    }
-
-    // Sync files from events table
-    $event_images = $pdo->prepare("SELECT DISTINCT image_path, event_name FROM events WHERE client_id = ? AND image_path IS NOT NULL AND image_path != '' AND deleted_at IS NULL");
-    $event_images->execute([$client_id]);
-    $images = $event_images->fetchAll();
-
-    foreach ($images as $img) {
-        $path = $img['image_path'];
-        $name = $img['event_name'] . ' flyer';
-
-        // Check if already in media
-        $check_media = $pdo->prepare("SELECT id FROM media WHERE client_id = ? AND file_path = ? AND is_deleted = 0");
-        $check_media->execute([$client_id, $path]);
-
-        if (!$check_media->fetch()) {
-            // Add to media table
-            $ext = pathinfo($path, PATHINFO_EXTENSION);
-            $pdo->prepare("INSERT INTO media (client_id, folder_id, file_name, file_path, file_size, file_type, uploaded_at) VALUES (?, ?, ?, ?, 0, ?, NOW())")
-                ->execute([$client_id, $event_assets_folder_id, $name, $path, $ext ?: 'image']);
-        }
-    }
+    // Media Retrieval Logic
     // ──────────────────────────────────────────────────────────────────────────
 
     $folder_id = $_GET['folder_id'] ?? null;
@@ -65,18 +32,18 @@ try {
     $is_trash = ($status === 'trash' ? 1 : 0);
 
     // Build query for current view (files)
-    $where_clauses = ["client_id = ?", "is_deleted = ?"];
+    $where_clauses = ["m.client_id = ?", "m.is_deleted = ?"];
     $params = [$client_id, $is_trash];
 
     if ($folder_id) {
-        $where_clauses[] = "folder_id = ?";
+        $where_clauses[] = "m.folder_id = ?";
         $params[] = $folder_id;
     } else {
-        $where_clauses[] = "folder_id IS NULL";
+        $where_clauses[] = "m.folder_id IS NULL";
     }
 
     if ($file_type) {
-        $where_clauses[] = "file_type = ?";
+        $where_clauses[] = "m.file_type = ?";
         $params[] = $file_type;
     }
 
@@ -84,10 +51,12 @@ try {
 
     // 1. Get media files for current view
     $stmt = $pdo->prepare("
-        SELECT id, file_name as name, file_path, file_size, file_type, folder_id 
-        FROM media
+        SELECT m.id, m.file_name as name, m.file_path, m.file_size, m.file_type, m.folder_id, m.uploaded_at,
+               COALESCE(e.event_name, 'Unassigned') as event_association
+        FROM media m
+        LEFT JOIN events e ON m.file_path = e.image_path
         WHERE $where_sql
-        ORDER BY uploaded_at DESC
+        ORDER BY m.uploaded_at DESC
     ");
     $stmt->execute($params);
     $media_files = $stmt->fetchAll(PDO::FETCH_ASSOC);

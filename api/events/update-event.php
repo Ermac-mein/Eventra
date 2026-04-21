@@ -212,6 +212,23 @@ try {
 
         throw new Exception($error_message);
     }
+    $scheduled_publish_time = $_POST['scheduled_publish_time'] ?? null;
+    $status = $_POST['status'] ?? ($event['status'] ?? 'draft');
+
+    if ($status === 'scheduled') {
+        if (empty($scheduled_publish_time)) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'Scheduled publish time is required for scheduled events.']);
+            exit;
+        }
+        if (strtotime($scheduled_publish_time) <= time()) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'Scheduled publish time must be in the future.']);
+            exit;
+        }
+    } elseif (empty($scheduled_publish_time)) {
+        $scheduled_publish_time = null;
+    }
 
     // Validation
     $required_fields = ['event_name', 'event_type', 'event_date', 'event_time', 'price', 'status', 'address', 'phone_contact_1'];
@@ -275,6 +292,7 @@ try {
             is_boosted = ?,
             total_tickets = COALESCE(?, total_tickets),
             ticket_count  = COALESCE(?, ticket_count),
+            scheduled_publish_time = ?,
             updated_at = NOW()
             WHERE id = ?";
 
@@ -304,6 +322,7 @@ try {
         $new_is_boosted,
         $new_total_tickets,
         $new_ticket_count,
+        $scheduled_publish_time,
         $event_id
     ]);
 

@@ -196,7 +196,7 @@ CREATE TABLE IF NOT EXISTS events (
     priority ENUM('nearby', 'hot', 'trending', 'upcoming', 'featured') DEFAULT 'nearby',
     status ENUM('draft', 'scheduled', 'published', 'cancelled', 'archived') DEFAULT 'draft',
     scheduled_notification_at DATETIME DEFAULT NULL,
-    scheduled_publish_time DATETIME NOT NULL,
+    scheduled_publish_time DATETIME DEFAULT NULL,
     notification_sent TINYINT(1) DEFAULT 0,
     metadata JSON DEFAULT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,

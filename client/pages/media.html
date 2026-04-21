@@ -126,7 +126,7 @@
             <div style="display: flex; justify-content: space-between; align-items: center; margin: 2rem 0 1rem;">
                 <h3 style="font-size: 1.1rem;" id="mediaViewTitle">All Media</h3>
                 <div style="display: flex; gap: 10px; align-items: center;">
-                    <button id="btnBackToRoot" onclick="goBackToRoot()" class="btn" style="display: none; background: white; border: 1px solid var(--client-border); font-size: 0.8rem;">← Back</button>
+                    <button id="btnBackToRoot" onclick="goBackToRoot()" class="btn action-arrow-icon" style="display: none; background: white; border: 1px solid var(--client-border); font-size: 0.8rem;">← Back</button>
                     <select id="mediaStatusFilter" onchange="switchMediaView(this.value)" style="padding: 0.5rem; border: 1px solid var(--client-border); border-radius: 6px; font-size: 0.8rem; outline: none;">
                         <option value="active">Active</option>
                         <option value="trash">Trash</option>
@@ -151,20 +151,10 @@
                 </div>
                 <button class="modal-close" onclick="closeFolderContentsModal()" style="font-size: 1.5rem;">&times;</button>
             </div>
-            <div class="modal-body" style="padding: 0; overflow-y: auto; flex: 1;">
-                <table class="folder-items-table" style="width: 100%; border-collapse: collapse;">
-                    <thead style="position: sticky; top: 0; background: #f9fafb; z-index: 10;">
-                        <tr>
-                            <th onclick="sortFolderFiles('name')" style="padding: 1rem; text-align: left; font-size: 0.75rem; text-transform: uppercase; color: #6b7280; font-weight: 700; cursor: pointer;">Name <span id="sortIcon-name"></span></th>
-                            <th onclick="sortFolderFiles('type')" style="padding: 1rem; text-align: left; font-size: 0.75rem; text-transform: uppercase; color: #6b7280; font-weight: 700; cursor: pointer;">Type <span id="sortIcon-type"></span></th>
-                            <th onclick="sortFolderFiles('date')" style="padding: 1rem; text-align: left; font-size: 0.75rem; text-transform: uppercase; color: #6b7280; font-weight: 700; cursor: pointer;">Date <span id="sortIcon-date"></span></th>
-                            <th style="padding: 1rem; text-align: right; font-size: 0.75rem; text-transform: uppercase; color: #6b7280; font-weight: 700;">Action</th>
-                        </tr>
-                    </thead>
-                    <tbody id="folderItemsTableBody">
-                        <!-- Items will be populated here -->
-                    </tbody>
-                </table>
+            <div class="modal-body" style="padding: 1.5rem; overflow-y: auto; flex: 1;">
+                <div class="media-grid" id="folderMediaGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1.5rem;">
+                    <!-- Items will be populated here as cards -->
+                </div>
                 <div id="modalEmptyState" style="display: none; text-align: center; padding: 4rem; color: var(--client-text-muted);">
                     <div style="font-size: 2.5rem; margin-bottom: 1rem;">📁</div>
                     <p>This folder is empty.</p>

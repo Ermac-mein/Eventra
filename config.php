@@ -30,5 +30,6 @@ if ($host !== 'localhost' && $host !== '127.0.0.1') {
 require_once __DIR__ . '/config/session-config.php';
 
 if (!defined('SITE_URL')) define('SITE_URL',   $base_url);
+if (!defined('BASE_URL')) define('BASE_URL',  SITE_URL . '/');
 if (!defined('MEDIA_PATH')) define('MEDIA_PATH', __DIR__ . '/media/');
 if (!defined('UPLOAD_URL')) define('UPLOAD_URL', SITE_URL . '/media/');

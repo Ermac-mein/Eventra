@@ -511,7 +511,7 @@ body {
 
 .events-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
     gap: 2rem;
     width: 100%;
 }
@@ -614,7 +614,8 @@ body {
 
 .event-card {
   width: 100%;
-  max-width: 280px;
+  min-width: 260px;
+  max-width: 300px;
   background: var(--bg-white);
   border-radius: 12px;
   overflow: hidden;
@@ -626,7 +627,8 @@ body {
   display: flex;
   flex-direction: column;
   animation: slideInLeft 0.6s ease-out both;
-  min-height: auto;
+  min-height: 380px;
+  margin-bottom: 1.5rem;
 }
 
 @keyframes slideInLeft {
@@ -708,7 +710,7 @@ body {
 }
 
 .event-content {
-  padding: 12px 14px;
+  padding: 1.25rem;
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -735,6 +737,8 @@ body {
   overflow: hidden;
   height: auto;
   min-height: 2.6rem;
+  word-break: normal;
+  overflow-wrap: break-word;
 }
 
 .event-location {

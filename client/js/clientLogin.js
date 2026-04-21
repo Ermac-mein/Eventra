@@ -148,8 +148,13 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             const result = await response.json();
+            
+            // DEBUG: Log the API response for troubleshooting
+            console.log("Login API Response:", result);
 
-            if (result.success && (result.otp_required || result.next_step === 'otp_verification')) {
+            const isOtpStep = result.success || result.status === 'success' || result.otp_required || result.next_step === 'otp_verification';
+
+            if (isOtpStep && (result.otp_required || result.next_step === 'otp_verification')) {
                 // --- CUSTOM OTP MODAL FLOW ---
                 loginButton.innerHTML = originalBtnText;
                 loginButton.disabled = false;
@@ -302,14 +307,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Clear any stale state on failure
                 if (window.authController) window.authController.clearLocalState();
                 
-                // If the message contains "Email", show it there, otherwise show at password
-                const errorElement = result.message?.toLowerCase().includes('email') ? 'emailError' : 'passwordError';
-                showError(errorElement, result.message || 'Invalid email or password');
+                const msg = result.message || 'Invalid email or password';
+                const isDatabaseError = msg.toLowerCase().includes('database error');
+                
+                if (isDatabaseError) {
+                    showError('databaseErrorBanner', msg);
+                } else {
+                    const errorElement = msg.toLowerCase().includes('email') ? 'emailError' : 'passwordError';
+                    showError(errorElement, msg);
+                }
+                
                 loginButton.disabled = false;
                 loginButton.innerHTML = originalBtnText;
             }
         } catch (error) {
-            showError('passwordError', 'An error occurred. Please try again later.');
+            showError('databaseErrorBanner', 'A system error occurred. Please try again later.');
             loginButton.disabled = false;
             loginButton.innerHTML = originalBtnText;
         }
@@ -420,17 +432,9 @@ document.addEventListener('DOMContentLoaded', () => {
         
         if (!sliderContainer) return;
 
-        // Check if user is already authenticated
-        const isAuthenticated = window.storage && typeof window.storage.getUser === 'function' && window.storage.getUser();
+        // RESTRICTED removed: Fill the right side layout for a better initial impression
+        // Users on the login page are usually not yet authenticated.
         
-        // Don't fetch or display events on login page when user is not authenticated
-        // This prevents showing other clients' events to unauthenticated users
-        if (!isAuthenticated) {
-            // Show placeholder or empty state instead
-            sliderContainer.innerHTML = '';
-            return;
-        }
-
         try {
             const response = await apiFetch('/api/events/get-events.php?status=published&limit=10');
             const data = await response.json();
@@ -439,13 +443,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 const events = data.events.filter(e => e.image_path);
                 if (events.length === 0) return;
 
-                // Inject images (using high quality placeholder or actual path)
-                sliderContainer.innerHTML = events.map((event, index) => `
-                    <img src="/${event.image_path}" 
-                         alt="${event.event_name}" 
-                         class="slider-img ${index === 0 ? 'active' : ''}" 
-                         data-index="${index}">
-                `).join('');
+                // Inject images using absolute paths to avoid broken relative links in subfolders
+                sliderContainer.innerHTML = events.map((event, index) => {
+                    const cleanPath = event.image_path.replace(/^\/+/, '');
+                    const imgUrl = event.image_path.startsWith('http') ? event.image_path : window.location.origin + '/' + cleanPath;
+                    return `
+                        <img src="${imgUrl}" 
+                             alt="${event.event_name}" 
+                             class="slider-img ${index === 0 ? 'active' : ''}" 
+                             data-index="${index}">
+                    `;
+                }).join('');
 
                 let currentIndex = 0;
                 
