@@ -261,6 +261,19 @@ try {
         ? (int)$_POST['is_boosted']
         : (int)($event['is_boosted'] ?? 0);
 
+    // Prepare metadata - store pricing fields that don't have dedicated columns
+    $existing_metadata = !empty($event['metadata']) ? json_decode($event['metadata'], true) : [];
+    if (!is_array($existing_metadata)) $existing_metadata = [];
+    
+    $new_metadata = array_merge($existing_metadata, [
+        'regular_price' => $_POST['regular_price'] ?? 0,
+        'vip_price' => $_POST['vip_price'] ?? 0,
+        'regular_quantity' => $new_regular_qty,
+        'vip_quantity' => $new_vip_qty,
+        'ticket_type_mode' => $_POST['ticket_type_mode'] ?? 'single'
+    ]);
+    $metadata_json = json_encode($new_metadata);
+
     // Build UPDATE (priority column intentionally omitted — deprecated)
     $sql = "UPDATE events SET
             event_name = ?,
@@ -268,11 +281,6 @@ try {
             event_date = ?,
             event_time = ?,
             price = ?,
-            regular_price = ?,
-            vip_price = ?,
-            regular_quantity = ?,
-            vip_quantity = ?,
-            ticket_type_mode = ?,
             status = ?,
             description = ?,
             state = ?,
@@ -288,6 +296,7 @@ try {
             total_tickets = COALESCE(?, total_tickets),
             ticket_count  = COALESCE(?, ticket_count),
             scheduled_publish_time = ?,
+            metadata = ?,
             updated_at = NOW()
             WHERE id = ?";
 
@@ -298,11 +307,6 @@ try {
         $_POST['event_date'],
         $_POST['event_time'],
         $_POST['price'],
-        $_POST['regular_price'] ?? 0,
-        $_POST['vip_price'] ?? 0,
-        $new_regular_qty,
-        $new_vip_qty,
-        $_POST['ticket_type_mode'] ?? 'single',
         $_POST['status'],
         $_POST['description'],
         $_POST['state'],
@@ -318,6 +322,7 @@ try {
         $new_total_tickets,
         $new_ticket_count,
         $scheduled_publish_time,
+        $metadata_json,
         $event_id
     ]);
 

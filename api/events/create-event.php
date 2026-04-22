@@ -310,6 +310,16 @@ try {
     $base_url = $_ENV['APP_URL'] ?? 'http://localhost:8000';
     $external_link = $base_url . '/public/pages/event-details.html?event=' . $tag . '&client=' . $client_name;
 
+    // Prepare metadata - store pricing fields that don't have dedicated columns
+    $metadata = [
+        'regular_price' => $regular_price,
+        'vip_price' => $vip_price,
+        'regular_quantity' => $regular_quantity,
+        'vip_quantity' => $vip_quantity,
+        'ticket_type_mode' => $ticket_type_mode
+    ];
+    $metadata_json = json_encode($metadata);
+
     // Insert event with enriched columns (priority deprecated — admin_status drives moderation)
     $stmt = $pdo->prepare("
         INSERT INTO events (
@@ -318,8 +328,8 @@ try {
             external_link, price, image_path, status, scheduled_publish_time, 
             category, event_visibility, ticket_count, total_tickets, 
             sales_count, view_count, is_boosted, admin_status,
-            latitude, longitude
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            latitude, longitude, metadata
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ");
 
     $stmt->execute([
@@ -350,7 +360,8 @@ try {
         0,                 // is_boosted — always false on client create
         'approved',        // admin_status — automatically approved to be visible when published
         $latitude,
-        $longitude
+        $longitude,
+        $metadata_json
     ]);
 
     $event_id = $pdo->lastInsertId();

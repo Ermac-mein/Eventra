@@ -794,6 +794,24 @@ async function publishEvent(eventId) {
 
 // Edit Event Modal
 function showEditEventModal(event) {
+    // Parse metadata if it exists to get pricing fields
+    let metadata = {};
+    if (event.metadata) {
+        try {
+            metadata = typeof event.metadata === 'string' ? JSON.parse(event.metadata) : event.metadata;
+        } catch (e) {
+            console.error("Error parsing event metadata:", e);
+        }
+    }
+
+    // Merge metadata into event object for easier template access (only if keys don't already exist)
+    const pricingFields = ['regular_price', 'vip_price', 'regular_quantity', 'vip_quantity', 'ticket_type_mode'];
+    pricingFields.forEach(field => {
+        if (metadata[field] !== undefined && event[field] === undefined) {
+            event[field] = metadata[field];
+        }
+    });
+
     const modalHTML = `
         <link rel="stylesheet" href="../../public/css/time-picker.css">
         <div id="editEventModal" class="modal-backdrop active" role="dialog" aria-modal="true" aria-hidden="false">
@@ -1102,6 +1120,7 @@ async function handleEventUpdate(e) {
     e.preventDefault();
     
     const formData = new FormData(e.target);
+    const eventId = formData.get('event_id');
     
     // Show loading state
     const submitBtn = e.target.querySelector('button[type="submit"]');
@@ -1120,8 +1139,7 @@ async function handleEventUpdate(e) {
         if (result.success) {
             showNotification('Event updated successfully!', 'success');
             
-            // Clear saved form state
-            const eventId = formData.get('event_id');
+            // Clear saved form state ONLY on success
             clearFormState(`editEventForm_${eventId}`);
             
             closeEditEventModal();
