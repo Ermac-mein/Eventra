@@ -54,7 +54,7 @@ try {
         SELECT m.id, m.file_name as name, m.file_path, m.file_size, m.file_type, m.folder_id, m.uploaded_at,
                COALESCE(e.event_name, 'Unassigned') as event_association
         FROM media m
-        LEFT JOIN events e ON m.file_path = e.image_path
+        LEFT JOIN events e ON m.file_path COLLATE utf8mb4_unicode_ci = e.image_path COLLATE utf8mb4_unicode_ci
         WHERE $where_sql
         ORDER BY m.uploaded_at DESC
     ");

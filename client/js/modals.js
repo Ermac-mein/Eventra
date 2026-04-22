@@ -957,11 +957,17 @@ function showEditEventModal(event) {
 
                             <div class="form-group">
                                 <label>Status</label>
-                                <select name="status">
+                                <select name="status" id="editEventStatusSelect">
                                     <option value="draft" ${event.status === 'draft' ? 'selected' : ''}>Draft</option>
                                     <option value="scheduled" ${event.status === 'scheduled' ? 'selected' : ''}>Scheduled</option>
                                     <option value="published" ${event.status === 'published' ? 'selected' : ''}>Published</option>
                                 </select>
+                            </div>
+
+                            <div class="form-group" id="editScheduledTimeGroup" style="display: ${event.status === 'scheduled' ? 'block' : 'none'}; background: linear-gradient(135deg, #fef3c7, #fde68a); padding: 1.5rem; border-radius: 16px; border: 2px solid #fbbf24; grid-column: 1 / -1;">
+                                <label style="font-weight: 700; color: #92400e; margin-bottom: 0.75rem; display: block; font-size: 0.875rem; text-transform: uppercase; letter-spacing: 0.5px;">Scheduled Publish Time</label>
+                                <input type="datetime-local" name="scheduled_publish_time" value="${event.scheduled_publish_time ? event.scheduled_publish_time.slice(0, 16) : ''}" style="width: 100%; padding: 1rem 1.25rem; border: 2px solid #fbbf24; border-radius: 12px; background: white; font-size: 1rem;">
+                                <div style="color: #b45309; margin-top: 0.75rem; font-size: 0.875rem; font-weight: 500;">Event will be automatically published at this time</div>
                             </div>
                         </div>
 
@@ -1033,6 +1039,15 @@ function showEditEventModal(event) {
 
     // Add submit handler
     editEventForm.addEventListener('submit', handleEventUpdate);
+
+    // Add status change handler
+    const editStatusSelect = document.getElementById('editEventStatusSelect');
+    const editScheduledTimeGroup = document.getElementById('editScheduledTimeGroup');
+    if (editStatusSelect && editScheduledTimeGroup) {
+        editStatusSelect.addEventListener('change', function(e) {
+            editScheduledTimeGroup.style.display = e.target.value === 'scheduled' ? 'block' : 'none';
+        });
+    }
 
     // Free Event Checkbox Handler (Edit Modal)
     const freeCheckbox = document.getElementById('editFreeEventCheckbox');
