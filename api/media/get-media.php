@@ -64,7 +64,7 @@ try {
     // 2. Get folders for current view
     // Note: media_folders doesn't support nested folders (no parent_id column)
     // So we'll just return top-level folders for this client
-    $folders_sql = "SELECT id, name, created_at FROM media_folders WHERE client_id = ? AND is_deleted = ?";
+    $folders_sql = "SELECT id, name, created_at FROM media_folders WHERE client_id = ? AND is_deleted = ? AND name != 'Event Assets'";
     $f_params = [$client_id, $is_trash];
 
     $f_stmt = $pdo->prepare($folders_sql);

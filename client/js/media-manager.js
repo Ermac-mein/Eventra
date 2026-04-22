@@ -119,7 +119,7 @@ async function loadMedia() {
 }
 
 function displayMediaGrid(media, stats) {
-    // Update dashboard stats - Map to correct fields from API response
+    // Update dashboard stats
     if (stats) {
         const foldersEl = document.getElementById('foldersCreatedCount');
         if (foldersEl) foldersEl.textContent = stats.total_folders || 0;
@@ -138,8 +138,6 @@ function displayMediaGrid(media, stats) {
     }
 
     const mediaGrid = document.getElementById('mediaGrid');
-    
-    // Update hasFolders state
     hasFolders = media && media.some(item => item.type === 'folder');
 
     if (!media || media.length === 0) {
@@ -150,23 +148,24 @@ function displayMediaGrid(media, stats) {
     let html = media.map(item => {
         if (item.type === 'folder') {
             return `
-                <div class="media-card" onclick="openFolder(${item.id}, '${item.name.replace(/'/g, "\\'")}')" style="position: relative;">
-                    <div class="media-thumb"><span class="folder-icon">📂</span></div>
+                <div class="media-card folder-card" onclick="openFolder(${item.id}, '${item.name.replace(/'/g, "\\'")}')">
+                    <div class="media-thumb"><span class="folder-icon" style="font-size: 4rem;">📂</span></div>
                     <div class="media-info">
                         <div class="media-name">${item.name}</div>
-                        <div class="media-meta"><span>${item.file_count || 0} files</span><span> · ${timeAgo(item.created_at)}</span></div>
+                        <div class="media-meta">
+                            <span>${item.file_count || 0} files</span>
+                            <span>${timeAgo(item.created_at)}</span>
+                        </div>
                     </div>
-                    <div class="media-actions-overlay" style="display: flex; gap: 8px; position: absolute; top: 12px; right: 12px; opacity: 1; visibility: visible; justify-content: flex-end; padding: 0;">
+                    <div class="media-actions-overlay">
                         ${currentMediaStatus === 'active' 
                             ? `
-                                <span class="action-circle" onclick="uploadToFolder(${item.id}, '${item.name.replace(/'/g, "\\'")}')" title="Upload to Folder"><i data-lucide="upload" style="width: 16px; height: 16px;"></i></span>
-                                <span class="action-circle" onclick="deleteMedia(${item.id}, 'folder', event, ${item.file_count || 0})" title="Delete Folder" style="color: var(--card-red);"><i data-lucide="trash-2" style="width: 16px; height: 16px;"></i></span>
+                                <span class="action-circle" onclick="uploadToFolder(${item.id}, '${item.name.replace(/'/g, "\\'")}')" title="Upload to Folder"><i data-lucide="upload"></i></span>
+                                <span class="action-circle" onclick="deleteMedia(${item.id}, 'folder', event, ${item.file_count || 0})" title="Delete Folder" style="color: var(--card-red);"><i data-lucide="trash-2"></i></span>
                             ` 
                             : `
-                                <div style="display: flex; gap: 8px;">
-                                    <span class="action-circle" onclick="restoreMedia(${item.id}, 'folder', event)" title="Restore Folder" style="color: var(--card-green);"><i data-lucide="refresh-cw" style="width: 16px; height: 16px;"></i></span>
-                                    <span class="action-circle" onclick="deleteMedia(${item.id}, 'folder', event, ${item.file_count || 0}, true)" title="Permanently Delete" style="color: var(--card-red);"><i data-lucide="trash" style="width: 16px; height: 16px;"></i></span>
-                                </div>
+                                <span class="action-circle" onclick="restoreMedia(${item.id}, 'folder', event)" title="Restore Folder" style="color: var(--card-green);"><i data-lucide="refresh-cw"></i></span>
+                                <span class="action-circle" onclick="deleteMedia(${item.id}, 'folder', event, ${item.file_count || 0}, true)" title="Permanently Delete" style="color: var(--card-red);"><i data-lucide="trash"></i></span>
                             `
                         }
                     </div>
@@ -179,21 +178,19 @@ function displayMediaGrid(media, stats) {
             
             return `
                 <div class="media-card ${isEnhanced ? 'enhanced-hd' : ''}" id="media-${item.id}">
-                    <div class="media-thumb file-thumb" style="${isImage ? `background: url(${item.file_path}) center/cover;` : ''}">
-                        ${isVideo ? `<video src="${item.file_path}" style="width: 100%; height: 100%; object-fit: cover;"></video>` : ''}
-                        ${(!isImage && !isVideo) ? `<span class="file-icon" style="font-size: 4.5rem;">${getFileIcon(item.file_type)}</span>` : ''}
+                    <div class="media-thumb file-thumb" ${isImage ? `style="background: url(${item.file_path}) center/cover;"` : ''}>
+                        ${isVideo ? `<video src="${item.file_path}"></video>` : ''}
+                        ${(!isImage && !isVideo) ? `<span class="file-icon">${getFileIcon(item.file_type)}</span>` : ''}
                         <div class="hd-badge">4K HD</div>
-                        <div class="media-actions-overlay" style="display: flex; gap: 8px; position: absolute; top: 12px; right: 12px; opacity: 1; justify-content: flex-end; padding: 0;">
+                        <div class="media-actions-overlay">
                             ${currentMediaStatus === 'active' ? `
                                 <span class="action-circle hd-toggle ${isEnhanced ? 'active' : ''}" onclick="toggleHDEnhancement(event, ${item.id})" title="HD Enhancement">✨</span>
-                                <span class="action-circle" onclick="viewFile('${item.file_path}')"><i data-lucide="eye" style="width: 16px; height: 16px;"></i></span>
-                                <span class="action-circle" onclick="downloadFile('${item.file_path}', '${item.name.replace(/'/g, "\\'")}')"><i data-lucide="download" style="width: 16px; height: 16px;"></i></span>
-                                <span class="action-circle" onclick="deleteMedia(${item.id}, 'file', event)" style="color: var(--card-red);" title="Delete File"><i data-lucide="trash-2" style="width: 16px; height: 16px;"></i></span>
+                                <span class="action-circle" onclick="viewFile('${item.file_path}')" title="View"><i data-lucide="eye"></i></span>
+                                <span class="action-circle" onclick="downloadFile('${item.file_path}', '${item.name.replace(/'/g, "\\'")}')" title="Download"><i data-lucide="download"></i></span>
+                                <span class="action-circle" onclick="deleteMedia(${item.id}, 'file', event)" style="color: var(--card-red);" title="Delete"><i data-lucide="trash-2"></i></span>
                             ` : `
-                                <div style="display: flex; gap: 8px;">
-                                    <span class="action-circle" onclick="restoreMedia(${item.id}, 'file', event)" style="color: var(--card-green);" title="Restore File"><i data-lucide="refresh-cw" style="width: 16px; height: 16px;"></i></span>
-                                    <span class="action-circle" onclick="deleteMedia(${item.id}, 'file', event, 0, true)" style="color: var(--card-red);" title="Permanently Delete"><i data-lucide="trash" style="width: 16px; height: 16px;"></i></span>
-                                </div>
+                                <span class="action-circle" onclick="restoreMedia(${item.id}, 'file', event)" style="color: var(--card-green);" title="Restore"><i data-lucide="refresh-cw"></i></span>
+                                <span class="action-circle" onclick="deleteMedia(${item.id}, 'file', event, 0, true)" style="color: var(--card-red);" title="Permanently Delete"><i data-lucide="trash"></i></span>
                             `}
                         </div>
                     </div>
@@ -203,8 +200,8 @@ function displayMediaGrid(media, stats) {
                             <span style="text-transform: capitalize;">${item.file_type || 'File'}</span>
                             <span>${formatFileSize(item.file_size)}</span>
                         </div>
-                        <div style="font-size: 0.7rem; color: var(--card-blue); margin-top: 4px; font-weight: 500;">
-                            Associated: ${item.event_association || 'Unassigned'}
+                        <div class="media-date">
+                            ${timeAgo(item.uploaded_at)} • ${item.event_association || 'Unassigned'}
                         </div>
                     </div>
                 </div>
@@ -213,6 +210,7 @@ function displayMediaGrid(media, stats) {
     }).join('');
 
     mediaGrid.innerHTML = html;
+    if (window.lucide) window.lucide.createIcons();
 }
 
 function displayMediaGridEmpty() {
@@ -613,43 +611,37 @@ function populateFolderModal(files) {
     
     // Render using the file-card template logic
     if (grid) {
-        grid.style.display = 'grid';
-        grid.style.gridTemplateColumns = 'repeat(auto-fill, minmax(200px, 1fr))';
-        grid.style.gap = '1.5rem';
-        grid.style.padding = '1rem 0';
+        grid.className = 'media-grid'; // Use the CSS class instead of inline styles
+        grid.style = ''; // Clear inline styles
 
         grid.innerHTML = files.map(item => {
             const isImage = /\.(jpg|jpeg|png|gif|webp|svg)$/i.test(item.file_path);
+            const isVideo = /\.(mp4|webm|ogg|mov)$/i.test(item.file_path);
             
             return `
-                <div class="media-card" id="media-${item.id}" style="border: 1px solid var(--client-border); border-radius: 12px; overflow: hidden; background: white; transition: transform 0.2s, box-shadow 0.2s;">
-                    <div class="media-preview" onclick="viewFile('${item.file_path}', '${item.name.replace(/'/g, "\\'")}')" style="height: 140px; background: #f8fafc; display: flex; align-items: center; justify-content: center; cursor: pointer; position: relative;">
-                        ${isImage 
-                            ? `<img src="${item.file_path}" alt="${item.name}" style="width: 100%; height: 100%; object-fit: cover;">` 
-                            : `<div class="file-icon" style="font-size: 3rem;">${getFileIcon(item.file_type)}</div>`
-                        }
-                        <div class="media-type-badge" style="position: absolute; bottom: 8px; left: 8px; background: rgba(15, 23, 42, 0.7); color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; text-transform: uppercase;">${item.file_type || 'file'}</div>
-                    </div>
-                    <div class="media-info" style="padding: 1rem;">
-                        <div class="media-name" title="${item.name}" style="font-weight: 600; font-size: 0.9rem; margin-bottom: 0.25rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${item.name}</div>
-                        <div class="media-meta" style="display: flex; flex-direction: column; gap: 2px; font-size: 0.75rem; color: var(--client-text-muted);">
-                            <div style="display: flex; justify-content: space-between;">
-                                <span>${formatFileSize(item.file_size || 0)}</span>
-                                <span>${timeAgo(item.uploaded_at)}</span>
-                            </div>
-                            <div style="margin-top: 4px; color: var(--card-blue); font-weight: 500;">
-                                Associated: ${item.event_association || 'Unassigned'}
-                            </div>
-                        </div>
-                        <div class="media-actions" style="margin-top: 1rem; display: flex; justify-content: flex-end; gap: 8px;">
+                <div class="media-card" id="media-${item.id}">
+                    <div class="media-thumb file-thumb" ${isImage ? `style="background: url(${item.file_path}) center/cover;"` : ''}>
+                        ${isVideo ? `<video src="${item.file_path}"></video>` : ''}
+                        ${(!isImage && !isVideo) ? `<span class="file-icon">${getFileIcon(item.file_type)}</span>` : ''}
+                        <div class="media-actions-overlay">
                             ${currentMediaStatus === 'active' ? `
-                                <span class="action-circle" onclick="viewFile('${item.file_path}', '${item.name.replace(/'/g, "\\'")}')" title="View"><i data-lucide="eye" style="width: 14px; height: 14px;"></i></span>
-                                <span class="action-circle" onclick="downloadFile('${item.file_path}', '${item.name.replace(/'/g, "\\'")}')" title="Download"><i data-lucide="download" style="width: 14px; height: 14px;"></i></span>
-                                <span class="action-circle" onclick="deleteMedia(${item.id}, 'file', event)" style="color: var(--card-red);" title="Delete"><i data-lucide="trash-2" style="width: 14px; height: 14px;"></i></span>
+                                <span class="action-circle" onclick="viewFile('${item.file_path}', '${item.name.replace(/'/g, "\\'")}')" title="View"><i data-lucide="eye"></i></span>
+                                <span class="action-circle" onclick="downloadFile('${item.file_path}', '${item.name.replace(/'/g, "\\'")}')" title="Download"><i data-lucide="download"></i></span>
+                                <span class="action-circle" onclick="deleteMedia(${item.id}, 'file', event)" style="color: var(--card-red);" title="Delete"><i data-lucide="trash-2"></i></span>
                             ` : `
-                                <span class="action-circle" onclick="restoreMedia(${item.id}, 'file', event)" style="color: var(--card-green);" title="Restore"><i data-lucide="refresh-cw" style="width: 14px; height: 14px;"></i></span>
-                                <span class="action-circle" onclick="deleteMedia(${item.id}, 'file', event, 0, true)" style="color: var(--card-red);" title="Permanently Delete"><i data-lucide="trash" style="width: 14px; height: 14px;"></i></span>
+                                <span class="action-circle" onclick="restoreMedia(${item.id}, 'file', event)" style="color: var(--card-green);" title="Restore"><i data-lucide="refresh-cw"></i></span>
+                                <span class="action-circle" onclick="deleteMedia(${item.id}, 'file', event, 0, true)" style="color: var(--card-red);" title="Permanently Delete"><i data-lucide="trash"></i></span>
                             `}
+                        </div>
+                    </div>
+                    <div class="media-info">
+                        <div class="media-name" title="${item.name}">${item.name}</div>
+                        <div class="media-meta">
+                            <span>${formatFileSize(item.file_size || 0)}</span>
+                            <span>${timeAgo(item.uploaded_at)}</span>
+                        </div>
+                        <div class="media-date">
+                            Associated: ${item.event_association || 'Unassigned'}
                         </div>
                     </div>
                 </div>
@@ -687,36 +679,31 @@ function getFileIcon(fileType) {
 
 function timeAgo(dateString) {
     if (!dateString) return 'Just now';
+    
     // Ensure proper parsing cross-browser
-    const validDateString = dateString.replace(' ', 'T');
-    
+    const validDateString = dateString.includes(' ') ? dateString.replace(' ', 'T') : dateString;
     const date = new Date(validDateString).getTime();
+    
+    if (isNaN(date)) return 'Unknown date';
+    
     const now = new Date().getTime();
-    
-    let diffMs = now - date;
-    let seconds = Math.floor(diffMs / 1000);
-    
-    if (seconds < 0) {
-        seconds = 0;
-        diffMs = 0;
-    }
-    
-    const minutes = Math.floor(seconds / 60);
-    const hours = Math.floor(minutes / 60);
-    const days = Math.floor(hours / 24);
+    const diffMs = now - date;
+    const seconds = Math.floor(diffMs / 1000);
     
     if (seconds < 30) return 'Just now';
     if (seconds < 60) return `${seconds}s ago`;
+    
+    const minutes = Math.floor(seconds / 60);
     if (minutes < 60) return `${minutes} min${minutes > 1 ? 's' : ''} ago`;
-    if (hours < 24) {
-        if (hours === 1) return '1 hour ago';
-        return `${hours} hours ago`;
-    }
+    
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours} hr${hours > 1 ? 's' : ''} ago`;
+    
+    const days = Math.floor(hours / 24);
     if (days === 1) return 'Yesterday';
     if (days < 7) return `${days} days ago`;
     
-    const actualDate = new Date(date);
-    return actualDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    return new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
 function sortFolderFiles(column, forceAsc = null) {

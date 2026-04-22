@@ -2685,3 +2685,138 @@ input[type="date"]::-webkit-datetime-edit-text {
         font-size: 0.85rem;
     }
 }
+
+/* ─── Media Management Grid Enhancements ─────────────────────────────────── */
+#mediaGrid, .media-grid {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)) !important;
+    gap: 20px !important;
+    padding: 1rem 0 !important;
+}
+
+.media-card {
+    background: white;
+    border-radius: 16px;
+    border: 1px solid var(--client-border);
+    overflow: hidden;
+    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    position: relative;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+
+.media-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 20px rgba(0, 0, 0, 0.1);
+    border-color: var(--card-blue);
+}
+
+.media-thumb {
+    height: 140px;
+    width: 100%;
+    background: #f8fafc;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+}
+
+.media-thumb img, .media-thumb video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.media-info {
+    padding: 1rem;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.media-name {
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: var(--client-text-main);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 2px;
+}
+
+.media-meta {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.75rem;
+    color: var(--client-text-muted);
+}
+
+.media-date {
+    font-size: 0.7rem;
+    color: var(--card-blue);
+    font-weight: 500;
+    margin-top: 4px;
+}
+
+.media-actions-overlay {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    display: flex;
+    gap: 6px;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.2s ease;
+    z-index: 10;
+}
+
+.media-card:hover .media-actions-overlay {
+    opacity: 1;
+    visibility: visible;
+}
+
+.action-circle {
+    width: 32px;
+    height: 32px;
+    background: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    cursor: pointer;
+    transition: transform 0.2s, background 0.2s;
+    color: var(--client-text-main);
+}
+
+.action-circle:hover {
+    transform: scale(1.1);
+    background: #f1f5f9;
+}
+
+.action-circle i {
+    width: 14px;
+    height: 14px;
+}
+
+.hd-badge {
+    position: absolute;
+    bottom: 8px;
+    right: 8px;
+    background: rgba(0, 0, 0, 0.6);
+    color: white;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.6rem;
+    font-weight: 800;
+    backdrop-filter: blur(4px);
+}
+
+.file-icon {
+    font-size: 3rem;
+}
+
