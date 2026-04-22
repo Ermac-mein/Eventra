@@ -169,25 +169,12 @@ try {
                 $file_size = filesize($upload_path);
                 $mime_type = mime_content_type($upload_path);
 
-                $folder_name = 'Event Images';
-                $stmt = $pdo->prepare("SELECT id FROM media_folders WHERE client_id = ? AND name = ? AND is_deleted = 0 LIMIT 1");
-                $stmt->execute([$event['client_id'], $folder_name]);
-                $folder_id = $stmt->fetchColumn() ?: null;
-
-                if (!$folder_id) {
-                    $stmt = $pdo->prepare("INSERT INTO media_folders (client_id, name) VALUES (?, ?)");
-                    $stmt->execute([$event['client_id'], $folder_name]);
-                    $folder_id = $pdo->lastInsertId();
-                }
-
                 $media_stmt = $pdo->prepare("
                     INSERT INTO media (client_id, folder_id, folder_name, file_name, file_extension, file_path, file_type, file_size, mime_type)
-                    VALUES (?, ?, ?, ?, ?, ?, 'image', ?, ?)
+                    VALUES (?, NULL, 'default', ?, ?, ?, 'image', ?, ?)
                 ");
                 $media_stmt->execute([
                     $event['client_id'],
-                    $folder_id,
-                    $folder_name,
                     $_FILES['event_image']['name'],
                     $file_extension,
                     $image_path,
@@ -282,7 +269,6 @@ try {
             state = ?,
             visibility = ?,
             event_visibility = ?,
-            ticket_type_mode = ?,
             address = ?,
             phone_contact_1 = ?,
             phone_contact_2 = ?,
@@ -312,7 +298,6 @@ try {
         $_POST['state'],
         $_POST['visibility'] ?? 'all states',
         $_POST['event_visibility'] ?? 'public',
-        $_POST['ticket_type_mode'] ?? 'both',
         $_POST['address'],
         $_POST['phone_contact_1'],
         $_POST['phone_contact_2'] ?? null,
@@ -326,23 +311,27 @@ try {
         $event_id
     ]);
 
-    $message = "Event '{$_POST['event_name']}' has been updated";
-    $auth_id = getAuthId();
-    $client_auth_id = $event['client_auth_id'] ?? null;
-    if (!$client_auth_id) {
-        $stmt = $pdo->prepare("SELECT client_auth_id FROM clients WHERE id = ?");
-        $stmt->execute([$event['client_id']]);
-        $client_auth_id = $stmt->fetchColumn();
-    }
+    try {
+        $message = "Event '{$_POST['event_name']}' has been updated";
+        $auth_id = getAuthId();
+        $client_auth_id = $event['client_auth_id'] ?? null;
+        if (!$client_auth_id) {
+            $stmt = $pdo->prepare("SELECT client_auth_id FROM clients WHERE id = ?");
+            $stmt->execute([$event['client_id']]);
+            $client_auth_id = $stmt->fetchColumn();
+        }
 
-    createNotification($client_auth_id, $message, 'event_updated', $auth_id, 'client', ($role === 'admin' ? 'admin' : 'client'));
+        createNotification($client_auth_id, $message, 'event_updated', $auth_id, 'client', ($role === 'admin' ? 'admin' : 'client'));
 
-    // Notify Admin as well
-    $admin_id = getAdminUserId();
-    if ($admin_id && $auth_id != $admin_id) {
-        $name = $_POST['event_name'];
-        $admin_message = "Event '{$name}' has been updated" . ($role === 'admin' ? " by an administrator." : " by organizer.");
-        createNotification($admin_id, $admin_message, 'event_updated', $auth_id, 'admin', ($role === 'admin' ? 'admin' : 'client'));
+        // Notify Admin as well
+        $admin_id = getAdminUserId();
+        if ($admin_id && $auth_id != $admin_id) {
+            $name = $_POST['event_name'];
+            $admin_message = "Event '{$name}' has been updated" . ($role === 'admin' ? " by an administrator." : " by organizer.");
+            createNotification($admin_id, $admin_message, 'event_updated', $auth_id, 'admin', ($role === 'admin' ? 'admin' : 'client'));
+        }
+    } catch (Throwable $notif_err) {
+        error_log("[Update Event Notification Error] " . $notif_err->getMessage());
     }
 
     echo json_encode([

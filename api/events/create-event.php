@@ -129,30 +129,17 @@ try {
             $target_path = compressEventImage($target_path, $file_extension);
             $image_path = "/uploads/events/" . basename($target_path);
 
-            // Register in media table (Canonical folder: "Event Images")
+            // Register in media table (Root folder)
             try {
                 $file_size = filesize($target_path);
                 $mime_type = mime_content_type($target_path);
 
-                $folder_name = 'Event Images';
-                $stmt = $pdo->prepare("SELECT id FROM media_folders WHERE client_id = ? AND name = ? AND is_deleted = 0 LIMIT 1");
-                $stmt->execute([$real_client_id, $folder_name]);
-                $folder_id = $stmt->fetchColumn() ?: null;
-
-                if (!$folder_id) {
-                    $stmt = $pdo->prepare("INSERT INTO media_folders (client_id, name) VALUES (?, ?)");
-                    $stmt->execute([$real_client_id, $folder_name]);
-                    $folder_id = $pdo->lastInsertId();
-                }
-
                 $media_stmt = $pdo->prepare("
                     INSERT INTO media (client_id, folder_id, folder_name, file_name, file_extension, file_path, file_type, file_size, mime_type)
-                    VALUES (?, ?, ?, ?, ?, ?, 'image', ?, ?)
+                    VALUES (?, NULL, 'default', ?, ?, ?, 'image', ?, ?)
                 ");
                 $media_stmt->execute([
                     $real_client_id,
-                    $folder_id,
-                    $folder_name,
                     $_FILES['event_image']['name'],
                     $file_extension,
                     $image_path,

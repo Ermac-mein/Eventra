@@ -235,7 +235,7 @@ try {
                     SUM(CASE WHEN status = 'published' AND deleted_at IS NULL THEN 1 ELSE 0 END) AS published_events,
                     SUM(CASE WHEN status = 'scheduled' AND deleted_at IS NULL THEN 1 ELSE 0 END) AS scheduled_events,
                     SUM(CASE WHEN status = 'draft'     AND deleted_at IS NULL THEN 1 ELSE 0 END) AS draft_events,
-                    SUM(CASE WHEN status = 'restored'  AND deleted_at IS NULL THEN 1 ELSE 0 END) AS restored_events,
+                    SUM(CASE WHEN JSON_EXTRACT(metadata, '$.is_restored') = true AND deleted_at IS NULL THEN 1 ELSE 0 END) AS restored_events,
                     COUNT(CASE WHEN deleted_at IS NOT NULL THEN 1 END) AS deleted_events,
                     IFNULL(SUM(CASE WHEN deleted_at IS NULL THEN attendee_count ELSE 0 END), 0) AS total_attendees
                 FROM events WHERE client_id = ?
