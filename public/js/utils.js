@@ -417,9 +417,10 @@ document.addEventListener('click', (e) => {
 
 /**
  * Save form state to localStorage
- * @param {string} formId - The ID of the form to save
+ * @param {string} storageKey - The key to save under in localStorage
+ * @param {string} formId - The ID of the form element (defaults to storageKey if not provided)
  */
-function saveFormState(formId) {
+function saveFormState(storageKey, formId = storageKey) {
     const form = document.getElementById(formId);
     if (!form) return;
 
@@ -428,7 +429,6 @@ function saveFormState(formId) {
 
     elements.forEach(el => {
         // Skip sensitive or unnecessary fields
-        // Skip sensitive or unnecessary fields, but allow specific persistence fields if needed
         const isHiddenToPersist = el.type === 'hidden' && (el.name.includes('date') || el.name.includes('time') || el.name.includes('tag'));
         
         if (el.type === 'password' || el.type === 'file' || (el.type === 'hidden' && !isHiddenToPersist) || el.name === 'event_id') {
@@ -442,15 +442,16 @@ function saveFormState(formId) {
         }
     });
 
-    localStorage.setItem(`form_state_${formId}`, JSON.stringify(formData));
+    localStorage.setItem(`form_state_${storageKey}`, JSON.stringify(formData));
 }
 
 /**
  * Restore form state from localStorage
- * @param {string} formId - The ID of the form to restore
+ * @param {string} storageKey - The key to restore from localStorage
+ * @param {string} formId - The ID of the form element (defaults to storageKey if not provided)
  */
-function restoreFormState(formId) {
-    const savedData = localStorage.getItem(`form_state_${formId}`);
+function restoreFormState(storageKey, formId = storageKey) {
+    const savedData = localStorage.getItem(`form_state_${storageKey}`);
     if (!savedData) return;
 
     try {
@@ -479,10 +480,10 @@ function restoreFormState(formId) {
 
 /**
  * Clear form state from localStorage
- * @param {string} formId - The ID of the form to clear
+ * @param {string} storageKey - The key to clear from localStorage
  */
-function clearFormState(formId) {
-    localStorage.removeItem(`form_state_${formId}`);
+function clearFormState(storageKey) {
+    localStorage.removeItem(`form_state_${storageKey}`);
 }
 
 /**

@@ -907,7 +907,7 @@ function showEditEventModal(event) {
                                     <input type="number" name="price" id="editPriceInput" value="${event.price}" required min="0" step="0.01" 
                                            style="${parseFloat(event.price) === 0 ? 'display: none;' : ''}">
                                     <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; user-select: none; font-weight: 600; color: #6b7280; background: white; padding: 0.5rem 1rem; border-radius: 8px; border: 1px solid #d1d5db;">
-                                        <input type="checkbox" id="editFreeEventCheckbox" ${parseFloat(event.price) === 0 ? 'checked' : ''} style="width: 1.1rem; height: 1.1rem; accent-color: #2ecc71;"> Free
+                                        <input type="checkbox" id="editFreeEventCheckbox" name="is_free" value="1" ${parseFloat(event.price) === 0 ? 'checked' : ''} style="width: 1.1rem; height: 1.1rem; accent-color: #2ecc71;"> Free
                                     </label>
                                     <select name="event_visibility" style="padding: 0.5rem 1rem; border-radius: 8px; border: 1px solid #d1d5db; font-size: 0.9rem; font-weight: 600; background: white; color: #374151; cursor: pointer;">
                                         <option value="public" ${event.event_visibility === 'public' ? 'selected' : ''}>🌐 Public</option>
@@ -921,19 +921,19 @@ function showEditEventModal(event) {
                                     <h4 style="margin: 0 0 1rem 0; font-weight: 800; color: #0369a1; font-size: 0.9rem; text-transform: uppercase;">💳 Ticket Type Configuration</h4>
                                     <div style="display: grid; gap: 0.75rem; margin-bottom: 1.5rem;">
                                         <label style="display: flex; align-items: center; gap: 0.75rem; cursor: pointer; padding: 0.75rem; background: white; border-radius: 10px; border: 1px solid #e2e8f0;">
-                                            <input type="radio" name="ticketTypeMode" value="regular-only" ${event.ticket_type_mode === 'regular-only' ? 'checked' : ''} style="accent-color: #0369a1;">
+                                            <input type="radio" name="ticket_type_mode" value="regular-only" ${event.ticket_type_mode === 'regular-only' ? 'checked' : ''} style="accent-color: #0369a1;">
                                             <div>
                                                 <div style="font-weight: 700; color: #1e293b; font-size: 0.9rem;">Regular Only</div>
                                             </div>
                                         </label>
                                         <label style="display: flex; align-items: center; gap: 0.75rem; cursor: pointer; padding: 0.75rem; background: white; border-radius: 10px; border: 1px solid #e2e8f0;">
-                                            <input type="radio" name="ticketTypeMode" value="vip-only" ${event.ticket_type_mode === 'vip-only' ? 'checked' : ''} style="accent-color: #0369a1;">
+                                            <input type="radio" name="ticket_type_mode" value="vip-only" ${event.ticket_type_mode === 'vip-only' ? 'checked' : ''} style="accent-color: #0369a1;">
                                             <div>
                                                 <div style="font-weight: 700; color: #1e293b; font-size: 0.9rem;">VIP Only</div>
                                             </div>
                                         </label>
                                         <label style="display: flex; align-items: center; gap: 0.75rem; cursor: pointer; padding: 0.75rem; background: white; border-radius: 10px; border: 1px solid #e2e8f0;">
-                                            <input type="radio" name="ticketTypeMode" value="both" ${(!event.ticket_type_mode || event.ticket_type_mode === 'both') ? 'checked' : ''} style="accent-color: #0369a1;">
+                                            <input type="radio" name="ticket_type_mode" value="both" ${(!event.ticket_type_mode || event.ticket_type_mode === 'both') ? 'checked' : ''} style="accent-color: #0369a1;">
                                             <div>
                                                 <div style="font-weight: 700; color: #1e293b; font-size: 0.9rem;">Both VIP & Regular</div>
                                             </div>
@@ -1029,13 +1029,14 @@ function showEditEventModal(event) {
     // Add modal to body
     document.body.insertAdjacentHTML('beforeend', modalHTML);
 
-    // Add persistence
+    // Add persistence - use event ID to prevent data leakage between different events
+    const persistenceKey = `editEventForm_${event.id}`;
     const editEventForm = document.getElementById('editEventForm');
-    editEventForm.addEventListener('input', () => saveFormState('editEventForm'));
-    editEventForm.addEventListener('change', () => saveFormState('editEventForm'));
+    editEventForm.addEventListener('input', () => saveFormState(persistenceKey, 'editEventForm'));
+    editEventForm.addEventListener('change', () => saveFormState(persistenceKey, 'editEventForm'));
 
     // Restore saved state
-    restoreFormState('editEventForm');
+    restoreFormState(persistenceKey, 'editEventForm');
 
     // Add submit handler
     editEventForm.addEventListener('submit', handleEventUpdate);
@@ -1120,7 +1121,8 @@ async function handleEventUpdate(e) {
             showNotification('Event updated successfully!', 'success');
             
             // Clear saved form state
-            clearFormState('editEventForm');
+            const eventId = formData.get('event_id');
+            clearFormState(`editEventForm_${eventId}`);
             
             closeEditEventModal();
             

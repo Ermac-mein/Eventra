@@ -214,7 +214,7 @@ function showCreateEventModal() {
                                     <div class="form-group">
                                         <label style="display: block; font-size: 0.875rem; font-weight: 600; color: #6b7280; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.5px;">Ticket Pricing</label>
                                         <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; user-select: none; font-weight: 600; color: #6b7280; background: white; padding: 1rem 1.25rem; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); border: 2px solid #e5e7eb; height: 56px;">
-                                            <input type="checkbox" id="freeEventCheckbox" style="width: 1.2rem; height: 1.2rem; accent-color: #722f37;"> FREE EVENT
+                                            <input type="checkbox" id="freeEventCheckbox" name="is_free" value="1" style="width: 1.2rem; height: 1.2rem; accent-color: #722f37;"> FREE EVENT
                                         </label>
                                     </div>
                                 </div>
@@ -231,21 +231,21 @@ function showCreateEventModal() {
                                     <h4 style="margin: 0 0 1.5rem 0; font-weight: 800; color: #0369a1; font-size: 1rem; text-transform: uppercase; letter-spacing: 1px;">💳 Ticket Type Configuration</h4>
                                     <div style="display: grid; gap: 1rem; margin-bottom: 1.5rem;">
                                         <label style="display: flex; align-items: center; gap: 1rem; cursor: pointer; padding: 1rem; background: white; border-radius: 12px; border: 2px solid transparent; transition: all 0.3s;">
-                                            <input type="radio" name="ticketTypeMode" value="regular-only" class="ticket-type-radio" style="width: 1.2rem; height: 1.2rem; accent-color: #0369a1; cursor: pointer;">
+                                            <input type="radio" name="ticket_type_mode" value="regular-only" class="ticket-type-radio" style="width: 1.2rem; height: 1.2rem; accent-color: #0369a1; cursor: pointer;">
                                             <div>
                                                 <div style="font-weight: 700; color: #1e293b;">Regular Only</div>
                                                 <div style="font-size: 0.8rem; color: #64748b;">Offer only standard tickets</div>
                                             </div>
                                         </label>
                                         <label style="display: flex; align-items: center; gap: 1rem; cursor: pointer; padding: 1rem; background: white; border-radius: 12px; border: 2px solid transparent; transition: all 0.3s;">
-                                            <input type="radio" name="ticketTypeMode" value="vip-only" class="ticket-type-radio" style="width: 1.2rem; height: 1.2rem; accent-color: #0369a1; cursor: pointer;">
+                                            <input type="radio" name="ticket_type_mode" value="vip-only" class="ticket-type-radio" style="width: 1.2rem; height: 1.2rem; accent-color: #0369a1; cursor: pointer;">
                                             <div>
                                                 <div style="font-weight: 700; color: #1e293b;">VIP Only</div>
                                                 <div style="font-size: 0.8rem; color: #64748b;">Offer only premium VIP tickets</div>
                                             </div>
                                         </label>
                                         <label style="display: flex; align-items: center; gap: 1rem; cursor: pointer; padding: 1rem; background: white; border-radius: 12px; border: 2px solid transparent; transition: all 0.3s;">
-                                            <input type="radio" name="ticketTypeMode" value="both" class="ticket-type-radio" style="width: 1.2rem; height: 1.2rem; accent-color: #0369a1; cursor: pointer;" checked>
+                                            <input type="radio" name="ticket_type_mode" value="both" class="ticket-type-radio" style="width: 1.2rem; height: 1.2rem; accent-color: #0369a1; cursor: pointer;" checked>
                                             <div>
                                                 <div style="font-weight: 700; color: #1e293b;">Both VIP & Regular</div>
                                                 <div style="font-size: 0.8rem; color: #64748b;">Offer both ticket types with different prices</div>
@@ -501,7 +501,7 @@ function showCreateEventModal() {
     const vipPriceInput = document.getElementById('vipPriceInput');
 
     function updateTicketTypeSections() {
-        const selectedMode = document.querySelector('input[name="ticketTypeMode"]:checked')?.value || 'both';
+        const selectedMode = document.querySelector('input[name="ticket_type_mode"]:checked')?.value || 'both';
         
         regularPriceSection.style.display = (selectedMode === 'regular-only' || selectedMode === 'both') ? 'block' : 'none';
         vipPriceSection.style.display = (selectedMode === 'vip-only' || selectedMode === 'both') ? 'block' : 'none';
