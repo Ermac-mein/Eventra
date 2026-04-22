@@ -218,9 +218,17 @@ try {
     }
 
     // Validation
-    $required_fields = ['event_name', 'event_type', 'event_date', 'event_time', 'price', 'status', 'address', 'phone_contact_1'];
+    $required_fields = ['event_name', 'event_type', 'event_date', 'event_time', 'status', 'address', 'phone_contact_1'];
+    
+    // Price is required unless it's explicitly marked as free or ticket_type_mode is 'multiple'
+    $ticket_type_mode = $_POST['ticket_type_mode'] ?? 'single';
+    if ($ticket_type_mode === 'single' && (!isset($_POST['is_free']) || $_POST['is_free'] !== '1')) {
+        $required_fields[] = 'price';
+    }
+
     foreach ($required_fields as $field) {
         if (!isset($_POST[$field]) || trim($_POST[$field]) === '') {
+            http_response_code(400);
             echo json_encode(['success' => false, 'message' => "Field '$field' is required"]);
             exit;
         }
@@ -260,8 +268,11 @@ try {
             event_date = ?,
             event_time = ?,
             price = ?,
+            regular_price = ?,
+            vip_price = ?,
             regular_quantity = ?,
             vip_quantity = ?,
+            ticket_type_mode = ?,
             status = ?,
             description = ?,
             state = ?,
@@ -287,8 +298,11 @@ try {
         $_POST['event_date'],
         $_POST['event_time'],
         $_POST['price'],
+        $_POST['regular_price'] ?? 0,
+        $_POST['vip_price'] ?? 0,
         $new_regular_qty,
         $new_vip_qty,
+        $_POST['ticket_type_mode'] ?? 'single',
         $_POST['status'],
         $_POST['description'],
         $_POST['state'],
@@ -330,9 +344,15 @@ try {
         error_log("[Update Event Notification Error] " . $notif_err->getMessage());
     }
 
+    // Fetch updated event data to return to client
+    $stmt = $pdo->prepare("SELECT * FROM events WHERE id = ?");
+    $stmt->execute([$event_id]);
+    $updated_event = $stmt->fetch();
+
     echo json_encode([
         'success' => true,
-        'message' => 'Event updated successfully'
+        'message' => 'Event updated successfully',
+        'event' => $updated_event
     ]);
 } catch (Throwable $e) {
     error_log("[Update Event Global Error] " . $e->getMessage() . "\n" . $e->getTraceAsString());

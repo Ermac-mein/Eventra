@@ -21,6 +21,15 @@ window.handleCreateEventClick = function() {
     }
 };
 
+/**
+ * Refresh dashboard data after an event update
+ */
+window.updateEventOnDashboard = function(updatedEvent) {
+    // For simplicity on the dashboard, we trigger a full stats refresh
+    // but we could also update the local events state if needed.
+    loadDashboardStats();
+};
+
 document.addEventListener('DOMContentLoaded', async () => {
 
     // Load cached stats immediately for better UX

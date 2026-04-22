@@ -8,6 +8,30 @@ let eventsData = [];
 let sortConfig = { key: 'event_date', direction: 'desc' };
 let pagination = null;
 const selectedEventIds = new Set();
+
+/**
+ * Updates a single event in the local list and re-renders the table.
+ * Called by modals.js after a successful update.
+ */
+function updateEventInList(updatedEvent) {
+    const index = eventsData.findIndex(e => e.id == updatedEvent.id);
+    if (index !== -1) {
+        // Merge updated data with existing data to preserve any fields not returned by the API
+        eventsData[index] = { ...eventsData[index], ...updatedEvent };
+        
+        if (pagination) {
+            pagination.updateData(eventsData);
+        } else {
+            updateEventsTable(eventsData);
+        }
+        
+        // Also refresh stats since an update might change counts (e.g. status change)
+        const user = storage.getUser();
+        refreshStats(user.id);
+    }
+}
+window.updateEventInList = updateEventInList;
+
 document.addEventListener('DOMContentLoaded', async () => {
     const user = storage.getUser();
     

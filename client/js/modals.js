@@ -1123,7 +1123,18 @@ async function handleEventUpdate(e) {
             clearFormState('editEventForm');
             
             closeEditEventModal();
-            setTimeout(() => window.location.reload(), 1000);
+            
+            // Update UI immediately without refresh
+            if (result.event) {
+                if (typeof window.updateEventInList === 'function') {
+                    window.updateEventInList(result.event);
+                } else if (typeof window.updateEventOnDashboard === 'function') {
+                    window.updateEventOnDashboard(result.event);
+                } else {
+                    // Fallback to refresh if no update function is available
+                    setTimeout(() => window.location.reload(), 500);
+                }
+            }
         } else {
             showNotification('Failed to update event: ' + result.message, 'error');
             submitBtn.textContent = originalText;
