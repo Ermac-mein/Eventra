@@ -48,8 +48,12 @@ if (!isset($payload['sub']) || empty($payload['sub']) || !isset($payload['email'
     exit;
 }
 
-// Verify if email is verified by Google
-if (empty($payload['email_verified']) || $payload['email_verified'] !== true) {
+// Verify if email is verified by Google (Handle both boolean and string "true")
+$is_verified = isset($payload['email_verified']) && 
+               ($payload['email_verified'] === true || $payload['email_verified'] === "true" || $payload['email_verified'] == 1);
+
+if (!$is_verified) {
+    error_log("Google Auth Failed: Email not verified for " . ($payload['email'] ?? 'unknown'));
     echo json_encode([
         'success' => false,
         'message' => 'Your Google account email is not verified. Please verify your Google account email before signing in.'

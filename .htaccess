@@ -32,13 +32,13 @@ php_value post_max_size 15M
     RewriteRule ^ index.php [L]
 </IfModule>
 
-# CORS headers — required for JS fetch calls to same-origin API
-# <IfModule mod_headers.c>
-#     Header always set Access-Control-Allow-Origin "https://eventra-website.liveblog365.com"
-#     Header always set Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
-#     Header always set Access-Control-Allow-Headers "Authorization, Content-Type, X-Eventra-Portal, DNT"
-#     Header always set Access-Control-Allow-Credentials "true"
-# </IfModule>
+# Security headers for Google Sign-In (fixes postMessage/window.closed blocking)
+<IfModule mod_headers.c>
+    Header set Cross-Origin-Opener-Policy "same-origin-allow-popups"
+    Header set Cross-Origin-Embedder-Policy "unsafe-none"
+    # Existing CORS config (keep enabled)
+    Header always set Access-Control-Allow-Credentials "true"
+</IfModule>
 
 # Enable Gzip Compression
 <IfModule mod_deflate.c>
