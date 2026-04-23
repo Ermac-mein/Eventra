@@ -203,7 +203,7 @@ function updateEventsTable(events) {
                 <td style="font-family:monospace;font-size:0.85rem;color:#ef4444;font-weight:700;">${event.custom_id || event.id}</td>
                 <td><div style="font-weight: 600;">${(event.event_name || '').replace(/\s*#\d+$/, '')}</div></td>
                 <td>${event.event_type}</td>
-                <td>${new Date(event.event_date).toLocaleDateString()}</td>
+                <td>${new Date(event.event_date + 'T00:00:00').toLocaleDateString()}</td>
                 <td>${parseFloat(event.price) === 0 ? 'Free' : `₦${parseFloat(event.price).toLocaleString()}`}</td>
                 <td><span style="color:#ef4444;">${deletedAt}</span></td>
                 <td class="text-center">
@@ -249,7 +249,7 @@ function updateEventsTable(events) {
             <td>
                 <div style="font-weight: 600;">${(event.event_name || '').replace(/\s*#\d+$/, '')}</div>
             </td>
-            <td>${new Date(event.event_date).toLocaleDateString()}</td>
+            <td>${new Date(event.event_date + 'T00:00:00').toLocaleDateString()}</td>
             <td>${event.event_type}</td>
             <td>
                 ${parseFloat(event.price) === 0 
@@ -857,7 +857,7 @@ async function previewEvent(eventId) {
                     <div style="background: #f8fafc; padding: 1.25rem; border-radius: 20px; border: 1px solid #e2e8f0; transition: all 0.3s ease;">
                         <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">📅</div>
                         <div style="font-size: 0.65rem; color: #94a3b8; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em;">Date</div>
-                        <div style="font-weight: 700; color: #1e293b; font-size: 0.9rem;">${new Date(date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</div>
+                        <div style="font-weight: 700; color: #1e293b; font-size: 0.9rem;">${new Date(date + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</div>
                     </div>
                     <div style="background: #f8fafc; padding: 1.25rem; border-radius: 20px; border: 1px solid #e2e8f0;">
                         <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">🕒</div>

@@ -739,12 +739,12 @@ function createEventCard(event, index) {
   
   let eventDate = 'Date TBA';
   if (event.event_date) {
-      const d = new Date(event.event_date);
+      const d = new Date(event.event_date + 'T00:00:00');
       if (!isNaN(d.getTime())) {
           eventDate = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
       }
   }
-  const isPassed = new Date(event.event_date) < new Date();
+  const isPassed = new Date(event.event_date + 'T00:00:00') < new Date();
   const status = isPassed ? 'passed' : (event.sold_out ? 'sold-out' : 'upcoming');
   const statusLabel = isPassed ? 'Passed' : (event.sold_out ? 'Sold Out' : 'Upcoming');
   const statusColor = isPassed ? '#6b7280' : (event.sold_out ? '#ef4444' : '#722f37');

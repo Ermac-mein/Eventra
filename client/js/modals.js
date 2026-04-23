@@ -509,7 +509,7 @@ function displayEventPreview(event) {
     const normalizedImage = eventImage.startsWith('http') ? eventImage : getImageUrl(eventImage);
     const status = event.status || 'draft';
     const price = parseFloat(event.price) === 0 ? 'Free' : `₦${parseFloat(event.price).toLocaleString()}`;
-    const date = new Date(event.event_date).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' });
+    const date = new Date(event.event_date + 'T00:00:00').toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' });
     const time = event.event_time ? event.event_time.substring(0, 5) : '--:--';
     
     // Get client name for sharing

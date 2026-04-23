@@ -443,7 +443,7 @@ function showCreateEventModal() {
     // Sync date display after restoration
     const restoredDate = document.getElementById('eventDateInput')?.value;
     if (restoredDate) {
-        const dateObj = new Date(restoredDate);
+        const dateObj = new Date(restoredDate + 'T00:00:00');
         if (!isNaN(dateObj.getTime())) {
             const displayOpts = { month: 'long', day: 'numeric', year: 'numeric' };
             document.getElementById('customDateDisplay').value = dateObj.toLocaleDateString('en-US', displayOpts);
@@ -475,6 +475,11 @@ function showCreateEventModal() {
             
             if (regularPriceInput) { regularPriceInput.value = 0; regularPriceInput.required = false; }
             if (vipPriceInput) { vipPriceInput.value = 0; vipPriceInput.required = false; }
+            // Clear quantity inputs so they don't override max_capacity on submission
+            const regularQtyInput = document.querySelector('input[name="regular_quantity"]');
+            const vipQtyInput = document.querySelector('input[name="vip_quantity"]');
+            if (regularQtyInput) regularQtyInput.value = '';
+            if (vipQtyInput) vipQtyInput.value = '';
         } else {
             // Restore visibility and requirements
             if (ticketConfig) ticketConfig.style.display = 'block';

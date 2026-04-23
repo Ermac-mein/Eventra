@@ -53,30 +53,35 @@ try {
         exit;
     }
 
-    // Begin transaction — DB change is only committed if everything succeeds
+    // Begin transaction
     $pdo->beginTransaction();
 
     // Update event status to published and ensure admin_status is approved
     $stmt = $pdo->prepare("UPDATE events SET status = 'published', admin_status = 'approved' WHERE id = ?");
     $stmt->execute([$event_id]);
 
-    require_once '../utils/notification-helper.php';
-
-    $message = "Your event '{$event['event_name']}' has been published and is now live!";
-    $auth_id = $_SESSION['auth_id'];
-    $client_auth_id = $event['client_auth_id'];
-
-    createNotification($client_auth_id, $message, 'event_published', $auth_id, 'client', ($role === 'admin' ? 'admin' : 'client'));
-
-    // Notify Admin
-    $admin_id = getAdminUserId();
-    if ($admin_id && $auth_id != $admin_id) {
-        $admin_message = "Event '{$event['event_name']}' has been published.";
-        createNotification($admin_id, $admin_message, 'event_published', $auth_id, 'admin', 'client');
-    }
-
-    // Commit only after notifications are sent successfully
+    // Commit the DB change FIRST — publish is persisted regardless of notification outcome
     $pdo->commit();
+
+    // Send notifications (non-critical — errors are logged but never roll back the publish)
+    try {
+        require_once '../utils/notification-helper.php';
+
+        $message = "Your event '{$event['event_name']}' has been published and is now live!";
+        $auth_id = $_SESSION['auth_id'] ?? null;
+        $client_auth_id = $event['client_auth_id'];
+
+        createNotification($client_auth_id, $message, 'event_published', $auth_id, 'client', ($role === 'admin' ? 'admin' : 'client'));
+
+        // Notify Admin
+        $admin_id = getAdminUserId();
+        if ($admin_id && $auth_id != $admin_id) {
+            $admin_message = "Event '{$event['event_name']}' has been published.";
+            createNotification($admin_id, $admin_message, 'event_published', $auth_id, 'admin', 'client');
+        }
+    } catch (Throwable $notif_err) {
+        error_log("[Publish Event Notification Error] " . $notif_err->getMessage());
+    }
 
     ob_end_clean();
     echo json_encode([
