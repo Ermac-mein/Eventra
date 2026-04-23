@@ -8,6 +8,7 @@
 
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');
+header("Cross-Origin-Opener-Policy: same-origin-allow-popups");
 require_once '../../config/env-loader.php';
 
 try {

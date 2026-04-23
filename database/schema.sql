@@ -381,6 +381,8 @@ CREATE TABLE IF NOT EXISTS media (
     CONSTRAINT fk_media_folder FOREIGN KEY (folder_id) REFERENCES media_folders (id) ON DELETE SET NULL
 ) ENGINE = INNODB DEFAULT CHARSET = UTF8MB4;
 
+ALTER TABLE media ADD COLUMN IF NOT EXISTS deleted_at DATETIME NULL DEFAULT NULL;
+
 -- =============================================================================
 -- SMS LOGS
 -- =============================================================================

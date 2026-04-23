@@ -141,10 +141,10 @@ try {
     // Handle image upload if provided using standardized path
     $image_path = $event['image_path']; // Keep existing image by default
     if (isset($_FILES['event_image']) && $_FILES['event_image']['error'] === UPLOAD_ERR_OK) {
-        $upload_dir = "../../uploads/events/";
+        $upload_dir = __DIR__ . "/../../uploads/events/";
 
         if (!is_dir($upload_dir)) {
-            mkdir($upload_dir, 0777, true);
+            mkdir($upload_dir, 0755, true);
         }
 
         $file_extension = strtolower(pathinfo($_FILES['event_image']['name'], PATHINFO_EXTENSION));
@@ -274,6 +274,9 @@ try {
     ]);
     $metadata_json = json_encode($new_metadata);
 
+    // Begin transaction — all DB writes below must succeed together
+    $pdo->beginTransaction();
+
     // Build UPDATE (priority column intentionally omitted — deprecated)
     $sql = "UPDATE events SET
             event_name = ?,
@@ -354,12 +357,18 @@ try {
     $stmt->execute([$event_id]);
     $updated_event = $stmt->fetch();
 
+    // Commit only after all DB work succeeds — success response follows commit
+    $pdo->commit();
+
     echo json_encode([
         'success' => true,
         'message' => 'Event updated successfully',
         'event' => $updated_event
     ]);
 } catch (Throwable $e) {
+    if ($pdo->inTransaction()) {
+        $pdo->rollBack();
+    }
     error_log("[Update Event Global Error] " . $e->getMessage() . "\n" . $e->getTraceAsString());
     http_response_code(500);
     echo json_encode(['success' => false, 'message' => 'Internal server error: ' . $e->getMessage()]);
