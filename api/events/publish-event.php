@@ -5,6 +5,9 @@
  * Publishes a scheduled or draft event
  */
 
+// Buffer output so stray PHP warnings don't corrupt the JSON response
+ob_start();
+
 header('Content-Type: application/json');
 require_once '../../config/database.php';
 require_once '../../includes/middleware/auth.php';
@@ -17,6 +20,7 @@ $data = json_decode(file_get_contents("php://input"), true);
 $event_id = $data['event_id'] ?? null;
 
 if (!$event_id) {
+    ob_end_clean();
     echo json_encode(['success' => false, 'message' => 'Event ID is required']);
     exit;
 }
@@ -36,16 +40,21 @@ try {
     $event = $stmt->fetch();
 
     if (!$event) {
+        ob_end_clean();
         echo json_encode(['success' => false, 'message' => 'Event not found']);
         exit;
     }
 
     // Check if user is the client who created the event or admin
     if ($role !== 'admin' && $event['client_id'] != $resolved_client_id) {
+        ob_end_clean();
         http_response_code(403);
         echo json_encode(['success' => false, 'message' => 'You do not have permission to publish this event']);
         exit;
     }
+
+    // Begin transaction — DB change is only committed if everything succeeds
+    $pdo->beginTransaction();
 
     // Update event status to published and ensure admin_status is approved
     $stmt = $pdo->prepare("UPDATE events SET status = 'published', admin_status = 'approved' WHERE id = ?");
@@ -66,11 +75,20 @@ try {
         createNotification($admin_id, $admin_message, 'event_published', $auth_id, 'admin', 'client');
     }
 
+    // Commit only after notifications are sent successfully
+    $pdo->commit();
+
+    ob_end_clean();
     echo json_encode([
         'success' => true,
         'message' => 'Event published successfully'
     ]);
 } catch (Throwable $e) {
+    // Roll back the DB change so the event is NOT published on error
+    if ($pdo->inTransaction()) {
+        $pdo->rollBack();
+    }
+    ob_end_clean();
     http_response_code(500);
     echo json_encode(['success' => false, 'message' => 'Server error: ' . $e->getMessage()]);
 }

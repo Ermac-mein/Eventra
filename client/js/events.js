@@ -949,7 +949,7 @@ async function previewEvent(eventId) {
 async function publishEvent(eventId) {
     if (document.activeElement) document.activeElement.blur();
     
-    const result = await Swal.fire({
+    const confirmed = await Swal.fire({
         title: 'Publish Event?',
         text: 'Are you sure you want to publish this event? It will be visible to all users on the platform.',
         icon: 'question',
@@ -960,37 +960,50 @@ async function publishEvent(eventId) {
         cancelButtonText: 'Wait'
     });
 
-    if (!result.isConfirmed) return;
+    if (!confirmed.isConfirmed) return;
 
+    // ── Step 1: call the API ──
+    let publishResult;
     try {
         const response = await apiFetch('/api/events/publish-event.php', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ event_id: eventId })
         });
-
-        const result = await response.json();
-
-        if (result.success) {
-            showNotification('Event published successfully!', 'success');
-            // Close preview modal if open
-            const previewBackdrop = document.querySelector('.preview-modal-backdrop');
-            if (previewBackdrop) {
-                previewBackdrop.querySelector('.preview-close').click();
-            }
-            // Trigger dashboard stat update if on dashboard
-            if (window.loadDashboardStats) {
-                window.loadDashboardStats(storage.get('user').id);
-            }
-            // Refresh data instead of full reload
-            loadEvents(storage.get('user').id);
-            // Close preview modal if still open
-            closeEventPreviewModal && closeEventPreviewModal();
-        } else {
-            showNotification('Failed to publish event: ' + result.message, 'error');
-        }
+        publishResult = await response.json();
     } catch (error) {
         showNotification('An error occurred while publishing event', 'error');
+        return;
+    }
+
+    // ── Step 2: react to the result — UI changes ONLY on success ──
+    if (publishResult.success) {
+        showNotification('Event published successfully!', 'success');
+
+        // Safely close the preview modal (backdrop style)
+        const previewBackdrop = document.querySelector('.preview-modal-backdrop');
+        if (previewBackdrop) {
+            const closeBtn = previewBackdrop.querySelector('.preview-close');
+            if (closeBtn) closeBtn.click();
+            else previewBackdrop.style.display = 'none';
+        }
+
+        // Safely close the event preview modal (modal style)
+        if (typeof closeEventPreviewModal === 'function') {
+            closeEventPreviewModal();
+        }
+
+        // Trigger dashboard stat update if on dashboard
+        if (typeof window.loadDashboardStats === 'function') {
+            const user = storage.get('user');
+            if (user) window.loadDashboardStats(user.id);
+        }
+
+        // Refresh events list
+        const user = storage.get('user');
+        if (user) loadEvents(user.id);
+    } else {
+        showNotification('Failed to publish event: ' + publishResult.message, 'error');
     }
 }
 

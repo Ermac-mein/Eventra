@@ -751,7 +751,7 @@ function formatDate(dateString) {
 
 async function publishEvent(eventId) {
     if (document.activeElement) document.activeElement.blur();
-    const result = await Swal.fire({
+    const confirmed = await Swal.fire({
         title: 'Publish Event?',
         text: 'Are you sure you want to publish this event? It will be visible to all users on the platform.',
         icon: 'question',
@@ -762,33 +762,40 @@ async function publishEvent(eventId) {
         cancelButtonText: 'Wait'
     });
 
-    if (!result.isConfirmed) return;
+    if (!confirmed.isConfirmed) return;
 
+    // ── Step 1: call the API ──
+    let publishResult;
     try {
         const response = await apiFetch('/api/events/publish-event.php', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ event_id: eventId })
         });
-
-        const publishResult = await response.json();
-
-        if (publishResult.success) {
-            showNotification('Event published successfully!', 'success');
-            closeEventActionModal();
-            // Trigger dashboard stat update if on dashboard
-            if (window.loadDashboardStats) {
-                const user = storage.get('client_user') || storage.get('user');
-                window.loadDashboardStats(user ? user.id : null);
-            }
-            
-            // Reload page to reflect changes
-            setTimeout(() => window.location.reload(), 1000);
-        } else {
-            showNotification('Failed to publish event: ' + publishResult.message, 'error');
-        }
+        publishResult = await response.json();
     } catch (error) {
         showNotification('An error occurred while publishing event', 'error');
+        return;
+    }
+
+    // ── Step 2: react to the result — UI changes ONLY on success ──
+    if (publishResult.success) {
+        showNotification('Event published successfully!', 'success');
+
+        if (typeof closeEventActionModal === 'function') {
+            closeEventActionModal();
+        }
+
+        // Trigger dashboard stat update if on dashboard
+        if (typeof window.loadDashboardStats === 'function') {
+            const user = storage.get('client_user') || storage.get('user');
+            if (user) window.loadDashboardStats(user.id);
+        }
+
+        // Reload page to reflect changes
+        setTimeout(() => window.location.reload(), 1000);
+    } else {
+        showNotification('Failed to publish event: ' + publishResult.message, 'error');
     }
 }
 
