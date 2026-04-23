@@ -978,7 +978,6 @@ function showEditEventModal(event) {
                                 <select name="status" id="editEventStatusSelect">
                                     <option value="draft" ${event.status === 'draft' ? 'selected' : ''}>Draft</option>
                                     <option value="scheduled" ${event.status === 'scheduled' ? 'selected' : ''}>Scheduled</option>
-                                    <option value="published" ${event.status === 'published' ? 'selected' : ''}>Published</option>
                                 </select>
                             </div>
 
