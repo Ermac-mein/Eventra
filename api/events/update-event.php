@@ -253,8 +253,14 @@ try {
     $new_vip_qty     = !empty($_POST['vip_quantity'])     ? intval($_POST['vip_quantity'])     : null;
     $new_total_tickets = null;
     $new_ticket_count  = null;
+    
     if ($new_regular_qty !== null || $new_vip_qty !== null) {
         $new_total_tickets = ($new_regular_qty ?? 0) + ($new_vip_qty ?? 0);
+    } elseif (!empty($_POST['total_tickets'])) {
+        $new_total_tickets = intval($_POST['total_tickets']);
+    }
+
+    if ($new_total_tickets !== null) {
         // Preserve tickets already sold
         $already_sold = (int)($event['sales_count'] ?? $event['attendee_count'] ?? 0);
         $new_ticket_count = max(0, $new_total_tickets - $already_sold);

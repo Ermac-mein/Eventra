@@ -300,6 +300,13 @@ function initUserIcon() {
   const userOnlineStatus = document.querySelector('.user-online-status');
   const dropdownUserName = document.getElementById('dropdownUserName');
   const dropdownUserEmail = document.getElementById('dropdownUserEmail');
+  const profileUpdateBanner = document.getElementById('profileUpdateBanner');
+  
+  const checkProfileCompletion = (user) => {
+    if (!user) return false;
+    const requiredFields = ['email', 'phone', 'dob', 'gender', 'country', 'state', 'city', 'address'];
+    return requiredFields.every(field => user[field] && user[field].toString().trim() !== '');
+  };
   
   const setupUI = () => {
     const user = authController.user;
@@ -323,11 +330,22 @@ function initUserIcon() {
       
       if (dropdownUserName) dropdownUserName.textContent = user.name || 'User';
       if (dropdownUserEmail) dropdownUserEmail.textContent = user.email || '';
+
+      // Check profile completion for banner
+      if (profileUpdateBanner) {
+        if (checkProfileCompletion(user)) {
+          profileUpdateBanner.style.display = 'none';
+        } else {
+          profileUpdateBanner.style.display = 'block';
+        }
+      }
     } else {
       // Guest/Unauthenticated UI
       if (userProfileImg) userProfileImg.style.display = 'none';
       if (defaultUserIcon) defaultUserIcon.style.display = 'block';
       if (userOnlineStatus) userOnlineStatus.style.display = 'none';
+      
+      if (profileUpdateBanner) profileUpdateBanner.style.display = 'block';
       
       const favoritesSection = document.getElementById('your-favorites');
       if (favoritesSection) favoritesSection.style.display = 'none';
@@ -482,6 +500,11 @@ function initUserIcon() {
     profileEditForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       const formData = new FormData(profileEditForm);
+      
+      // Ensure all fields are included (even if some are disabled, though disabled fields aren't sent by default)
+      // We manually add name if it's there, etc.
+      // Actually FormData(profileEditForm) gets all named inputs.
+      
       const keys = typeof getRoleKeys === 'function' ? getRoleKeys() : { user: 'user' };
       
       try {

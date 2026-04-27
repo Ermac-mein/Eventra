@@ -987,6 +987,12 @@ function showEditEventModal(event) {
                             </div>
 
                             <div class="form-group">
+                                <label>Ticket Capacity (Total)</label>
+                                <input type="number" name="total_tickets" value="${event.total_tickets || ''}" placeholder="e.g. 100" min="1">
+                                <p style="font-size: 0.7rem; color: #6b7280; margin-top: 4px;">Total number of tickets available for this event.</p>
+                            </div>
+
+                            <div class="form-group">
                                 <label>Status</label>
                                 <select name="status" id="editEventStatusSelect">
                                     <option value="draft" ${event.status === 'draft' ? 'selected' : ''}>Draft</option>
