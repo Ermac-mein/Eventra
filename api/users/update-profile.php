@@ -9,8 +9,8 @@ require_once '../../config/database.php';
 require_once '../../includes/middleware/auth.php';
 
 // Check authentication using proper middleware
-$user_auth_id = checkAuth('user');
-$user_id = $user_auth_id;
+$user_id = checkAuth('user'); // This is the profile ID (users.id)
+$user_auth_id = getAuthId();  // This is the auth_accounts.id
 $name = $_POST['name'];
 $phone = $_POST['phone'];
 $address = $_POST['address'];

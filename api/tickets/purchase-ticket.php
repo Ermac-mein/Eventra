@@ -12,14 +12,10 @@ require_once '../../includes/middleware/auth.php';
 require_once '../../api/utils/id-generator.php';
 
 // Check authentication via standardized middleware
-$auth_id = checkAuth('user');
+$user_id = checkAuth('user');
+$auth_id = getAuthId(); // auth_accounts.id
 
-// Get the actual user table ID using auth_id
-$stmt = $pdo->prepare("SELECT id FROM users WHERE user_auth_id = ?");
-$stmt->execute([$auth_id]);
-$user_id = $stmt->fetchColumn();
-
-if (!$user_id) {
+if (!$user_id || !$auth_id) {
     http_response_code(404);
     echo json_encode(['success' => false, 'message' => 'User profile not found']);
     exit;
@@ -195,7 +191,7 @@ try {
     // 7. Post-Processing: Notifications
     try {
         require_once '../utils/notification-helper.php';
-        $stmt = $pdo->prepare("SELECT name, email FROM users WHERE id = ?");
+        $stmt = $pdo->prepare("SELECT u.name, a.email FROM users u JOIN auth_accounts a ON u.user_auth_id = a.id WHERE u.id = ?");
         $stmt->execute([$user_id]);
         $user = $stmt->fetch();
 

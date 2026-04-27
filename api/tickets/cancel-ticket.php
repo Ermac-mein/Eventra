@@ -48,12 +48,13 @@ try {
     $stmt->execute([$ticket_id]);
 
     // Trigger Notification
-    createNotification($user_id_auth, "Your ticket (ID: #$ticket_id) has been cancelled.", 'ticket_cancelled', $user_id_auth, 'user', 'user');
+    $auth_id = getAuthId();
+    createNotification($auth_id, "Your ticket (ID: #$ticket_id) has been cancelled.", 'ticket_cancelled', $auth_id, 'user', 'user');
 
     // Notify Admin too
     $admin_id = getAdminUserId();
     if ($admin_id) {
-        createNotification($admin_id, "Ticket #$ticket_id has been cancelled by user.", 'ticket_cancelled', $user_id_auth, 'admin', 'user');
+        createNotification($admin_id, "Ticket #$ticket_id has been cancelled by user.", 'ticket_cancelled', $auth_id, 'admin', 'user');
     }
 
     $pdo->commit();
