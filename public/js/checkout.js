@@ -110,13 +110,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // 4. Setup Payment Action
-    const payBtn = document.getElementById('paystackBtn');
-
     if (payBtn) {
         payBtn.addEventListener('click', async (e) => {
             e.preventDefault();
             
-            // Validation
+            // 1. Basic Validation
             const phone = document.getElementById('phoneNum')?.value.trim();
             const email = document.getElementById('emailAdd')?.value.trim();
             const fname = document.getElementById('firstName')?.value.trim();
@@ -127,68 +125,91 @@ document.addEventListener('DOMContentLoaded', async () => {
                 return;
             }
 
-            // Disable button & show loading
-            payBtn.disabled = true;
-            payBtn.innerHTML = '<span class="btn-spinner"></span> Initializing...';
-            
-            try {
-                // Initialize Order via Marketplace API
-                const res = await apiFetch('/api/payments/initialize.php', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        event_id: eventId,
-                        quantity: currentQuantity
-                    })
-                });
-                
-                const result = await res.json();
-                
-                if (result.success) {
-                    // Free event — ticket already issued server-side
-                    if (result.is_free) {
-                        await Swal.fire({
-                            title: '🎉 Ticket Claimed!',
-                            html: `<p>Your <strong>free ticket</strong> for <em>${escapeHTML(eventData?.event_name || 'this event')}</em> has been successfully issued!</p>
-                                   <p style="font-size:0.85rem;color:#64748b;margin-top:0.75rem;">Reference: <code>${result.reference}</code></p>`,
-                            icon: 'success',
-                            confirmButtonColor: '#FF5A5F',
-                            confirmButtonText: 'Go to Events'
-                        });
-                        window.location.href = 'index.html';
-                        return;
-                    }
+            // 2. Event Conclusion Check
+            const eventEndDateTime = new Date(eventData.event_end_datetime || eventData.event_date + 'T' + (eventData.event_time || '23:59:59'));
+            if (new Date() > eventEndDateTime) {
+                showNotification('This event has already concluded.', 'error');
+                return;
+            }
 
-                    // Paid event — store order and redirect to payment processor
-                    const orderData = {
-                        eventId: eventId,
-                        quantity: currentQuantity,
-                        order_id: result.order_id,
-                        reference: result.reference,
-                        authorization_url: result.authorization_url,
-                        amount: result.amount,
-                        contactInfo: {
-                            firstName: fname,
-                            lastName: lname,
-                            email: email,
-                            phone: phone
-                        }
-                    };
-                    
-                    sessionStorage.setItem('pending_order', JSON.stringify(orderData));
-                    
-                    // Redirect to payment transition/processing page
-                    window.location.href = 'payment.html';
-                } else {
-                    Swal.fire('Error', result.message || 'Payment initialization failed.', 'error');
+            // 3. OTP Verification
+            if (typeof showOTPModal === 'function') {
+                showOTPModal(email, phone, async () => {
+                    // Success Callback: Proceed to Initialize Order
+                    await proceedToPayment(eventId, currentQuantity, fname, lname, email, phone, payBtn, eventData);
+                }, () => {
+                    // Cancel Callback: Re-enable button
                     resetPayBtn(eventData, currentQuantity);
-                }
-            } catch (err) {
-                const errMsg = err?.message || 'Could not connect to payment server. Please check your connection and try again.';
-                Swal.fire('Error', errMsg, 'error');
-                resetPayBtn(eventData, currentQuantity);
+                });
+            } else {
+                // Fallback if OTP modal helper is missing
+                await proceedToPayment(eventId, currentQuantity, fname, lname, email, phone, payBtn, eventData);
             }
         });
+    }
+
+    async function proceedToPayment(eventId, currentQuantity, fname, lname, email, phone, payBtn, eventData) {
+        // Disable button & show loading
+        payBtn.disabled = true;
+        payBtn.innerHTML = '<span class="btn-spinner"></span> Initializing...';
+        
+        try {
+            // Initialize Order via Marketplace API
+            const res = await apiFetch('/api/payments/initialize.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    event_id: eventId,
+                    quantity: currentQuantity
+                })
+            });
+            
+            const result = await res.json();
+            
+            if (result.success) {
+                // Free event — ticket already issued server-side
+                if (result.is_free) {
+                    await Swal.fire({
+                        title: '🎉 Ticket Claimed!',
+                        html: `<p>Your <strong>free ticket</strong> for <em>${escapeHTML(eventData?.event_name || 'this event')}</em> has been successfully issued!</p>
+                               <p style="font-size:0.85rem;color:#64748b;margin-top:0.75rem;">Reference: <code>${result.reference}</code></p>`,
+                        icon: 'success',
+                        confirmButtonColor: '#FF5A5F',
+                        confirmButtonText: 'Go to Events'
+                    });
+                    window.location.href = 'index.html';
+                    return;
+                }
+
+                // Paid event — store order and redirect to payment processor
+                const orderData = {
+                    eventId: eventId,
+                    quantity: currentQuantity,
+                    order_id: result.order_id,
+                    reference: result.reference,
+                    authorization_url: result.authorization_url,
+                    amount: result.amount,
+                    contactInfo: {
+                        firstName: fname,
+                        lastName: lname,
+                        email: email,
+                        phone: phone
+                    }
+                };
+                
+                sessionStorage.setItem('pending_order', JSON.stringify(orderData));
+                
+                // Redirect to payment transition/processing page
+                window.location.href = 'payment.html';
+            } else {
+                Swal.fire('Error', result.message || 'Payment initialization failed.', 'error');
+                resetPayBtn(eventData, currentQuantity);
+            }
+        } catch (err) {
+            const errMsg = err?.message || 'Could not connect to payment server. Please check your connection and try again.';
+            Swal.fire('Error', errMsg, 'error');
+            resetPayBtn(eventData, currentQuantity);
+        }
     }
 
     // Modals and Flow code removed - Moved to payment.html/payment.js

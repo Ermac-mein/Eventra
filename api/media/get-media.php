@@ -61,10 +61,15 @@ try {
     $stmt->execute($params);
     $media_files = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    // 2. Get folders for current view
-    // Note: media_folders doesn't support nested folders (no parent_id column)
-    // So we'll just return top-level folders for this client
-    $folders_sql = "SELECT id, name, created_at FROM media_folders WHERE client_id = ? AND is_deleted = ? AND name != 'Event Assets'";
+    // 2. Ensure "Event Assets" exists and Get all folders for current view
+    $check_stmt = $pdo->prepare("SELECT id FROM media_folders WHERE client_id = ? AND name = 'Event Assets' LIMIT 1");
+    $check_stmt->execute([$client_id]);
+    if (!$check_stmt->fetch()) {
+        $create_stmt = $pdo->prepare("INSERT INTO media_folders (client_id, name, is_deleted, created_at) VALUES (?, 'Event Assets', 0, NOW())");
+        $create_stmt->execute([$client_id]);
+    }
+
+    $folders_sql = "SELECT id, name, created_at FROM media_folders WHERE client_id = ? AND is_deleted = ?";
     $f_params = [$client_id, $is_trash];
 
     $f_stmt = $pdo->prepare($folders_sql);

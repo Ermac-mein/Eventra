@@ -450,6 +450,46 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    /**
+     * Google Auth Logic for Clients
+     */
+    async function initGoogleAuth() {
+        if (window.authController.state === window.authController.states.AUTHENTICATED) return;
+
+        try {
+            const response = await apiFetch('/api/config/get-google-config.php');
+            const data = await response.json();
+
+            if (data.success && data.client_id) {
+                // Wait for Google SDK to load
+                const googleLoaded = await new Promise((resolve) => {
+                    if (typeof google !== 'undefined' && google.accounts && google.accounts.id) {
+                        return resolve(true);
+                    }
+                    let attempts = 0;
+                    const intervalId = setInterval(() => {
+                        attempts++;
+                        if (typeof google !== 'undefined' && google.accounts && google.accounts.id) {
+                            clearInterval(intervalId);
+                            resolve(true);
+                        } else if (attempts >= 50) {
+                            clearInterval(intervalId);
+                            resolve(false);
+                        }
+                    }, 200);
+                });
+
+                if (googleLoaded) {
+                    // Initialize Google with the client-specific container
+                    window.authController.initGoogle(data.client_id, 'googleSignInContainer');
+                }
+            }
+        } catch (error) {
+            console.error('Google init failed:', error);
+        }
+    }
+
+    initGoogleAuth();
     initSlider();
 });
 

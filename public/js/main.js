@@ -741,13 +741,26 @@ function createEventCard(event, index) {
   const eventImage = encodeURI(resolvedPath || event.absolute_image_url || fallback);
   
   let eventDate = 'Date TBA';
+  let status, statusLabel, statusColor;
+  
   if (event.event_date) {
-      eventDate = (event.event_date || '').split('-').reverse().join('/');
+      const eventDateStr = event.event_date || '';
+      eventDate = eventDateStr.split('-').reverse().join('/');
+      
+      // Fix: Today's events should not be marked as "Passed" until tomorrow.
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const eventDay = new Date(eventDateStr + 'T00:00:00');
+      const isPassed = eventDay < today;
+      
+      status = isPassed ? 'passed' : (event.sold_out ? 'sold-out' : 'upcoming');
+      statusLabel = isPassed ? 'Passed' : (event.sold_out ? 'Sold Out' : 'Upcoming');
+      statusColor = isPassed ? '#6b7280' : (event.sold_out ? '#ef4444' : '#722f37');
+  } else {
+      status = 'upcoming';
+      statusLabel = 'Upcoming';
+      statusColor = '#722f37';
   }
-  const isPassed = new Date(event.event_date + 'T00:00:00') < new Date();
-  const status = isPassed ? 'passed' : (event.sold_out ? 'sold-out' : 'upcoming');
-  const statusLabel = isPassed ? 'Passed' : (event.sold_out ? 'Sold Out' : 'Upcoming');
-  const statusColor = isPassed ? '#6b7280' : (event.sold_out ? '#ef4444' : '#722f37');
   
   const eventTime = escapeHTML(event.event_time) || '12:00:00';
   const isFavorite = event.is_favorite ? 'active' : '';

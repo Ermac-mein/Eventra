@@ -23,8 +23,13 @@ function formatCurrency(amount, currency = '₦') {
 
 // Format date
 function formatDate(date) {
+  if (!date) return 'TBA';
   const options = { year: 'numeric', month: 'long', day: 'numeric' };
-  return new Date(date).toLocaleDateString('en-US', options);
+  // Fix: Force local time for YYYY-MM-DD strings to avoid timezone shift
+  const dateObj = (typeof date === 'string' && date.includes('-') && !date.includes('T')) 
+    ? new Date(date + 'T00:00:00') 
+    : new Date(date);
+  return dateObj.toLocaleDateString('en-US', options);
 }
 
 // Debounce function for search

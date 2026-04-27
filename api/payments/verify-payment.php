@@ -211,9 +211,9 @@ try {
             $barcodes = [];
             $ticket_ids = [];
             for ($i = 0; $i < $quantity; $i++) {
-                // Generate consistent TKT-{UUID} barcode
-                $barcode = 'TKT-' . strtoupper(bin2hex(random_bytes(10)));
+                // Generate consistent custom ID and use it as the barcode
                 $ticketCustomId = generateTicketId($pdo);
+                $barcode = $ticketCustomId;
 
                 $pdo->prepare("
                     INSERT INTO tickets (user_id, event_id, payment_id, custom_id, barcode, status)

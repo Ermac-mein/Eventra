@@ -122,7 +122,8 @@ function generateTicketQRCode(array $ticketData): string
         ]);
 
         $qrcode = new QRCode($options);
-        $svgData = $qrcode->render($secureToken);
+        // Use raw barcode as requested: "custom ticket ID must appear as the QR code's encoded value"
+        $svgData = $qrcode->render($ticketData['barcode']);
 
         $fileName = 'qr_' . $ticketData['barcode'] . '.png';
 
@@ -221,6 +222,7 @@ function generateTicketPDF(array $ticketData): string
         'ticket_type'         => $ticket_type,
         'ticket_type_display' => $event_type_label,
         'qr_base64'           => $qr_base64,
+        'event_image'         => $event_img_base64,
         'amount'              => $price_value,
         'event_date'          => $ticketData['event_date'] ?? null,
         'event_time'          => $ticketData['event_time'] ?? null,

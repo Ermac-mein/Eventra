@@ -51,31 +51,37 @@ if (session_status() === PHP_SESSION_NONE) {
         $headers = function_exists('getallheaders') ? getallheaders() : [];
         $portal = $_SERVER['HTTP_X_EVENTRA_PORTAL'] ?? $headers['X-Eventra-Portal'] ?? $headers['x-eventra-portal'] ?? null;
         
-        // If no header, try to detect from URI and cookies
+        // If no header, try to detect from URI first (more specific)
         if (!$portal) {
             $uri = $_SERVER['REQUEST_URI'] ?? '';
             
-            // Check existing session cookies to match the right session name
-            if (isset($_COOKIE['EVENTRA_CLIENT_SESS'])) {
-                $portal = 'client';
-            } elseif (isset($_COOKIE['EVENTRA_ADMIN_SESS'])) {
-                $portal = 'admin';
-            } elseif (isset($_COOKIE['EVENTRA_USER_SESS'])) {
-                $portal = 'user';
-            } elseif (strpos($uri, '/admin/') !== false || strpos($uri, '/api/admin/') !== false) {
+            if (strpos($uri, '/admin/') !== false || strpos($uri, '/api/admin/') !== false) {
                 $portal = 'admin';
             } elseif (strpos($uri, '/client/') !== false || strpos($uri, '/api/client/') !== false || strpos($uri, '/api/clients/') !== false || strpos($uri, '/api/stats/get-client-dashboard-stats.php') !== false) {
                 $portal = 'client';
+            } elseif (strpos($uri, '/user/') !== false || strpos($uri, '/api/user/') !== false) {
+                $portal = 'user';
             }
         }
-
-        if ($portal === 'admin') {
-            session_name('EVENTRA_ADMIN_SESS');
-        } elseif ($portal === 'client') {
-            session_name('EVENTRA_CLIENT_SESS');
-        } else {
-            session_name('EVENTRA_USER_SESS');
+        
+        // Fallback to cookies if URI didn't match a specific portal
+        if (!$portal) {
+            if (isset($_COOKIE['EVENTRA_ADMIN_SESS'])) {
+                $portal = 'admin';
+            } elseif (isset($_COOKIE['EVENTRA_CLIENT_SESS'])) {
+                $portal = 'client';
+            } elseif (isset($_COOKIE['EVENTRA_USER_SESS'])) {
+                $portal = 'user';
+            }
         }
+    }
+
+    if ($portal === 'admin') {
+        session_name('EVENTRA_ADMIN_SESS');
+    } elseif ($portal === 'client') {
+        session_name('EVENTRA_CLIENT_SESS');
+    } else {
+        session_name('EVENTRA_USER_SESS');
     }
 }
 
@@ -88,15 +94,12 @@ if (!isset($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
 
+// The $timeout_duration is 7 days. Only logout if truly exceeded.
 if (isset($_SESSION['last_activity']) && (time() - $_SESSION['last_activity'] > $timeout_duration)) {
     // Session expired due to inactivity
     if (session_status() === PHP_SESSION_ACTIVE) {
         session_unset();
         session_destroy();
-    }
-    // Restart as guest/fresh if needed, or caller will handle 401
-    if (session_status() === PHP_SESSION_NONE) {
-        // Session is started by config.php
     }
 }
 $_SESSION['last_activity'] = time();

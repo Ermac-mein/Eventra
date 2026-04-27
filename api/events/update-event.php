@@ -104,7 +104,14 @@ if ($portal === 'client') {
 
 $event_id = $_POST['event_id'] ?? null;
 
+// Fallback to JSON body if $_POST is empty (happens with some fetch configurations)
 if (!$event_id) {
+    $json_input = json_decode(file_get_contents('php://input'), true);
+    $event_id = $json_input['event_id'] ?? null;
+}
+
+if (!$event_id) {
+    error_log("[Update Event Error] No Event ID provided in POST or JSON body. Headers: " . json_encode($headersLower));
     echo json_encode(['success' => false, 'message' => 'Event ID is required']);
     exit;
 }

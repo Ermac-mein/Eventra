@@ -51,6 +51,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Initialize heartbeat
     if (typeof initHeartbeat === 'function') initHeartbeat();
+
+    // Listen for unified profile update event
+    document.addEventListener('EventraProfileUpdated', (e) => {
+        loadClientProfile();
+    });
 });
 
 async function loadClientProfile() {

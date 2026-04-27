@@ -297,7 +297,12 @@ async function handleProfileUpdate(e) {
 
             // Update stored user data
             storage.set('client_user', profileResult.user);
-            storage.set('user', profileResult.user); // Sync both
+            if (window.storage) window.storage.set('user', profileResult.user);
+            
+            // Dispatch event for unified UI sync (used in utils.js)
+            document.dispatchEvent(new CustomEvent('EventraProfileUpdated', { 
+                detail: profileResult.user 
+            }));
 
             // Close modal
             closeProfileEditModal();
@@ -316,7 +321,8 @@ async function handleProfileUpdate(e) {
             const sidebarName = document.getElementById('sidebarUserName');
             if (sidebarName) sidebarName.textContent = profileResult.user.name;
 
-            // Success feedback and eventual reload if critical
+            // Success feedback and eventual reload
+            showNotification('Profile updated successfully!', 'success');
             setTimeout(() => window.location.reload(), 1500);
         } else {
             showNotification(profileResult.message || 'Failed to update profile', 'error');
@@ -1196,7 +1202,7 @@ function showTicketPreviewModal(ticket) {
             <div style="padding:1.5rem;">
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem;">
                     <span class="tkt-badge ${statusClass}" style="font-size:.82rem; padding: 4px 12px; border-radius: 20px; font-weight: 600;">${escapeHTML(statusLabel)}</span>
-                    <span style="font-family:monospace;font-size:.85rem;color:#6366f1;font-weight:700;">${escapeHTML(ticket.custom_id || ticket.id)}</span>
+                    <span style="font-family:monospace;font-size:.85rem;color:#6366f1;font-weight:700;">${escapeHTML(user.custom_id || user.id)}</span>
                 </div>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:.85rem;">
                     <div><div style="font-size:.7rem;color:#94a3b8;font-weight:700;text-transform:uppercase;margin-bottom:2px;">Buyer</div><div style="font-weight:600;">${escapeHTML(ticket.buyer_name || ticket.user_name || '—')}</div></div>
