@@ -739,10 +739,7 @@ function createEventCard(event, index) {
   
   let eventDate = 'Date TBA';
   if (event.event_date) {
-      const d = new Date(event.event_date + 'T00:00:00');
-      if (!isNaN(d.getTime())) {
-          eventDate = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-      }
+      eventDate = (event.event_date || '').split('-').reverse().join('/');
   }
   const isPassed = new Date(event.event_date + 'T00:00:00') < new Date();
   const status = isPassed ? 'passed' : (event.sold_out ? 'sold-out' : 'upcoming');
@@ -1210,12 +1207,21 @@ async function toggleFavorite(e, eventId) {
                 const targetId = eventId || window.currentModalEventId;
                 const cards = document.querySelectorAll(`.event-card[data-id="${targetId}"]`);
                 cards.forEach(cardItem => {
-                    const favIcon = cardItem.querySelector('.fav-btn');
-                    if (favIcon) {
+                    const favBtn = cardItem.querySelector('.fav-btn');
+                    const favIcon = cardItem.querySelector('.fav-btn i');
+                    if (favBtn) {
                         if (result.is_favorite) {
-                            favIcon.classList.add('active');
+                            favBtn.classList.add('active');
+                            if (favIcon) {
+                                favIcon.classList.add('active');
+                                favIcon.style.fill = 'currentColor';
+                            }
                         } else {
-                            favIcon.classList.remove('active');
+                            favBtn.classList.remove('active');
+                            if (favIcon) {
+                                favIcon.classList.remove('active');
+                                favIcon.style.fill = 'none';
+                            }
                         }
                     }
                 });
@@ -1426,7 +1432,7 @@ function showEventModal(eventId) {
       ${typeof getVerificationBadge === 'function' ? getVerificationBadge(event.verification_status) : (event.is_verified == 1 ? '<span class="verified-check" style="color: #722f37; margin-left: 5px;" title="Verified">✓</span>' : '')}`;
   }
   if (window.lucide) window.lucide.createIcons();
-  if (document.getElementById('modalEventDate')) document.getElementById('modalEventDate').textContent = new Date(event.event_date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+  if (document.getElementById('modalEventDate')) document.getElementById('modalEventDate').textContent = (event.event_date || '').split('-').reverse().join('/');
   if (document.getElementById('modalEventTime')) document.getElementById('modalEventTime').textContent = event.event_time || 'TBA';
   const full_address = `${event.address || ''}, ${event.city || ''}, ${event.state || ''}`.replace(/^, /, '').replace(/, , /g, ', ').replace(/, $/, '') || 'Nigeria';
   const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(full_address || 'Nigeria')}`;

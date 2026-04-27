@@ -297,21 +297,50 @@ function uploadFile() {
     if (!currentFolderId) {
         if (document.activeElement) document.activeElement.blur();
         
-        // Find if any folder selector element exists to point to it
-        const folderSelector = document.getElementById('folderGrid') || document.getElementById('mediaGrid');
-        
-        showNotification('Please select a folder first to upload files.', 'error');
-        
         Swal.fire({
             title: 'Choose a Folder',
-            text: 'Please select a folder from the grid below before uploading files.',
+            text: 'Please select a folder first. Would you like to create an "Event Assets" folder now?',
             icon: 'info',
-            confirmButtonText: 'Got it',
-            confirmButtonColor: '#3b82f6'
+            showCancelButton: true,
+            confirmButtonText: 'Create "Event Assets"',
+            cancelButtonText: 'I\'ll choose one',
+            confirmButtonColor: '#3b82f6',
+            cancelButtonColor: '#9ca3af'
+        }).then(async (result) => {
+            if (result.isConfirmed) {
+                // Auto-create "Event Assets" folder
+                try {
+                    const response = await apiFetch('/api/media/create-folder.php', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ folder_name: 'Event Assets' })
+                    });
+                    const res = await response.json();
+                    if (res.success) {
+                        showNotification('Folder "Event Assets" created!', 'success');
+                        await loadMedia();
+                        // Find the new folder ID and name to set as current
+                        if (res.folder_id) {
+                            currentFolderId = res.folder_id;
+                            currentFolderName = 'Event Assets';
+                            // Proceed to upload
+                            triggerFileUpload();
+                        }
+                    } else {
+                        showNotification('Failed to create folder: ' + res.message, 'error');
+                    }
+                } catch (err) {
+                    showNotification('An error occurred', 'error');
+                }
+            }
         });
         return;
     }
 
+    triggerFileUpload();
+}
+
+function triggerFileUpload() {
     // Create hidden file input
     const input = document.createElement('input');
     input.type = 'file';
@@ -323,16 +352,14 @@ function uploadFile() {
         if (!files.length) return;
 
         // Show upload progress notification
-        showNotification(`Uploading ${files.length} file(s)...`, 'info');
+        showNotification(`Uploading ${files.length} file(s) to ${currentFolderName}...`, 'info');
 
         const formData = new FormData();
         for (let file of files) {
             formData.append('files[]', file);
         }
-        formData.append('folder_name', currentFolderId ? currentFolderName : 'default');
-        if (currentFolderId) {
-            formData.append('folder_id', currentFolderId);
-        }
+        formData.append('folder_name', currentFolderName);
+        formData.append('folder_id', currentFolderId);
 
         try {
             const response = await apiFetch('/api/media/upload-media.php', {
@@ -344,7 +371,11 @@ function uploadFile() {
 
             if (result.success) {
                 showNotification('Files uploaded successfully', 'success');
-                loadMedia();
+                if (currentFolderId) {
+                    openFolder(currentFolderId, currentFolderName);
+                } else {
+                    loadMedia();
+                }
             } else {
                 showNotification('Upload failed: ' + result.message, 'error');
             }

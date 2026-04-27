@@ -21,9 +21,24 @@ use chillerlan\QRCode\QROptions;
  * Helper to encode an image file to Base64 for Dompdf compatibility.
  */
 function base64_encode_image($path) {
-    if (!$path || !file_exists($path)) return '';
-    $type = pathinfo($path, PATHINFO_EXTENSION);
-    $data = file_get_contents($path);
+    if (!$path) return '';
+    
+    // Normalize path: handle relative paths and resolve to absolute
+    $resolvedPath = $path;
+    if (!file_exists($resolvedPath)) {
+        // Try relative to project root
+        $resolvedPath = __DIR__ . '/../../' . ltrim($path, '/');
+    }
+    
+    if (!file_exists($resolvedPath)) {
+        error_log("[TicketHelper] Image not found for base64 encoding: " . $path);
+        return '';
+    }
+    
+    $type = pathinfo($resolvedPath, PATHINFO_EXTENSION);
+    $data = @file_get_contents($resolvedPath);
+    if ($data === false) return '';
+    
     return 'data:image/' . $type . ';base64,' . base64_encode($data);
 }
 

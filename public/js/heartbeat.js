@@ -9,7 +9,7 @@
     'use strict';
 
     // ── Configuration ──────────────────────────────────────────────────────────
-    const INACTIVITY_LIMIT_MS = 30 * 60 * 1000; // 30 minutes
+    const INACTIVITY_LIMIT_MS = 120 * 60 * 1000; // 2 hours (Increased from 30 minutes)
     const HEARTBEAT_INTERVAL_MS = 60 * 1000;     // 60 seconds
     const CHECK_INTERVAL_MS = 30 * 1000;         // check every 30 s
 
@@ -71,7 +71,7 @@
             await Swal.fire({
                 icon: 'warning',
                 title: 'Session Expired',
-                text: 'You have been logged out due to 30 minutes of inactivity.',
+                text: 'You have been logged out due to 2 hours of inactivity.',
                 confirmButtonColor: '#6366f1',
                 timer: 5000,
                 timerProgressBar: true

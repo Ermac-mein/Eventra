@@ -160,7 +160,7 @@ try {
         $pdo->prepare("UPDATE auth_accounts SET failed_attempts = 0, last_login_at = NOW(), is_online = 1 WHERE id = ?")->execute([$user['id']]);
 
         // Update role-specific status when user logs in
-        $expires_in = $remember_me ? '+30 days' : '+30 minutes'; // 30-minute inactivity session policy
+        $expires_in = $remember_me ? '+30 days' : '+7 days'; // Increased from 30 minutes to 7 days
         $expires_at = date('Y-m-d H:i:s', strtotime($expires_in));
 
         // Generate a new access token

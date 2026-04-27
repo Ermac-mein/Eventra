@@ -273,7 +273,13 @@ try {
             file_put_contents($jobFile, $asyncJobData);
 
             // Try to trigger async processing (non-blocking)
-            @shell_exec('php ' . escapeshellarg(__DIR__ . '/../utils/process-ticket-queue.php') . ' > /dev/null 2>&1 &');
+            if (function_exists('shell_exec')) {
+                @shell_exec('php ' . escapeshellarg(__DIR__ . '/../utils/process-ticket-queue.php') . ' > /dev/null 2>&1 &');
+            } else {
+                // Fallback: If shell_exec is disabled, we might want to process synchronously 
+                // but only for the current job to avoid blocking too long.
+                error_log("[verify-payment.php] shell_exec is disabled. Jobs will be processed by next available trigger.");
+            }
         } else {
             $pdo->commit();
             $barcode = $existingTickets[0]['barcode'];  // Fixed: use $existingTickets[0] not $existingTicket
