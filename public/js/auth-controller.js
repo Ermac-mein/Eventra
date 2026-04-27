@@ -180,18 +180,27 @@ class AuthController {
         }
 
         try {
-            
+            // Check if we should even initialize Google here
+            const role = this.getPortalIntent();
+            // Optional: If you want to completely disable Google for certain roles at the controller level
+            // if (role === 'admin' || role === 'client') return;
+
             google.accounts.id.initialize({
                 client_id: clientId,
                 callback: (res) => this.handleGoogleResponse(res),
                 auto_select: false,
-                prompt: 'select_account',
+                use_fedcm_for_prompt: true,
+                prompt_parent_id: containerId !== 'none' ? containerId : null,
                 cancel_on_tap_outside: true,
                 itp_support: true
             });
 
             this.googleInitialized = true;
-            this.renderGoogleButton(containerId);
+            
+            // Only render/prompt if container is provided and not 'none'
+            if (containerId !== 'none') {
+                this.renderGoogleButton(containerId);
+            }
         } catch (error) {
             this.setState(this.states.ERROR);
         }
@@ -284,15 +293,19 @@ class AuthController {
      */
     async handleGoogleLoginManual() {
         if (!this.googleInitialized) {
-            // Wait up to 3 seconds for initialization
+            // Wait up to 5 seconds for initialization
             let attempts = 0;
-            while (!this.googleInitialized && attempts < 15) {
+            while (!this.googleInitialized && attempts < 25) {
                 await new Promise(r => setTimeout(r, 200));
                 attempts++;
             }
             
             if (!this.googleInitialized) {
-                showNotification('Google Sign-In is still loading. Please try again in a moment.', 'info');
+                // If it's still not initialized, it might be blocked or not configured for this portal
+                const role = this.getPortalIntent();
+                if (role === 'user') {
+                    showNotification('Google Sign-In is taking longer than expected. Please refresh or try another method.', 'info');
+                }
                 return;
             }
         }
@@ -300,9 +313,11 @@ class AuthController {
         try {
             google.accounts.id.prompt((notification) => {
                 if (notification.isNotDisplayed()) {
+                    console.warn('Google prompt not displayed:', notification.getNotDisplayedReason());
                 }
             });
         } catch (e) {
+            console.error('Google prompt error:', e);
         }
     }
 

@@ -68,12 +68,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Google Sign Up
-    if (googleSignUp) {
-        googleSignUp.addEventListener('click', () => {
-            handleGoogleSignUp();
-        });
-    }
 
     // Form submission
     if (signupForm) {
@@ -323,126 +317,16 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    async function handleGoogleSignUp() {
-        try {
-            const configResponse = await apiFetch('/api/config/get-google-config.php');
-            const configData = await configResponse.json();
-            
-            if (!configData.success || !configData.client_id) {
-                Swal.fire('Error', 'Google configuration missing.', 'error');
-                return;
-            }
 
-            let attempts = 0;
-            const attemptGoogleInit = () => {
-                if (typeof google !== 'undefined') {
-                    try {
-                        google.accounts.id.initialize({
-                            client_id: configData.client_id,
-                            callback: handleGoogleResponse,
-                        });
-                        google.accounts.id.prompt();
-                    } catch (error) {
-                        Swal.fire('Error', 'Failed to initialize Google Sign-up.', 'error');
-                    }
-                } else if (attempts < 20) {
-                    attempts++;
-                    setTimeout(attemptGoogleInit, 100);
-                } else {
-                    Swal.fire('Blocked', 'Google script not loaded. Check ad-blockers.', 'warning');
-                }
-            };
-            attemptGoogleInit();
-        } catch (error) {
-            Swal.fire('Error', 'Failed to initialize Google Sign-up.', 'error');
-        }
-    }
-
-    async function handleGoogleResponse(response) {
-        try {
-            const res = await apiFetch('/api/auth/google-handler.php', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    credential: response.credential,
-                    intent: intent
-                })
-            });
-            const result = await res.json();
-
-            if (result.success) {
-                const storageKey = intent === 'admin' ? 'admin_user' : (intent === 'client' ? 'client_user' : 'user');
-                const tokenKey = intent === 'admin' ? 'admin_auth_token' : (intent === 'client' ? 'client_auth_token' : 'auth_token');
-
-                if (typeof storage !== 'undefined') {
-                    storage.set(storageKey, result.user);
-                    storage.set(tokenKey, result.user.token);
-                }
-
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Account Ready!',
-                    text: 'Signed up with Google. Redirecting...',
-                    timer: 1500,
-                    showConfirmButton: false,
-                    background: 'rgba(30, 41, 59, 0.95)',
-                    color: '#fff'
-                });
-                
-                setTimeout(() => {
-                    const basePath = typeof window.getAppBasePath === 'function' ? window.getAppBasePath() : '../../';
-                    window.location.href = basePath + result.redirect;
-                }, 1600);
-            } else {
-                Swal.fire('Registration Failed', result.message, 'error');
-            }
-        } catch (error) {
-            Swal.fire('Error', 'An error occurred during Google Sign-up.', 'error');
-        }
-    }
-
-    // Event Image Slider Logic
+    // Event Image Slider Logic - RESTRICTED: Clients during signup see nothing
     async function initSlider() {
         const sliderContainer = document.querySelector('.slider-images');
         if (!sliderContainer) return;
 
-        const isAuthenticated = window.storage && typeof window.storage.getUser === 'function' && window.storage.getUser();
-        
-        if (!isAuthenticated) {
-            sliderContainer.innerHTML = '';
-            return;
-        }
-
-        try {
-            const response = await apiFetch('/api/events/get-events.php?status=published&limit=10');
-            const data = await response.json();
-
-            if (data.success && data.events.length > 0) {
-                const events = data.events.filter(e => e.image_path);
-                if (events.length === 0) return;
-
-                sliderContainer.innerHTML = events.map((event, index) => `
-                    <img src="/${event.image_path}" 
-                         alt="${event.event_name}" 
-                         class="slider-img ${index === 0 ? 'active' : ''}" 
-                         data-index="${index}">
-                `).join('');
-
-                let currentIndex = 0;
-                const updateSlider = () => {
-                    const images = document.querySelectorAll('.slider-img');
-                    if (images.length === 0) return;
-                    
-                    images[currentIndex].classList.remove('active');
-                    currentIndex = (currentIndex + 1) % images.length;
-                    images[currentIndex].classList.add('active');
-                };
-
-                setInterval(updateSlider, 5000);
-            }
-        } catch (error) {
-            // Silently fail – slider is not critical
-        }
+        // Requirement: New clients when signing up see nothing
+        const loginRight = document.querySelector('.login-right');
+        if (loginRight) loginRight.style.display = 'none';
+        sliderContainer.innerHTML = '';
     }
 
     initSlider();

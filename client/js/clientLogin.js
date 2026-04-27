@@ -377,43 +377,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
 
-    // Unified Google Init (Handled by AuthController)
-    async function initGoogleAuth() {
-        try {
-            const response = await apiFetch('/api/config/get-google-config.php');
-            const data = await response.json();
-            
-            if (data.success && data.client_id) {
-                // Wait for Google SDK to load
-                let attempts = 0;
-                const checkGoogle = setInterval(() => {
-                    attempts++;
-                    if (typeof google !== 'undefined' && google.accounts && google.accounts.id) {
-                        clearInterval(checkGoogle);
-                        // Initialize Google SDK with the specific container for Client Login
-                        authController.initGoogle(data.client_id, 'googleSignInContainer'); 
-                    } else if (attempts > 50) {
-                        clearInterval(checkGoogle);
-                    }
-                }, 100);
-            }
-        } catch (error) {
-        }
-    }
-
-    // Google Login button click handler
-    const googleSignInBtn = document.getElementById('googleSignIn');
-    if (googleSignInBtn) {
-        googleSignInBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            if (window.authController) {
-                window.authController.handleGoogleLoginManual();
-            }
-        });
-    }
-
-    // Initialize Google Auth
-    initGoogleAuth();
 
     // handleCredentialResponse is now handled by AuthController.handleGoogleResponse
 
@@ -426,27 +389,38 @@ document.addEventListener('DOMContentLoaded', () => {
         return JSON.parse(jsonPayload);
     };
 
-    // Event Image Slider Logic - RESTRICTED: Only show when user is authenticated to prevent data leakage
+    // Event Image Slider Logic - Personalized for Clients
     async function initSlider() {
         const sliderContainer = document.querySelector('.slider-images');
-        
         if (!sliderContainer) return;
 
-        // RESTRICTED removed: Fill the right side layout for a better initial impression
-        // Users on the login page are usually not yet authenticated.
+        // Try to get existing client info from storage to personalize login page
+        const clientUser = window.storage ? window.storage.get('client_user') : null;
         
+        // If no client info, hide slider as per requirement ("new clients see nothing")
+        if (!clientUser || !clientUser.id) {
+            const loginRight = document.querySelector('.login-right');
+            if (loginRight) loginRight.style.display = 'none';
+            return;
+        }
+
         try {
-            const response = await apiFetch('/api/events/get-events.php?status=published&limit=10');
+            // Fetch events only for this specific client
+            const response = await apiFetch(`/api/events/get-events.php?status=published&limit=10&client_id=${clientUser.id}`);
             const data = await response.json();
 
-            if (data.success && data.events.length > 0) {
+            if (data.success && data.events && data.events.length > 0) {
                 const events = data.events.filter(e => e.image_path);
-                if (events.length === 0) return;
+                if (events.length === 0) {
+                    const loginRight = document.querySelector('.login-right');
+                    if (loginRight) loginRight.style.display = 'none';
+                    return;
+                }
 
-                // Inject images using absolute paths to avoid broken relative links in subfolders
+                // Inject images using absolute paths or relative to base
                 sliderContainer.innerHTML = events.map((event, index) => {
                     const cleanPath = event.image_path.replace(/^\/+/, '');
-                    const imgUrl = event.image_path.startsWith('http') ? event.image_path : window.location.origin + '/' + cleanPath;
+                    const imgUrl = event.image_path.startsWith('http') ? event.image_path : basePath + cleanPath;
                     return `
                         <img src="${imgUrl}" 
                              alt="${event.event_name}" 
@@ -456,7 +430,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 }).join('');
 
                 let currentIndex = 0;
-                
                 const updateSlider = () => {
                     const images = document.querySelectorAll('.slider-img');
                     if (images.length === 0) return;
@@ -466,10 +439,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     images[currentIndex].classList.add('active');
                 };
 
-                // Cycle every 5 seconds
                 setInterval(updateSlider, 5000);
+            } else {
+                // No events found for this client
+                const loginRight = document.querySelector('.login-right');
+                if (loginRight) loginRight.style.display = 'none';
             }
         } catch (error) {
+            console.error('Slider init error:', error);
         }
     }
 

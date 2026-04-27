@@ -420,13 +420,16 @@ function initUserIcon() {
       e.preventDefault();
       if (profileDropdown) profileDropdown.classList.remove('show');
       
-      const keys = typeof getRoleKeys === 'function' ? getRoleKeys() : { user: 'user' };
-      const user = window.storage ? (window.storage.get(keys.user) || window.storage.get('user')) : null;
+      const user = authController.user;
       if (!user) {
-        showNotification('User profile not found. Please log in again.', 'info');
-        if (loginModal) {
-            loginModal.style.display = 'flex';
-            setTimeout(() => loginModal.classList.add('show'), 10);
+        if (authController.isSyncing) {
+            showNotification('Syncing your profile... Please try again in a moment.', 'info');
+        } else {
+            showNotification('Session expired or profile not found. Please log in again.', 'info');
+            if (loginModal) {
+                loginModal.style.display = 'flex';
+                setTimeout(() => loginModal.classList.add('show'), 10);
+            }
         }
         return;
       }

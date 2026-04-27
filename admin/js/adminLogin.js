@@ -6,7 +6,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const togglePassword = document.getElementById('togglePassword');
     const loginButton = document.getElementById('loginButton');
     const successMessage = document.getElementById('successMessage');
-    const googleSignIn = document.getElementById('googleSignIn');
     const forgotPasswordLink = document.querySelector('.forgot-password');
 
     // Role Context (Detected from URL role/intent or body data-intent)
@@ -182,130 +181,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    async function handleGoogleSignIn() {
-        // Fetch Google Client ID from server
-        let clientId;
-        try {
-            const configResponse = await apiFetch('/api/config/get-google-config.php');
-            const configData = await configResponse.json();
-            
-            if (!configData.success || !configData.client_id) {
-                Swal.fire('Configuration Error', 'Google Sign-in is not configured on the server. Please contact the administrator.', 'error');
-                return;
-            }
-            
-            clientId = configData.client_id;
-        } catch (error) {
-            Swal.fire('Error', 'Could not load Google Sign-in configuration. Please try again later.', 'error');
-            return;
-        }
-        
-        let attempts = 0;
-        const attemptGoogleInit = () => {
-            if (typeof google !== 'undefined') {
-                try {
-                    google.accounts.id.initialize({
-                        client_id: clientId,
-                        callback: handleCredentialResponse,
-                        auto_select: false,
-                        cancel_on_tap_outside: true,
-                    });
-
-                    google.accounts.id.prompt();
-                } catch (error) {
-                    const errorMsg = 'Could not initialize Google Sign-in.\n\nPossible causes:\n- Ad blocker or privacy extension is blocking Google\n- Network connectivity issues\n- Browser security settings\n\nPlease try:\n1. Disabling ad blockers\n2. Using username/password login instead';
-                    Swal.fire('Error', errorMsg, 'error');
-                }
-            } else if (attempts < 20) {
-                attempts++;
-                setTimeout(attemptGoogleInit, 100);
-            } else {
-                const errorMsg = 'Google Sign-in is currently blocked by your browser or an extension (e.g., ad-blocker, privacy extension).\n\nTo use Google Sign-in:\n1. Disable your ad blocker for this site\n2. Disable privacy extensions temporarily\n3. Try again\n\nAlternatively, you can sign in using username and password.';
-                Swal.fire('Blocked', errorMsg, 'warning');
-            }
-        };
-        attemptGoogleInit();
-    }
-
-    async function handleCredentialResponse(response) {
-        const decodedToken = parseJwt(response.credential);
-        const googleData = {
-            google_id: decodedToken.sub,
-            username: decodedToken.username,
-            name: decodedToken.name,
-            profile_pic: decodedToken.picture
-        };
-
-        try {
-            const res = await apiFetch('/api/auth/google-handler.php', { // Use central google handler
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    ...googleData,
-                    intent: intent
-                })
-            });
-            
-            // Handle non-JSON responses (like 405 or 500 html errors)
-            const contentType = res.headers.get("content-type");
-            if (!contentType || !contentType.includes("application/json")) {
-                const text = await res.text();
-                throw new Error("Server returned non-JSON response. Status: " + res.status);
-            }
-
-            const result = await res.json();
-
-            if (result.success) {
-                if (window.storage && typeof window.storage.setToken === 'function') {
-                    window.storage.setUser(result.user);
-                    if (result.user.token) {
-                        window.storage.setToken(result.user.token);
-                    }
-                } else {
-                    // Fallback: store directly to localStorage if storage manager not ready
-                    try {
-                        localStorage.setItem('admin_auth_token', result.user.token || '');
-                        localStorage.setItem('admin_user', JSON.stringify(result.user));
-                    } catch (e) {
-                    }
-                }
-                
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Authenticated!',
-                        text: 'Google Sign-in successful. Redirecting...',
-                        timer: 1500,
-                        showConfirmButton: false,
-                        background: 'rgba(30, 41, 59, 0.95)',
-                        color: '#fff'
-                    });
-                } else if (successMessage) {
-                    successMessage.classList.add('show');
-                    successMessage.textContent = 'Google Sign-in successful! Redirecting...';
-                }
-
-                setTimeout(() => {
-                    const redirectUrl = result.redirect || 'public/pages/index.html';
-                    const cleanRedirect = redirectUrl.startsWith('/') ? redirectUrl.substring(1) : redirectUrl;
-                    window.location.href = basePath + cleanRedirect;
-                }, 1600);
-            } else {
-                Swal.fire('Login Failed', result.message, 'error');
-            }
-        } catch (error) {
-            Swal.fire('Error', 'An error occurred during Google Sign-in.', 'error');
-        }
-    }
-
-    function parseJwt(token) {
-        var base64Url = token.split('.')[1];
-        var base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-        var jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function(c) {
-            return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-        }).join(''));
-        return JSON.parse(jsonPayload);
-    };
 
     // Event Image Slider Logic
     async function initSlider() {
@@ -322,12 +197,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (events.length === 0) return;
 
                 // Inject images
-                sliderContainer.innerHTML = events.map((event, index) => `
-                    <img src="/${event.image_path}" 
-                         alt="${escapeHTML(event.event_name)}" 
-                         class="slider-img ${index === 0 ? 'active' : ''}" 
-                         data-index="${index}">
-                `).join('');
+                sliderContainer.innerHTML = events.map((event, index) => {
+                    const cleanPath = event.image_path.replace(/^\/+/, '');
+                    const imgUrl = event.image_path.startsWith('http') ? event.image_path : basePath + cleanPath;
+                    return `
+                        <img src="${imgUrl}" 
+                             alt="${escapeHTML(event.event_name)}" 
+                             class="slider-img ${index === 0 ? 'active' : ''}" 
+                             data-index="${index}">
+                    `;
+                }).join('');
 
                 let currentIndex = 0;
                 
