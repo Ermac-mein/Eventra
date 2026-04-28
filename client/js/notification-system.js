@@ -191,7 +191,7 @@ class NotificationManager {
                         <div style="flex: 1;">
                             <div style="font-weight: 600; margin-bottom: 0.25rem;">${escapeHTML(title)}</div>
                             <div style="font-size: 0.85rem; color: #6b7280; margin-bottom: 0.5rem;">${escapeHTML(notif.message)}</div>
-                            <div style="font-size: 0.75rem; color: #9ca3af;">${formatNotificationTime(notif.created_at)}</div>
+                            <div style="font-size: 0.75rem; color: #9ca3af;" class="notification-time" data-timestamp="${notif.created_at}">${window.timeAgo(notif.created_at)}</div>
                         </div>
                     </div>
                 </div>
@@ -366,36 +366,7 @@ function getNotificationIcon(type) {
 }
 
 function formatNotificationTime(timestamp) {
-    if (!timestamp) return 'recently';
-    const validTimestamp = timestamp.replace(' ', 'T');
-    
-    // Convert SQL date (assuming UTC or Local) to milliseconds
-    const date = new Date(validTimestamp).getTime();
-    const now = new Date().getTime();
-    
-    // Calculate seconds diff, allowing a small 60s buffer for minor server-client timezone skews natively
-    let diffMs = now - date;
-    let seconds = Math.floor(diffMs / 1000);
-    
-    // If the date is wildly in the future (due to a heavy timezone offset without 'Z'), we adjust it
-    if (seconds < -60) {
-        // Fallback: Date seems to be in the future, let's treat the parsed date as local inherently
-        const offsetDate = new Date(validTimestamp + 'Z').getTime();
-        diffMs = now - offsetDate;
-    }
-    
-    if (diffMs < 0) diffMs = 0; // Final safety floor
-
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMs / 3600000);
-    const diffDays = Math.floor(diffMs / 86400000);
-
-    if (diffMins < 1) return 'Just now';
-    if (diffMins < 60) return `${diffMins} minute${diffMins > 1 ? 's' : ''} ago`;
-    if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
-    if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
-    
-    return new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    return window.timeAgo(timestamp);
 }
 
 // Add CSS animations

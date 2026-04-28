@@ -216,7 +216,7 @@ function loadRecentActivities(activities) {
                 <div class="activity-icon" style="background: ${color.bg}; color: ${color.text}; width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; flex-shrink: 0;">${icon}</div>
                 <div class="activity-content" style="flex: 1; min-width: 0;">
                     <div class="activity-details" style="font-size: 0.9rem; font-weight: 500; color: #334155; line-height: 1.4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${escapeHTML(activity.message)}">${escapeHTML(displayMessage)}</div>
-                    <div class="activity-time" style="font-size: 0.75rem; color: #94a3b8; margin-top: 4px;">${timeAgo(activity.created_at)}</div>
+                    <div class="activity-time" style="font-size: 0.75rem; color: #94a3b8; margin-top: 4px;" data-timestamp="${activity.created_at}">${window.timeAgo(activity.created_at)}</div>
                 </div>
             </div>
         `;
@@ -392,15 +392,5 @@ function formatDate(dateString) {
 }
 
 function timeAgo(dateString) {
-    const date = new Date(dateString);
-    const now = new Date();
-    const seconds = Math.floor((now - date) / 1000);
-
-    if (seconds < 60) return `${seconds} secs ago`;
-    const minutes = Math.floor(seconds / 60);
-    if (minutes < 60) return `${minutes} mins ago`;
-    const hours = Math.floor(minutes / 60);
-    if (hours < 24) return `${hours} hours ago`;
-    const days = Math.floor(hours / 24);
-    return `${days} days ago`;
+    return window.timeAgo(dateString);
 }

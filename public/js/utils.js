@@ -1,6 +1,73 @@
 // Utility functions
 
 /**
+ * Standardized Time Ago / Duration function
+ * @param {string|number|Date} date - The date to compare with now
+ * @param {boolean} shortForm - Whether to use short forms (e.g., "hr" instead of "hour")
+ * @returns {string} - Formatted time ago string
+ */
+function timeAgo(date, shortForm = false) {
+    if (!date) return 'Just now';
+    
+    let timestamp;
+    if (typeof date === 'string') {
+        // Ensure proper parsing cross-browser
+        const validDateString = date.includes(' ') ? date.replace(' ', 'T') : date;
+        timestamp = new Date(validDateString).getTime();
+    } else if (date instanceof Date) {
+        timestamp = date.getTime();
+    } else {
+        timestamp = date;
+    }
+
+    if (isNaN(timestamp)) return 'Recently';
+
+    const now = new Date().getTime();
+    const diffMs = now - timestamp;
+    const seconds = Math.floor(diffMs / 1000);
+
+    if (seconds < 30) return 'Just now';
+    if (seconds < 60) return `${seconds}s ago`;
+
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes} min${minutes > 1 ? 's' : ''} ago`;
+
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) {
+        const unit = shortForm ? 'hr' : 'hour';
+        return `${hours} ${unit}${hours > 1 ? 's' : ''} ago`;
+    }
+
+    const days = Math.floor(hours / 24);
+    if (days === 1) return 'Yesterday';
+    if (days < 7) return `${days} days ago`;
+
+    return new Date(timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+/**
+ * Real-time timer to update all elements with data-timestamp attribute
+ */
+(function initRealtimeTimers() {
+    if (typeof window === 'undefined') return;
+    
+    setInterval(() => {
+        const timerElements = document.querySelectorAll('[data-timestamp]');
+        timerElements.forEach(el => {
+            const timestamp = el.getAttribute('data-timestamp');
+            const shortForm = el.getAttribute('data-short-time') === 'true';
+            if (timestamp) {
+                el.textContent = timeAgo(timestamp, shortForm);
+            }
+        });
+    }, 60000); // Update every minute
+})();
+
+// Export to window
+window.timeAgo = timeAgo;
+
+
+/**
  * Escape HTML special characters to prevent XSS
  * @param {string} str - String to escape
  * @returns {string} - Escaped string

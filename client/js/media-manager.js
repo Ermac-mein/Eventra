@@ -154,7 +154,7 @@ function displayMediaGrid(media, stats) {
                         <div class="media-name">${item.name}</div>
                         <div class="media-meta">
                             <span>${item.file_count || 0} files</span>
-                            <span>${timeAgo(item.created_at)}</span>
+                            <span data-timestamp="${item.created_at}" data-short-time="true">${window.timeAgo(item.created_at, true)}</span>
                         </div>
                     </div>
                     <div class="media-actions-overlay">
@@ -201,7 +201,7 @@ function displayMediaGrid(media, stats) {
                             <span>${formatFileSize(item.file_size)}</span>
                         </div>
                         <div class="media-date">
-                            ${timeAgo(item.uploaded_at)} • ${item.event_association || 'Unassigned'}
+                            <span data-timestamp="${item.uploaded_at}" data-short-time="true">${window.timeAgo(item.uploaded_at, true)}</span> • ${item.event_association || 'Unassigned'}
                         </div>
                     </div>
                 </div>
@@ -669,7 +669,7 @@ function populateFolderModal(files) {
                         <div class="media-name" title="${item.name}">${item.name}</div>
                         <div class="media-meta">
                             <span>${formatFileSize(item.file_size || 0)}</span>
-                            <span>${timeAgo(item.uploaded_at)}</span>
+                            <span data-timestamp="${item.uploaded_at}" data-short-time="true">${window.timeAgo(item.uploaded_at, true)}</span>
                         </div>
                         <div class="media-date">
                             Associated: ${item.event_association || 'Unassigned'}
@@ -709,32 +709,7 @@ function getFileIcon(fileType) {
 }
 
 function timeAgo(dateString) {
-    if (!dateString) return 'Just now';
-    
-    // Ensure proper parsing cross-browser
-    const validDateString = dateString.includes(' ') ? dateString.replace(' ', 'T') : dateString;
-    const date = new Date(validDateString).getTime();
-    
-    if (isNaN(date)) return 'Unknown date';
-    
-    const now = new Date().getTime();
-    const diffMs = now - date;
-    const seconds = Math.floor(diffMs / 1000);
-    
-    if (seconds < 30) return 'Just now';
-    if (seconds < 60) return `${seconds}s ago`;
-    
-    const minutes = Math.floor(seconds / 60);
-    if (minutes < 60) return `${minutes} min${minutes > 1 ? 's' : ''} ago`;
-    
-    const hours = Math.floor(minutes / 60);
-    if (hours < 24) return `${hours} hr${hours > 1 ? 's' : ''} ago`;
-    
-    const days = Math.floor(hours / 24);
-    if (days === 1) return 'Yesterday';
-    if (days < 7) return `${days} days ago`;
-    
-    return new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    return window.timeAgo(dateString, true);
 }
 
 function sortFolderFiles(column, forceAsc = null) {
