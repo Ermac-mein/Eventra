@@ -391,39 +391,28 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Event Image Slider Logic - Personalized for Clients
     async function initSlider() {
+        const escapeHTML = window.escapeHTML || (text => text);
         const sliderContainer = document.querySelector('.slider-images');
         if (!sliderContainer) return;
 
-        // Try to get existing client info from storage to personalize login page
-        const clientUser = window.storage ? window.storage.get('client_user') : null;
-        
-        // If no client info, hide slider as per requirement ("new clients see nothing")
-        if (!clientUser || !clientUser.id) {
-            const loginRight = document.querySelector('.login-right');
-            if (loginRight) loginRight.style.display = 'none';
-            return;
-        }
-
         try {
-            // Fetch events only for this specific client
-            const response = await apiFetch(`/api/events/get-events.php?status=published&limit=10&client_id=${clientUser.id}`);
+            // Fetch all published events regardless of client login status
+            const response = await apiFetch('/api/events/get-events.php?status=published&limit=10');
             const data = await response.json();
 
             if (data.success && data.events && data.events.length > 0) {
                 const events = data.events.filter(e => e.image_path);
-                if (events.length === 0) {
-                    const loginRight = document.querySelector('.login-right');
-                    if (loginRight) loginRight.style.display = 'none';
-                    return;
-                }
+                if (events.length === 0) return;
 
-                // Inject images using absolute paths or relative to base
+                // Inject images
                 sliderContainer.innerHTML = events.map((event, index) => {
                     const cleanPath = event.image_path.replace(/^\/+/, '');
-                    const imgUrl = event.image_path.startsWith('http') ? event.image_path : basePath + cleanPath;
+                    // Normalize path: if it starts with public/, remove it as it's assumed to be in the root for the browser
+                    const webPath = cleanPath.startsWith('public/') ? cleanPath.replace('public/', '') : cleanPath;
+                    const imgUrl = event.image_path.startsWith('http') ? event.image_path : basePath + webPath;
                     return `
                         <img src="${imgUrl}" 
-                             alt="${event.event_name}" 
+                             alt="${escapeHTML(event.event_name)}" 
                              class="slider-img ${index === 0 ? 'active' : ''}" 
                              data-index="${index}">
                     `;
@@ -440,13 +429,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 };
 
                 setInterval(updateSlider, 5000);
-            } else {
-                // No events found for this client
-                const loginRight = document.querySelector('.login-right');
-                if (loginRight) loginRight.style.display = 'none';
             }
         } catch (error) {
-            console.error('Slider init error:', error);
         }
     }
 

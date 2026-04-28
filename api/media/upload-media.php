@@ -97,7 +97,7 @@ if (!isset($_FILES['files'])) {
 
 try {
     $pdo->beginTransaction();
-    $folder_name = $_POST['folder_name'] ?? 'default';
+    $folder_name = $_POST['folder_name'] ?? 'event access';
     $folder_id = $_POST['folder_id'] ?? null;
 
     // Resolve folder if ID is provided
@@ -111,9 +111,9 @@ try {
         } else {
             // Invalid folder ID, fall back to root/default
             $folder_id = null;
-            $folder_name = 'default';
+            $folder_name = 'event access';
         }
-    } elseif ($folder_name !== 'default') {
+    } elseif ($folder_name !== 'event access') {
         // Fallback to name-based lookup (legacy/robustness)
         $stmt = $pdo->prepare("SELECT id FROM media_folders WHERE client_id = ? AND name = ? AND is_deleted = 0 LIMIT 1");
         $stmt->execute([$client_id, $folder_name]);
@@ -128,7 +128,7 @@ try {
     }
 
     // Create upload directory if not exists (use secure permissions: 0755)
-    $uploadDir = '../../uploads/media/client_' . $client_id . '/' . ($folder_name !== 'default' ? $folder_name . '/' : '');
+    $uploadDir = '../../public/uploads/media/client_' . $client_id . '/' . ($folder_name !== 'event access' ? $folder_name . '/' : '');
     if (!file_exists($uploadDir)) {
         mkdir($uploadDir, 0755, true);
     }
@@ -197,7 +197,7 @@ try {
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             ");
 
-            $dbFilePath = '/uploads/media/client_' . $client_id . '/' . ($folder_name !== 'default' ? $folder_name . '/' : '') . $uniqueFileName;
+            $dbFilePath = '/public/uploads/media/client_' . $client_id . '/' . ($folder_name !== 'event access' ? $folder_name . '/' : '') . $uniqueFileName;
 
             $stmt->execute([
                 $client_id,

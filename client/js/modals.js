@@ -1016,18 +1016,17 @@ function showEditEventModal(event) {
                         <!-- Location Details -->
                         <div style="display: grid; grid-template-columns: 1fr; gap: 1rem;">
                             <div class="form-group" style="position: relative;">
-                                <label>State(s) *</label>
-                                <div id="editStateSelectContainer" class="time-picker-container" style="position: relative;">
-                                    <div class="time-picker-display" id="editStateSelectDisplay" onclick="toggleEditStateSelect()" style="justify-content: space-between; min-height: 56px; height: auto; padding: 12px 20px;">
-                                        <span id="editSelectedStatesText" style="white-space: normal; line-height: 1.4;">${event.state ? event.state.split(',').join(', ') : 'Select State(s)'}</span>
-                                        <span style="font-size: 0.8rem; opacity: 0.5;">▼</span>
+                                <label style="display: block; font-size: 0.875rem; font-weight: 600; color: #6b7280; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.5px;">State(s) <span style="color: #ef4444">*</span></label>
+                                <div id="editStateSelectContainer" class="state-select-container">
+                                    <div class="state-select-display" id="editStateSelectDisplay" onclick="toggleEditStateSelect()">
+                                        <span id="editSelectedStatesText" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 80%;">${event.state ? event.state.split(',').join(', ') : 'Select State(s)'}</span>
                                     </div>
-                                    <div id="editStateSelectDropdown" class="time-picker-dropdown" style="width: 100%; max-height: 250px; overflow-y: auto; padding: 10px; z-index: 10001;">
-                                        <div style="display: grid; gap: 2px;">
+                                    <div id="editStateSelectDropdown" class="state-select-dropdown">
+                                        <div style="display: grid; gap: 4px;">
                                             ${getNigerianStates(true).map(state => `
-                                                <label style="display: flex; align-items: center; gap: 12px; cursor: pointer; padding: 10px 12px; border-radius: 8px; transition: all 0.2s;" class="state-option-label">
-                                                    <input type="checkbox" class="edit-state-checkbox" value="${state}" onchange="updateEditSelectedStates()" style="width: 18px; height: 18px; accent-color: #722f37; cursor: pointer;" ${event.state && event.state.split(',').includes(state) ? 'checked' : ''}>
-                                                    <span style="font-size: 0.95rem; color: #374151; font-weight: 500;">${state}</span>
+                                                <label class="state-option-label">
+                                                    <input type="checkbox" class="edit-state-checkbox state-checkbox-custom" value="${state}" onchange="updateEditSelectedStates()" ${event.state && event.state.split(',').includes(state) ? 'checked' : ''}>
+                                                    <span class="state-option-text">${state}</span>
                                                 </label>
                                             `).join('')}
                                         </div>
@@ -1419,6 +1418,9 @@ function updateEditSelectedStates() {
         displaySpan.style.color = '#334155';
         hiddenInput.value = selectedValues.join(',');
     }
+    
+    // Trigger input event for persistence
+    hiddenInput.dispatchEvent(new Event('input', { bubbles: true }));
 }
 
 window.toggleEditStateSelect = toggleEditStateSelect;

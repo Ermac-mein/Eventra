@@ -185,8 +185,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // Event Image Slider Logic
     async function initSlider() {
         const sliderContainer = document.querySelector('.slider-images');
-        
         if (!sliderContainer) return;
+
+        const basePath = typeof getBasePath === 'function' ? getBasePath() : '../../';
+        const escapeHTML = window.escapeHTML || (text => text);
 
         try {
             const response = await apiFetch('/api/events/get-events.php?status=published&limit=10');
@@ -199,7 +201,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Inject images
                 sliderContainer.innerHTML = events.map((event, index) => {
                     const cleanPath = event.image_path.replace(/^\/+/, '');
-                    const imgUrl = event.image_path.startsWith('http') ? event.image_path : basePath + cleanPath;
+                    // Normalize path: if it starts with public/, remove it as it's assumed to be in the root for the browser
+                    const webPath = cleanPath.startsWith('public/') ? cleanPath.replace('public/', '') : cleanPath;
+                    const imgUrl = event.image_path.startsWith('http') ? event.image_path : basePath + webPath;
                     return `
                         <img src="${imgUrl}" 
                              alt="${escapeHTML(event.event_name)}" 

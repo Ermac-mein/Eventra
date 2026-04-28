@@ -364,7 +364,7 @@ CREATE TABLE IF NOT EXISTS media (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     client_id BIGINT UNSIGNED NOT NULL,
     folder_id BIGINT UNSIGNED DEFAULT NULL,
-    folder_name VARCHAR(100) DEFAULT 'default',
+    folder_name VARCHAR(100) DEFAULT 'event access',
     file_name VARCHAR(255) NOT NULL,
     file_extension VARCHAR(20) DEFAULT NULL,
     file_path VARCHAR(500) NOT NULL,

@@ -187,18 +187,17 @@ function showCreateEventModal() {
                                     </div>
 
                                     <div class="form-group" style="position: relative;">
-                                        <label style="display: block; font-size: 0.875rem; font-weight: 600; color: #6b7280; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.5px;">State <span style="color: #ef4444">*</span></label>
-                                        <div id="stateSelectContainer" class="time-picker-container" style="position: relative;">
-                                            <div class="time-picker-display" id="stateSelectDisplay" onclick="toggleStateSelect()" style="justify-content: space-between; min-height: 56px; height: auto; padding: 12px 20px;">
-                                                <span id="selectedStatesText" style="white-space: normal; line-height: 1.4;">Select State(s)</span>
-                                                <span style="font-size: 0.8rem; opacity: 0.5;">▼</span>
+                                        <label style="display: block; font-size: 0.875rem; font-weight: 600; color: #6b7280; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.5px;">State(s) <span style="color: #ef4444">*</span></label>
+                                        <div id="stateSelectContainer" class="state-select-container">
+                                            <div class="state-select-display" id="stateSelectDisplay" onclick="toggleStateSelect()">
+                                                <span id="selectedStatesText" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 80%;">Select State(s)</span>
                                             </div>
-                                            <div id="stateSelectDropdown" class="time-picker-dropdown" style="width: 100%; max-height: 300px; overflow-y: auto; padding: 10px; z-index: 10001;">
-                                                <div style="display: grid; gap: 2px;">
+                                            <div id="stateSelectDropdown" class="state-select-dropdown">
+                                                <div style="display: grid; gap: 4px;">
                                                     ${getNigerianStates(true).map(state => `
-                                                        <label style="display: flex; align-items: center; gap: 12px; cursor: pointer; padding: 10px 12px; border-radius: 8px; transition: all 0.2s;" class="state-option-label">
-                                                            <input type="checkbox" class="state-checkbox" value="${state}" onchange="updateSelectedStates()" style="width: 18px; height: 18px; accent-color: #722f37; cursor: pointer;">
-                                                            <span style="font-size: 0.95rem; color: #374151; font-weight: 500;">${state}</span>
+                                                        <label class="state-option-label">
+                                                            <input type="checkbox" class="state-checkbox state-checkbox-custom" value="${state}" onchange="updateSelectedStates()">
+                                                            <span class="state-option-text">${state}</span>
                                                         </label>
                                                     `).join('')}
                                                 </div>

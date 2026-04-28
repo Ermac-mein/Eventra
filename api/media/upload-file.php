@@ -92,7 +92,7 @@ if (!isset($_FILES['file']) || $_FILES['file']['error'] !== UPLOAD_ERR_OK) {
     exit;
 }
 
-$folder_name = $_POST['folder_name'] ?? 'default';
+$folder_name = $_POST['folder_name'] ?? 'event access';
 $folder_id = $_POST['folder_id'] ?? null;
 $file = $_FILES['file'];
 
@@ -107,9 +107,9 @@ if ($folder_id) {
     } else {
         // Invalid folder ID, fall back to root/default
         $folder_id = null;
-        $folder_name = 'default';
+        $folder_name = 'event access';
     }
-} elseif ($folder_name !== 'default') {
+} elseif ($folder_name !== 'event access') {
     // Fallback to name-based lookup
     $stmt = $pdo->prepare("SELECT id FROM media_folders WHERE client_id = ? AND name = ? AND is_deleted = 0 LIMIT 1");
     $stmt->execute([$client_id, $folder_name]);
@@ -155,7 +155,7 @@ if (in_array($file_extension, ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'])) {
 
 try {
     // Create upload directory
-    $upload_dir = "../../uploads/media/client_$client_id/$folder_name/";
+    $upload_dir = "../../public/uploads/media/client_$client_id/$folder_name/";
     if (!is_dir($upload_dir)) {
         mkdir($upload_dir, 0777, true);
     }
@@ -163,7 +163,7 @@ try {
     // Generate unique file name
     $unique_name = uniqid('media_') . '.' . $file_extension;
     $target_path = $upload_dir . $unique_name;
-    $db_path = "/uploads/media/client_$client_id/$folder_name/$unique_name";
+    $db_path = "/public/uploads/media/client_$client_id/$folder_name/$unique_name";
 
     // Move uploaded file
     if (!move_uploaded_file($file['tmp_name'], $target_path)) {

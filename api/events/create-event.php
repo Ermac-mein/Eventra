@@ -114,7 +114,7 @@ try {
     // 2. Handle file upload if present using standardized path
     $image_path = null;
     if (isset($_FILES['event_image']) && $_FILES['event_image']['error'] === UPLOAD_ERR_OK) {
-        $upload_dir = __DIR__ . "/../../uploads/events/";
+        $upload_dir = __DIR__ . "/../../public/uploads/events/";
 
         if (!is_dir($upload_dir)) {
             mkdir($upload_dir, 0777, true);
@@ -127,7 +127,7 @@ try {
         if (move_uploaded_file($_FILES['event_image']['tmp_name'], $target_path)) {
             // Compress image before storing
             $target_path = compressEventImage($target_path, $file_extension);
-            $image_path = "/uploads/events/" . basename($target_path);
+            $image_path = "/public/uploads/events/" . basename($target_path);
 
             // Register in media table (Root folder)
             try {
