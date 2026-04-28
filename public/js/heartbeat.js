@@ -38,12 +38,21 @@
 
     // ── Check if user is authenticated ────────────────────────────────────────
     function isLoggedIn() {
-        // Check using the storage helper if available, otherwise check session cookies
+        // Check using the storage helper if available
         if (typeof storage !== 'undefined') {
+            const path = window.location.pathname;
+            if (path.includes('/admin/')) return !!storage.get('admin_user');
+            if (path.includes('/client/')) return !!storage.get('client_user');
             return !!storage.getUser();
         }
-        // Fallback: look for any Eventra session cookie
-        return document.cookie.split(';').some(c => c.trim().startsWith('EVENTRA_'));
+
+        // Fallback: look for the specific portal session cookie
+        const path = window.location.pathname;
+        let cookieName = 'EVENTRA_USER_SESS';
+        if (path.includes('/admin/')) cookieName = 'EVENTRA_ADMIN_SESS';
+        else if (path.includes('/client/')) cookieName = 'EVENTRA_CLIENT_SESS';
+
+        return document.cookie.split(';').some(c => c.trim().startsWith(cookieName + '='));
     }
 
     // ── Inactivity logout ──────────────────────────────────────────────────────

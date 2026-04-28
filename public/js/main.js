@@ -1103,8 +1103,10 @@ function getFilteredEvents(events, filters) {
         
         const matchesPriority = selectedPriorities.length === 0 || (event.priority && selectedPriorities.includes(event.priority.toLowerCase()));
         
-        const eventDate = new Date(event.event_date);
-        const isPassed = eventDate < now;
+        // Fix: Force local time by appending T00:00:00 to avoid UTC midnight shift
+        const eventDay = new Date((event.event_date || '') + 'T00:00:00');
+        const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const isPassed = eventDay < todayMidnight;
         const matchesStatus = selectedStatuses.length === 0 || 
             (selectedStatuses.includes('passed') && isPassed) || 
             (selectedStatuses.includes('recent') && !isPassed);
@@ -1254,12 +1256,14 @@ async function toggleFavorite(e, eventId) {
                             if (favIcon) {
                                 favIcon.classList.add('active');
                                 favIcon.style.fill = 'currentColor';
+                                favIcon.style.color = '#e11d48'; // Explicit red fill for heart
                             }
                         } else {
                             favBtn.classList.remove('active');
                             if (favIcon) {
                                 favIcon.classList.remove('active');
                                 favIcon.style.fill = 'none';
+                                favIcon.style.color = ''; // Reset color
                             }
                         }
                     }
@@ -1539,7 +1543,8 @@ function showEventModal(eventId) {
 
   // Buy ticket button logic
   const buyTicketBtn = document.getElementById('bookNowBtn');
-  const isPassed = new Date(event.event_date) < new Date();
+  // Fix: Force local time to avoid UTC midnight timezone shift on isPassed check
+  const isPassed = new Date(event.event_date + 'T00:00:00') < new Date(new Date().setHours(0,0,0,0));
   
   if (buyTicketBtn) {
     if (isPassed) {

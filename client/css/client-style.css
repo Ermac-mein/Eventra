@@ -62,12 +62,19 @@
     box-sizing: border-box;
 }
 
+html {
+    overflow-x: hidden;
+    max-width: 100vw;
+}
+
 body {
     font-family: 'Plus Jakarta Sans', 'Inter', system-ui, -apple-system, sans-serif;
     background-color: var(--client-bg-body);
     color: var(--client-text-main);
     display: flex;
     min-height: 100vh;
+    overflow-x: hidden;
+    max-width: 100vw;
 }
 
 /* Sidebar Styles */

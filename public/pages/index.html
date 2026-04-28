@@ -16,6 +16,7 @@
     <link rel="stylesheet" href="../css/media-enhancement.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -483,6 +484,63 @@
             </div>
         </div>
     </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-container">
+            <div class="footer-brand">
+                <a href="index.html" class="footer-logo">
+                    <img src="../assets/logo-white.svg" alt="Eventra" style="height: 40px; filter: brightness(0) invert(1);">
+                    EVENTRA
+                </a>
+                <p>The premium destination for discovering and managing world-class events. From intimate concerts to global festivals, we bring you closer to the experiences that matter.</p>
+                <div class="social-links">
+                    <a href="#" class="social-icon"><i class="fab fa-facebook-f"></i></a>
+                    <a href="#" class="social-icon"><i class="fab fa-twitter"></i></a>
+                    <a href="#" class="social-icon"><i class="fab fa-instagram"></i></a>
+                    <a href="#" class="social-icon"><i class="fab fa-linkedin-in"></i></a>
+                </div>
+            </div>
+
+            <div>
+                <h4 class="footer-heading">Quick Links</h4>
+                <ul class="footer-links">
+                    <li><a href="index.html">Discover Events</a></li>
+                    <li><a href="index.html#category-section">Categories</a></li>
+                    <li><a href="../client/pages/clientLogin.html">Organizer Portal</a></li>
+                    <li><a href="../admin/pages/adminLogin.html">Admin Dashboard</a></li>
+                </ul>
+            </div>
+
+            <div>
+                <h4 class="footer-heading">Support</h4>
+                <ul class="footer-links">
+                    <li><a href="#">Help Center</a></li>
+                    <li><a href="#">Ticket Verification</a></li>
+                    <li><a href="#">Terms of Service</a></li>
+                    <li><a href="#">Privacy Policy</a></li>
+                </ul>
+            </div>
+
+            <div>
+                <h4 class="footer-heading">Newsletter</h4>
+                <p style="color: #9ca3af; font-size: 0.9rem;">Get the latest events and exclusive offers delivered to your inbox.</p>
+                <form class="newsletter-form" onsubmit="event.preventDefault(); Swal.fire('Subscribed!', 'Thank you for joining our newsletter.', 'success');">
+                    <input type="email" class="newsletter-input" placeholder="Your email address" required>
+                    <button type="submit" class="newsletter-btn">Join</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="footer-bottom">
+            <p>&copy; 2026 Eventra Inc. All rights reserved.</p>
+            <div style="display: flex; gap: 2rem;">
+                <a href="#" style="color: inherit; text-decoration: none;">Privacy</a>
+                <a href="#" style="color: inherit; text-decoration: none;">Terms</a>
+                <a href="#" style="color: inherit; text-decoration: none;">Cookies</a>
+            </div>
+        </div>
+    </footer>
 
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>

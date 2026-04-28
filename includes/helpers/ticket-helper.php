@@ -92,8 +92,8 @@ function verifyQRPayload(string $qrData): array
         return ['valid' => false, 'payload' => null, 'error' => 'Malformed QR payload'];
     }
 
-    // Verify signature
-    $dataStr = implode('|', [$payload['tid'], $payload['eid'], $payload['uid'], $payload['ps'], $payload['iat']]);
+    // Verify signature — must include 'oid' to match the build function's hash string
+    $dataStr = implode('|', [$payload['tid'], $payload['eid'], $payload['uid'], $payload['oid'] ?? '', $payload['ps'], $payload['iat']]);
     $expectedSig = hash_hmac('sha256', $dataStr, QR_SECRET);
 
     if (!hash_equals($expectedSig, $payload['sig'])) {

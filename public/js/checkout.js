@@ -110,6 +110,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // 4. Setup Payment Action
+    const payBtn = document.getElementById('paystackBtn');
     if (payBtn) {
         payBtn.addEventListener('click', async (e) => {
             e.preventDefault();

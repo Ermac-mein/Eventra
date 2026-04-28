@@ -178,7 +178,7 @@ try {
 
                 $media_stmt = $pdo->prepare("
                     INSERT INTO media (client_id, folder_id, folder_name, file_name, file_extension, file_path, file_type, file_size, mime_type)
-                    VALUES (?, NULL, 'default', ?, ?, ?, 'image', ?, ?)
+                    VALUES (?, NULL, 'Event Assets', ?, ?, ?, 'image', ?, ?)
                 ");
                 $media_stmt->execute([
                     $event['client_id'],
