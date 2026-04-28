@@ -1014,14 +1014,26 @@ function showEditEventModal(event) {
                         </div>
 
                         <!-- Location Details -->
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-                            <div class="form-group">
-                                <label>State *</label>
-                                <select name="state" required>
-                                    ${getNigerianStates(true).map(state => 
-                                        `<option value="${escapeHTML(state)}" ${event.state === state ? 'selected' : ''}>${escapeHTML(state)}</option>`
-                                    ).join('')}
-                                </select>
+                        <div style="display: grid; grid-template-columns: 1fr; gap: 1rem;">
+                            <div class="form-group" style="position: relative;">
+                                <label>State(s) *</label>
+                                <div id="editStateSelectContainer" class="time-picker-container" style="position: relative;">
+                                    <div class="time-picker-display" id="editStateSelectDisplay" onclick="toggleEditStateSelect()" style="justify-content: space-between; min-height: 56px; height: auto; padding: 12px 20px;">
+                                        <span id="editSelectedStatesText" style="white-space: normal; line-height: 1.4;">${event.state ? event.state.split(',').join(', ') : 'Select State(s)'}</span>
+                                        <span style="font-size: 0.8rem; opacity: 0.5;">▼</span>
+                                    </div>
+                                    <div id="editStateSelectDropdown" class="time-picker-dropdown" style="width: 100%; max-height: 250px; overflow-y: auto; padding: 10px; z-index: 10001;">
+                                        <div style="display: grid; gap: 2px;">
+                                            ${getNigerianStates(true).map(state => `
+                                                <label style="display: flex; align-items: center; gap: 12px; cursor: pointer; padding: 10px 12px; border-radius: 8px; transition: all 0.2s;" class="state-option-label">
+                                                    <input type="checkbox" class="edit-state-checkbox" value="${state}" onchange="updateEditSelectedStates()" style="width: 18px; height: 18px; accent-color: #722f37; cursor: pointer;" ${event.state && event.state.split(',').includes(state) ? 'checked' : ''}>
+                                                    <span style="font-size: 0.95rem; color: #374151; font-weight: 500;">${state}</span>
+                                                </label>
+                                            `).join('')}
+                                        </div>
+                                    </div>
+                                    <input type="hidden" name="state" id="editEventStateInput" value="${event.state || ''}" required>
+                                </div>
                             </div>
                         </div>
 
@@ -1208,7 +1220,7 @@ function showTicketPreviewModal(ticket) {
             <div style="padding:1.5rem;">
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem;">
                     <span class="tkt-badge ${statusClass}" style="font-size:.82rem; padding: 4px 12px; border-radius: 20px; font-weight: 600;">${escapeHTML(statusLabel)}</span>
-                    <span style="font-family:monospace;font-size:.85rem;color:#6366f1;font-weight:700;">${escapeHTML(user.custom_id || user.id)}</span>
+                    <span style="font-family:monospace;font-size:.85rem;color:#6366f1;font-weight:700;">${escapeHTML(ticket.custom_id || ticket.id)}</span>
                 </div>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:.85rem;">
                     <div><div style="font-size:.7rem;color:#94a3b8;font-weight:700;text-transform:uppercase;margin-bottom:2px;">Buyer</div><div style="font-weight:600;">${escapeHTML(ticket.buyer_name || ticket.user_name || '—')}</div></div>
@@ -1369,6 +1381,48 @@ window.publishEvent = publishEvent;
 window.showEditEventModal = showEditEventModal;
 window.closeEditEventModal = closeEditEventModal;
 window.previewEditEventImage = previewEditEventImage;
+/**
+ * Multi-select State Logic for Edit Modal
+ */
+function toggleEditStateSelect() {
+    const dropdown = document.getElementById('editStateSelectDropdown');
+    const display = document.getElementById('editStateSelectDisplay');
+    if (!dropdown || !display) return;
+
+    dropdown.classList.toggle('active');
+    display.classList.toggle('active');
+
+    if (dropdown.classList.contains('active')) {
+        const closeDropdown = (e) => {
+            if (!document.getElementById('editStateSelectContainer').contains(e.target)) {
+                dropdown.classList.remove('active');
+                display.classList.remove('active');
+                document.removeEventListener('click', closeDropdown);
+            }
+        };
+        setTimeout(() => document.addEventListener('click', closeDropdown), 10);
+    }
+}
+
+function updateEditSelectedStates() {
+    const checkboxes = document.querySelectorAll('.edit-state-checkbox:checked');
+    const selectedValues = Array.from(checkboxes).map(cb => cb.value);
+    const displaySpan = document.getElementById('editSelectedStatesText');
+    const hiddenInput = document.getElementById('editEventStateInput');
+
+    if (selectedValues.length === 0) {
+        displaySpan.textContent = 'Select State(s)';
+        displaySpan.style.color = '#9ca3af';
+        hiddenInput.value = '';
+    } else {
+        displaySpan.textContent = selectedValues.join(', ');
+        displaySpan.style.color = '#334155';
+        hiddenInput.value = selectedValues.join(',');
+    }
+}
+
+window.toggleEditStateSelect = toggleEditStateSelect;
+window.updateEditSelectedStates = updateEditSelectedStates;
 window.showTicketPreviewModal = showTicketPreviewModal;
 window.closeTicketPreviewModal = closeTicketPreviewModal;
 window.showUserPreviewModal = showUserPreviewModal;

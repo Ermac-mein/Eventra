@@ -10,11 +10,11 @@
     --admin-text-muted: #64748b;
     --admin-text-white: #ffffff;
     --admin-border: rgba(226, 232, 240, 0.6);
-    --admin-header-height: 80px;
-    --admin-sidebar-width: 260px;
-    --admin-sidebar-collapsed-width: 88px;
-    --admin-radius: 16px;
-    --admin-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+    --admin-header-height: 70px;
+    --admin-sidebar-width: 240px;
+    --admin-sidebar-collapsed-width: 68px;
+    --admin-radius: 12px;
+    --admin-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.05);
     
     /* Neutral Stats (No vibrance as requested) */
     --stat-neutral-bg: #ffffff;
@@ -224,7 +224,7 @@ body {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0 3rem;
+    padding: 0 1.5rem;
     border-bottom: 1px solid var(--admin-border);
     position: sticky;
     top: 0;
@@ -366,7 +366,7 @@ body {
 
 /* Content Area */
 .content-area {
-    padding: 1.5rem;
+    padding: 1.25rem 1.5rem;
     width: 100%;
     max-height: calc(100vh - var(--admin-header-height));
     overflow-y: auto;
@@ -396,12 +396,12 @@ body {
 /* Stats Cards (Neutral Design) */
 .stat-card {
     background: white;
-    padding: 1.75rem;
+    padding: 1.25rem 1.5rem;
     border-radius: var(--admin-radius);
     border: 1px solid var(--admin-border);
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 8px;
     transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
@@ -418,8 +418,11 @@ body {
 }
 
 .stat-label {
-    font-size: 0.95rem;
-    font-weight: 600;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--admin-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
 .stat-icon {
@@ -428,7 +431,7 @@ body {
 }
 
 .stat-value {
-    font-size: 2.2rem;
+    font-size: 1.5rem;
     font-weight: 800;
     color: var(--admin-text-main);
 }
@@ -504,9 +507,9 @@ th.sortable.desc::after {
 }
 
 td {
-    padding: 0.8rem 1rem;
+    padding: 0.6rem 1rem;
     border-bottom: 1px solid var(--admin-border);
-    font-size: 0.95rem;
+    font-size: 0.85rem;
 }
 
 tbody tr {

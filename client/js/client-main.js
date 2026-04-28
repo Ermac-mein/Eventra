@@ -269,6 +269,17 @@ function initLogout() {
     }
 
     // Centralized Global Listeners (Export, Notifications, Profile)
+    const globalExportBtn = document.getElementById('globalExportBtn');
+    if (globalExportBtn) {
+        globalExportBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (typeof showExportModal === 'function') {
+                showExportModal('Data');
+            } else {
+                Swal.fire('Error', 'Export system is not loaded properly.', 'error');
+            }
+        });
+    }
 
 
 

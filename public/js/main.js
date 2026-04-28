@@ -758,10 +758,7 @@ function createEventCard(event, index) {
   
   // Security: Sanitize and Path Priority
   const relPath = event.image_path ? event.image_path.replace(/^\/+/, '') : null;
-  const fallback = 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=400&h=250&fit=crop';
-  const basePath = typeof getBasePath === 'function' ? getBasePath() : '/';
-  const resolvedPath = relPath ? (relPath.startsWith('http') ? relPath : basePath + relPath) : null;
-  const eventImage = encodeURI(resolvedPath || event.absolute_image_url || fallback);
+  const eventImage = resolvedPath || event.absolute_image_url;
   
   let eventDate = 'Date TBA';
   let status, statusLabel, statusColor;
@@ -815,8 +812,12 @@ function createEventCard(event, index) {
 
   return `
     <div class="event-card" data-id="${event.id}" data-status="${status}" onclick="showEventModal(${event.id})">
-      <div class="event-image-container">
-        <img src="${eventImage}" alt="${eventName}" loading="lazy" class="event-image" onerror="this.src='${fallback}'">
+      <div class="event-image-container" style="${!eventImage ? 'background: #f1f5f9; display: flex; align-items: center; justify-content: center;' : ''}">
+        ${eventImage ? `<img src="${eventImage}" alt="${eventName}" loading="lazy" class="event-image" onerror="this.parentElement.style.background='#f1f5f9'; this.style.display='none'; this.nextElementSibling.style.display='flex';">` : ''}
+        <div class="no-image-placeholder" style="${eventImage ? 'display: none;' : 'display: flex;'} flex-direction: column; align-items: center; gap: 0.5rem; color: #94a3b8;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
+            <span style="font-size: 0.8rem; font-weight: 600;">No Image</span>
+        </div>
         <div class="event-badges">
           <span class="event-category-badge">${category}</span>
           <div class="event-status-badge" style="color: ${statusColor};">

@@ -33,13 +33,13 @@
     --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
     
     /* Dimensions & Spacing */
-    --client-sidebar-width: 280px;
-    --client-sidebar-collapsed-width: 72px;   /* was 88px — tighter but icons still have full 52px touch targets with 10px margin each side */
-    --client-header-height: 80px;
-    --client-radius: 16px;
+    --client-sidebar-width: 250px;
+    --client-sidebar-collapsed-width: 68px;
+    --client-header-height: 70px;
+    --client-radius: 12px;
     --client-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-    --client-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-    --client-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    --client-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.08), 0 1px 2px -1px rgba(0, 0, 0, 0.04);
+    --client-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
     
     /* Transition */
     --transition-base: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -258,16 +258,15 @@ body {
 /* Header Styles */
 .header {
     height: var(--client-header-height);
-    background: rgba(255, 255, 255, 0.8);
-    backdrop-filter: blur(12px);
+    background: white;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0 4rem;
+    padding: 0 1.5rem;
     border-bottom: 1px solid var(--client-border);
     position: sticky;
     top: 0;
-    z-index: 999;
+    z-index: 1000;
 }
 
 .header-search {
@@ -371,7 +370,7 @@ body {
 
 /* Page Content */
 .content-area {
-    padding: 3rem 4rem;
+    padding: 1.5rem 2rem;
     width: 100%;
     min-height: calc(100vh - var(--client-header-height));
     display: flex;
@@ -395,8 +394,8 @@ body {
 }
 
 .client-stat-card {
-    flex: 1 1 300px; /* Stretch to fill space, minimum 300px */
-    padding: 2rem;
+    flex: 1 1 200px; /* Stretch to fill space, minimum 200px */
+    padding: 1rem;
     border-radius: var(--client-radius);
     background: white;
     color: var(--client-text-main);
@@ -440,25 +439,25 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 1.5rem;
+    margin-bottom: 1rem;
 }
 
 .stat-title { 
-    font-size: 1rem; 
+    font-size: 0.85rem; 
     font-weight: 600; 
     opacity: 0.9; 
     letter-spacing: 0.5px;
 }
 
 .stat-icon { 
-    font-size: 1.75rem; 
+    font-size: 1.5rem; 
     opacity: 0.8; 
 }
 
 .stat-main-value { 
-    font-size: 2.5rem; 
+    font-size: 1.25rem; 
     font-weight: 800; 
-    letter-spacing: -1px;
+    letter-spacing: -0.5px;
     color: var(--client-text-main);
 }
 
@@ -474,7 +473,7 @@ body {
     background: var(--glass-bg);
     backdrop-filter: blur(12px);
     border-radius: var(--client-radius);
-    padding: 2rem;
+    padding: 1rem;
     box-shadow: var(--glass-shadow);
     border: 1px solid var(--glass-border);
     transition: var(--transition-base);
@@ -1100,9 +1099,12 @@ td { padding: 1.25rem 2rem; border-bottom: 1px solid var(--client-border); font-
 
 .form-group label {
     display: block;
-    font-size: 0.9rem;
+    font-size: 0.75rem;
+    font-weight: 700;
     margin-bottom: 8px;
     color: var(--client-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
 .form-group input {

@@ -186,12 +186,25 @@ function showCreateEventModal() {
                                         </div>
                                     </div>
 
-                                    <div class="form-group">
+                                    <div class="form-group" style="position: relative;">
                                         <label style="display: block; font-size: 0.875rem; font-weight: 600; color: #6b7280; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.5px;">State <span style="color: #ef4444">*</span></label>
-                                        <select name="state" required style="width: 100%; padding: 1rem 1.25rem; border: 2px solid #e5e7eb; border-radius: 12px; font-size: 1rem; background: white; transition: all 0.3s; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
-                                            <option value="">Select State</option>
-                                            ${getNigerianStates(true).map(state => `<option value="${state}">${state}</option>`).join('')}
-                                        </select>
+                                        <div id="stateSelectContainer" class="time-picker-container" style="position: relative;">
+                                            <div class="time-picker-display" id="stateSelectDisplay" onclick="toggleStateSelect()" style="justify-content: space-between; min-height: 56px; height: auto; padding: 12px 20px;">
+                                                <span id="selectedStatesText" style="white-space: normal; line-height: 1.4;">Select State(s)</span>
+                                                <span style="font-size: 0.8rem; opacity: 0.5;">▼</span>
+                                            </div>
+                                            <div id="stateSelectDropdown" class="time-picker-dropdown" style="width: 100%; max-height: 300px; overflow-y: auto; padding: 10px; z-index: 10001;">
+                                                <div style="display: grid; gap: 2px;">
+                                                    ${getNigerianStates(true).map(state => `
+                                                        <label style="display: flex; align-items: center; gap: 12px; cursor: pointer; padding: 10px 12px; border-radius: 8px; transition: all 0.2s;" class="state-option-label">
+                                                            <input type="checkbox" class="state-checkbox" value="${state}" onchange="updateSelectedStates()" style="width: 18px; height: 18px; accent-color: #722f37; cursor: pointer;">
+                                                            <span style="font-size: 0.95rem; color: #374151; font-weight: 500;">${state}</span>
+                                                        </label>
+                                                    `).join('')}
+                                                </div>
+                                            </div>
+                                            <input type="hidden" name="state" id="eventStateInput" required>
+                                        </div>
                                     </div>
                                 </div>
 
@@ -382,6 +395,13 @@ function showCreateEventModal() {
                 transform: translateY(-4px);
                 box-shadow: 0 12px 30px rgba(24, 55, 122, 0.4);
                 background: rgba(255, 255, 255, 1);
+            }
+
+            .state-option-label:hover {
+                background: #f3f4f6;
+            }
+            .state-option-label:has(input:checked) {
+                background: rgba(114, 47, 55, 0.05);
             }
 
             .material-datepicker {
@@ -741,3 +761,53 @@ window.closeMaterialDatePicker = closeMaterialDatePicker;
 window.mdpChangeMonth = mdpChangeMonth;
 window.selectMdpDate = selectMdpDate;
 window.confirmMaterialDatePicker = confirmMaterialDatePicker;
+
+/**
+ * Multi-select State Logic
+ */
+function toggleStateSelect() {
+    const dropdown = document.getElementById('stateSelectDropdown');
+    const display = document.getElementById('stateSelectDisplay');
+    if (!dropdown || !display) return;
+
+    // Close time picker if open
+    const timeDropdown = document.getElementById('eventTimePickerDropdown');
+    if (timeDropdown) timeDropdown.classList.remove('active');
+
+    dropdown.classList.toggle('active');
+    display.classList.toggle('active');
+
+    if (dropdown.classList.contains('active')) {
+        const closeDropdown = (e) => {
+            if (!document.getElementById('stateSelectContainer').contains(e.target)) {
+                dropdown.classList.remove('active');
+                display.classList.remove('active');
+                document.removeEventListener('click', closeDropdown);
+            }
+        };
+        setTimeout(() => document.addEventListener('click', closeDropdown), 10);
+    }
+}
+
+function updateSelectedStates() {
+    const checkboxes = document.querySelectorAll('.state-checkbox:checked');
+    const selectedValues = Array.from(checkboxes).map(cb => cb.value);
+    const displaySpan = document.getElementById('selectedStatesText');
+    const hiddenInput = document.getElementById('eventStateInput');
+
+    if (selectedValues.length === 0) {
+        displaySpan.textContent = 'Select State(s)';
+        displaySpan.style.color = '#9ca3af';
+        hiddenInput.value = '';
+    } else {
+        displaySpan.textContent = selectedValues.join(', ');
+        displaySpan.style.color = '#334155';
+        hiddenInput.value = selectedValues.join(',');
+    }
+    
+    // Trigger input event for persistence
+    hiddenInput.dispatchEvent(new Event('input', { bubbles: true }));
+}
+
+window.toggleStateSelect = toggleStateSelect;
+window.updateSelectedStates = updateSelectedStates;

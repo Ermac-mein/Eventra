@@ -107,8 +107,10 @@ function getImageUrl(path) {
 
   let finalPath = path;
   
-  // Normalize path - ensure it starts with /
-  if (!finalPath.startsWith('/')) {
+  // Normalize path
+  if (finalPath.startsWith('../../')) {
+    finalPath = finalPath.replace('../../', '/');
+  } else if (!finalPath.startsWith('/')) {
     finalPath = '/' + finalPath;
   }
 

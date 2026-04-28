@@ -139,7 +139,7 @@ function updateUsersTable(users) {
 
     tbody.innerHTML = users.map(user => {
         // Determine status display
-        const isActive = user.status === 'active' || user.status === 1 || user.status === '1';
+        const isActive = user.status === 'active' || user.status === 'online' || user.status === 1 || user.status === '1';
         const statusText = isActive ? 'Active' : 'Inactive';
         const statusColor = isActive ? '#722f37' : '#ef4444';
         
