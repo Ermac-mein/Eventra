@@ -20,14 +20,6 @@ function validatePasswordStrength($password)
         $errors[] = 'Password must be at least 8 characters long';
     }
 
-    if (!preg_match('/[0-9]/', $password)) {
-        $errors[] = 'Password must contain at least one number';
-    }
-
-    if (!preg_match('/[!@#$%^&*()_+\-=\[\]{};:\'",.<>?\/\\|`~]/', $password)) {
-        $errors[] = 'Password must contain at least one special character';
-    }
-
     if (strlen($password) > 128) {
         $errors[] = 'Password is too long (max 128 characters)';
     }

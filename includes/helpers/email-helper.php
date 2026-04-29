@@ -315,6 +315,10 @@ class EmailHelper
                 $badgeBg = '#c0392b';
                 $badgeFg = '#ffffff';
             }
+            if (str_contains($lower, 'premium')) {
+                $badgeBg = '#9b59b6'; // Purple for Premium
+                $badgeFg = '#ffffff';
+            }
             if (str_contains($lower, 'free')) {
                 $badgeBg = '#27ae60';
                 $badgeFg = '#ffffff';

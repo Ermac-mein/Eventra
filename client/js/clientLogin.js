@@ -534,7 +534,7 @@ async function handleForgotPassword() {
                 // Step 3: Prompt for New Password
                 const { value: password } = await Swal.fire({
                     title: 'Reset Password',
-                    text: 'Enter your new password (min. 8 characters, one uppercase, one digit, and one special character).',
+                    text: 'Enter your new password (minimum 8 characters).',
                     input: 'password',
                     inputPlaceholder: 'New Password',
                     showCancelButton: true,
@@ -543,12 +543,11 @@ async function handleForgotPassword() {
                     color: '#fff',
                     confirmButtonColor: '#2ecc71',
                     inputValidator: (value) => {
-                        const passwordRegex = /^(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%^&*(),.?":{}|<>]).{8,}$/;
                         if (!value) {
                             return 'You need to write something!';
                         }
-                        if (!passwordRegex.test(value)) {
-                            return 'Password must be at least 8 characters long and include one uppercase letter, one digit, and one special character.';
+                        if (value.length < 8) {
+                            return 'Password must be at least 8 characters long.';
                         }
                     }
                 });

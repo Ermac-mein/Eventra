@@ -817,10 +817,10 @@ function showEditEventModal(event) {
         }
     }
 
-    // Merge metadata into event object for easier template access (only if keys don't already exist)
-    const pricingFields = ['regular_price', 'vip_price', 'regular_quantity', 'vip_quantity', 'ticket_type_mode'];
+    // Merge metadata into event object for easier template access
+    const pricingFields = ['regular_price', 'vip_price', 'premium_price', 'regular_quantity', 'vip_quantity', 'premium_quantity', 'ticket_type_mode'];
     pricingFields.forEach(field => {
-        if (metadata[field] !== undefined && event[field] === undefined) {
+        if (metadata[field] !== undefined) {
             event[field] = metadata[field];
         }
     });
@@ -926,21 +926,16 @@ function showEditEventModal(event) {
                                                 <button type="button" class="time-btn ampm-btn" onclick="selectAmPm('am', 'editEventTimePickerContainer')">am</button>
                                                 <button type="button" class="time-btn ampm-btn" onclick="selectAmPm('pm', 'editEventTimePickerContainer')">pm</button>
                                             </div>
-                                        </div>
-                                    </div>
-                                    <input type="hidden" name="event_time" id="editEventTimeInput" value="${event.event_time || ''}" required>
-                                </div>
-                            </div>
-
-                            <div class="form-group" id="editPriceInputGroup">
-                                <label style="display: block; font-weight: 600; margin-bottom: 0.5rem; ${parseFloat(event.price) === 0 ? 'display: none;' : ''}">Ticket Price (₦) *</label>
-                                <div style="display: flex; gap: 1rem; align-items: center;">
-                                    <input type="number" name="price" id="editPriceInput" value="${event.price}" required min="0" step="0.01" 
-                                           style="${parseFloat(event.price) === 0 ? 'display: none;' : ''}">
-                                    <label style="display: flex; align-items: center; gap: 0.75rem; cursor: pointer; user-select: none; font-weight: 600; color: #475569; background: white; padding: 0.5rem 1rem; border-radius: 8px; border: 1px solid #d1d5db;">
-                                        <input type="checkbox" id="editFreeEventCheckbox" name="is_free" value="1" ${parseFloat(event.price) === 0 ? 'checked' : ''} class="state-checkbox-custom"> Free
+                                           <div class="form-group" id="editPricingRow" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
+                                <div class="form-group">
+                                    <label style="display: block; font-size: 0.875rem; font-weight: 600; color: #6b7280; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.5px;">Ticket Pricing</label>
+                                    <label style="display: flex; align-items: center; gap: 0.75rem; cursor: pointer; user-select: none; font-weight: 600; color: #475569; background: white; padding: 1rem 1.25rem; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); border: 2px solid #e5e7eb; height: 56px;">
+                                        <input type="checkbox" id="editFreeEventCheckbox" name="is_free" value="1" ${parseFloat(event.price) === 0 ? 'checked' : ''} class="state-checkbox-custom"> FREE EVENT
                                     </label>
-                                    <select name="event_visibility" style="padding: 0.5rem 1rem; border-radius: 8px; border: 1px solid #d1d5db; font-size: 0.9rem; font-weight: 600; background: white; color: #374151; cursor: pointer;">
+                                </div>
+                                <div class="form-group">
+                                    <label style="display: block; font-size: 0.875rem; font-weight: 600; color: #6b7280; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.5px;">Visibility</label>
+                                    <select name="event_visibility" style="width: 100%; padding: 1rem 1.25rem; border: 2px solid #e5e7eb; border-radius: 12px; font-size: 1rem; font-weight: 600; background: white; color: #374151; box-shadow: 0 2px 8px rgba(0,0,0,0.04); cursor: pointer; height: 56px;">
                                         <option value="public" ${event.event_visibility === 'public' ? 'selected' : ''}>🌐 Public</option>
                                         <option value="private" ${event.event_visibility === 'private' ? 'selected' : ''}>🔒 Private</option>
                                     </select>
@@ -948,41 +943,61 @@ function showEditEventModal(event) {
                             </div>
 
                             <div class="form-group" style="grid-column: 1 / -1; margin-bottom: 1.5rem; ${parseFloat(event.price) === 0 ? 'display: none;' : ''}" id="editTicketTypeConfigSection">
-                                <div style="background: linear-gradient(135deg, #e0f2fe, #f0f9ff); padding: 1.5rem; border-radius: 12px; border: 1px solid #0ea5e9;">
-                                    <h4 style="margin: 0 0 1rem 0; font-weight: 800; color: #0369a1; font-size: 0.9rem; text-transform: uppercase;">💳 Ticket Type Configuration</h4>
-                                    <div style="display: grid; gap: 0.75rem; margin-bottom: 1.5rem;">
-                                        <label style="display: flex; align-items: center; gap: 0.75rem; cursor: pointer; padding: 0.75rem; background: white; border-radius: 10px; border: 1px solid #e2e8f0;">
-                                            <input type="radio" name="ticket_type_mode" value="regular-only" ${event.ticket_type_mode === 'regular-only' ? 'checked' : ''} style="accent-color: #0369a1;">
+                                <div style="background: linear-gradient(135deg, #e0f2fe, #f0f9ff); padding: 2rem; border-radius: 16px; border: 2px solid #0ea5e9;">
+                                    <h4 style="margin: 0 0 1.5rem 0; font-weight: 800; color: #0369a1; font-size: 1rem; text-transform: uppercase; letter-spacing: 1px;">💳 Ticket Type Configuration</h4>
+                                    <div style="display: grid; gap: 1rem; margin-bottom: 1.5rem;">
+                                        <label style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; cursor: pointer; padding: 1rem; background: white; border-radius: 12px; border: 2px solid transparent; transition: all 0.3s;">
                                             <div>
-                                                <div style="font-weight: 700; color: #1e293b; font-size: 0.9rem;">Regular Only</div>
+                                                <div style="font-weight: 700; color: #1e293b;">Regular</div>
+                                                <div style="font-size: 0.8rem; color: #64748b;">Offer only standard tickets</div>
                                             </div>
+                                            <input type="radio" name="ticket_type_mode" value="regular-only" ${event.ticket_type_mode === 'regular-only' ? 'checked' : ''} class="edit-ticket-type-radio" style="width: 1.2rem; height: 1.2rem; accent-color: #0369a1; cursor: pointer;">
                                         </label>
-                                        <label style="display: flex; align-items: center; gap: 0.75rem; cursor: pointer; padding: 0.75rem; background: white; border-radius: 10px; border: 1px solid #e2e8f0;">
-                                            <input type="radio" name="ticket_type_mode" value="vip-only" ${event.ticket_type_mode === 'vip-only' ? 'checked' : ''} style="accent-color: #0369a1;">
+                                        <label style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; cursor: pointer; padding: 1rem; background: white; border-radius: 12px; border: 2px solid transparent; transition: all 0.3s;">
                                             <div>
-                                                <div style="font-weight: 700; color: #1e293b; font-size: 0.9rem;">VIP Only</div>
+                                                <div style="font-weight: 700; color: #1e293b;">VIP</div>
+                                                <div style="font-size: 0.8rem; color: #64748b;">Offer only premium VIP tickets</div>
                                             </div>
+                                            <input type="radio" name="ticket_type_mode" value="vip-only" ${event.ticket_type_mode === 'vip-only' ? 'checked' : ''} class="edit-ticket-type-radio" style="width: 1.2rem; height: 1.2rem; accent-color: #0369a1; cursor: pointer;">
                                         </label>
-                                        <label style="display: flex; align-items: center; gap: 0.75rem; cursor: pointer; padding: 0.75rem; background: white; border-radius: 10px; border: 1px solid #e2e8f0;">
-                                            <input type="radio" name="ticket_type_mode" value="both" ${(!event.ticket_type_mode || event.ticket_type_mode === 'both') ? 'checked' : ''} style="accent-color: #0369a1;">
+                                        <label style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; cursor: pointer; padding: 1rem; background: white; border-radius: 12px; border: 2px solid transparent; transition: all 0.3s;">
                                             <div>
-                                                <div style="font-weight: 700; color: #1e293b; font-size: 0.9rem;">Both VIP & Regular</div>
+                                                <div style="font-weight: 700; color: #1e293b;">Premium</div>
+                                                <div style="font-size: 0.8rem; color: #64748b;">Offer only high-end premium tickets</div>
                                             </div>
+                                            <input type="radio" name="ticket_type_mode" value="premium-only" ${event.ticket_type_mode === 'premium-only' ? 'checked' : ''} class="edit-ticket-type-radio" style="width: 1.2rem; height: 1.2rem; accent-color: #0369a1; cursor: pointer;">
+                                        </label>
+                                        <label style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; cursor: pointer; padding: 1rem; background: white; border-radius: 12px; border: 2px solid transparent; transition: all 0.3s;">
+                                            <div>
+                                                <div style="font-weight: 700; color: #1e293b;">All</div>
+                                                <div style="font-size: 0.8rem; color: #64748b;">Offer Regular, VIP, and Premium tickets at the same price</div>
+                                            </div>
+                                            <input type="radio" name="ticket_type_mode" value="all" ${(!event.ticket_type_mode || event.ticket_type_mode === 'all') ? 'checked' : ''} class="edit-ticket-type-radio" style="width: 1.2rem; height: 1.2rem; accent-color: #0369a1; cursor: pointer;">
                                         </label>
                                     </div>
 
-                                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-                                        <div>
-                                            <label style="font-size: 0.75rem; font-weight: 700; color: #0369a1; text-transform: uppercase;">Regular Price (₦)</label>
-                                            <input type="number" name="regular_price" value="${event.regular_price || 0}" min="0" step="0.01">
-                                            <input type="number" name="regular_quantity" value="${event.regular_quantity || ''}" placeholder="Max Qty" style="margin-top: 5px;">
-                                        </div>
-                                        <div>
-                                            <label style="font-size: 0.75rem; font-weight: 700; color: #2ecc71; text-transform: uppercase;">VIP Price (₦)</label>
-                                            <input type="number" name="vip_price" value="${event.vip_price || 0}" min="0" step="0.01">
-                                            <input type="number" name="vip_quantity" value="${event.vip_quantity || ''}" placeholder="Max Qty" style="margin-top: 5px;">
-                                        </div>
+                                    <!-- Price Inputs -->
+                                    <div id="editRegularPriceSection" style="display: none; margin-bottom: 1.5rem;">
+                                        <label style="display: block; font-size: 0.875rem; font-weight: 600; color: #0369a1; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.5px;">Regular Price (₦)</label>
+                                        <input type="number" name="regular_price" id="editRegularPriceInput" value="${event.regular_price || 0}" min="0" step="0.01" style="width: 100%; padding: 1rem 1.25rem; border: 2px solid #0ea5e9; border-radius: 12px;">
+                                        <input type="number" name="regular_quantity" value="${event.regular_quantity || ''}" placeholder="Max Regular Quantity (optional)" min="1" style="width: 100%; padding: 0.75rem 1rem; border: 2px solid #e2e8f0; border-radius: 8px; margin-top: 0.5rem;">
                                     </div>
+
+                                    <div id="editVipPriceSection" style="display: none; margin-bottom: 1.5rem;">
+                                        <label style="display: block; font-size: 0.875rem; font-weight: 600; color: #722f37; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.5px;">VIP Price (₦)</label>
+                                        <input type="number" name="vip_price" id="editVipPriceInput" value="${event.vip_price || 0}" min="0" step="0.01" style="width: 100%; padding: 1rem 1.25rem; border: 2px solid #c4b5fd; border-radius: 12px; background: #faf5ff;">
+                                        <input type="number" name="vip_quantity" value="${event.vip_quantity || ''}" placeholder="Max VIP Quantity (optional)" min="1" style="width: 100%; padding: 0.75rem 1rem; border: 2px solid #e2e8f0; border-radius: 8px; margin-top: 0.5rem;">
+                                    </div>
+
+                                    <div id="editPremiumPriceSection" style="display: none; margin-bottom: 1.5rem;">
+                                        <label style="display: block; font-size: 0.875rem; font-weight: 600; color: #f59e0b; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.5px;">Premium Price (₦)</label>
+                                        <input type="number" name="premium_price" id="editPremiumPriceInput" value="${event.premium_price || 0}" min="0" step="0.01" style="width: 100%; padding: 1rem 1.25rem; border: 2px solid #fbbf24; border-radius: 12px; background: #fffbeb;">
+                                        <input type="number" name="premium_quantity" value="${event.premium_quantity || ''}" placeholder="Max Premium Quantity (optional)" min="1" style="width: 100%; padding: 0.75rem 1rem; border: 2px solid #e2e8f0; border-radius: 8px; margin-top: 0.5rem;">
+                                    </div>
+
+                                    <div id="editAllPriceSection" style="display: none;">
+                                        <label style="display: block; font-size: 0.875rem; font-weight: 600; color: #4f46e5; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.5px;">All Ticket Price (₦)</label>
+                                        <input type="number" name="price" id="editAllPriceInput" value="${event.price || 0}" min="0" step="0.01" style="width: 100%; padding: 1rem 1.25rem; border: 2px solid #6366f1; border-radius: 12px; background: #f5f3ff;">
                                 </div>
                             </div>
 
@@ -1097,29 +1112,61 @@ function showEditEventModal(event) {
         });
     }
 
+    // Ticket Type Configuration Logic (Edit Modal)
+    const editTicketTypeRadios = document.querySelectorAll('.edit-ticket-type-radio');
+    const editRegularPriceSection = document.getElementById('editRegularPriceSection');
+    const editVipPriceSection = document.getElementById('editVipPriceSection');
+    const editPremiumPriceSection = document.getElementById('editPremiumPriceSection');
+    const editAllPriceSection = document.getElementById('editAllPriceSection');
+    
+    const editRegularPriceInput = document.getElementById('editRegularPriceInput');
+    const editVipPriceInput = document.getElementById('editVipPriceInput');
+    const editPremiumPriceInput = document.getElementById('editPremiumPriceInput');
+    const editAllPriceInput = document.getElementById('editAllPriceInput');
+
+    function updateEditTicketTypeSections() {
+        const selectedMode = document.querySelector('input[name="ticket_type_mode"]:checked')?.value || 'all';
+        
+        if (editRegularPriceSection) editRegularPriceSection.style.display = (selectedMode === 'regular-only') ? 'block' : 'none';
+        if (editVipPriceSection) editVipPriceSection.style.display = (selectedMode === 'vip-only') ? 'block' : 'none';
+        if (editPremiumPriceSection) editPremiumPriceSection.style.display = (selectedMode === 'premium-only') ? 'block' : 'none';
+        if (editAllPriceSection) editAllPriceSection.style.display = (selectedMode === 'all') ? 'block' : 'none';
+        
+        // Update required attribute
+        if (editRegularPriceInput) editRegularPriceInput.required = (selectedMode === 'regular-only');
+        if (editVipPriceInput) editVipPriceInput.required = (selectedMode === 'vip-only');
+        if (editPremiumPriceInput) editPremiumPriceInput.required = (selectedMode === 'premium-only');
+        if (editAllPriceInput) editAllPriceInput.required = (selectedMode === 'all');
+    }
+
+    editTicketTypeRadios.forEach(radio => {
+        radio.addEventListener('change', updateEditTicketTypeSections);
+    });
+
     // Free Event Checkbox Handler (Edit Modal)
     const freeCheckbox = document.getElementById('editFreeEventCheckbox');
-    const priceInput = document.getElementById('editPriceInput');
-    const priceInputGroup = document.getElementById('editPriceInputGroup');
     const ticketConfig = document.getElementById('editTicketTypeConfigSection');
 
     freeCheckbox.addEventListener('change', function() {
-        const pLabel = priceInputGroup.querySelector('label:not([style*="cursor: pointer"])');
         if (this.checked) {
-            priceInput.value = 0;
-            priceInput.required = false;
-            priceInput.style.display = 'none';
-            if (pLabel) pLabel.style.display = 'none';
             if (ticketConfig) ticketConfig.style.display = 'none';
+            // Set all prices to 0
+            if (editRegularPriceInput) { editRegularPriceInput.value = 0; editRegularPriceInput.required = false; }
+            if (editVipPriceInput) { editVipPriceInput.value = 0; editVipPriceInput.required = false; }
+            if (editPremiumPriceInput) { editPremiumPriceInput.value = 0; editPremiumPriceInput.required = false; }
+            if (editAllPriceInput) { editAllPriceInput.value = 0; editAllPriceInput.required = false; }
+            
+            // Clear quantity inputs
+            const qtyInputs = editEventForm.querySelectorAll('input[name*="quantity"]');
+            qtyInputs.forEach(input => input.value = '');
         } else {
-            priceInput.style.display = 'block';
-            priceInput.required = true;
-            if (parseFloat(priceInput.value) === 0) priceInput.value = '';
-            if (pLabel) pLabel.style.display = 'block';
             if (ticketConfig) ticketConfig.style.display = 'block';
-            priceInput.focus();
+            updateEditTicketTypeSections();
         }
     });
+
+    // Initial update
+    updateEditTicketTypeSections();
 
     // Initialize Time Picker highlights if time exists
     if (event.event_time) {

@@ -227,9 +227,11 @@ try {
     // Validation
     $required_fields = ['event_name', 'event_type', 'event_date', 'event_time', 'status', 'address', 'phone_contact_1'];
     
-    // Price is required unless it's explicitly marked as free or ticket_type_mode is 'multiple'
-    $ticket_type_mode = $_POST['ticket_type_mode'] ?? 'single';
-    if ($ticket_type_mode === 'single' && (!isset($_POST['is_free']) || $_POST['is_free'] !== '1')) {
+    // Price is required unless it's explicitly marked as free or mode is not 'all'
+    $ticket_type_mode = $_POST['ticket_type_mode'] ?? 'all';
+    $is_free = isset($_POST['is_free']) && $_POST['is_free'] === '1';
+
+    if ($ticket_type_mode === 'all' && !$is_free) {
         $required_fields[] = 'price';
     }
 
@@ -248,16 +250,31 @@ try {
         exit;
     }
 
+    // Pricing fields
+    $price = $_POST['price'] ?? 0.00;
+    $regular_price = !empty($_POST['regular_price']) ? floatval($_POST['regular_price']) : 0.00;
+    $vip_price = !empty($_POST['vip_price']) ? floatval($_POST['vip_price']) : 0.00;
+    $premium_price = !empty($_POST['premium_price']) ? floatval($_POST['premium_price']) : 0.00;
+
+    if ($ticket_type_mode === 'all') {
+        $regular_price = floatval($price);
+        $vip_price = floatval($price);
+        $premium_price = floatval($price);
+    }
+
     // Recalculate ticket_count / total_tickets when quantities change
     $new_regular_qty = !empty($_POST['regular_quantity']) ? intval($_POST['regular_quantity']) : null;
     $new_vip_qty     = !empty($_POST['vip_quantity'])     ? intval($_POST['vip_quantity'])     : null;
+    $new_premium_qty = !empty($_POST['premium_quantity']) ? intval($_POST['premium_quantity']) : null;
+    
     $new_total_tickets = null;
     $new_ticket_count  = null;
     
-    if ($new_regular_qty !== null || $new_vip_qty !== null) {
-        $new_total_tickets = ($new_regular_qty ?? 0) + ($new_vip_qty ?? 0);
-    } elseif (!empty($_POST['total_tickets'])) {
+    if (!empty($_POST['total_tickets'])) {
         $new_total_tickets = intval($_POST['total_tickets']);
+    } else {
+        $new_total_tickets = ($new_regular_qty ?? 0) + ($new_vip_qty ?? 0) + ($new_premium_qty ?? 0);
+        if ($new_total_tickets === 0) $new_total_tickets = null;
     }
 
     if ($new_total_tickets !== null) {
@@ -279,11 +296,13 @@ try {
     if (!is_array($existing_metadata)) $existing_metadata = [];
     
     $new_metadata = array_merge($existing_metadata, [
-        'regular_price' => $_POST['regular_price'] ?? 0,
-        'vip_price' => $_POST['vip_price'] ?? 0,
+        'regular_price' => $regular_price,
+        'vip_price' => $vip_price,
+        'premium_price' => $premium_price,
         'regular_quantity' => $new_regular_qty,
         'vip_quantity' => $new_vip_qty,
-        'ticket_type_mode' => $_POST['ticket_type_mode'] ?? 'single'
+        'premium_quantity' => $new_premium_qty,
+        'ticket_type_mode' => $ticket_type_mode
     ]);
     $metadata_json = json_encode($new_metadata);
 

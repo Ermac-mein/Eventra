@@ -135,9 +135,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             // 3. OTP Verification
             if (typeof showOTPModal === 'function') {
-                showOTPModal(email, phone, async () => {
+                showOTPModal(email, phone, async (otpReference) => {
                     // Success Callback: Proceed to Initialize Order
-                    await proceedToPayment(eventId, currentQuantity, fname, lname, email, phone, payBtn, eventData);
+                    await proceedToPayment(eventId, currentQuantity, fname, lname, email, phone, payBtn, eventData, otpReference);
                 }, () => {
                     // Cancel Callback: Re-enable button
                     resetPayBtn(eventData, currentQuantity);
@@ -149,7 +149,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
-    async function proceedToPayment(eventId, currentQuantity, fname, lname, email, phone, payBtn, eventData) {
+    async function proceedToPayment(eventId, currentQuantity, fname, lname, email, phone, payBtn, eventData, otpReference = null) {
         // Disable button & show loading
         payBtn.disabled = true;
         payBtn.innerHTML = '<span class="btn-spinner"></span> Initializing...';
@@ -161,7 +161,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     event_id: eventId,
-                    quantity: currentQuantity
+                    quantity: currentQuantity,
+                    otp_reference: otpReference
                 })
             });
             
@@ -200,8 +201,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 
                 sessionStorage.setItem('pending_order', JSON.stringify(orderData));
                 
-                // Redirect to payment transition/processing page
-                window.location.href = 'payment.html';
+                // Redirect directly to Paystack payment gateway
+                window.location.href = result.authorization_url;
             } else {
                 Swal.fire('Error', result.message || 'Payment initialization failed.', 'error');
                 resetPayBtn(eventData, currentQuantity);

@@ -181,7 +181,7 @@ function generateTicketPDF(array $ticketData): string
     // Additional fields for improved design
     $event_image_path = $ticketData['image_path'] ?? null;
     $ticket_type = strtolower($ticketData['ticket_type'] ?? 'regular');
-    $event_type_label = ($ticket_type === 'vip') ? 'VIP Access Pass' : ($ticketData['event_type'] ?? 'Regular Entry Pass');
+    $event_type_label = ($ticket_type === 'vip') ? 'VIP Access Pass' : (($ticket_type === 'premium') ? 'Premium Access Pass' : ($ticketData['event_type'] ?? 'Regular Entry Pass'));
     
     // Price information
     $price_value = $ticketData['price'] ?? $ticketData['amount'] ?? null;

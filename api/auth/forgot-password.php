@@ -11,11 +11,15 @@ require_once __DIR__ . '/../../includes/helpers/otp-service.php';
 require_once __DIR__ . '/../../includes/helpers/validation.php';
 
 $data = json_decode(file_get_contents("php://input"), true);
-$email = $data['email'] ?? null;
+$email = $data['email'] ?? $data['identity'] ?? null;
 
 if (!$email || !validateEmail($email)) {
-    echo json_encode(['success' => false, 'message' => 'Valid email is required.']);
-    exit;
+    // If it's a valid string but filter_var failed, we might still want to try it if it looks like an email
+    // but for now let's just ensure we support both identity and email keys.
+    if (!$email) {
+        echo json_encode(['success' => false, 'message' => 'Email address is required.']);
+        exit;
+    }
 }
 
 try {

@@ -187,18 +187,28 @@ try {
 
     // New pricing fields
     $ticket_type = $_POST['ticket_type'] ?? 'regular';
-    $ticket_type_mode = $_POST['ticket_type_mode'] ?? 'both';
+    $ticket_type_mode = $_POST['ticket_type_mode'] ?? 'all';
     $regular_price = !empty($_POST['regular_price']) ? floatval($_POST['regular_price']) : 0.00;
     $vip_price = !empty($_POST['vip_price']) ? floatval($_POST['vip_price']) : 0.00;
+    $premium_price = !empty($_POST['premium_price']) ? floatval($_POST['premium_price']) : 0.00;
     $regular_quantity = !empty($_POST['regular_quantity']) ? intval($_POST['regular_quantity']) : null;
     $vip_quantity = !empty($_POST['vip_quantity']) ? intval($_POST['vip_quantity']) : null;
+    $premium_quantity = !empty($_POST['premium_quantity']) ? intval($_POST['premium_quantity']) : null;
+
+    // Handle 'all' mode logic
+    if ($ticket_type_mode === 'all') {
+        $regular_price = floatval($price);
+        $vip_price = floatval($price);
+        $premium_price = floatval($price);
+    }
 
     // Compute ticket_count and total_tickets from submitted quantities
     $total_tickets = null;
-    if ($regular_quantity !== null || $vip_quantity !== null) {
-        $total_tickets = ($regular_quantity ?? 0) + ($vip_quantity ?? 0);
-    } elseif (!empty($_POST['max_capacity'])) {
+    if (!empty($_POST['max_capacity'])) {
         $total_tickets = intval($_POST['max_capacity']);
+    } else {
+        $total_tickets = ($regular_quantity ?? 0) + ($vip_quantity ?? 0) + ($premium_quantity ?? 0);
+        if ($total_tickets === 0) $total_tickets = null;
     }
     $ticket_count = $total_tickets; // Start at full capacity on creation
 
@@ -314,8 +324,10 @@ try {
     $metadata = [
         'regular_price' => $regular_price,
         'vip_price' => $vip_price,
+        'premium_price' => $premium_price,
         'regular_quantity' => $regular_quantity,
         'vip_quantity' => $vip_quantity,
+        'premium_quantity' => $premium_quantity,
         'ticket_type_mode' => $ticket_type_mode
     ];
     $metadata_json = json_encode($metadata);

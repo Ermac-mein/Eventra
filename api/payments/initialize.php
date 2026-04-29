@@ -64,6 +64,33 @@ try {
     $user_email = $user['email'];
     $user_name = $user['name'];
 
+    // ── OTP Verification Check ──────────────────────────────────────────────
+    $otp_reference = $body['otp_reference'] ?? $_POST['otp_reference'] ?? null;
+    if (!$otp_reference) {
+        http_response_code(403);
+        echo json_encode(['success' => false, 'message' => 'OTP verification required. No reference provided.']);
+        exit;
+    }
+
+    $otp_verified = false;
+    if (isset($_SESSION['otp_verified_ref']) && $_SESSION['otp_verified_ref'] === $otp_reference) {
+        $otp_verified = true;
+    } else {
+        // Fallback to DB check
+        $otpStmt = $pdo->prepare("SELECT id FROM payment_otps WHERE user_id = ? AND payment_reference = ? AND verified_at IS NOT NULL AND expires_at > NOW() LIMIT 1");
+        $otpStmt->execute([$user_id, $otp_reference]);
+        if ($otpStmt->fetch()) {
+            $otp_verified = true;
+        }
+    }
+
+    if (!$otp_verified) {
+        http_response_code(403);
+        echo json_encode(['success' => false, 'message' => 'OTP verification failed or expired. Please verify again.']);
+        exit;
+    }
+    // ─────────────────────────────────────────────────────────────────────────
+
     // ── Fetch event + organizer subaccount ─────────────────────────────────
     $eStmt = $pdo->prepare("
         SELECT e.id, e.event_name, e.price, e.status, e.max_capacity, e.attendee_count,

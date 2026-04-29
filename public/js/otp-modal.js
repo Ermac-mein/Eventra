@@ -165,7 +165,7 @@ function showOTPModal(email, phone, onVerified, onCancel) {
                 }
             }).then((verifyResult) => {
                 if (verifyResult.isConfirmed) {
-                    onVerified();
+                    onVerified(reference);
                 } else if (verifyResult.isDismissed && onCancel) {
                     onCancel();
                 }
