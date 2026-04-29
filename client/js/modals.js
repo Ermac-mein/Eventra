@@ -937,8 +937,8 @@ function showEditEventModal(event) {
                                 <div style="display: flex; gap: 1rem; align-items: center;">
                                     <input type="number" name="price" id="editPriceInput" value="${event.price}" required min="0" step="0.01" 
                                            style="${parseFloat(event.price) === 0 ? 'display: none;' : ''}">
-                                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; user-select: none; font-weight: 600; color: #6b7280; background: white; padding: 0.5rem 1rem; border-radius: 8px; border: 1px solid #d1d5db;">
-                                        <input type="checkbox" id="editFreeEventCheckbox" name="is_free" value="1" ${parseFloat(event.price) === 0 ? 'checked' : ''} style="width: 1.1rem; height: 1.1rem; accent-color: #2ecc71;"> Free
+                                    <label style="display: flex; align-items: center; gap: 0.75rem; cursor: pointer; user-select: none; font-weight: 600; color: #475569; background: white; padding: 0.5rem 1rem; border-radius: 8px; border: 1px solid #d1d5db;">
+                                        <input type="checkbox" id="editFreeEventCheckbox" name="is_free" value="1" ${parseFloat(event.price) === 0 ? 'checked' : ''} class="state-checkbox-custom"> Free
                                     </label>
                                     <select name="event_visibility" style="padding: 0.5rem 1rem; border-radius: 8px; border: 1px solid #d1d5db; font-size: 0.9rem; font-weight: 600; background: white; color: #374151; cursor: pointer;">
                                         <option value="public" ${event.event_visibility === 'public' ? 'selected' : ''}>🌐 Public</option>

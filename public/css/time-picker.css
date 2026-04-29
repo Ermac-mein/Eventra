@@ -253,38 +253,58 @@
     background: rgba(59, 130, 246, 0.05);
 }
 
-/* Custom Checkbox Styling to match Image 1 */
+/* Custom Checkbox Styling - Modern Dark Theme Square */
+.form-group .state-checkbox-custom,
 .state-checkbox-custom {
     appearance: none;
     -webkit-appearance: none;
-    width: 18px;
-    height: 18px;
-    border: 1.5px solid #cbd5e1;
-    border-radius: 4px;
-    background: white;
+    width: 20px !important;
+    height: 20px !important;
+    min-width: 20px !important;
+    min-height: 20px !important;
+    border: 2px solid #374151;
+    border-radius: 6px;
+    background: #1f2937;
     cursor: pointer;
     position: relative;
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     flex-shrink: 0;
     margin: 0;
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    outline: none;
+}
+
+.state-checkbox-custom:hover {
+    border-color: #4b5563;
+    background: #374151;
+    box-shadow: 0 0 0 4px rgba(114, 47, 55, 0.1);
 }
 
 .state-checkbox-custom:checked {
-    background-color: #3b82f6;
-    border-color: #3b82f6;
+    background-color: #722f37;
+    border-color: #722f37;
+    box-shadow: 0 4px 12px rgba(114, 47, 55, 0.2);
+}
+
+.state-checkbox-custom::after {
+    content: '✓';
+    font-size: 14px;
+    color: white;
+    font-weight: 900;
+    opacity: 0;
+    transform: scale(0.5);
+    transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .state-checkbox-custom:checked::after {
-    content: '';
-    position: absolute;
-    top: 2px;
-    left: 6px;
-    width: 4px;
-    height: 9px;
-    border: solid white;
-    border-width: 0 2px 2px 0;
-    transform: rotate(45deg);
+    opacity: 1;
+    transform: scale(1);
+}
+
+.state-option-label:has(.state-checkbox-custom:checked) {
+    background: rgba(114, 47, 55, 0.08);
 }
 
 .state-option-text {

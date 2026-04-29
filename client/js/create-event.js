@@ -225,8 +225,8 @@ function showCreateEventModal() {
                                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
                                     <div class="form-group">
                                         <label style="display: block; font-size: 0.875rem; font-weight: 600; color: #6b7280; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.5px;">Ticket Pricing</label>
-                                        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; user-select: none; font-weight: 600; color: #6b7280; background: white; padding: 1rem 1.25rem; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); border: 2px solid #e5e7eb; height: 56px;">
-                                            <input type="checkbox" id="freeEventCheckbox" name="is_free" value="1" style="width: 1.2rem; height: 1.2rem; accent-color: #722f37;"> FREE EVENT
+                                        <label style="display: flex; align-items: center; gap: 0.75rem; cursor: pointer; user-select: none; font-weight: 600; color: #475569; background: white; padding: 1rem 1.25rem; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); border: 2px solid #e5e7eb; height: 56px;">
+                                            <input type="checkbox" id="freeEventCheckbox" name="is_free" value="1" class="state-checkbox-custom"> FREE EVENT
                                         </label>
                                     </div>
                                 </div>
