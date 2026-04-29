@@ -258,13 +258,13 @@
 .state-checkbox-custom {
     appearance: none;
     -webkit-appearance: none;
-    width: 20px !important;
-    height: 20px !important;
-    min-width: 20px !important;
-    min-height: 20px !important;
-    border: 2px solid #374151;
-    border-radius: 6px;
-    background: #1f2937;
+    width: 16px !important;
+    height: 16px !important;
+    min-width: 16px !important;
+    min-height: 16px !important;
+    border: 2px solid #cbd5e1;
+    border-radius: 4px;
+    background: #ffffff;
     cursor: pointer;
     position: relative;
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
@@ -277,8 +277,8 @@
 }
 
 .state-checkbox-custom:hover {
-    border-color: #4b5563;
-    background: #374151;
+    border-color: #94a3b8;
+    background: #f8fafc;
     box-shadow: 0 0 0 4px rgba(114, 47, 55, 0.1);
 }
 
@@ -290,7 +290,7 @@
 
 .state-checkbox-custom::after {
     content: '✓';
-    font-size: 14px;
+    font-size: 11px;
     color: white;
     font-weight: 900;
     opacity: 0;

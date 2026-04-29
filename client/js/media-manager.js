@@ -708,9 +708,6 @@ function getFileIcon(fileType) {
     return '📄'; // Fallback
 }
 
-function timeAgo(dateString) {
-    return window.timeAgo(dateString, true);
-}
 
 function sortFolderFiles(column, forceAsc = null) {
     if (!currentFolderFiles || currentFolderFiles.length === 0) return;

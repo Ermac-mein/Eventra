@@ -190,7 +190,7 @@ function showCreateEventModal() {
                                         <label style="display: block; font-size: 0.875rem; font-weight: 600; color: #6b7280; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.5px;">State(s) <span style="color: #ef4444">*</span></label>
                                         <div id="stateSelectContainer" class="state-select-container">
                                             <div class="state-select-display" id="stateSelectDisplay" onclick="toggleStateSelect()">
-                                                <span id="selectedStatesText" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 80%;">Select State(s)</span>
+                                                <span id="selectedStatesText" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;">Select State(s)</span>
                                             </div>
                                             <div id="stateSelectDropdown" class="state-select-dropdown">
                                                 <div style="display: grid; gap: 4px;">
@@ -778,7 +778,12 @@ function toggleStateSelect() {
 
     if (dropdown.classList.contains('active')) {
         const closeDropdown = (e) => {
-            if (!document.getElementById('stateSelectContainer').contains(e.target)) {
+            const container = document.getElementById('stateSelectContainer');
+            if (!container) {
+                document.removeEventListener('click', closeDropdown);
+                return;
+            }
+            if (!container.contains(e.target)) {
                 dropdown.classList.remove('active');
                 display.classList.remove('active');
                 document.removeEventListener('click', closeDropdown);
