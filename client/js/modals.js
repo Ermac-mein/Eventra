@@ -828,113 +828,106 @@ function showEditEventModal(event) {
     const modalHTML = `
         <link rel="stylesheet" href="../../public/css/time-picker.css">
         <div id="editEventModal" class="modal-backdrop active" role="dialog" aria-modal="true" aria-hidden="false">
-            <div class="modal-content modal-content-animate" style="max-width: 900px; padding: 0; border-radius: 24px; overflow: hidden; border: none; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);">
-                <div class="modal-header" style="background: #722f37; padding: 2rem; border: none; display: flex; justify-content: space-between; align-items: center;">
-                    <div style="display: flex; align-items: center; gap: 1rem;">
-                        <div style="background: rgba(255,255,255,0.2); width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem;">✏️</div>
-                        <div>
-                            <h2 style="color: white; margin: 0; font-size: 1.5rem; font-weight: 800; letter-spacing: -0.5px;">Edit Event</h2>
-                            <p style="color: rgba(255,255,255,0.7); margin: 4px 0 0 0; font-size: 0.9rem; font-weight: 500;">Update your event details and tickets</p>
-                        </div>
-                    </div>
-                    <button class="modal-close" onclick="closeEditEventModal()" style="background: rgba(255,255,255,0.1); color: white; border: none; width: 40px; height: 40px; border-radius: 12px; font-size: 1.5rem; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.3s;">×</button>
+            <div class="modal-content modal-content-animate" style="max-width: 950px; padding: 0; border-radius: 20px; overflow: hidden; border: none; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); background: white;">
+                <div class="modal-header" style="background: white; padding: 1.5rem 2.5rem; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center;">
+                    <h2 style="color: #0f172a; margin: 0; font-size: 1.5rem; font-weight: 800; letter-spacing: -0.5px;">Edit Event</h2>
+                    <button class="modal-close" onclick="closeEditEventModal()" style="background: #f8fafc; color: #64748b; border: none; width: 36px; height: 36px; border-radius: 50%; font-size: 1.25rem; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s;">×</button>
                 </div>
                 
-                <div class="modal-body" style="padding: 0; max-height: 80vh; overflow-y: auto; background: #f8fafc;">
+                <div class="modal-body" style="padding: 0; max-height: 82vh; overflow-y: auto; scrollbar-width: thin;">
                     <form id="editEventForm" enctype="multipart/form-data">
                         <input type="hidden" name="event_id" value="${event.id}">
                         
-                        <div style="display: grid; grid-template-columns: 1fr 1.2fr; gap: 0;">
-                            <!-- Left Column: Visuals & Location -->
-                            <div style="padding: 2.5rem; background: white; border-right: 1px solid #e2e8f0;">
+                        <div style="display: grid; grid-template-columns: 1fr 1.3fr; gap: 0;">
+                            <!-- Left Column: Visuals -->
+                            <div style="padding: 2.5rem; background: #fafafa; border-right: 1px solid #f1f5f9;">
                                 <div style="margin-bottom: 2.5rem;">
-                                    <label style="display: block; font-size: 0.75rem; font-weight: 800; color: #722f37; margin-bottom: 1rem; text-transform: uppercase; letter-spacing: 1px;">Event Cover Image</label>
-                                    <div style="position: relative; border-radius: 20px; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.1); group: hover;">
+                                    <label style="display: block; font-size: 0.75rem; font-weight: 800; color: #1e293b; margin-bottom: 1rem; text-transform: uppercase; letter-spacing: 1px;">Event Cover Image</label>
+                                    <div style="position: relative; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.05);">
                                         <img id="editEventImagePreview" 
                                              src="${event.image_path ? getImageUrl(event.image_path) : 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=800&auto=format&fit=crop'}" 
-                                             style="width: 100%; height: 280px; object-fit: cover; display: block; transition: transform 0.5s;">
+                                             style="width: 100%; height: 320px; object-fit: cover; display: block; transition: transform 0.5s;">
                                         <label for="editEventImageInput" style="position: absolute; inset: 0; background: rgba(0,0,0,0.4); display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 0; transition: all 0.3s; cursor: pointer; color: white;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0'">
                                             <span style="font-size: 2rem; margin-bottom: 0.5rem;">📷</span>
-                                            <span style="font-weight: 700; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px;">Change Photo</span>
+                                            <span style="font-weight: 700; font-size: 0.9rem; text-transform: uppercase;">Change Photo</span>
                                         </label>
                                         <input type="file" id="editEventImageInput" name="event_image" accept="image/*" style="display: none;" onchange="previewEditEventImage(event)">
                                     </div>
-                                    <p style="margin-top: 1rem; font-size: 0.75rem; color: #64748b; text-align: center; font-style: italic;">Recommended: 1200x630px or 16:9 ratio</p>
                                 </div>
 
-                                <div style="display: grid; gap: 1.5rem;">
-                                    <div class="form-group">
-                                        <label style="display: block; font-size: 0.75rem; font-weight: 800; color: #722f37; margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;">📍 Venue & State <span style="color: #ef4444">*</span></label>
-                                        <div id="editStateSelectContainer" class="state-select-container" style="margin-bottom: 1rem;">
-                                            <div class="state-select-display" id="editStateSelectDisplay" onclick="toggleEditStateSelect()" style="padding: 1rem 1.25rem; border: 2px solid #e5e7eb; border-radius: 12px; font-weight: 600; cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
-                                                <span id="editSelectedStatesText" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 80%;">${event.state ? event.state.split(',').join(', ') : 'Select State(s)'}</span>
-                                                <span style="font-size: 0.8rem; opacity: 0.5;">▼</span>
-                                            </div>
-                                            <div id="editStateSelectDropdown" class="state-select-dropdown" style="max-height: 250px; overflow-y: auto;">
-                                                <div style="display: grid; gap: 4px;">
-                                                    ${getNigerianStates(true).map(state => `
-                                                        <label class="state-option-label" style="display: flex; align-items: center; gap: 12px; padding: 10px 15px; cursor: pointer; transition: 0.2s;">
-                                                            <input type="checkbox" class="edit-state-checkbox state-checkbox-custom" value="${state}" onchange="updateEditSelectedStates()" ${event.state && event.state.split(',').includes(state) ? 'checked' : ''}>
-                                                            <span class="state-option-text" style="font-weight: 500;">${state}</span>
-                                                        </label>
-                                                    `).join('')}
-                                                </div>
-                                            </div>
-                                            <input type="hidden" name="state" id="editEventStateInput" value="${event.state || ''}" required>
+                                <div class="form-group" style="margin-bottom: 2rem;">
+                                    <label style="display: block; font-size: 0.75rem; font-weight: 800; color: #1e293b; margin-bottom: 1rem; text-transform: uppercase; letter-spacing: 1px;">📍 Venue & State <span style="color: #ef4444">*</span></label>
+                                    <div id="editStateSelectContainer" class="state-select-container" style="margin-bottom: 1rem;">
+                                        <div class="state-select-display" id="editStateSelectDisplay" onclick="toggleEditStateSelect()" style="padding: 1rem 1.25rem; border: 1px solid #e2e8f0; border-radius: 12px; font-weight: 600; cursor: pointer; display: flex; justify-content: space-between; align-items: center; background: white;">
+                                            <span id="editSelectedStatesText" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 80%;">${event.state ? event.state.split(',').join(', ') : 'Select State(s)'}</span>
+                                            <span style="font-size: 0.8rem; opacity: 0.5;">▼</span>
                                         </div>
-                                        <textarea name="address" rows="3" placeholder="Full venue address..." required style="width: 100%; padding: 1rem 1.25rem; border: 2px solid #e5e7eb; border-radius: 12px; font-size: 1rem; resize: none; transition: all 0.3s; background: #fcfcfc;">${escapeHTML(event.address)}</textarea>
+                                        <div id="editStateSelectDropdown" class="state-select-dropdown" style="max-height: 250px; overflow-y: auto;">
+                                            <div style="display: grid; gap: 4px;">
+                                                ${getNigerianStates(true).map(state => `
+                                                    <label class="state-option-label" style="display: flex; align-items: center; gap: 12px; padding: 10px 15px; cursor: pointer; transition: 0.2s;">
+                                                        <input type="checkbox" class="edit-state-checkbox state-checkbox-custom" value="${state}" onchange="updateEditSelectedStates()" ${event.state && event.state.split(',').includes(state) ? 'checked' : ''}>
+                                                        <span class="state-option-text" style="font-weight: 500;">${state}</span>
+                                                    </label>
+                                                `).join('')}
+                                            </div>
+                                        </div>
+                                        <input type="hidden" name="state" id="editEventStateInput" value="${event.state || ''}" required>
                                     </div>
+                                    <textarea name="address" rows="3" placeholder="Full venue address..." required style="width: 100%; padding: 1rem 1.25rem; border: 1px solid #e2e8f0; border-radius: 12px; font-size: 0.95rem; resize: none; transition: all 0.3s; background: white;">${escapeHTML(event.address)}</textarea>
+                                </div>
 
-                                    <div style="background: rgba(114, 47, 55, 0.03); padding: 1.5rem; border-radius: 16px; border: 1px dashed #722f37;">
-                                        <h4 style="margin: 0 0 1rem 0; font-size: 0.75rem; font-weight: 800; color: #722f37; text-transform: uppercase; letter-spacing: 1px;">📞 Contact Information</h4>
-                                        <div style="display: grid; gap: 1rem;">
-                                            <input type="tel" name="phone_contact_1" value="${event.phone_contact_1}" placeholder="Primary Phone Number" required style="width: 100%; padding: 0.875rem 1.25rem; border: 1px solid #e2e8f0; border-radius: 10px; font-size: 0.95rem; font-weight: 600;">
-                                            <input type="tel" name="phone_contact_2" value="${event.phone_contact_2 || ''}" placeholder="Secondary (Optional)" style="width: 100%; padding: 0.875rem 1.25rem; border: 1px solid #e2e8f0; border-radius: 10px; font-size: 0.95rem; font-weight: 600;">
-                                        </div>
+                                <div style="background: #f8fafc; padding: 1.5rem; border-radius: 16px; border: 1px solid #e2e8f0;">
+                                    <h4 style="margin: 0 0 1rem 0; font-size: 0.7rem; font-weight: 800; color: #64748b; text-transform: uppercase; letter-spacing: 1px;">📞 Contact Information</h4>
+                                    <div style="display: grid; gap: 1rem;">
+                                        <input type="tel" name="phone_contact_1" value="${event.phone_contact_1}" placeholder="Primary Phone Number" required style="width: 100%; padding: 0.875rem 1.25rem; border: 1px solid #e2e8f0; border-radius: 10px; font-size: 0.95rem; font-weight: 600;">
+                                        <input type="tel" name="phone_contact_2" value="${event.phone_contact_2 || ''}" placeholder="Secondary (Optional)" style="width: 100%; padding: 0.875rem 1.25rem; border: 1px solid #e2e8f0; border-radius: 10px; font-size: 0.95rem; font-weight: 600;">
                                     </div>
                                 </div>
                             </div>
 
-                            <!-- Right Column: Details & Pricing -->
+                            <!-- Right Column: Details -->
                             <div style="padding: 2.5rem;">
-                                <div style="display: grid; gap: 1.5rem;">
+                                <div style="display: grid; gap: 1.75rem;">
                                     <div class="form-group">
-                                        <label style="display: block; font-size: 0.75rem; font-weight: 800; color: #722f37; margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;">Event Identity <span style="color: #ef4444">*</span></label>
-                                        <input type="text" name="event_name" value="${escapeHTML(event.event_name)}" placeholder="Stunning Event Title" required style="width: 100%; padding: 1rem 1.25rem; border: 2px solid #e5e7eb; border-radius: 12px; font-size: 1.1rem; font-weight: 700; color: #1e293b;">
+                                        <label style="display: block; font-size: 0.75rem; font-weight: 800; color: #1e293b; margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;">Event Name <span style="color: #ef4444">*</span></label>
+                                        <input type="text" name="event_name" value="${escapeHTML(event.event_name)}" placeholder="Event Name" required style="width: 100%; padding: 1rem 1.25rem; border: 1px solid #e2e8f0; border-radius: 12px; font-size: 1rem; font-weight: 600; color: #0f172a;">
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label style="display: block; font-size: 0.75rem; font-weight: 800; color: #1e293b; margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;">Event Type/Category <span style="color: #ef4444">*</span></label>
+                                        <select name="event_type" required style="width: 100%; padding: 1rem 1.25rem; border: 1px solid #e2e8f0; border-radius: 12px; font-size: 1rem; font-weight: 600; background: white; cursor: pointer;">
+                                            <option value="Conference" ${event.event_type === 'Conference' ? 'selected' : ''}>Conference</option>
+                                            <option value="Workshop" ${event.event_type === 'Workshop' ? 'selected' : ''}>Workshop</option>
+                                            <option value="Entertainment" ${event.event_type === 'Entertainment' ? 'selected' : ''}>Entertainment</option>
+                                            <option value="Sports" ${event.event_type === 'Sports' ? 'selected' : ''}>Sports</option>
+                                            <option value="Exhibition" ${event.event_type === 'Exhibition' ? 'selected' : ''}>Exhibition</option>
+                                            <option value="Concert" ${event.event_type === 'Concert' ? 'selected' : ''}>Concert</option>
+                                            <option value="Social" ${event.event_type === 'Social' ? 'selected' : ''}>Social</option>
+                                            <option value="Other" ${event.event_type === 'Other' ? 'selected' : ''}>Other</option>
+                                        </select>
+                                    </div>
+
+                                    <!-- SYSTEM RANKING Section -->
+                                    <div class="form-group" style="background: #f0f9ff; padding: 1.5rem; border-radius: 16px; border: 1px solid #e0f2fe;">
+                                        <label style="display: block; font-size: 0.75rem; font-weight: 800; color: #0369a1; margin-bottom: 1rem; text-transform: uppercase; letter-spacing: 0.5px;">System Ranking</label>
+                                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 0.75rem;">
+                                            <div style="background: #0ea5e9; color: white; padding: 0.5rem 1rem; border-radius: 8px; font-size: 0.75rem; font-weight: 800; display: flex; align-items: center; gap: 6px;">
+                                                <span style="font-size: 1rem;">🕒</span> UPCOMING
+                                            </div>
+                                        </div>
+                                        <p style="margin: 0; font-size: 0.8rem; color: #0369a1; font-weight: 500; line-height: 1.5;">* Ranking is automatically assigned based on merit score and fresh proximity.</p>
                                     </div>
 
                                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem;">
                                         <div class="form-group">
-                                            <label style="display: block; font-size: 0.75rem; font-weight: 800; color: #722f37; margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;">Category</label>
-                                            <select name="event_type" style="width: 100%; padding: 1rem 1.25rem; border: 2px solid #e5e7eb; border-radius: 12px; font-size: 1rem; font-weight: 600; background: white; cursor: pointer;">
-                                                <option value="Conference" ${event.event_type === 'Conference' ? 'selected' : ''}>Conference</option>
-                                                <option value="Workshop" ${event.event_type === 'Workshop' ? 'selected' : ''}>Workshop</option>
-                                                <option value="Entertainment" ${event.event_type === 'Entertainment' ? 'selected' : ''}>Entertainment</option>
-                                                <option value="Sports" ${event.event_type === 'Sports' ? 'selected' : ''}>Sports</option>
-                                                <option value="Exhibition" ${event.event_type === 'Exhibition' ? 'selected' : ''}>Exhibition</option>
-                                                <option value="Concert" ${event.event_type === 'Concert' ? 'selected' : ''}>Concert</option>
-                                                <option value="Social" ${event.event_type === 'Social' ? 'selected' : ''}>Social</option>
-                                                <option value="Other" ${event.event_type === 'Other' ? 'selected' : ''}>Other</option>
-                                            </select>
+                                            <label style="display: block; font-size: 0.75rem; font-weight: 800; color: #1e293b; margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;">Event Date <span style="color: #ef4444">*</span></label>
+                                            <input type="date" name="event_date" value="${event.event_date}" required style="width: 100%; padding: 1rem 1.25rem; border: 1px solid #e2e8f0; border-radius: 12px; font-size: 1rem; font-weight: 600;">
                                         </div>
                                         <div class="form-group">
-                                            <label style="display: block; font-size: 0.75rem; font-weight: 800; color: #722f37; margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;">Visibility</label>
-                                            <select name="event_visibility" style="width: 100%; padding: 1rem 1.25rem; border: 2px solid #e5e7eb; border-radius: 12px; font-size: 1rem; font-weight: 600; background: white; cursor: pointer;">
-                                                <option value="public" ${event.event_visibility === 'public' ? 'selected' : ''}>🌐 Public</option>
-                                                <option value="private" ${event.event_visibility === 'private' ? 'selected' : ''}>🔒 Private</option>
-                                            </select>
-                                        </div>
-                                    </div>
-
-                                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem;">
-                                        <div class="form-group">
-                                            <label style="display: block; font-size: 0.75rem; font-weight: 800; color: #722f37; margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;">Event Date <span style="color: #ef4444">*</span></label>
-                                            <input type="date" name="event_date" value="${event.event_date}" required style="width: 100%; padding: 1rem 1.25rem; border: 2px solid #e5e7eb; border-radius: 12px; font-size: 1rem; font-weight: 600;">
-                                        </div>
-                                        <div class="form-group">
-                                            <label style="display: block; font-size: 0.75rem; font-weight: 800; color: #722f37; margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;">Event Time <span style="color: #ef4444">*</span></label>
+                                            <label style="display: block; font-size: 0.75rem; font-weight: 800; color: #1e293b; margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;">Event Time <span style="color: #ef4444">*</span></label>
                                             <div id="editEventTimePickerContainer" class="time-picker-container">
-                                                <div class="time-picker-display" onclick="toggleTimePicker('editEventTimePickerDropdown')" style="padding: 1rem 1.25rem; border: 2px solid #e5e7eb; border-radius: 12px; font-weight: 600; cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
+                                                <div class="time-picker-display" onclick="toggleTimePicker('editEventTimePickerDropdown')" style="padding: 1rem 1.25rem; border: 1px solid #e2e8f0; border-radius: 12px; font-weight: 600; cursor: pointer; display: flex; justify-content: space-between; align-items: center; background: white;">
                                                     <span id="editEventTimeDisplay">${event.event_time ? event.event_time.substring(0, 5) : 'Select Time'}</span>
                                                     <span style="font-size: 0.8rem; opacity: 0.5;">🕒</span>
                                                 </div>
@@ -964,69 +957,69 @@ function showEditEventModal(event) {
                                     </div>
 
                                     <!-- Pricing Section -->
-                                    <div style="background: white; padding: 2rem; border-radius: 20px; border: 2px solid #f1f5f9; box-shadow: 0 4px 15px rgba(0,0,0,0.02);">
+                                    <div style="background: #f8fafc; padding: 1.5rem; border-radius: 20px; border: 1px solid #e2e8f0;">
                                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-                                            <h3 style="margin: 0; font-size: 0.9rem; font-weight: 800; color: #1e293b; text-transform: uppercase; letter-spacing: 1px;">💰 Ticket Configuration</h3>
-                                            <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; padding: 0.5rem 1rem; background: #f8fafc; border-radius: 10px; font-weight: 700; font-size: 0.85rem; color: #722f37; border: 1px solid #e2e8f0;">
+                                            <h3 style="margin: 0; font-size: 0.8rem; font-weight: 800; color: #1e293b; text-transform: uppercase; letter-spacing: 1px;">💰 Tickets</h3>
+                                            <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; padding: 0.5rem 1rem; background: white; border-radius: 10px; font-weight: 700; font-size: 0.8rem; color: #64748b; border: 1px solid #e2e8f0;">
                                                 <input type="checkbox" id="editFreeEventCheckbox" name="is_free" value="1" ${parseFloat(event.price) === 0 ? 'checked' : ''} class="state-checkbox-custom"> FREE
                                             </label>
                                         </div>
 
                                         <div id="editTicketTypeConfigSection" style="${parseFloat(event.price) === 0 ? 'display: none;' : ''}">
-                                            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem; margin-bottom: 2rem;">
-                                                <label class="edit-ticket-type-label" style="display: flex; flex-direction: column; align-items: center; gap: 0.5rem; cursor: pointer; padding: 1rem 0.5rem; border: 2px solid #e5e7eb; border-radius: 12px; transition: all 0.2s;">
-                                                    <input type="radio" name="ticket_type_mode" value="regular" ${event.ticket_type_mode === 'regular' ? 'checked' : ''} class="edit-ticket-type-radio" style="accent-color: #722f37;">
-                                                    <span style="font-weight: 700; font-size: 0.75rem; text-transform: uppercase;">Regular</span>
+                                            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem; margin-bottom: 1.5rem;">
+                                                <label class="edit-ticket-type-label" style="display: flex; flex-direction: column; align-items: center; gap: 0.4rem; cursor: pointer; padding: 0.8rem 0.2rem; border: 1px solid #e2e8f0; border-radius: 10px; transition: all 0.2s;">
+                                                    <input type="radio" name="ticket_type_mode" value="regular" ${event.ticket_type_mode === 'regular' ? 'checked' : ''} class="edit-ticket-type-radio" style="accent-color: #0f172a;">
+                                                    <span style="font-weight: 700; font-size: 0.7rem; text-transform: uppercase;">Regular</span>
                                                 </label>
-                                                <label class="edit-ticket-type-label" style="display: flex; flex-direction: column; align-items: center; gap: 0.5rem; cursor: pointer; padding: 1rem 0.5rem; border: 2px solid #e5e7eb; border-radius: 12px; transition: all 0.2s;">
-                                                    <input type="radio" name="ticket_type_mode" value="vip" ${event.ticket_type_mode === 'vip' ? 'checked' : ''} class="edit-ticket-type-radio" style="accent-color: #722f37;">
-                                                    <span style="font-weight: 700; font-size: 0.75rem; text-transform: uppercase;">VIP</span>
+                                                <label class="edit-ticket-type-label" style="display: flex; flex-direction: column; align-items: center; gap: 0.4rem; cursor: pointer; padding: 0.8rem 0.2rem; border: 1px solid #e2e8f0; border-radius: 10px; transition: all 0.2s;">
+                                                    <input type="radio" name="ticket_type_mode" value="vip" ${event.ticket_type_mode === 'vip' ? 'checked' : ''} class="edit-ticket-type-radio" style="accent-color: #0f172a;">
+                                                    <span style="font-weight: 700; font-size: 0.7rem; text-transform: uppercase;">VIP</span>
                                                 </label>
-                                                <label class="edit-ticket-type-label" style="display: flex; flex-direction: column; align-items: center; gap: 0.5rem; cursor: pointer; padding: 1rem 0.5rem; border: 2px solid #e5e7eb; border-radius: 12px; transition: all 0.2s;">
-                                                    <input type="radio" name="ticket_type_mode" value="premium" ${event.ticket_type_mode === 'premium' ? 'checked' : ''} class="edit-ticket-type-radio" style="accent-color: #722f37;">
-                                                    <span style="font-weight: 700; font-size: 0.75rem; text-transform: uppercase;">Premium</span>
+                                                <label class="edit-ticket-type-label" style="display: flex; flex-direction: column; align-items: center; gap: 0.4rem; cursor: pointer; padding: 0.8rem 0.2rem; border: 1px solid #e2e8f0; border-radius: 10px; transition: all 0.2s;">
+                                                    <input type="radio" name="ticket_type_mode" value="premium" ${event.ticket_type_mode === 'premium' ? 'checked' : ''} class="edit-ticket-type-radio" style="accent-color: #0f172a;">
+                                                    <span style="font-weight: 700; font-size: 0.7rem; text-transform: uppercase;">Premium</span>
                                                 </label>
-                                                <label class="edit-ticket-type-label" style="display: flex; flex-direction: column; align-items: center; gap: 0.5rem; cursor: pointer; padding: 1rem 0.5rem; border: 2px solid #e5e7eb; border-radius: 12px; transition: all 0.2s;">
-                                                    <input type="radio" name="ticket_type_mode" value="all" ${(!event.ticket_type_mode || event.ticket_type_mode === 'all') ? 'checked' : ''} class="edit-ticket-type-radio" style="accent-color: #722f37;">
-                                                    <span style="font-weight: 700; font-size: 0.75rem; text-transform: uppercase;">All</span>
+                                                <label class="edit-ticket-type-label" style="display: flex; flex-direction: column; align-items: center; gap: 0.4rem; cursor: pointer; padding: 0.8rem 0.2rem; border: 1px solid #e2e8f0; border-radius: 10px; transition: all 0.2s;">
+                                                    <input type="radio" name="ticket_type_mode" value="all" ${(!event.ticket_type_mode || event.ticket_type_mode === 'all') ? 'checked' : ''} class="edit-ticket-type-radio" style="accent-color: #0f172a;">
+                                                    <span style="font-weight: 700; font-size: 0.7rem; text-transform: uppercase;">All</span>
                                                 </label>
                                             </div>
 
                                             <div id="editRegularConfig" class="edit-ticket-price-section" style="display: none;">
-                                                <div style="display: grid; grid-template-columns: 1.5fr 1fr; gap: 1rem;">
+                                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
                                                     <div class="form-group">
                                                         <label style="display: block; font-size: 0.7rem; font-weight: 800; color: #64748b; margin-bottom: 0.5rem; text-transform: uppercase;">Price (₦)</label>
-                                                        <input type="number" name="regular_price" id="editRegularPriceInput" value="${event.regular_price || 0}" min="0" step="0.01" style="width: 100%; padding: 0.875rem 1.25rem; border: 2px solid #e2e8f0; border-radius: 12px; font-weight: 700;">
+                                                        <input type="number" name="regular_price" id="editRegularPriceInput" value="${event.regular_price || 0}" min="0" step="0.01" style="width: 100%; padding: 0.75rem 1rem; border: 1px solid #e2e8f0; border-radius: 10px; font-weight: 700; background: white;">
                                                     </div>
                                                     <div class="form-group">
                                                         <label style="display: block; font-size: 0.7rem; font-weight: 800; color: #64748b; margin-bottom: 0.5rem; text-transform: uppercase;">Qty</label>
-                                                        <input type="number" name="regular_quantity" value="${event.regular_quantity || ''}" placeholder="∞" min="1" style="width: 100%; padding: 0.875rem 1.25rem; border: 2px solid #e2e8f0; border-radius: 12px; font-weight: 700;">
+                                                        <input type="number" name="regular_quantity" value="${event.regular_quantity || ''}" placeholder="∞" min="1" style="width: 100%; padding: 0.75rem 1rem; border: 1px solid #e2e8f0; border-radius: 10px; font-weight: 700; background: white;">
                                                     </div>
                                                 </div>
                                             </div>
 
                                             <div id="editVipConfig" class="edit-ticket-price-section" style="display: none;">
-                                                <div style="display: grid; grid-template-columns: 1.5fr 1fr; gap: 1rem;">
+                                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
                                                     <div class="form-group">
                                                         <label style="display: block; font-size: 0.7rem; font-weight: 800; color: #64748b; margin-bottom: 0.5rem; text-transform: uppercase;">Price (₦)</label>
-                                                        <input type="number" name="vip_price" id="editVipPriceInput" value="${event.vip_price || 0}" min="0" step="0.01" style="width: 100%; padding: 0.875rem 1.25rem; border: 2px solid #e2e8f0; border-radius: 12px; font-weight: 700;">
+                                                        <input type="number" name="vip_price" id="editVipPriceInput" value="${event.vip_price || 0}" min="0" step="0.01" style="width: 100%; padding: 0.75rem 1rem; border: 1px solid #e2e8f0; border-radius: 10px; font-weight: 700; background: white;">
                                                     </div>
                                                     <div class="form-group">
                                                         <label style="display: block; font-size: 0.7rem; font-weight: 800; color: #64748b; margin-bottom: 0.5rem; text-transform: uppercase;">Qty</label>
-                                                        <input type="number" name="vip_quantity" value="${event.vip_quantity || ''}" placeholder="∞" min="1" style="width: 100%; padding: 0.875rem 1.25rem; border: 2px solid #e2e8f0; border-radius: 12px; font-weight: 700;">
+                                                        <input type="number" name="vip_quantity" value="${event.vip_quantity || ''}" placeholder="∞" min="1" style="width: 100%; padding: 0.75rem 1rem; border: 1px solid #e2e8f0; border-radius: 10px; font-weight: 700; background: white;">
                                                     </div>
                                                 </div>
                                             </div>
 
                                             <div id="editPremiumConfig" class="edit-ticket-price-section" style="display: none;">
-                                                <div style="display: grid; grid-template-columns: 1.5fr 1fr; gap: 1rem;">
+                                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
                                                     <div class="form-group">
                                                         <label style="display: block; font-size: 0.7rem; font-weight: 800; color: #64748b; margin-bottom: 0.5rem; text-transform: uppercase;">Price (₦)</label>
-                                                        <input type="number" name="premium_price" id="editPremiumPriceInput" value="${event.premium_price || 0}" min="0" step="0.01" style="width: 100%; padding: 0.875rem 1.25rem; border: 2px solid #e2e8f0; border-radius: 12px; font-weight: 700;">
+                                                        <input type="number" name="premium_price" id="editPremiumPriceInput" value="${event.premium_price || 0}" min="0" step="0.01" style="width: 100%; padding: 0.75rem 1rem; border: 1px solid #e2e8f0; border-radius: 10px; font-weight: 700; background: white;">
                                                     </div>
                                                     <div class="form-group">
                                                         <label style="display: block; font-size: 0.7rem; font-weight: 800; color: #64748b; margin-bottom: 0.5rem; text-transform: uppercase;">Qty</label>
-                                                        <input type="number" name="premium_quantity" value="${event.premium_quantity || ''}" placeholder="∞" min="1" style="width: 100%; padding: 0.875rem 1.25rem; border: 2px solid #e2e8f0; border-radius: 12px; font-weight: 700;">
+                                                        <input type="number" name="premium_quantity" value="${event.premium_quantity || ''}" placeholder="∞" min="1" style="width: 100%; padding: 0.75rem 1rem; border: 1px solid #e2e8f0; border-radius: 10px; font-weight: 700; background: white;">
                                                     </div>
                                                 </div>
                                             </div>
@@ -1035,11 +1028,11 @@ function showEditEventModal(event) {
                                                 <div style="display: grid; grid-template-columns: 1.5fr 1fr; gap: 1rem;">
                                                     <div class="form-group">
                                                         <label style="display: block; font-size: 0.7rem; font-weight: 800; color: #64748b; margin-bottom: 0.5rem; text-transform: uppercase;">Universal Price (₦)</label>
-                                                        <input type="number" name="price" id="editAllPriceInput" value="${event.price || 0}" min="0" step="0.01" style="width: 100%; padding: 0.875rem 1.25rem; border: 2px solid #722f37; border-radius: 12px; background: rgba(114, 47, 55, 0.05); font-weight: 800; color: #722f37;">
+                                                        <input type="number" name="price" id="editAllPriceInput" value="${event.price || 0}" min="0" step="0.01" style="width: 100%; padding: 0.75rem 1rem; border: 1px solid #0f172a; border-radius: 10px; background: white; font-weight: 800; color: #0f172a;">
                                                     </div>
                                                     <div class="form-group">
                                                         <label style="display: block; font-size: 0.7rem; font-weight: 800; color: #64748b; margin-bottom: 0.5rem; text-transform: uppercase;">Total Capacity</label>
-                                                        <input type="number" name="total_tickets" value="${event.total_tickets || ''}" placeholder="∞" min="1" style="width: 100%; padding: 0.875rem 1.25rem; border: 2px solid #e2e8f0; border-radius: 12px; font-weight: 700;">
+                                                        <input type="number" name="total_tickets" value="${event.total_tickets || ''}" placeholder="∞" min="1" style="width: 100%; padding: 0.75rem 1rem; border: 1px solid #e2e8f0; border-radius: 10px; font-weight: 700; background: white;">
                                                     </div>
                                                 </div>
                                             </div>
@@ -1047,21 +1040,21 @@ function showEditEventModal(event) {
                                     </div>
 
                                     <div class="form-group">
-                                        <label style="display: block; font-size: 0.75rem; font-weight: 800; color: #722f37; margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;">About the Event <span style="color: #ef4444">*</span></label>
-                                        <textarea name="description" rows="5" placeholder="Share what makes this event special..." required style="width: 100%; padding: 1.25rem; border: 2px solid #e5e7eb; border-radius: 16px; font-size: 1rem; line-height: 1.6; transition: all 0.3s; background: white;">${event.description}</textarea>
+                                        <label style="display: block; font-size: 0.75rem; font-weight: 800; color: #1e293b; margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;">About the Event <span style="color: #ef4444">*</span></label>
+                                        <textarea name="description" rows="5" placeholder="Share what makes this event special..." required style="width: 100%; padding: 1.25rem; border: 1px solid #e2e8f0; border-radius: 16px; font-size: 0.95rem; line-height: 1.6; transition: all 0.3s; background: white;">${event.description}</textarea>
                                     </div>
 
                                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem;">
                                         <div class="form-group">
-                                            <label style="display: block; font-size: 0.75rem; font-weight: 800; color: #722f37; margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;">Status</label>
-                                            <select name="status" id="editEventStatusSelect" style="width: 100%; padding: 1rem 1.25rem; border: 2px solid #e5e7eb; border-radius: 12px; font-size: 1rem; font-weight: 600; background: white;">
+                                            <label style="display: block; font-size: 0.75rem; font-weight: 800; color: #1e293b; margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;">Status</label>
+                                            <select name="status" id="editEventStatusSelect" style="width: 100%; padding: 1rem 1.25rem; border: 1px solid #e2e8f0; border-radius: 12px; font-size: 1rem; font-weight: 600; background: white;">
                                                 <option value="draft" ${event.status === 'draft' ? 'selected' : ''}>Draft</option>
                                                 <option value="scheduled" ${event.status === 'scheduled' ? 'selected' : ''}>Scheduled</option>
                                             </select>
                                         </div>
                                         <div class="form-group" id="editScheduledTimeGroup" style="display: ${event.status === 'scheduled' ? 'block' : 'none'};">
-                                            <label style="display: block; font-size: 0.75rem; font-weight: 800; color: #722f37; margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;">Publish At</label>
-                                            <input type="datetime-local" name="scheduled_publish_time" value="${event.scheduled_publish_time ? event.scheduled_publish_time.slice(0, 16) : ''}" style="width: 100%; padding: 1rem 1.25rem; border: 2px solid #fbbf24; border-radius: 12px; background: #fffbeb; font-weight: 600;">
+                                            <label style="display: block; font-size: 0.75rem; font-weight: 800; color: #1e293b; margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;">Publish At</label>
+                                            <input type="datetime-local" name="scheduled_publish_time" value="${event.scheduled_publish_time ? event.scheduled_publish_time.slice(0, 16) : ''}" style="width: 100%; padding: 1rem 1.25rem; border: 1px solid #fbbf24; border-radius: 12px; background: #fffbeb; font-weight: 600;">
                                         </div>
                                     </div>
                                 </div>
@@ -1069,12 +1062,12 @@ function showEditEventModal(event) {
                         </div>
 
                         <!-- Footer Actions -->
-                        <div style="padding: 2rem 2.5rem; background: white; border-top: 1px solid #e2e8f0; display: flex; gap: 1.5rem; position: sticky; bottom: 0; z-index: 10;">
-                            <button type="submit" class="btn btn-primary" style="flex: 2; padding: 1.25rem; font-size: 1.1rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; background: #722f37; border: none; border-radius: 16px; color: white; cursor: pointer; box-shadow: 0 10px 25px rgba(114, 47, 55, 0.3); transition: all 0.3s;">
-                                Save Changes
-                            </button>
-                            <button type="button" class="btn btn-secondary" onclick="closeEditEventModal()" style="flex: 1; padding: 1.25rem; font-size: 1.1rem; font-weight: 700; background: white; border: 2px solid #e2e8f0; border-radius: 16px; color: #64748b; cursor: pointer; transition: all 0.3s;">
+                        <div style="padding: 1.5rem 2.5rem; background: #f8fafc; border-top: 1px solid #f1f5f9; display: flex; justify-content: flex-end; gap: 1rem; position: sticky; bottom: 0; z-index: 10;">
+                            <button type="button" class="btn btn-secondary" onclick="closeEditEventModal()" style="padding: 0.875rem 2rem; font-size: 0.95rem; font-weight: 700; background: white; border: 1px solid #e2e8f0; border-radius: 12px; color: #64748b; cursor: pointer; transition: all 0.2s;">
                                 Cancel
+                            </button>
+                            <button type="submit" class="btn btn-primary" style="padding: 0.875rem 2.5rem; font-size: 0.95rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; background: #0f172a; border: none; border-radius: 12px; color: white; cursor: pointer; box-shadow: 0 10px 15px -3px rgba(15, 23, 42, 0.3); transition: all 0.2s;">
+                                Save Changes
                             </button>
                         </div>
                     </form>
@@ -1144,11 +1137,11 @@ function showEditEventModal(event) {
         document.querySelectorAll('.edit-ticket-type-label').forEach(label => {
             const input = label.querySelector('input');
             if (input.checked) {
-                label.style.borderColor = '#2563eb';
-                label.style.background = '#eff6ff';
+                label.style.borderColor = '#0f172a';
+                label.style.background = '#f1f5f9';
             } else {
-                label.style.borderColor = '#e5e7eb';
-                label.style.background = 'transparent';
+                label.style.borderColor = '#e2e8f0';
+                label.style.background = 'white';
             }
         });
         
@@ -1191,6 +1184,17 @@ function showEditEventModal(event) {
 
     // Initial update
     updateEditTicketTypeSections();
+
+    // Add status change handler (Edit Modal)
+    const statusSelect = document.getElementById('editEventStatusSelect');
+    if (statusSelect) {
+        statusSelect.addEventListener('change', function(e) {
+            const scheduledGroup = document.getElementById('editScheduledTimeGroup');
+            if (scheduledGroup) {
+                scheduledGroup.style.display = e.target.value === 'scheduled' ? 'block' : 'none';
+            }
+        });
+    }
 
     // Initialize Time Picker highlights if time exists
     if (event.event_time) {
