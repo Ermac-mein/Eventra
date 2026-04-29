@@ -55,6 +55,13 @@ class NotificationManager {
             const result = await response.json();
 
             if (result.success) {
+                // Calculate server time offset
+                if (result.server_time) {
+                    const serverTime = new Date(result.server_time).getTime();
+                    const localTime = new Date().getTime();
+                    window.serverTimeOffset = serverTime - localTime;
+                }
+
                 this.updateNotificationBadge(result.unread_count || 0);
                 this.updateNotificationDrawer(result.notifications || []);
                 

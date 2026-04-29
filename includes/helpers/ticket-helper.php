@@ -127,7 +127,7 @@ function generateTicketQRCode(array $ticketData): string
 
         $fileName = 'qr_' . $ticketData['barcode'] . '.png';
 
-        $dir = __DIR__ . '/../../uploads/tickets/qrcodes/';
+        $dir = __DIR__ . '/../../public/assets/event_assets/qrcodes/';
         if (!is_dir($dir)) {
             mkdir($dir, 0755, true);
         }
@@ -235,7 +235,7 @@ function generateTicketPDF(array $ticketData): string
     $dompdf->render();
 
     $fileName = 'ticket_' . $ticketData['barcode'] . '.pdf';
-    $dir = __DIR__ . '/../../uploads/tickets/pdfs/';
+    $dir = __DIR__ . '/../../public/assets/event_assets/tickets/';
     if (!is_dir($dir)) {
         mkdir($dir, 0755, true);
     }

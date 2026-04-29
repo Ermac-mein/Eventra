@@ -112,7 +112,8 @@ try {
     echo json_encode([
         'success' => true,
         'notifications' => $notifications,
-        'unread_count' => $unread_count
+        'unread_count' => $unread_count,
+        'server_time' => date('c')
     ]);
 } catch (PDOException $e) {
     http_response_code(503);

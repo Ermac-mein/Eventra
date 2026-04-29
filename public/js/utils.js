@@ -6,14 +6,28 @@
  * @param {boolean} shortForm - Whether to use short forms (e.g., "hr" instead of "hour")
  * @returns {string} - Formatted time ago string
  */
+// Global variable to store server time offset
+window.serverTimeOffset = 0;
+
+/**
+ * Standardized Time Ago / Duration function
+ * @param {string|number|Date} date - The date to compare with now
+ * @param {boolean} shortForm - Whether to use short forms (e.g., "hr" instead of "hour")
+ * @returns {string} - Formatted time ago string
+ */
 function timeAgo(date, shortForm = false) {
     if (!date) return 'Just now';
     
     let timestamp;
     if (typeof date === 'string') {
-        // Ensure proper parsing cross-browser
+        // Handle ISO strings and MySQL datetime strings
         const validDateString = date.includes(' ') ? date.replace(' ', 'T') : date;
         timestamp = new Date(validDateString).getTime();
+        
+        // If parsing failed (e.g. invalid date or timezone issues), try adding Z if it looks like ISO but missing Z
+        if (isNaN(timestamp) && !validDateString.includes('Z')) {
+            timestamp = new Date(validDateString + 'Z').getTime();
+        }
     } else if (date instanceof Date) {
         timestamp = date.getTime();
     } else {
@@ -22,9 +36,16 @@ function timeAgo(date, shortForm = false) {
 
     if (isNaN(timestamp)) return 'Recently';
 
-    const now = new Date().getTime();
+    // Use server offset if available to ensure accurate relative time
+    const now = new Date().getTime() + (window.serverTimeOffset || 0);
     const diffMs = now - timestamp;
     const seconds = Math.floor(diffMs / 1000);
+
+    // Handle future dates (e.g. server clock slightly ahead or scheduled events)
+    if (seconds < 0) {
+        if (Math.abs(seconds) < 60) return 'Just now';
+        return 'Scheduled';
+    }
 
     if (seconds < 30) return 'Just now';
     if (seconds < 60) return `${seconds}s ago`;

@@ -43,7 +43,7 @@ try {
     }
 
     // Build file path
-    $pdfPath = __DIR__ . '/../../uploads/tickets/pdfs/ticket_' . $barcode . '.pdf';
+    $pdfPath = __DIR__ . '/../../public/assets/event_assets/tickets/ticket_' . $barcode . '.pdf';
 
     if (!file_exists($pdfPath)) {
         try {

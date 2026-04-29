@@ -423,11 +423,13 @@ class AuthController {
             // Check if there is a role mismatch in the pending redirect
             const isPendingAdmin = pending.includes('/admin/');
             const isPendingClient = pending.includes('/client/');
+            const isPendingPayment = pending.includes('checkout.html') || pending.includes('payment.html');
             const userRole = this.user ? this.user.role : 'user';
             
             const roleMismatch = (isPendingAdmin && userRole !== 'admin') || (isPendingClient && userRole !== 'client');
+            const forceDashboard = (userRole === 'client' && isPendingPayment);
             
-            if ((isWeakRedirect && targetIsDashboard) || roleMismatch) {
+            if ((isWeakRedirect && targetIsDashboard) || roleMismatch || forceDashboard) {
                 pending = null;
                 if (window.storage) window.storage.remove('redirect_after_login');
             }

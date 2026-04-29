@@ -148,7 +148,7 @@ try {
     // Handle image upload if provided using standardized path
     $image_path = $event['image_path']; // Keep existing image by default
     if (isset($_FILES['event_image']) && $_FILES['event_image']['error'] === UPLOAD_ERR_OK) {
-        $upload_dir = __DIR__ . "/../../uploads/events/";
+        $upload_dir = __DIR__ . "/../../public/assets/event_assets/";
 
         if (!is_dir($upload_dir)) {
             mkdir($upload_dir, 0755, true);
@@ -161,7 +161,7 @@ try {
         if (move_uploaded_file($_FILES['event_image']['tmp_name'], $upload_path)) {
             // Compress image
             $upload_path = compressEventImage($upload_path, $file_extension);
-            $image_path = "/uploads/events/" . basename($upload_path);
+            $image_path = "/public/assets/event_assets/" . basename($upload_path);
 
             // Delete old image if it exists
             if ($event['image_path']) {

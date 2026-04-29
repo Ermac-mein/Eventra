@@ -175,7 +175,10 @@ function updateEventsTable(events) {
                 <th style="cursor: pointer;" onclick="sortEvents('event_name')">Event Name ${getSortIcon('event_name')}</th>
                 <th style="cursor: pointer;" onclick="sortEvents('event_date')">Date ${getSortIcon('event_date')}</th>
                 <th>Category</th>
-                <th style="cursor: pointer;" onclick="sortEvents('price')">Price ${getSortIcon('price')}</th>
+                <th>Ticket Type</th>
+                <th>Regular</th>
+                <th>VIP</th>
+                <th>Premium</th>
                 <th style="cursor: pointer;" onclick="sortEvents('total_tickets')">Capacity ${getSortIcon('total_tickets')}</th>
                 <th class="text-center">Sales</th>
                 <th>Status</th>
@@ -225,6 +228,36 @@ function updateEventsTable(events) {
             </tr>`;
         }
 
+        // Parse metadata for ticket details
+        let metadata = {};
+        try {
+            metadata = typeof event.metadata === 'string' ? JSON.parse(event.metadata) : (event.metadata || {});
+        } catch (e) {
+            console.error("Error parsing event metadata:", e);
+        }
+
+        const isFree = parseFloat(event.price) === 0;
+        const ticketTypeMode = metadata.ticket_type_mode || 'all';
+        
+        let regularPrice = isFree ? 'Free' : '—';
+        let vipPrice = isFree ? 'Free' : '—';
+        let premiumPrice = isFree ? 'Free' : '—';
+
+        if (!isFree) {
+            if (ticketTypeMode === 'all') {
+                const p = `₦${parseFloat(event.price).toLocaleString()}`;
+                regularPrice = p;
+                vipPrice = p;
+                premiumPrice = p;
+            } else {
+                if (metadata.regular_price !== undefined) regularPrice = `₦${parseFloat(metadata.regular_price).toLocaleString()}`;
+                if (metadata.vip_price !== undefined) vipPrice = `₦${parseFloat(metadata.vip_price).toLocaleString()}`;
+                if (metadata.premium_price !== undefined) premiumPrice = `₦${parseFloat(metadata.premium_price).toLocaleString()}`;
+            }
+        }
+
+        const ticketTypeDisplay = isFree ? 'Free' : (ticketTypeMode.charAt(0).toUpperCase() + ticketTypeMode.slice(1));
+
         return `
         <tr onclick="window.previewEvent(${event.id})" 
             style="cursor: pointer;"
@@ -252,10 +285,13 @@ function updateEventsTable(events) {
             <td>${(event.event_date || '').split('-').reverse().join('/')}</td>
             <td>${event.event_type}</td>
             <td>
-                ${parseFloat(event.price) === 0 
-                    ? '<span style="background: #ecfdf5; color: #722f37; padding: 2px 8px; border-radius: 4px; font-weight: 600; font-size: 0.8rem;">Free</span>' 
-                    : `₦${parseFloat(event.price).toLocaleString()}`}
+                <span style="background: ${isFree ? '#ecfdf5' : '#eff6ff'}; color: ${isFree ? '#722f37' : '#2563eb'}; padding: 2px 8px; border-radius: 4px; font-weight: 600; font-size: 0.8rem;">
+                    ${ticketTypeDisplay}
+                </span>
             </td>
+            <td><span style="font-weight: 600;">${regularPrice}</span></td>
+            <td><span style="font-weight: 600;">${vipPrice}</span></td>
+            <td><span style="font-weight: 600;">${premiumPrice}</span></td>
             <td>
                 <span style="padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 700; color: #374151; background: #f3f4f6;">
                     ${event.total_tickets || 'No Limit'}

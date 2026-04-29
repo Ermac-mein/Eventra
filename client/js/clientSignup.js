@@ -98,10 +98,8 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             const password = passwordInput.value;
-            const passwordRegex = /^(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%^&*(),.?":{}|<>]).{8,}$/;
-            
-            if (!passwordRegex.test(password)) {
-                showError('passwordError', 'Password must be at least 8 characters long and include one uppercase letter, one digit, and one special character (!@#$%^&*(), etc.)');
+            if (password.length < 8) {
+                showError('passwordError', 'Password must be at least 8 characters long.');
                 isValid = false;
             }
 

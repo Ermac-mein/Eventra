@@ -114,25 +114,25 @@ try {
     // 2. Handle file upload if present using standardized path
     $image_path = null;
     if (isset($_FILES['event_image']) && $_FILES['event_image']['error'] === UPLOAD_ERR_OK) {
-        $upload_dir = __DIR__ . "/../../public/uploads/events/";
+        $upload_dir = __DIR__ . "/../../public/assets/event_assets/";
 
         if (!is_dir($upload_dir)) {
-            mkdir($upload_dir, 0777, true);
+            mkdir($upload_dir, 0755, true);
         }
 
         $file_extension = strtolower(pathinfo($_FILES['event_image']['name'], PATHINFO_EXTENSION));
-        $file_name = uniqid('event_') . '.' . $file_extension;
-        $target_path = $upload_dir . $file_name;
+        $new_filename = uniqid('event_') . '.' . $file_extension;
+        $upload_path = $upload_dir . $new_filename;
 
-        if (move_uploaded_file($_FILES['event_image']['tmp_name'], $target_path)) {
-            // Compress image before storing
-            $target_path = compressEventImage($target_path, $file_extension);
-            $image_path = "/public/uploads/events/" . basename($target_path);
+        if (move_uploaded_file($_FILES['event_image']['tmp_name'], $upload_path)) {
+            // Compress image
+            $upload_path = compressEventImage($upload_path, $file_extension);
+            $image_path = "/public/assets/event_assets/" . basename($upload_path);
 
             // Register in media table (Root folder)
             try {
-                $file_size = filesize($target_path);
-                $mime_type = mime_content_type($target_path);
+                $file_size = filesize($upload_path);
+                $mime_type = mime_content_type($upload_path);
 
                 $media_stmt = $pdo->prepare("
                     INSERT INTO media (client_id, folder_id, folder_name, file_name, file_extension, file_path, file_type, file_size, mime_type)

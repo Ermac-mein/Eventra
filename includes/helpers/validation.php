@@ -7,7 +7,7 @@
 
 /**
  * Validate password strength
- * Requirements: min 8 chars, at least 1 number, 1 special character
+ * Requirements: minimum 8 characters.
  *
  * @param string $password
  * @return array ['valid' => bool, 'errors' => []]

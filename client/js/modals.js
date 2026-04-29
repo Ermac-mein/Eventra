@@ -828,253 +828,252 @@ function showEditEventModal(event) {
     const modalHTML = `
         <link rel="stylesheet" href="../../public/css/time-picker.css">
         <div id="editEventModal" class="modal-backdrop active" role="dialog" aria-modal="true" aria-hidden="false">
-            <div class="modal-content" style="max-width: 800px; max-height: 90vh; overflow-y: auto;">
-                <div class="modal-header">
-                    <h2>Edit Event</h2>
-                    <button class="modal-close" onclick="closeEditEventModal()">×</button>
+            <div class="modal-content modal-content-animate" style="max-width: 900px; padding: 0; border-radius: 24px; overflow: hidden; border: none; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);">
+                <div class="modal-header" style="background: #722f37; padding: 2rem; border: none; display: flex; justify-content: space-between; align-items: center;">
+                    <div style="display: flex; align-items: center; gap: 1rem;">
+                        <div style="background: rgba(255,255,255,0.2); width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem;">✏️</div>
+                        <div>
+                            <h2 style="color: white; margin: 0; font-size: 1.5rem; font-weight: 800; letter-spacing: -0.5px;">Edit Event</h2>
+                            <p style="color: rgba(255,255,255,0.7); margin: 4px 0 0 0; font-size: 0.9rem; font-weight: 500;">Update your event details and tickets</p>
+                        </div>
+                    </div>
+                    <button class="modal-close" onclick="closeEditEventModal()" style="background: rgba(255,255,255,0.1); color: white; border: none; width: 40px; height: 40px; border-radius: 12px; font-size: 1.5rem; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.3s;">×</button>
                 </div>
-                <div class="modal-body">
+                
+                <div class="modal-body" style="padding: 0; max-height: 80vh; overflow-y: auto; background: #f8fafc;">
                     <form id="editEventForm" enctype="multipart/form-data">
                         <input type="hidden" name="event_id" value="${event.id}">
                         
-                        <!-- Event Image -->
-                        <div style="margin-bottom: 2rem;">
-                            <label style="display: block; font-weight: 600; margin-bottom: 0.5rem;">Event Image</label>
-                            <div style="position: relative;">
-                                <img id="editEventImagePreview" 
-                                     src="${event.image_path ? getImageUrl(event.image_path) : ''}" 
-                                     style="width: 100%; height: 250px; object-fit: cover; border-radius: 12px; border: 2px dashed #d1d5db;">
-                                <label for="editEventImageInput" style="position: absolute; bottom: 1rem; right: 1rem; background: var(--card-blue); color: white; padding: 0.75rem 1.5rem; border-radius: 8px; cursor: pointer; font-weight: 600; box-shadow: 0 4px 12px rgba(0,0,0,0.2);">
-                                    📷 Change Image
-                                </label>
-                                <input type="file" id="editEventImageInput" name="event_image" accept="image/*" style="display: none;" onchange="previewEditEventImage(event)">
-                            </div>
-                        </div>
-
-                        <!-- Event Basic Info -->
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 2rem;">
-                            <div class="form-group" style="grid-column: 1 / -1;">
-                                <label>Event Name *</label>
-                                <input type="text" name="event_name" value="${escapeHTML(event.event_name)}" required>
-                            </div>
-
-                            <div class="form-group">
-                                <label>Event Type/Category *</label>
-                                <select name="event_type" required>
-                                    <option value="Conference" ${event.event_type === 'Conference' ? 'selected' : ''}>Conference</option>
-                                    <option value="Workshop" ${event.event_type === 'Workshop' ? 'selected' : ''}>Workshop</option>
-                                    <option value="Seminar" ${event.event_type === 'Seminar' ? 'selected' : ''}>Seminar</option>
-                                    <option value="Entertainment" ${event.event_type === 'Entertainment' ? 'selected' : ''}>Entertainment</option>
-                                    <option value="Sports" ${event.event_type === 'Sports' ? 'selected' : ''}>Sports</option>
-                                    <option value="Exhibition" ${event.event_type === 'Exhibition' ? 'selected' : ''}>Exhibition</option>
-                                    <option value="Networking" ${event.event_type === 'Networking' ? 'selected' : ''}>Networking</option>
-                                    <option value="Festival" ${event.event_type === 'Festival' ? 'selected' : ''}>Festival</option>
-                                    <option value="Concert" ${event.event_type === 'Concert' ? 'selected' : ''}>Concert</option>
-                                    <option value="Social" ${event.event_type === 'Social' ? 'selected' : ''}>Social</option>
-                                    <option value="Personal" ${event.event_type === 'Personal' ? 'selected' : ''}>Personal</option>
-                                    <option value="Community" ${event.event_type === 'Community' ? 'selected' : ''}>Community</option>
-                                    <option value="Religious" ${event.event_type === 'Religious' ? 'selected' : ''}>Religious</option>
-                                    <option value="Cultural" ${event.event_type === 'Cultural' ? 'selected' : ''}>Cultural</option>
-                                    <option value="Educational" ${event.event_type === 'Educational' ? 'selected' : ''}>Educational</option>
-                                    <option value="Business" ${event.event_type === 'Business' ? 'selected' : ''}>Business</option>
-                                    <option value="Other" ${event.event_type === 'Other' ? 'selected' : ''}>Other</option>
-                                </select>
-                            </div>
-
-                            <div class="form-group">
-                                <label>System Ranking</label>
-                                <div style="padding: 0.85rem 1.25rem; background: #f3f4f6; border-radius: 10px; border: 1px solid #e5e7eb; display: flex; align-items: center; gap: 8px; font-weight: 700; color: #374151;">
-                                    <span style="font-size: 1.1rem;">${(event.priority_label || '📍 Nearby').split(' ')[0]}</span> 
-                                    <span style="text-transform: uppercase; letter-spacing: 0.5px;">${(event.priority_label || 'Nearby').split(' ').slice(1).join(' ') || 'Nearby'}</span>
-                                    <input type="hidden" name="priority_label" value="${event.priority_label || 'nearby'}">
-                                </div>
-                                <p style="font-size: 0.75rem; color: #6b7280; margin-top: 0.5rem; font-weight: 500;">
-                                    * Ranking is automatically assigned based on merit score and fresh proximity.
-                                </p>
-                            </div>
-
-                            <div class="form-group">
-                                <label>Event Date *</label>
-                                <input type="date" name="event_date" value="${event.event_date}" required>
-                            </div>
-
-                            <div class="form-group">
-                                <label>Event Time *</label>
-                                <div id="editEventTimePickerContainer" class="time-picker-container">
-                                    <div class="time-picker-display" onclick="toggleTimePicker('editEventTimePickerDropdown')">
-                                        <span id="editEventTimeDisplay">${event.event_time ? event.event_time.substring(0, 5) : 'Select Time'}</span>
-                                        <span style="font-size: 0.8rem; opacity: 0.5;">🕒</span>
+                        <div style="display: grid; grid-template-columns: 1fr 1.2fr; gap: 0;">
+                            <!-- Left Column: Visuals & Location -->
+                            <div style="padding: 2.5rem; background: white; border-right: 1px solid #e2e8f0;">
+                                <div style="margin-bottom: 2.5rem;">
+                                    <label style="display: block; font-size: 0.75rem; font-weight: 800; color: #722f37; margin-bottom: 1rem; text-transform: uppercase; letter-spacing: 1px;">Event Cover Image</label>
+                                    <div style="position: relative; border-radius: 20px; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.1); group: hover;">
+                                        <img id="editEventImagePreview" 
+                                             src="${event.image_path ? getImageUrl(event.image_path) : 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=800&auto=format&fit=crop'}" 
+                                             style="width: 100%; height: 280px; object-fit: cover; display: block; transition: transform 0.5s;">
+                                        <label for="editEventImageInput" style="position: absolute; inset: 0; background: rgba(0,0,0,0.4); display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 0; transition: all 0.3s; cursor: pointer; color: white;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0'">
+                                            <span style="font-size: 2rem; margin-bottom: 0.5rem;">📷</span>
+                                            <span style="font-weight: 700; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px;">Change Photo</span>
+                                        </label>
+                                        <input type="file" id="editEventImageInput" name="event_image" accept="image/*" style="display: none;" onchange="previewEditEventImage(event)">
                                     </div>
-                                    <div id="editEventTimePickerDropdown" class="time-picker-dropdown">
-                                        <!-- Top Section: Hours -->
-                                        <div class="time-picker-section">
-                                            <label class="time-picker-label">Hours</label>
-                                            <div class="time-picker-grid hours" id="editHourGrid">
-                                                ${[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(h => `<button type="button" class="time-btn" onclick="selectHour('${h}', 'editEventTimePickerContainer')">${h}</button>`).join('')}
+                                    <p style="margin-top: 1rem; font-size: 0.75rem; color: #64748b; text-align: center; font-style: italic;">Recommended: 1200x630px or 16:9 ratio</p>
+                                </div>
+
+                                <div style="display: grid; gap: 1.5rem;">
+                                    <div class="form-group">
+                                        <label style="display: block; font-size: 0.75rem; font-weight: 800; color: #722f37; margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;">📍 Venue & State <span style="color: #ef4444">*</span></label>
+                                        <div id="editStateSelectContainer" class="state-select-container" style="margin-bottom: 1rem;">
+                                            <div class="state-select-display" id="editStateSelectDisplay" onclick="toggleEditStateSelect()" style="padding: 1rem 1.25rem; border: 2px solid #e5e7eb; border-radius: 12px; font-weight: 600; cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
+                                                <span id="editSelectedStatesText" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 80%;">${event.state ? event.state.split(',').join(', ') : 'Select State(s)'}</span>
+                                                <span style="font-size: 0.8rem; opacity: 0.5;">▼</span>
+                                            </div>
+                                            <div id="editStateSelectDropdown" class="state-select-dropdown" style="max-height: 250px; overflow-y: auto;">
+                                                <div style="display: grid; gap: 4px;">
+                                                    ${getNigerianStates(true).map(state => `
+                                                        <label class="state-option-label" style="display: flex; align-items: center; gap: 12px; padding: 10px 15px; cursor: pointer; transition: 0.2s;">
+                                                            <input type="checkbox" class="edit-state-checkbox state-checkbox-custom" value="${state}" onchange="updateEditSelectedStates()" ${event.state && event.state.split(',').includes(state) ? 'checked' : ''}>
+                                                            <span class="state-option-text" style="font-weight: 500;">${state}</span>
+                                                        </label>
+                                                    `).join('')}
+                                                </div>
+                                            </div>
+                                            <input type="hidden" name="state" id="editEventStateInput" value="${event.state || ''}" required>
+                                        </div>
+                                        <textarea name="address" rows="3" placeholder="Full venue address..." required style="width: 100%; padding: 1rem 1.25rem; border: 2px solid #e5e7eb; border-radius: 12px; font-size: 1rem; resize: none; transition: all 0.3s; background: #fcfcfc;">${escapeHTML(event.address)}</textarea>
+                                    </div>
+
+                                    <div style="background: rgba(114, 47, 55, 0.03); padding: 1.5rem; border-radius: 16px; border: 1px dashed #722f37;">
+                                        <h4 style="margin: 0 0 1rem 0; font-size: 0.75rem; font-weight: 800; color: #722f37; text-transform: uppercase; letter-spacing: 1px;">📞 Contact Information</h4>
+                                        <div style="display: grid; gap: 1rem;">
+                                            <input type="tel" name="phone_contact_1" value="${event.phone_contact_1}" placeholder="Primary Phone Number" required style="width: 100%; padding: 0.875rem 1.25rem; border: 1px solid #e2e8f0; border-radius: 10px; font-size: 0.95rem; font-weight: 600;">
+                                            <input type="tel" name="phone_contact_2" value="${event.phone_contact_2 || ''}" placeholder="Secondary (Optional)" style="width: 100%; padding: 0.875rem 1.25rem; border: 1px solid #e2e8f0; border-radius: 10px; font-size: 0.95rem; font-weight: 600;">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Right Column: Details & Pricing -->
+                            <div style="padding: 2.5rem;">
+                                <div style="display: grid; gap: 1.5rem;">
+                                    <div class="form-group">
+                                        <label style="display: block; font-size: 0.75rem; font-weight: 800; color: #722f37; margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;">Event Identity <span style="color: #ef4444">*</span></label>
+                                        <input type="text" name="event_name" value="${escapeHTML(event.event_name)}" placeholder="Stunning Event Title" required style="width: 100%; padding: 1rem 1.25rem; border: 2px solid #e5e7eb; border-radius: 12px; font-size: 1.1rem; font-weight: 700; color: #1e293b;">
+                                    </div>
+
+                                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem;">
+                                        <div class="form-group">
+                                            <label style="display: block; font-size: 0.75rem; font-weight: 800; color: #722f37; margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;">Category</label>
+                                            <select name="event_type" style="width: 100%; padding: 1rem 1.25rem; border: 2px solid #e5e7eb; border-radius: 12px; font-size: 1rem; font-weight: 600; background: white; cursor: pointer;">
+                                                <option value="Conference" ${event.event_type === 'Conference' ? 'selected' : ''}>Conference</option>
+                                                <option value="Workshop" ${event.event_type === 'Workshop' ? 'selected' : ''}>Workshop</option>
+                                                <option value="Entertainment" ${event.event_type === 'Entertainment' ? 'selected' : ''}>Entertainment</option>
+                                                <option value="Sports" ${event.event_type === 'Sports' ? 'selected' : ''}>Sports</option>
+                                                <option value="Exhibition" ${event.event_type === 'Exhibition' ? 'selected' : ''}>Exhibition</option>
+                                                <option value="Concert" ${event.event_type === 'Concert' ? 'selected' : ''}>Concert</option>
+                                                <option value="Social" ${event.event_type === 'Social' ? 'selected' : ''}>Social</option>
+                                                <option value="Other" ${event.event_type === 'Other' ? 'selected' : ''}>Other</option>
+                                            </select>
+                                        </div>
+                                        <div class="form-group">
+                                            <label style="display: block; font-size: 0.75rem; font-weight: 800; color: #722f37; margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;">Visibility</label>
+                                            <select name="event_visibility" style="width: 100%; padding: 1rem 1.25rem; border: 2px solid #e5e7eb; border-radius: 12px; font-size: 1rem; font-weight: 600; background: white; cursor: pointer;">
+                                                <option value="public" ${event.event_visibility === 'public' ? 'selected' : ''}>🌐 Public</option>
+                                                <option value="private" ${event.event_visibility === 'private' ? 'selected' : ''}>🔒 Private</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem;">
+                                        <div class="form-group">
+                                            <label style="display: block; font-size: 0.75rem; font-weight: 800; color: #722f37; margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;">Event Date <span style="color: #ef4444">*</span></label>
+                                            <input type="date" name="event_date" value="${event.event_date}" required style="width: 100%; padding: 1rem 1.25rem; border: 2px solid #e5e7eb; border-radius: 12px; font-size: 1rem; font-weight: 600;">
+                                        </div>
+                                        <div class="form-group">
+                                            <label style="display: block; font-size: 0.75rem; font-weight: 800; color: #722f37; margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;">Event Time <span style="color: #ef4444">*</span></label>
+                                            <div id="editEventTimePickerContainer" class="time-picker-container">
+                                                <div class="time-picker-display" onclick="toggleTimePicker('editEventTimePickerDropdown')" style="padding: 1rem 1.25rem; border: 2px solid #e5e7eb; border-radius: 12px; font-weight: 600; cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
+                                                    <span id="editEventTimeDisplay">${event.event_time ? event.event_time.substring(0, 5) : 'Select Time'}</span>
+                                                    <span style="font-size: 0.8rem; opacity: 0.5;">🕒</span>
+                                                </div>
+                                                <div id="editEventTimePickerDropdown" class="time-picker-dropdown">
+                                                    <div class="time-picker-section">
+                                                        <label class="time-picker-label">Hours</label>
+                                                        <div class="time-picker-grid hours" id="editHourGrid">
+                                                            ${[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(h => `<button type="button" class="time-btn" onclick="selectHour('${h}', 'editEventTimePickerContainer')">${h}</button>`).join('')}
+                                                        </div>
+                                                    </div>
+                                                    <div class="time-picker-section">
+                                                        <label class="time-picker-label">Minutes</label>
+                                                        <div class="time-picker-grid minutes" id="editMinuteGrid">
+                                                            ${['00', '15', '30', '45'].map(m => `<button type="button" class="time-btn" onclick="selectMinute('${m}', 'editEventTimePickerContainer')">${m}</button>`).join('')}
+                                                        </div>
+                                                    </div>
+                                                    <div class="time-picker-section">
+                                                        <div class="time-picker-ampm">
+                                                            <button type="button" class="time-btn am" onclick="selectAmPm('am', 'editEventTimePickerContainer')">AM</button>
+                                                            <button type="button" class="time-btn pm" onclick="selectAmPm('pm', 'editEventTimePickerContainer')">PM</button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <input type="hidden" name="event_time" id="editEventTimeInput" value="${event.event_time}" required>
                                             </div>
                                         </div>
-                                        <!-- Middle Section: Minutes -->
-                                        <div class="time-picker-section">
-                                            <label class="time-picker-label">Minutes</label>
-                                            <div class="time-picker-grid minutes" id="editMinuteGrid">
-                                                ${['00', '05', '10', '15', '20', '25', '30', '35', '40', '45', '50', '55'].map(m => `<button type="button" class="time-btn" onclick="selectMinute('${m}', 'editEventTimePickerContainer')">${m}</button>`).join('')}
-                                            </div>
+                                    </div>
+
+                                    <!-- Pricing Section -->
+                                    <div style="background: white; padding: 2rem; border-radius: 20px; border: 2px solid #f1f5f9; box-shadow: 0 4px 15px rgba(0,0,0,0.02);">
+                                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                                            <h3 style="margin: 0; font-size: 0.9rem; font-weight: 800; color: #1e293b; text-transform: uppercase; letter-spacing: 1px;">💰 Ticket Configuration</h3>
+                                            <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; padding: 0.5rem 1rem; background: #f8fafc; border-radius: 10px; font-weight: 700; font-size: 0.85rem; color: #722f37; border: 1px solid #e2e8f0;">
+                                                <input type="checkbox" id="editFreeEventCheckbox" name="is_free" value="1" ${parseFloat(event.price) === 0 ? 'checked' : ''} class="state-checkbox-custom"> FREE
+                                            </label>
                                         </div>
-                                        <!-- Bottom Section: Period -->
-                                        <div class="time-picker-section">
-                                            <div class="time-picker-ampm">
-                                                <button type="button" class="time-btn ampm-btn" onclick="selectAmPm('am', 'editEventTimePickerContainer')">am</button>
-                                                <button type="button" class="time-btn ampm-btn" onclick="selectAmPm('pm', 'editEventTimePickerContainer')">pm</button>
-                                            </div>
-                                           <div class="form-group" id="editPricingRow" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
-                                <div class="form-group">
-                                    <label style="display: block; font-size: 0.875rem; font-weight: 600; color: #6b7280; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.5px;">Ticket Pricing</label>
-                                    <label style="display: flex; align-items: center; gap: 0.75rem; cursor: pointer; user-select: none; font-weight: 600; color: #475569; background: white; padding: 1rem 1.25rem; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); border: 2px solid #e5e7eb; height: 56px;">
-                                        <input type="checkbox" id="editFreeEventCheckbox" name="is_free" value="1" ${parseFloat(event.price) === 0 ? 'checked' : ''} class="state-checkbox-custom"> FREE EVENT
-                                    </label>
-                                </div>
-                                <div class="form-group">
-                                    <label style="display: block; font-size: 0.875rem; font-weight: 600; color: #6b7280; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.5px;">Visibility</label>
-                                    <select name="event_visibility" style="width: 100%; padding: 1rem 1.25rem; border: 2px solid #e5e7eb; border-radius: 12px; font-size: 1rem; font-weight: 600; background: white; color: #374151; box-shadow: 0 2px 8px rgba(0,0,0,0.04); cursor: pointer; height: 56px;">
-                                        <option value="public" ${event.event_visibility === 'public' ? 'selected' : ''}>🌐 Public</option>
-                                        <option value="private" ${event.event_visibility === 'private' ? 'selected' : ''}>🔒 Private</option>
-                                    </select>
-                                </div>
-                            </div>
 
-                            <div class="form-group" style="grid-column: 1 / -1; margin-bottom: 1.5rem; ${parseFloat(event.price) === 0 ? 'display: none;' : ''}" id="editTicketTypeConfigSection">
-                                <div style="background: linear-gradient(135deg, #e0f2fe, #f0f9ff); padding: 2rem; border-radius: 16px; border: 2px solid #0ea5e9;">
-                                    <h4 style="margin: 0 0 1.5rem 0; font-weight: 800; color: #0369a1; font-size: 1rem; text-transform: uppercase; letter-spacing: 1px;">💳 Ticket Type Configuration</h4>
-                                    <div style="display: grid; gap: 1rem; margin-bottom: 1.5rem;">
-                                        <label style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; cursor: pointer; padding: 1rem; background: white; border-radius: 12px; border: 2px solid transparent; transition: all 0.3s;">
-                                            <div>
-                                                <div style="font-weight: 700; color: #1e293b;">Regular</div>
-                                                <div style="font-size: 0.8rem; color: #64748b;">Offer only standard tickets</div>
-                                            </div>
-                                            <input type="radio" name="ticket_type_mode" value="regular-only" ${event.ticket_type_mode === 'regular-only' ? 'checked' : ''} class="edit-ticket-type-radio" style="width: 1.2rem; height: 1.2rem; accent-color: #0369a1; cursor: pointer;">
-                                        </label>
-                                        <label style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; cursor: pointer; padding: 1rem; background: white; border-radius: 12px; border: 2px solid transparent; transition: all 0.3s;">
-                                            <div>
-                                                <div style="font-weight: 700; color: #1e293b;">VIP</div>
-                                                <div style="font-size: 0.8rem; color: #64748b;">Offer only premium VIP tickets</div>
-                                            </div>
-                                            <input type="radio" name="ticket_type_mode" value="vip-only" ${event.ticket_type_mode === 'vip-only' ? 'checked' : ''} class="edit-ticket-type-radio" style="width: 1.2rem; height: 1.2rem; accent-color: #0369a1; cursor: pointer;">
-                                        </label>
-                                        <label style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; cursor: pointer; padding: 1rem; background: white; border-radius: 12px; border: 2px solid transparent; transition: all 0.3s;">
-                                            <div>
-                                                <div style="font-weight: 700; color: #1e293b;">Premium</div>
-                                                <div style="font-size: 0.8rem; color: #64748b;">Offer only high-end premium tickets</div>
-                                            </div>
-                                            <input type="radio" name="ticket_type_mode" value="premium-only" ${event.ticket_type_mode === 'premium-only' ? 'checked' : ''} class="edit-ticket-type-radio" style="width: 1.2rem; height: 1.2rem; accent-color: #0369a1; cursor: pointer;">
-                                        </label>
-                                        <label style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; cursor: pointer; padding: 1rem; background: white; border-radius: 12px; border: 2px solid transparent; transition: all 0.3s;">
-                                            <div>
-                                                <div style="font-weight: 700; color: #1e293b;">All</div>
-                                                <div style="font-size: 0.8rem; color: #64748b;">Offer Regular, VIP, and Premium tickets at the same price</div>
-                                            </div>
-                                            <input type="radio" name="ticket_type_mode" value="all" ${(!event.ticket_type_mode || event.ticket_type_mode === 'all') ? 'checked' : ''} class="edit-ticket-type-radio" style="width: 1.2rem; height: 1.2rem; accent-color: #0369a1; cursor: pointer;">
-                                        </label>
-                                    </div>
-
-                                    <!-- Price Inputs -->
-                                    <div id="editRegularPriceSection" style="display: none; margin-bottom: 1.5rem;">
-                                        <label style="display: block; font-size: 0.875rem; font-weight: 600; color: #0369a1; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.5px;">Regular Price (₦)</label>
-                                        <input type="number" name="regular_price" id="editRegularPriceInput" value="${event.regular_price || 0}" min="0" step="0.01" style="width: 100%; padding: 1rem 1.25rem; border: 2px solid #0ea5e9; border-radius: 12px;">
-                                        <input type="number" name="regular_quantity" value="${event.regular_quantity || ''}" placeholder="Max Regular Quantity (optional)" min="1" style="width: 100%; padding: 0.75rem 1rem; border: 2px solid #e2e8f0; border-radius: 8px; margin-top: 0.5rem;">
-                                    </div>
-
-                                    <div id="editVipPriceSection" style="display: none; margin-bottom: 1.5rem;">
-                                        <label style="display: block; font-size: 0.875rem; font-weight: 600; color: #722f37; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.5px;">VIP Price (₦)</label>
-                                        <input type="number" name="vip_price" id="editVipPriceInput" value="${event.vip_price || 0}" min="0" step="0.01" style="width: 100%; padding: 1rem 1.25rem; border: 2px solid #c4b5fd; border-radius: 12px; background: #faf5ff;">
-                                        <input type="number" name="vip_quantity" value="${event.vip_quantity || ''}" placeholder="Max VIP Quantity (optional)" min="1" style="width: 100%; padding: 0.75rem 1rem; border: 2px solid #e2e8f0; border-radius: 8px; margin-top: 0.5rem;">
-                                    </div>
-
-                                    <div id="editPremiumPriceSection" style="display: none; margin-bottom: 1.5rem;">
-                                        <label style="display: block; font-size: 0.875rem; font-weight: 600; color: #f59e0b; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.5px;">Premium Price (₦)</label>
-                                        <input type="number" name="premium_price" id="editPremiumPriceInput" value="${event.premium_price || 0}" min="0" step="0.01" style="width: 100%; padding: 1rem 1.25rem; border: 2px solid #fbbf24; border-radius: 12px; background: #fffbeb;">
-                                        <input type="number" name="premium_quantity" value="${event.premium_quantity || ''}" placeholder="Max Premium Quantity (optional)" min="1" style="width: 100%; padding: 0.75rem 1rem; border: 2px solid #e2e8f0; border-radius: 8px; margin-top: 0.5rem;">
-                                    </div>
-
-                                    <div id="editAllPriceSection" style="display: none;">
-                                        <label style="display: block; font-size: 0.875rem; font-weight: 600; color: #4f46e5; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.5px;">All Ticket Price (₦)</label>
-                                        <input type="number" name="price" id="editAllPriceInput" value="${event.price || 0}" min="0" step="0.01" style="width: 100%; padding: 1rem 1.25rem; border: 2px solid #6366f1; border-radius: 12px; background: #f5f3ff;">
-                                </div>
-                            </div>
-
-                            <div class="form-group">
-                                <label>Ticket Capacity (Total)</label>
-                                <input type="number" name="total_tickets" value="${event.total_tickets || ''}" placeholder="e.g. 100" min="1">
-                                <p style="font-size: 0.7rem; color: #6b7280; margin-top: 4px;">Total number of tickets available for this event.</p>
-                            </div>
-
-                            <div class="form-group">
-                                <label>Status</label>
-                                <select name="status" id="editEventStatusSelect">
-                                    <option value="draft" ${event.status === 'draft' ? 'selected' : ''}>Draft</option>
-                                    <option value="scheduled" ${event.status === 'scheduled' ? 'selected' : ''}>Scheduled</option>
-                                </select>
-                            </div>
-
-                            <div class="form-group" id="editScheduledTimeGroup" style="display: ${event.status === 'scheduled' ? 'block' : 'none'}; background: linear-gradient(135deg, #fef3c7, #fde68a); padding: 1.5rem; border-radius: 16px; border: 2px solid #fbbf24; grid-column: 1 / -1;">
-                                <label style="font-weight: 700; color: #92400e; margin-bottom: 0.75rem; display: block; font-size: 0.875rem; text-transform: uppercase; letter-spacing: 0.5px;">Scheduled Publish Time</label>
-                                <input type="datetime-local" name="scheduled_publish_time" value="${event.scheduled_publish_time ? event.scheduled_publish_time.slice(0, 16) : ''}" style="width: 100%; padding: 1rem 1.25rem; border: 2px solid #fbbf24; border-radius: 12px; background: white; font-size: 1rem;">
-                                <div style="color: #b45309; margin-top: 0.75rem; font-size: 0.875rem; font-weight: 500;">Event will be automatically published at this time</div>
-                            </div>
-                        </div>
-
-                        <!-- Description -->
-                        <div class="form-group">
-                            <label>Event Description *</label>
-                            <textarea name="description" rows="4" required>${event.description}</textarea>
-                        </div>
-
-                        <!-- Location Details -->
-                        <div style="display: grid; grid-template-columns: 1fr; gap: 1rem;">
-                            <div class="form-group" style="position: relative;">
-                                <label style="display: block; font-size: 0.875rem; font-weight: 600; color: #6b7280; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.5px;">State(s) <span style="color: #ef4444">*</span></label>
-                                <div id="editStateSelectContainer" class="state-select-container">
-                                    <div class="state-select-display" id="editStateSelectDisplay" onclick="toggleEditStateSelect()">
-                                        <span id="editSelectedStatesText" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 80%;">${event.state ? event.state.split(',').join(', ') : 'Select State(s)'}</span>
-                                    </div>
-                                    <div id="editStateSelectDropdown" class="state-select-dropdown">
-                                        <div style="display: grid; gap: 4px;">
-                                            ${getNigerianStates(true).map(state => `
-                                                <label class="state-option-label">
-                                                    <input type="checkbox" class="edit-state-checkbox state-checkbox-custom" value="${state}" onchange="updateEditSelectedStates()" ${event.state && event.state.split(',').includes(state) ? 'checked' : ''}>
-                                                    <span class="state-option-text">${state}</span>
+                                        <div id="editTicketTypeConfigSection" style="${parseFloat(event.price) === 0 ? 'display: none;' : ''}">
+                                            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem; margin-bottom: 2rem;">
+                                                <label class="edit-ticket-type-label" style="display: flex; flex-direction: column; align-items: center; gap: 0.5rem; cursor: pointer; padding: 1rem 0.5rem; border: 2px solid #e5e7eb; border-radius: 12px; transition: all 0.2s;">
+                                                    <input type="radio" name="ticket_type_mode" value="regular" ${event.ticket_type_mode === 'regular' ? 'checked' : ''} class="edit-ticket-type-radio" style="accent-color: #722f37;">
+                                                    <span style="font-weight: 700; font-size: 0.75rem; text-transform: uppercase;">Regular</span>
                                                 </label>
-                                            `).join('')}
+                                                <label class="edit-ticket-type-label" style="display: flex; flex-direction: column; align-items: center; gap: 0.5rem; cursor: pointer; padding: 1rem 0.5rem; border: 2px solid #e5e7eb; border-radius: 12px; transition: all 0.2s;">
+                                                    <input type="radio" name="ticket_type_mode" value="vip" ${event.ticket_type_mode === 'vip' ? 'checked' : ''} class="edit-ticket-type-radio" style="accent-color: #722f37;">
+                                                    <span style="font-weight: 700; font-size: 0.75rem; text-transform: uppercase;">VIP</span>
+                                                </label>
+                                                <label class="edit-ticket-type-label" style="display: flex; flex-direction: column; align-items: center; gap: 0.5rem; cursor: pointer; padding: 1rem 0.5rem; border: 2px solid #e5e7eb; border-radius: 12px; transition: all 0.2s;">
+                                                    <input type="radio" name="ticket_type_mode" value="premium" ${event.ticket_type_mode === 'premium' ? 'checked' : ''} class="edit-ticket-type-radio" style="accent-color: #722f37;">
+                                                    <span style="font-weight: 700; font-size: 0.75rem; text-transform: uppercase;">Premium</span>
+                                                </label>
+                                                <label class="edit-ticket-type-label" style="display: flex; flex-direction: column; align-items: center; gap: 0.5rem; cursor: pointer; padding: 1rem 0.5rem; border: 2px solid #e5e7eb; border-radius: 12px; transition: all 0.2s;">
+                                                    <input type="radio" name="ticket_type_mode" value="all" ${(!event.ticket_type_mode || event.ticket_type_mode === 'all') ? 'checked' : ''} class="edit-ticket-type-radio" style="accent-color: #722f37;">
+                                                    <span style="font-weight: 700; font-size: 0.75rem; text-transform: uppercase;">All</span>
+                                                </label>
+                                            </div>
+
+                                            <div id="editRegularConfig" class="edit-ticket-price-section" style="display: none;">
+                                                <div style="display: grid; grid-template-columns: 1.5fr 1fr; gap: 1rem;">
+                                                    <div class="form-group">
+                                                        <label style="display: block; font-size: 0.7rem; font-weight: 800; color: #64748b; margin-bottom: 0.5rem; text-transform: uppercase;">Price (₦)</label>
+                                                        <input type="number" name="regular_price" id="editRegularPriceInput" value="${event.regular_price || 0}" min="0" step="0.01" style="width: 100%; padding: 0.875rem 1.25rem; border: 2px solid #e2e8f0; border-radius: 12px; font-weight: 700;">
+                                                    </div>
+                                                    <div class="form-group">
+                                                        <label style="display: block; font-size: 0.7rem; font-weight: 800; color: #64748b; margin-bottom: 0.5rem; text-transform: uppercase;">Qty</label>
+                                                        <input type="number" name="regular_quantity" value="${event.regular_quantity || ''}" placeholder="∞" min="1" style="width: 100%; padding: 0.875rem 1.25rem; border: 2px solid #e2e8f0; border-radius: 12px; font-weight: 700;">
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div id="editVipConfig" class="edit-ticket-price-section" style="display: none;">
+                                                <div style="display: grid; grid-template-columns: 1.5fr 1fr; gap: 1rem;">
+                                                    <div class="form-group">
+                                                        <label style="display: block; font-size: 0.7rem; font-weight: 800; color: #64748b; margin-bottom: 0.5rem; text-transform: uppercase;">Price (₦)</label>
+                                                        <input type="number" name="vip_price" id="editVipPriceInput" value="${event.vip_price || 0}" min="0" step="0.01" style="width: 100%; padding: 0.875rem 1.25rem; border: 2px solid #e2e8f0; border-radius: 12px; font-weight: 700;">
+                                                    </div>
+                                                    <div class="form-group">
+                                                        <label style="display: block; font-size: 0.7rem; font-weight: 800; color: #64748b; margin-bottom: 0.5rem; text-transform: uppercase;">Qty</label>
+                                                        <input type="number" name="vip_quantity" value="${event.vip_quantity || ''}" placeholder="∞" min="1" style="width: 100%; padding: 0.875rem 1.25rem; border: 2px solid #e2e8f0; border-radius: 12px; font-weight: 700;">
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div id="editPremiumConfig" class="edit-ticket-price-section" style="display: none;">
+                                                <div style="display: grid; grid-template-columns: 1.5fr 1fr; gap: 1rem;">
+                                                    <div class="form-group">
+                                                        <label style="display: block; font-size: 0.7rem; font-weight: 800; color: #64748b; margin-bottom: 0.5rem; text-transform: uppercase;">Price (₦)</label>
+                                                        <input type="number" name="premium_price" id="editPremiumPriceInput" value="${event.premium_price || 0}" min="0" step="0.01" style="width: 100%; padding: 0.875rem 1.25rem; border: 2px solid #e2e8f0; border-radius: 12px; font-weight: 700;">
+                                                    </div>
+                                                    <div class="form-group">
+                                                        <label style="display: block; font-size: 0.7rem; font-weight: 800; color: #64748b; margin-bottom: 0.5rem; text-transform: uppercase;">Qty</label>
+                                                        <input type="number" name="premium_quantity" value="${event.premium_quantity || ''}" placeholder="∞" min="1" style="width: 100%; padding: 0.875rem 1.25rem; border: 2px solid #e2e8f0; border-radius: 12px; font-weight: 700;">
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div id="editAllConfig" class="edit-ticket-price-section" style="display: none;">
+                                                <div style="display: grid; grid-template-columns: 1.5fr 1fr; gap: 1rem;">
+                                                    <div class="form-group">
+                                                        <label style="display: block; font-size: 0.7rem; font-weight: 800; color: #64748b; margin-bottom: 0.5rem; text-transform: uppercase;">Universal Price (₦)</label>
+                                                        <input type="number" name="price" id="editAllPriceInput" value="${event.price || 0}" min="0" step="0.01" style="width: 100%; padding: 0.875rem 1.25rem; border: 2px solid #722f37; border-radius: 12px; background: rgba(114, 47, 55, 0.05); font-weight: 800; color: #722f37;">
+                                                    </div>
+                                                    <div class="form-group">
+                                                        <label style="display: block; font-size: 0.7rem; font-weight: 800; color: #64748b; margin-bottom: 0.5rem; text-transform: uppercase;">Total Capacity</label>
+                                                        <input type="number" name="total_tickets" value="${event.total_tickets || ''}" placeholder="∞" min="1" style="width: 100%; padding: 0.875rem 1.25rem; border: 2px solid #e2e8f0; border-radius: 12px; font-weight: 700;">
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
-                                    <input type="hidden" name="state" id="editEventStateInput" value="${event.state || ''}" required>
+
+                                    <div class="form-group">
+                                        <label style="display: block; font-size: 0.75rem; font-weight: 800; color: #722f37; margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;">About the Event <span style="color: #ef4444">*</span></label>
+                                        <textarea name="description" rows="5" placeholder="Share what makes this event special..." required style="width: 100%; padding: 1.25rem; border: 2px solid #e5e7eb; border-radius: 16px; font-size: 1rem; line-height: 1.6; transition: all 0.3s; background: white;">${event.description}</textarea>
+                                    </div>
+
+                                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem;">
+                                        <div class="form-group">
+                                            <label style="display: block; font-size: 0.75rem; font-weight: 800; color: #722f37; margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;">Status</label>
+                                            <select name="status" id="editEventStatusSelect" style="width: 100%; padding: 1rem 1.25rem; border: 2px solid #e5e7eb; border-radius: 12px; font-size: 1rem; font-weight: 600; background: white;">
+                                                <option value="draft" ${event.status === 'draft' ? 'selected' : ''}>Draft</option>
+                                                <option value="scheduled" ${event.status === 'scheduled' ? 'selected' : ''}>Scheduled</option>
+                                            </select>
+                                        </div>
+                                        <div class="form-group" id="editScheduledTimeGroup" style="display: ${event.status === 'scheduled' ? 'block' : 'none'};">
+                                            <label style="display: block; font-size: 0.75rem; font-weight: 800; color: #722f37; margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;">Publish At</label>
+                                            <input type="datetime-local" name="scheduled_publish_time" value="${event.scheduled_publish_time ? event.scheduled_publish_time.slice(0, 16) : ''}" style="width: 100%; padding: 1rem 1.25rem; border: 2px solid #fbbf24; border-radius: 12px; background: #fffbeb; font-weight: 600;">
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
 
-                        <div class="form-group">
-                            <label>Venue Address *</label>
-                            <textarea name="address" rows="2" required>${escapeHTML(event.address)}</textarea>
-                        </div>
-
-                        <!-- Contact Information -->
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-                            <div class="form-group">
-                                <label>Primary Contact *</label>
-                                <input type="tel" name="phone_contact_1" value="${event.phone_contact_1}" required>
-                            </div>
-
-                            <div class="form-group">
-                                <label>Secondary Contact</label>
-                                <input type="tel" name="phone_contact_2" value="${event.phone_contact_2 || ''}">
-                            </div>
-                        </div>
-
-                        <!-- Submit Buttons -->
-                        <div style="display: flex; gap: 1rem; margin-top: 2rem;">
-                            <button type="submit" class="btn btn-primary" style="flex: 1;">
-                                Update Event
+                        <!-- Footer Actions -->
+                        <div style="padding: 2rem 2.5rem; background: white; border-top: 1px solid #e2e8f0; display: flex; gap: 1.5rem; position: sticky; bottom: 0; z-index: 10;">
+                            <button type="submit" class="btn btn-primary" style="flex: 2; padding: 1.25rem; font-size: 1.1rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; background: #722f37; border: none; border-radius: 16px; color: white; cursor: pointer; box-shadow: 0 10px 25px rgba(114, 47, 55, 0.3); transition: all 0.3s;">
+                                Save Changes
                             </button>
-                            <button type="button" class="btn btn-secondary" onclick="closeEditEventModal()">
+                            <button type="button" class="btn btn-secondary" onclick="closeEditEventModal()" style="flex: 1; padding: 1.25rem; font-size: 1.1rem; font-weight: 700; background: white; border: 2px solid #e2e8f0; border-radius: 16px; color: #64748b; cursor: pointer; transition: all 0.3s;">
                                 Cancel
                             </button>
                         </div>
@@ -1127,15 +1126,36 @@ function showEditEventModal(event) {
     function updateEditTicketTypeSections() {
         const selectedMode = document.querySelector('input[name="ticket_type_mode"]:checked')?.value || 'all';
         
-        if (editRegularPriceSection) editRegularPriceSection.style.display = (selectedMode === 'regular-only') ? 'block' : 'none';
-        if (editVipPriceSection) editVipPriceSection.style.display = (selectedMode === 'vip-only') ? 'block' : 'none';
-        if (editPremiumPriceSection) editPremiumPriceSection.style.display = (selectedMode === 'premium-only') ? 'block' : 'none';
-        if (editAllPriceSection) editAllPriceSection.style.display = (selectedMode === 'all') ? 'block' : 'none';
+        // Sections
+        const sections = {
+            'regular': document.getElementById('editRegularConfig'),
+            'vip': document.getElementById('editVipConfig'),
+            'premium': document.getElementById('editPremiumConfig'),
+            'all': document.getElementById('editAllConfig')
+        };
+
+        Object.keys(sections).forEach(key => {
+            if (sections[key]) {
+                sections[key].style.display = (selectedMode === key) ? 'block' : 'none';
+            }
+        });
+
+        // Toggle selected styles on labels
+        document.querySelectorAll('.edit-ticket-type-label').forEach(label => {
+            const input = label.querySelector('input');
+            if (input.checked) {
+                label.style.borderColor = '#2563eb';
+                label.style.background = '#eff6ff';
+            } else {
+                label.style.borderColor = '#e5e7eb';
+                label.style.background = 'transparent';
+            }
+        });
         
         // Update required attribute
-        if (editRegularPriceInput) editRegularPriceInput.required = (selectedMode === 'regular-only');
-        if (editVipPriceInput) editVipPriceInput.required = (selectedMode === 'vip-only');
-        if (editPremiumPriceInput) editPremiumPriceInput.required = (selectedMode === 'premium-only');
+        if (editRegularPriceInput) editRegularPriceInput.required = (selectedMode === 'regular');
+        if (editVipPriceInput) editVipPriceInput.required = (selectedMode === 'vip');
+        if (editPremiumPriceInput) editPremiumPriceInput.required = (selectedMode === 'premium');
         if (editAllPriceInput) editAllPriceInput.required = (selectedMode === 'all');
     }
 
@@ -1149,19 +1169,23 @@ function showEditEventModal(event) {
 
     freeCheckbox.addEventListener('change', function() {
         if (this.checked) {
+            // If free, hide ticket config and set values to 0
             if (ticketConfig) ticketConfig.style.display = 'none';
-            // Set all prices to 0
+            
             if (editRegularPriceInput) { editRegularPriceInput.value = 0; editRegularPriceInput.required = false; }
             if (editVipPriceInput) { editVipPriceInput.value = 0; editVipPriceInput.required = false; }
             if (editPremiumPriceInput) { editPremiumPriceInput.value = 0; editPremiumPriceInput.required = false; }
             if (editAllPriceInput) { editAllPriceInput.value = 0; editAllPriceInput.required = false; }
             
-            // Clear quantity inputs
-            const qtyInputs = editEventForm.querySelectorAll('input[name*="quantity"]');
-            qtyInputs.forEach(input => input.value = '');
+            // Clear quantity inputs so they don't override on submission
+            const qtyInputs = document.querySelectorAll('#editTicketTypeConfigSection input[type="number"]');
+            qtyInputs.forEach(input => {
+                if (input.name.includes('quantity')) input.value = '';
+            });
         } else {
+            // Restore visibility and requirements
             if (ticketConfig) ticketConfig.style.display = 'block';
-            updateEditTicketTypeSections();
+            updateEditTicketTypeSections(); // Recalculate requirements based on selected radio
         }
     });
 
@@ -1175,6 +1199,58 @@ function showEditEventModal(event) {
         }
     }
 }
+
+/**
+ * Edit Modal State Selection Helpers
+ */
+function toggleEditStateSelect() {
+    const dropdown = document.getElementById('editStateSelectDropdown');
+    const display = document.getElementById('editStateSelectDisplay');
+    if (!dropdown || !display) return;
+
+    dropdown.classList.toggle('active');
+    display.classList.toggle('active');
+
+    if (dropdown.classList.contains('active')) {
+        const closeDropdown = (e) => {
+            const container = document.getElementById('editStateSelectContainer');
+            if (!container) {
+                document.removeEventListener('click', closeDropdown);
+                return;
+            }
+            if (!container.contains(e.target)) {
+                dropdown.classList.remove('active');
+                display.classList.remove('active');
+                document.removeEventListener('click', closeDropdown);
+            }
+        };
+        setTimeout(() => document.addEventListener('click', closeDropdown), 10);
+    }
+}
+
+function updateEditSelectedStates() {
+    const checkboxes = document.querySelectorAll('.edit-state-checkbox:checked');
+    const selectedValues = Array.from(checkboxes).map(cb => cb.value);
+    const displaySpan = document.getElementById('editSelectedStatesText');
+    const hiddenInput = document.getElementById('editEventStateInput');
+
+    if (selectedValues.length === 0) {
+        displaySpan.textContent = 'Select State(s)';
+        displaySpan.style.color = '#9ca3af';
+        hiddenInput.value = '';
+    } else {
+        displaySpan.textContent = selectedValues.join(', ');
+        displaySpan.style.color = '#1e293b';
+        hiddenInput.value = selectedValues.join(',');
+    }
+    
+    // Trigger input event for persistence
+    hiddenInput.dispatchEvent(new Event('input', { bubbles: true }));
+}
+
+window.toggleEditStateSelect = toggleEditStateSelect;
+window.updateEditSelectedStates = updateEditSelectedStates;
+window.previewEditEventImage = previewEditEventImage;
 
 function closeEditEventModal() {
     const modal = document.getElementById('editEventModal');
