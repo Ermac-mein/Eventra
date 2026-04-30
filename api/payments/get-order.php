@@ -27,10 +27,11 @@ try {
             o.id, o.event_id, o.amount, o.payment_status, o.refund_status,
             o.transaction_reference, o.created_at,
             e.event_name, e.event_date, e.event_time, e.location, e.address, e.image_path, e.price,
-            t.barcode, u.name as user_name, u.email as user_email
+            t.barcode, u.name as user_name, a.email as user_email
         FROM orders o
         INNER JOIN events e ON o.event_id = e.id
         INNER JOIN users u ON o.user_id = u.id
+        INNER JOIN auth_accounts a ON u.user_auth_id = a.id
         LEFT JOIN payments p ON p.reference = o.transaction_reference
         LEFT JOIN tickets t ON (t.order_id = o.id OR (p.id IS NOT NULL AND t.payment_id = p.id))
         WHERE o.transaction_reference = ?
@@ -120,6 +121,7 @@ try {
     <?php
 
 } catch (Exception $e) {
+    error_log("[get-order.php] Error: " . $e->getMessage());
     header('Content-Type: application/json');
     http_response_code(500);
     echo json_encode(['success' => false, 'message' => 'Error retrieving receipt.']);

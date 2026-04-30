@@ -145,8 +145,8 @@ async function startPolling(reference) {
                         renderSummary(order, order.quantity || 1);
                     }
                     
-                    if (order.ticket && order.ticket.barcode) {
-                        const barcode = order.ticket.barcode;
+                    if (order.barcode) {
+                        const barcode = order.barcode;
                         downloadBtn.href = `/api/tickets/download-ticket.php?code=${barcode}`;
                         downloadBtn.target = '_blank';
                         actions.style.display = 'flex';

@@ -104,7 +104,7 @@ $sql = "
     FROM payments p
     LEFT JOIN events e ON p.event_id = e.id
     LEFT JOIN users u ON p.user_id = u.id
-    LEFT JOIN users au ON u.user_auth_id = au.id
+    LEFT JOIN auth_accounts au ON u.user_auth_id = au.id
     LEFT JOIN tickets t ON t.payment_id = p.id
     WHERE 1=1 $scopeWhere $dateWhere $statusWhere $searchWhere
     GROUP BY p.id
