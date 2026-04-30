@@ -10,10 +10,11 @@ require_once '../../includes/middleware/auth.php';
 $user_id_or_auth_id = checkAuth('user');
 
 // ── Input ────────────────────────────────────────────────────────────────────
-$body     = json_decode(file_get_contents('php://input'), true) ?? [];
-$event_id    = (int)($body['event_id']    ?? $_POST['event_id']    ?? 0);
-$quantity    = max(1, (int)($body['quantity']    ?? $_POST['quantity']    ?? 1));
-$ticket_type = $body['ticket_type'] ?? $_POST['ticket_type'] ?? 'regular';
+$body          = json_decode(file_get_contents('php://input'), true) ?? [];
+$event_id      = (int)($body['event_id']    ?? $_POST['event_id']    ?? 0);
+$quantity      = max(1, (int)($body['quantity']    ?? $_POST['quantity']    ?? 1));
+$ticket_type   = $body['ticket_type'] ?? $_POST['ticket_type'] ?? 'regular';
+$otp_reference = $body['otp_reference'] ?? $_POST['otp_reference'] ?? null;
 
 if (!$event_id) {
     http_response_code(400);

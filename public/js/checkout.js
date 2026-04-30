@@ -133,18 +133,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                 return;
             }
 
-            // 3. Show OTP Modal before initialization
-            showOTPModal(email, phone, async (otpReference) => {
-                // Once verified, proceed to payment initialization
-                await proceedToPayment(eventId, currentQuantity, fname, lname, email, phone, payBtn, eventData, otpReference);
-            }, () => {
-                // On cancel, ensure button is in correct state
-                resetPayBtn(eventData, currentQuantity);
-            });
+            // 3. Proceed to payment initialization directly
+            await proceedToPayment(eventId, currentQuantity, fname, lname, email, phone, payBtn, eventData);
         });
     }
 
-    async function proceedToPayment(eventId, currentQuantity, fname, lname, email, phone, payBtn, eventData, otpReference) {
+    async function proceedToPayment(eventId, currentQuantity, fname, lname, email, phone, payBtn, eventData, otpReference = null) {
         // Disable button & show loading
         payBtn.disabled = true;
         payBtn.innerHTML = '<span class="btn-spinner"></span> Initializing...';
@@ -191,8 +185,24 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         } catch (err) {
             const errMsg = err?.message || 'Could not connect to payment server. Please check your connection and try again.';
-            Swal.fire('Error', errMsg, 'error');
-            resetPayBtn(eventData, currentQuantity);
+            
+            // Check if it's a security/OTP requirement
+            if (errMsg.toLowerCase().includes('otp') || errMsg.toLowerCase().includes('security verification')) {
+                // Reset button state first
+                resetPayBtn(eventData, currentQuantity);
+                
+                // Trigger OTP Modal
+                showOTPModal(email, phone, async (newOtpRef) => {
+                    // Retry with the new reference
+                    await proceedToPayment(eventId, currentQuantity, fname, lname, email, phone, payBtn, eventData, newOtpRef);
+                }, () => {
+                    // On cancel, ensure button is in correct state
+                    resetPayBtn(eventData, currentQuantity);
+                });
+            } else {
+                Swal.fire('Error', errMsg, 'error');
+                resetPayBtn(eventData, currentQuantity);
+            }
         }
     }
 
