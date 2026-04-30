@@ -165,9 +165,9 @@ function initHeroBackground() {
     let eventImage = fallback;
 
     if (randomEvent) {
-        const relPath = randomEvent.image_path.replace(/^\/+/, '');
-        const basePath = typeof getBasePath === 'function' ? getBasePath() : '/';
-        eventImage = relPath.startsWith('http') ? relPath : basePath + relPath;
+        eventImage = typeof getImageUrl === 'function' 
+            ? getImageUrl(randomEvent.image_path) 
+            : (randomEvent.image_path || fallback);
     }
 
     wrapper.innerHTML = `
@@ -757,8 +757,9 @@ function createEventCard(event, index) {
   price = priceDisplay;
   
   // Security: Sanitize and Path Priority
-  const relPath = event.image_path ? event.image_path.replace(/^\/+/, '') : null;
-  const eventImage = resolvedPath || event.absolute_image_url;
+  const eventImage = typeof getImageUrl === 'function' 
+    ? getImageUrl(event.image_path) 
+    : (event.absolute_image_url || '');
   
   let eventDate = 'Date TBA';
   let status, statusLabel, statusColor;
@@ -1448,11 +1449,9 @@ function showEventModal(eventId) {
   const modal = document.getElementById('eventDetailsModal');
   const modalImage = document.getElementById('modalEventImage');
   if (modalImage) {
-      const relPath = event.image_path ? event.image_path.replace(/^\/+/, '') : null;
       const fallback = 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800&h=500&fit=crop';
-      const basePath = typeof getBasePath === 'function' ? getBasePath() : '/';
-      const resolvedPath = relPath ? (relPath.startsWith('http') ? relPath : basePath + relPath) : null;
-      modalImage.src = encodeURI(resolvedPath || event.absolute_image_url || fallback);
+      const eventImage = typeof getImageUrl === 'function' ? getImageUrl(event.image_path) : (event.absolute_image_url || fallback);
+      modalImage.src = encodeURI(eventImage);
       modalImage.loading = 'lazy';
       modalImage.onerror = () => { modalImage.src = fallback; };
   }
@@ -1727,11 +1726,8 @@ function updateCartUI() {
         // Clear and render items
         cartItemsContainer.innerHTML = favorites.map(event => {
             const price = !event.price || parseFloat(event.price) === 0 ? 'Free' : `₦${parseFloat(event.price).toLocaleString()}`;
-            const relPath = event.image_path ? event.image_path.replace(/^\/+/, '') : null;
             const fallback = 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=100&h=100&fit=crop';
-            const basePath = typeof getBasePath === 'function' ? getBasePath() : '/';
-            const resolvedPath = relPath ? (relPath.startsWith('http') ? relPath : basePath + relPath) : null;
-            const eventImage = encodeURI(resolvedPath || event.absolute_image_url || fallback);
+            const eventImage = typeof getImageUrl === 'function' ? getImageUrl(event.image_path) : (event.absolute_image_url || fallback);
             
             let eventDate = 'Date TBA';
             if (event.event_date) {

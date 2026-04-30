@@ -406,10 +406,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 // Inject images
                 sliderContainer.innerHTML = events.map((event, index) => {
-                    const cleanPath = event.image_path.replace(/^\/+/, '');
-                    // Normalize path: if it starts with public/, remove it as it's assumed to be in the root for the browser
-                    const webPath = cleanPath.startsWith('public/') ? cleanPath.replace('public/', '') : cleanPath;
-                    const imgUrl = event.image_path.startsWith('http') ? event.image_path : basePath + webPath;
+                    const imgUrl = typeof getImageUrl === 'function' ? getImageUrl(event.image_path) : (event.image_path || '');
                     return `
                         <img src="${imgUrl}" 
                              alt="${escapeHTML(event.event_name)}" 
