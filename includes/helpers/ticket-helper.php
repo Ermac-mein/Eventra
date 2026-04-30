@@ -27,7 +27,8 @@ function base64_encode_image($path) {
     $resolvedPath = $path;
     if (!file_exists($resolvedPath)) {
         // Try relative to project root
-        $resolvedPath = __DIR__ . '/../../' . ltrim($path, '/');
+        $root = realpath(__DIR__ . '/../../');
+        $resolvedPath = $root . DIRECTORY_SEPARATOR . ltrim(str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $path), DIRECTORY_SEPARATOR);
     }
     
     if (!file_exists($resolvedPath)) {
@@ -35,11 +36,14 @@ function base64_encode_image($path) {
         return '';
     }
     
-    $type = pathinfo($resolvedPath, PATHINFO_EXTENSION);
+    $finfo = finfo_open(FILEINFO_MIME_TYPE);
+    $mimeType = finfo_file($finfo, $resolvedPath);
+    finfo_close($finfo);
+    
     $data = @file_get_contents($resolvedPath);
     if ($data === false) return '';
     
-    return 'data:image/' . $type . ';base64,' . base64_encode($data);
+    return 'data:' . $mimeType . ';base64,' . base64_encode($data);
 }
 
 /**
@@ -174,19 +178,19 @@ function generateTicketPDF(array $ticketData): string
     $event_time = !empty($ticketData['event_time'])
         ? date('g:i A', strtotime($ticketData['event_time']))
         : 'TBC';
-    $venue_name = htmlspecialchars($ticketData['location'] ?? $ticketData['address'] ?? 'See event details');
+    $venue_name = htmlspecialchars($ticketData['address'] ?? $ticketData['location'] ?? 'See event details');
     $attendee_name = htmlspecialchars($ticketData['user_name'] ?? 'Attendee');
     $ticket_id = $ticketData['barcode'];
     
     // Additional fields for improved design
     $event_image_path = $ticketData['image_path'] ?? null;
-    $ticket_type = strtolower($ticketData['ticket_type'] ?? 'regular');
-    $event_type_label = ($ticket_type === 'vip') ? 'VIP Access Pass' : (($ticket_type === 'premium') ? 'Premium Access Pass' : ($ticketData['event_type'] ?? 'Regular Entry Pass'));
+    $ticket_type = strtoupper($ticketData['ticket_type'] ?? 'REGULAR');
+    $event_type_label = $ticket_type;
     
     // Price information
     $price_value = $ticketData['price'] ?? $ticketData['amount'] ?? null;
     $payment_status = $ticketData['payment_status'] ?? 'paid';
-    if ($payment_status === 'free' || $price_value === 0 || $price_value === '0') {
+    if ($payment_status === 'free' || $price_value === 0 || $price_value === '0' || strtolower((string)$price_value) === 'free') {
         $price_display = 'FREE';
     } elseif ($price_value) {
         $price_display = '₦' . number_format((float)$price_value, 2);
@@ -199,7 +203,7 @@ function generateTicketPDF(array $ticketData): string
 
     // Encode images to Base64 to fix "blank PDF" issues
     $qr_base64 = base64_encode_image($qrCodePath);
-    $event_img_base64 = $event_image_path ? base64_encode_image(__DIR__ . '/../../' . $event_image_path) : '';
+    $event_img_base64 = $event_image_path ? base64_encode_image($event_image_path) : '';
     
     // User-requested variable names for template
     $event_title = $event_name;
@@ -215,6 +219,7 @@ function generateTicketPDF(array $ticketData): string
     // Map data for EmailHelper::buildTicketHtml
     $richTicketData = [
         'barcode'             => $ticket_id,
+        'ticket_id'           => $ticket_id, // Ensure custom ID is used
         'event_name'          => $event_name,
         'user_name'           => $user_name,
         'location'            => $venue_name,

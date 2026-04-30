@@ -339,18 +339,21 @@ class EmailHelper
         $colA = self::detailRow('Date', $eventDate);
         $colA .= self::detailRow('Time', $eventTime);
         $colA .= self::detailRow('Venue', $location);
-        if ($amountDisplay !== '') {
-            $colA .= self::detailRow('Price', $amountDisplay, true);
+        if ($state !== '') {
+            $colA .= self::detailRow('State', $state);
         }
 
         /* ── 8. Build Col B (right detail column) ────────────── */
         $colB = '';
-        if ($state !== '')
-            $colB .= self::detailRow('State', $state);
-        if ($ticketType !== '')
+        if ($tickDisp !== '' || $ticketType !== '') {
             $colB .= self::detailRow('Ticket Type', $tickDisp ?: $ticketType);
-        if ($organizer !== '')
+        }
+        if ($amountDisplay !== '') {
+            $colB .= self::detailRow('Price', $amountDisplay, true);
+        }
+        if ($organizer !== '') {
             $colB .= self::detailRow('Organizer', $organizer);
+        }
 
         /* ── 9. Download button ──────────────────────────────── */
         $dlButtonHtml = '';
@@ -716,7 +719,7 @@ HTML;
                         $stmt = $pdo->prepare("
                             SELECT
                                 t.barcode,
-                                t.id         AS ticket_id,
+                                t.barcode    AS ticket_id,
                                 t.status,
                                 t.ticket_type,
                                 e.event_name,

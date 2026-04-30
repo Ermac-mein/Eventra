@@ -189,8 +189,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 
                 sessionStorage.setItem('pending_order', JSON.stringify(orderData));
                 
-                // Redirect directly to Paystack payment gateway
-                window.location.href = result.authorization_url;
+                // Redirect to payment.html to handle OTP and verification flow
+                window.location.href = 'payment.html';
             } else {
                 Swal.fire('Error', result.message || 'Payment initialization failed.', 'error');
                 resetPayBtn(eventData, currentQuantity);
