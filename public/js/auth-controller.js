@@ -282,8 +282,8 @@ class AuthController {
         if (!container) return;
         
         container.innerHTML = `
-            <div style="padding: 12px; background: rgba(255,255,255,0.1); border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); text-align: center;">
-                <p style="color: #fff; font-size: 0.9rem; margin: 0;">Google Sign-In unavailable — try again</p>
+            <div style="padding: 12px; background: rgba(255,255,255,0.05); border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); text-align: center;">
+                <p style="color: #666; font-size: 0.9rem; margin: 0;">Sign in service temporarily unavailable</p>
             </div>
         `;
     }
@@ -379,10 +379,14 @@ class AuthController {
             
             setTimeout(() => {
                 this.syncSession();
-                // Re-render button in whichever container exists
+                // Re-render button only if it's the standard container (not 'none')
                 const containerId = document.getElementById('googleSignInContainer') ? 'googleSignInContainer' : 'googleContainer';
                 if (document.getElementById(containerId)) {
-                    this.renderGoogleButton(containerId);
+                    // Check if we are in manual mode for homepage
+                    const isManual = window.location.pathname.includes('index.html');
+                    if (!isManual) {
+                        this.renderGoogleButton(containerId);
+                    }
                 }
             }, 2000);
         }

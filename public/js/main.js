@@ -588,20 +588,11 @@ async function initGoogleAuth() {
             });
 
             if (googleLoaded) {
-                // Pass the real container ID so googleInitialized is set to true
-                // The GIS button will render inside googleSignInContainer
-                const containerId = document.getElementById('googleSignInContainer') ? 'googleSignInContainer' : 'none';
-                authController.initGoogle(data.client_id, containerId);
+                // Initialize Google SDK but don't render standard button (we use our custom one)
+                authController.initGoogle(data.client_id, 'none');
             } else {
-                // SDK never loaded — show a manual retry message in the container
-                const container = document.getElementById('googleSignInContainer');
-                if (container) {
-                    container.innerHTML = `
-                        <button id="googleSignIn" class="google-signin" onclick="initGoogleAuth()" style="opacity:0.8;">
-                            <img src="https://www.gstatic.com/images/branding/product/1x/gsa_512dp.png" alt="Google Icon" class="google-icon">
-                            Sign in with Google (Retry)
-                        </button>`;
-                }
+                // If SDK fails to load, the manual button remains and can be tried again by clicking
+                console.warn('Google SDK failed to load');
             }
         }
     } catch (error) {
