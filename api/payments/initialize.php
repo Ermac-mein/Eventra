@@ -159,9 +159,9 @@ try {
                 $barcode = 'TKT-' . strtoupper(bin2hex(random_bytes(10)));
 
                 $pdo->prepare("
-                    INSERT INTO tickets (user_id, event_id, payment_id, custom_id, barcode, status)
-                    VALUES (?, ?, ?, ?, ?, 'valid')
-                ")->execute([$user_id, $event_id, $payment_id, $ticketCustomId, $barcode]);
+                    INSERT INTO tickets (user_id, event_id, payment_id, order_id, custom_id, barcode, status)
+                    VALUES (?, ?, ?, ?, ?, ?, 'valid')
+                ")->execute([$user_id, $event_id, $payment_id, $order_id, $ticketCustomId, $barcode]);
                 $ticket_id = $pdo->lastInsertId();
 
                 $ticketData = [

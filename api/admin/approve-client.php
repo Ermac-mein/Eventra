@@ -66,9 +66,11 @@ try {
             );
 
             if (!$subResult['success']) {
-                // Log the error but we might still allow approval if fallback is working, 
-                // but usually, it's better to log it clearly.
-                error_log("[approve-client.php] Subaccount creation failed for Client {$client_id}: " . $subResult['message']);
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Cannot approve: Paystack subaccount creation failed. ' . $subResult['message']
+                ]);
+                exit;
             } else {
                 error_log("[approve-client.php] Subaccount created/linked for Client {$client_id}: " . $subResult['subaccount_code']);
             }

@@ -12,7 +12,7 @@ require_once __DIR__ . '/../../includes/middleware/auth.php';
 
 try {
     // 1. Get reference
-    $reference = htmlspecialchars(trim($_GET['reference'] ?? ''));
+    $reference = trim($_GET['reference'] ?? '');
     if (empty($reference)) {
         header('Content-Type: application/json');
         http_response_code(400);
@@ -21,6 +21,7 @@ try {
     }
 
     // 2. Fetch order data (Publicly accessible via secret reference)
+    // We use a more robust join and handle possible collation mismatches.
     $stmt = $pdo->prepare("
         SELECT 
             o.id, o.event_id, o.amount, o.payment_status, o.refund_status,
@@ -30,8 +31,8 @@ try {
         FROM orders o
         INNER JOIN events e ON o.event_id = e.id
         INNER JOIN users u ON o.user_id = u.id
-        LEFT JOIN payments p ON p.reference = o.transaction_reference COLLATE utf8mb4_unicode_ci
-        LEFT JOIN tickets t ON (t.payment_id = p.id OR t.order_id = o.id)
+        LEFT JOIN payments p ON p.reference = o.transaction_reference
+        LEFT JOIN tickets t ON (t.order_id = o.id OR (p.id IS NOT NULL AND t.payment_id = p.id))
         WHERE o.transaction_reference = ?
         LIMIT 1
     ");

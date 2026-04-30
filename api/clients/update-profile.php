@@ -169,14 +169,32 @@ try {
         empty($existing['subaccount_code'])
     );
 
-    // ── Bank Details: Mock Resolution (no external API call) ────────────────
+    // ── Bank Details: Subaccount Resolution ────────────────
     if (!empty($bank_code) && !empty($account_number)) {
         if ($bank_changed) {
+            $subResult = ensureSubaccount(
+                $pdo,
+                $client_auth_id,
+                $bank_code,
+                $account_number,
+                $business_name ?: $name,
+                $auth_email
+            );
+
+            if (!$subResult['success']) {
+                // In production, we might want to fail the update if subaccount creation fails.
+                // However, we'll log it and continue if it's a non-critical failure, 
+                // but let's be strict as per user request.
+                $pdo->rollBack();
+                echo json_encode(['success' => false, 'message' => 'Payment Setup Failed: ' . $subResult['message']]);
+                exit;
+            }
+
             // Use provided account_name if given, else fall back to a test placeholder
             $provided_account_name = trim($_POST['account_name'] ?? '');
             $account_name = !empty($provided_account_name)
                 ? $provided_account_name
-                : 'Test Account';
+                : ($subResult['account_name'] ?? 'Test Account');
         } else {
             $account_name = $existing['account_name'] ?? ($business_name ?: $name);
         }
