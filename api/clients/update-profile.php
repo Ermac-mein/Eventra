@@ -178,7 +178,8 @@ try {
                 $bank_code,
                 $account_number,
                 $business_name ?: $name,
-                $auth_email
+                $auth_email,
+                $existing['subaccount_code'] ?? null
             );
 
             if (!$subResult['success']) {

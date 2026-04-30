@@ -129,11 +129,9 @@ class EmailHelper
             $mail->SMTPSecure = SMTP_SECURE;
             $mail->Port = (int) SMTP_PORT;
 
-            // Low-level SMTP Debugging
-            $mail->SMTPDebug = 2; // Output level 2: client and server messages
-            $mail->Debugoutput = function($str) {
-                error_log("[EmailHelper SMTP DEBUG] " . trim($str));
-            };
+            // Low-level SMTP Debugging (Disabled for production performance)
+            $mail->SMTPDebug = 0; 
+            $mail->Debugoutput = null;
 
             $mail->setFrom(EMAIL_FROM, EMAIL_FROM_NAME);
             $mail->addReplyTo($_ENV['MAIL_REPLY_TO'] ?? EMAIL_FROM, EMAIL_FROM_NAME);

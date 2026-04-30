@@ -52,9 +52,11 @@ try {
     }
     $pdo = getPDO();
 
-    // Auto-delete notifications older than 30 days
-    $cleanup_stmt = $pdo->prepare("DELETE FROM notifications WHERE created_at < DATE_SUB(NOW(), INTERVAL 30 DAY)");
-    $cleanup_stmt->execute();
+    // Probabilistic cleanup (5% chance) to reduce DB load while keeping table clean
+    if (rand(1, 100) <= 5) {
+        $cleanup_stmt = $pdo->prepare("DELETE FROM notifications WHERE created_at < DATE_SUB(NOW(), INTERVAL 30 DAY)");
+        $cleanup_stmt->execute();
+    }
 
     // Build query
     $where_clauses = ["recipient_auth_id = ?", "recipient_role = ?"];

@@ -119,14 +119,16 @@ function addDrawerStyles() {
         .side-drawer {
             position: fixed;
             top: 0;
-            right: -400px;
-            width: 400px;
+            right: -450px;
+            width: 450px;
             height: 100vh;
             background: white;
-            box-shadow: -4px 0 12px rgba(0,0,0,0.1);
+            box-shadow: -10px 0 30px rgba(0,0,0,0.1);
             z-index: 10000;
-            transition: right 0.3s ease;
+            transition: right 0.4s cubic-bezier(0.16, 1, 0.3, 1);
             overflow-y: auto;
+            display: flex;
+            flex-direction: column;
         }
 
         .side-drawer.open {
@@ -139,9 +141,11 @@ function addDrawerStyles() {
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0,0,0,0.5);
+            background: rgba(0,0,0,0.4);
+            backdrop-filter: blur(4px);
             z-index: 9999;
             display: none;
+            transition: opacity 0.3s ease;
         }
 
         .drawer-overlay.active {
@@ -149,37 +153,57 @@ function addDrawerStyles() {
         }
 
         .drawer-header {
-            padding: 1.5rem;
-            border-bottom: 1px solid #e5e7eb;
+            padding: 1.5rem 2rem;
+            border-bottom: 1px solid #f1f5f9;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            background: white;
+            position: sticky;
+            top: 0;
+            z-index: 10;
         }
 
         .drawer-header h3 {
             margin: 0;
-            font-size: 1.25rem;
-            font-weight: 700;
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: #1e293b;
+            letter-spacing: -0.02em;
         }
 
         .drawer-close {
-            background: none;
+            background: #f1f5f9;
             border: none;
-            font-size: 2rem;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            font-size: 1.5rem;
             cursor: pointer;
-            color: var(--client-text-muted);
+            color: #64748b;
             line-height: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .drawer-close:hover {
+            background: #e2e8f0;
+            color: #1e293b;
         }
 
         .drawer-body {
-            padding: 1.5rem;
+            padding: 0;
+            flex: 1;
         }
 
         .notification-item {
-            padding: 1rem;
-            border-bottom: 1px solid #f1f4f8;
+            padding: 1.25rem 2rem;
+            border-bottom: 1px solid #f1f5f9;
             cursor: pointer;
-            transition: background 0.2s;
+            transition: all 0.2s ease;
+            position: relative;
         }
 
         .notification-item:hover {
