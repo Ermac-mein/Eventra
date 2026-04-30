@@ -677,7 +677,7 @@ HTML;
     /**
      * Send a registration OTP email.
      *
-     * @param string $to Recipient email
+     * @param string $to Recipient email        
      * @param string $name Recipient name
      * @param string $otp 6-digit OTP
      * @return array
@@ -791,7 +791,7 @@ HTML;
             ENT_QUOTES,
             'UTF-8'
         );
-        $subject = "Your Ticket for {$eventName} — Eventra";
+        $subject = "Your Ticket for {$eventName} at Eventra";
 
         $appUrl = rtrim((string) ($_ENV['APP_URL'] ?? ''), '/');
         $downloadUrl = ($appUrl !== '' && $barcode !== '')

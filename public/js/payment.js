@@ -132,7 +132,10 @@ async function startPolling(reference) {
                 if (status === 'paid' || status === 'success') {
                     // SUCCESS!
                     const cleanedName = (order.event_name || '').replace(/\s*#\d+$/, '');
-                    icon.textContent = '🎉';
+                    
+                    // Replace confetti with the specified QR code image
+                    icon.innerHTML = `<img src="../assets/qrcode.png" alt="Ticket QR Code" style="width: 150px; height: 150px; border-radius: 1rem; margin-bottom: 1rem; box-shadow: 0 8px 16px rgba(0,0,0,0.1); border: 4px solid white;">`;
+                    
                     title.textContent = 'Payment Successful!';
                     msg.innerHTML = `Your tickets for <strong>${escapeHTML(cleanedName)}</strong> are ready.<br>Reference: ${escapeHTML(reference)}`;
                     
@@ -315,8 +318,8 @@ function setupLegacyFlow(form, ref, contact, eid, qty) {
             contact.email,
             contact.phone,
             () => {
-                // OTP verified - proceed to purchase
-                completePurchaseAction(ref, eid, qty);
+                // OTP verified - enforce redirect to Paystack for paid events
+                reinitializeAndRedirect(eid, qty);
             },
             () => {
                 showNotification('Verification cancelled', 'info');
@@ -328,32 +331,44 @@ function setupLegacyFlow(form, ref, contact, eid, qty) {
 // Functions below removed to prevent conflict with otp-modal.js
 // triggerOTP and verifyOTP are now handled by showOTPModal utility
 
-async function completePurchaseAction(reference, eventId, quantity) {
+async function reinitializeAndRedirect(eventId, quantity) {
+    const btn = document.getElementById('confirmPaymentBtn');
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<span class="btn-spinner"></span> Redirecting to Paystack...';
+    }
+
     try {
-        const res = await apiFetch('/api/tickets/purchase-ticket.php', {
+        const res = await apiFetch('/api/payments/initialize.php', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 event_id: eventId,
-                quantity: quantity,
-                payment_reference: reference
+                quantity: quantity
             })
         });
         const result = await res.json();
 
-        if (result.success) {
-            // Success container logic
-            const paymentForm = document.getElementById('paymentForm');
-            const statusContainer = document.getElementById('paymentStatusContainer');
-            if (paymentForm) paymentForm.style.display = 'none';
-            if (statusContainer) statusContainer.style.display = 'block';
+        if (result.success && result.authorization_url) {
+            // Update session and redirect
+            const orderData = JSON.parse(sessionStorage.getItem('pending_order') || '{}');
+            orderData.authorization_url = result.authorization_url;
+            sessionStorage.setItem('pending_order', JSON.stringify(orderData));
             
-            startPolling(reference);
+            window.location.href = result.authorization_url;
         } else {
-            showNotification(result.message, 'error');
+            showNotification(result.message || 'Failed to initialize Paystack.', 'error');
+            if (btn) {
+                btn.disabled = false;
+                btn.textContent = 'Pay';
+            }
         }
     } catch (e) {
-        showNotification('Error completing purchase', 'error');
+        showNotification('Error connecting to payment gateway.', 'error');
+        if (btn) {
+            btn.disabled = false;
+            btn.textContent = 'Pay';
+        }
     }
 }
 
