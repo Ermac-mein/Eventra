@@ -828,7 +828,7 @@ function showEditEventModal(event) {
     const modalHTML = `
         <link rel="stylesheet" href="../../public/css/time-picker.css">
         <div id="editEventModal" class="modal-backdrop active" role="dialog" aria-modal="true" aria-hidden="false">
-            <div class="modal-content modal-content-animate" style="max-width: 950px; padding: 0; border-radius: 20px; overflow: hidden; border: none; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); background: white;">
+            <div class="modal-content modal-content-animate" style="max-width: 1200px; padding: 0; border-radius: 20px; overflow: hidden; border: none; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); background: white;">
                 <div class="modal-header" style="background: white; padding: 1.5rem 2.5rem; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center;">
                     <h2 style="color: #0f172a; margin: 0; font-size: 1.5rem; font-weight: 800; letter-spacing: -0.5px;">Edit Event</h2>
                     <button class="modal-close" onclick="closeEditEventModal()" style="background: #f8fafc; color: #64748b; border: none; width: 36px; height: 36px; border-radius: 50%; font-size: 1.25rem; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s;">×</button>
@@ -873,9 +873,9 @@ function showEditEventModal(event) {
                                 <div class="form-group" style="margin-bottom: 2rem;">
                                     <label style="display: block; font-size: 0.75rem; font-weight: 800; color: #1e293b; margin-bottom: 1rem; text-transform: uppercase; letter-spacing: 1px;">📍 Venue & State <span style="color: #ef4444">*</span></label>
                                     <div id="editStateSelectContainer" class="state-select-container" style="margin-bottom: 1rem;">
-                                        <div class="state-select-display" id="editStateSelectDisplay" onclick="toggleEditStateSelect()" style="padding: 1rem 1.25rem; border: 1px solid #e2e8f0; border-radius: 12px; font-weight: 600; cursor: pointer; display: flex; justify-content: space-between; align-items: center; background: white;">
-                                            <span id="editSelectedStatesText" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 80%;">${event.state ? event.state.split(',').join(', ') : 'Select State(s)'}</span>
-                                            <span style="font-size: 0.8rem; opacity: 0.5;">▼</span>
+                                        <div class="state-select-display" id="editStateSelectDisplay" onclick="toggleEditStateSelect()" style="padding: 1rem 1.25rem; border: 1px solid #e2e8f0; border-radius: 12px; font-weight: 600; cursor: pointer; display: flex; justify-content: space-between; align-items: center; background: white; min-width: 0;">
+                                            <span id="editSelectedStatesText" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; min-width: 0;">${event.state ? event.state.split(',').join(', ') : 'Select State(s)'}</span>
+                                            <span style="font-size: 0.8rem; opacity: 0.5; margin-left: 8px;">▼</span>
                                         </div>
                                         <div id="editStateSelectDropdown" class="state-select-dropdown" style="max-height: 250px; overflow-y: auto;">
                                             <div style="display: grid; gap: 4px;">
@@ -1419,7 +1419,7 @@ function showUserPreviewModal(user) {
 
     const modalContent = `
         <div id="userPreviewModal" class="modal-backdrop active" role="dialog" aria-modal="true" aria-hidden="false">
-            <div class="modal-content" style="max-width: 800px; border-radius: 16px; overflow: hidden; padding: 0;">
+            <div class="modal-content" style="max-width: 1000px; border-radius: 16px; overflow: hidden; padding: 0;">
                 <div class="modal-header" style="background: var(--client-bg-body); padding: 1.5rem 2rem; border-bottom: 1px solid var(--client-border);">
                     <h2 style="margin: 0; font-size: 1.25rem;">User Details</h2>
                     <button class="modal-close" onclick="closeUserPreviewModal()" style="font-size: 1.5rem;">×</button>

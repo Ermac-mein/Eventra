@@ -28,7 +28,7 @@ function showCreateEventModal() {
              style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.6); display: flex; justify-content: center; align-items: center; z-index: 10000; backdrop-filter: blur(8px);">
             <div class="modal-content" style="
                 width: 95%;
-                max-width: 900px;
+                max-width: 1100px;
                 max-height: 92vh;
                 overflow-y: auto;
                 background: linear-gradient(135deg, #f5f3ff 0%, #fdf4ff 50%, ##1f2937 50%);
@@ -189,8 +189,9 @@ function showCreateEventModal() {
                                     <div class="form-group" style="position: relative;">
                                         <label style="display: block; font-size: 0.875rem; font-weight: 600; color: #6b7280; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.5px;">State(s) <span style="color: #ef4444">*</span></label>
                                         <div id="stateSelectContainer" class="state-select-container">
-                                            <div class="state-select-display" id="stateSelectDisplay" onclick="toggleStateSelect()">
-                                                <span id="selectedStatesText" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;">Select State(s)</span>
+                                            <div class="state-select-display" id="stateSelectDisplay" onclick="toggleStateSelect()" style="padding: 1rem 1.25rem; border: 1px solid #e2e8f0; border-radius: 12px; font-weight: 600; cursor: pointer; display: flex; justify-content: space-between; align-items: center; background: white; min-width: 0;">
+                                                <span id="selectedStatesText" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; min-width: 0;">Select State(s)</span>
+                                                <span style="font-size: 0.8rem; opacity: 0.5; margin-left: 8px;">▼</span>
                                             </div>
                                             <div id="stateSelectDropdown" class="state-select-dropdown">
                                                 <div style="display: grid; gap: 4px;">

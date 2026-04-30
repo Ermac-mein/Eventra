@@ -217,6 +217,14 @@
   margin-top: 5px;
 }
 
+.state-select-display span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+  min-width: 0;
+}
+
 .state-select-dropdown {
   position: absolute;
   top: calc(100% + 8px);
