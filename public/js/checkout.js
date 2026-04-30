@@ -133,12 +133,18 @@ document.addEventListener('DOMContentLoaded', async () => {
                 return;
             }
 
-            // 3. Proceed to Payment directly
-            await proceedToPayment(eventId, currentQuantity, fname, lname, email, phone, payBtn, eventData);
+            // 3. Show OTP Modal before initialization
+            showOTPModal(email, phone, async (otpReference) => {
+                // Once verified, proceed to payment initialization
+                await proceedToPayment(eventId, currentQuantity, fname, lname, email, phone, payBtn, eventData, otpReference);
+            }, () => {
+                // On cancel, ensure button is in correct state
+                resetPayBtn(eventData, currentQuantity);
+            });
         });
     }
 
-    async function proceedToPayment(eventId, currentQuantity, fname, lname, email, phone, payBtn, eventData) {
+    async function proceedToPayment(eventId, currentQuantity, fname, lname, email, phone, payBtn, eventData, otpReference) {
         // Disable button & show loading
         payBtn.disabled = true;
         payBtn.innerHTML = '<span class="btn-spinner"></span> Initializing...';
@@ -150,28 +156,15 @@ document.addEventListener('DOMContentLoaded', async () => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     event_id: eventId,
-                    quantity: currentQuantity
+                    quantity: currentQuantity,
+                    otp_reference: otpReference
                 })
             });
             
             const result = await res.json();
             
             if (result.success) {
-                // Free event — ticket already issued server-side
-                if (result.is_free) {
-                    await Swal.fire({
-                        title: '🎉 Ticket Claimed!',
-                        html: `<p>Your <strong>free ticket</strong> for <em>${escapeHTML(eventData?.event_name || 'this event')}</em> has been successfully issued!</p>
-                               <p style="font-size:0.85rem;color:#64748b;margin-top:0.75rem;">Reference: <code>${result.reference}</code></p>`,
-                        icon: 'success',
-                        confirmButtonColor: '#FF5A5F',
-                        confirmButtonText: 'Go to Events'
-                    });
-                    window.location.href = 'index.html';
-                    return;
-                }
-
-                // Paid event — store order and redirect to payment processor
+                // Paid or Free event — store order and redirect to payment processor or success page
                 const orderData = {
                     eventId: eventId,
                     quantity: currentQuantity,
@@ -179,6 +172,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     reference: result.reference,
                     authorization_url: result.authorization_url,
                     amount: result.amount,
+                    is_free: result.is_free,
                     contactInfo: {
                         firstName: fname,
                         lastName: lname,
@@ -189,8 +183,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 
                 sessionStorage.setItem('pending_order', JSON.stringify(orderData));
                 
-                // Redirect to payment.html to handle OTP and verification flow
-                window.location.href = 'payment.html';
+                // Redirect to payment.html (handled by authorization_url)
+                window.location.href = result.authorization_url;
             } else {
                 Swal.fire('Error', result.message || 'Payment initialization failed.', 'error');
                 resetPayBtn(eventData, currentQuantity);

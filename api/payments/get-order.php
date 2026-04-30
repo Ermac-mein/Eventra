@@ -62,8 +62,9 @@ try {
         SELECT 
             o.id, o.event_id, o.amount, o.payment_status, o.refund_status,
             o.transaction_reference, o.created_at,
-            e.event_name, e.event_date, e.event_time, e.location, e.address, e.image_path,
-            t.barcode, t.qr_code_path, t.status AS ticket_status
+            e.event_name, e.event_date, e.event_time, e.location, e.address, e.image_path, e.price,
+            t.barcode, t.qr_code_path, t.status AS ticket_status,
+            p.quantity
         FROM orders o
         INNER JOIN events e ON o.event_id = e.id
         LEFT JOIN payments p ON p.reference = o.transaction_reference COLLATE utf8mb4_unicode_ci
@@ -107,6 +108,8 @@ try {
             'location' => $order['location'] ?? $order['address'],
             'image_path' => $order['image_path'],
             'amount' => (float) $order['amount'],
+            'price' => (float) ($order['price'] ?? 0),
+            'quantity' => (int) ($order['quantity'] ?? 1),
             'payment_status' => $order['payment_status'],
             'refund_status' => $order['refund_status'],
             'transaction_reference' => $order['transaction_reference'],

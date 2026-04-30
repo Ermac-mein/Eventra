@@ -110,6 +110,17 @@ try {
     // ── Generate unique reference ────────────────────────────────────────────
     $reference = ($amount_kobo <= 0 ? 'FREE-' : 'EVT-') . $event_id . '-' . strtoupper(substr(uniqid(), -8));
 
+    // ── OTP Verification Check ────────────────────────────────────────────────
+    $otp_verified_ref = $_SESSION['otp_verified_ref'] ?? null;
+    $otp_verified_at  = $_SESSION['otp_verified_at']  ?? 0;
+    
+    // Validate OTP session (must match body and be within 10 minutes)
+    if (!$otp_verified_ref || (time() - $otp_verified_at) > 600) {
+        http_response_code(403);
+        echo json_encode(['success' => false, 'message' => 'Security verification required. Please complete OTP.']);
+        exit;
+    }
+
     if ($amount_kobo <= 0) {
         // --- FREE EVENT PATH ---
         try {
@@ -196,7 +207,7 @@ try {
                 'order_id'          => (int)$order_id,
                 'amount'            => 0,
                 'authorization_url' => $callbackUrl,
-                'is_free'           => false
+                'is_free'           => true
             ]);
             exit;
         } catch (Exception $e) {

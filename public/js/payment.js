@@ -60,21 +60,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (authorization_url) {
         if (paymentForm) paymentForm.style.display = 'none';
         
-        // Show OTP modal
-        showOTPModal(
-            contactInfo.email,
-            contactInfo.phone,
-            (verified) => {
-                // OTP verified - proceed to Paystack
-                window.location.href = authorization_url;
-            },
-            () => {
-                // OTP cancelled - show back button
-                Swal.fire('Payment Cancelled', 'You cancelled the OTP verification.', 'info').then(() => {
-                    window.location.href = 'checkout.html?id=' + eventId + '&quantity=' + quantity;
-                });
-            }
-        );
+        // Since OTP is now handled on checkout.html, we just proceed to Paystack
+        // If the user lands here with a pending order, we assume they've verified.
+        window.location.href = authorization_url;
         return;
     }
 
@@ -149,7 +137,7 @@ async function startPolling(reference) {
                     msg.innerHTML = `Your tickets for <strong>${escapeHTML(cleanedName)}</strong> are ready.<br>Reference: ${escapeHTML(reference)}`;
                     
                     if (order) {
-                        renderSummary(order, 1); // Pass order object and a default quantity since order might not have it in expected format
+                        renderSummary(order, order.quantity || 1);
                     }
                     
                     if (order.ticket && order.ticket.barcode) {
