@@ -9,6 +9,21 @@
 // Global variable to store server time offset
 window.serverTimeOffset = 0;
 
+window.NIGERIA_STATES = [
+  'Abia', 'Adamawa', 'Akwa Ibom', 'Anambra', 'Bauchi', 'Bayelsa', 'Benue', 'Borno', 
+  'Cross River', 'Delta', 'Ebonyi', 'Edo', 'Ekiti', 'Enugu', 'Gombe', 'Imo', 'Jigawa', 
+  'Kaduna', 'Kano', 'Katsina', 'Kebbi', 'Kogi', 'Kwara', 'Lagos', 'Nasarawa', 'Niger', 
+  'Ogun', 'Ondo', 'Osun', 'Oyo', 'Plateau', 'Sokoto', 'Taraba', 'Yobe', 'Zamfara', 'FCT'
+];
+
+window.EVENT_CATEGORIES = [
+  'Business', 'Conference', 'Workshop', 'Seminar', 'Entertainment', 'Sports', 'Exhibition', 
+  'Networking', 'Festival', 'Social', 'Educational', 'Personal', 'Religious', 
+  'Cultural', 'Community', 'Concert', 'Other'
+];
+
+window.PRIORITY_TAGS = ['nearby', 'hot', 'upcoming', 'trending', 'featured'];
+
 /**
  * Standardized Time Ago / Duration function
  * @param {string|number|Date} date - The date to compare with now
@@ -43,8 +58,18 @@ function timeAgo(date, shortForm = false) {
 
     // Handle future dates (e.g. server clock slightly ahead or scheduled events)
     if (seconds < 0) {
-        if (Math.abs(seconds) < 60) return 'Just now';
-        return 'Scheduled';
+        const absSeconds = Math.abs(seconds);
+        if (absSeconds < 60) return 'In a few seconds';
+        
+        const absMinutes = Math.floor(absSeconds / 60);
+        if (absMinutes < 60) return `In ${absMinutes} min${absMinutes > 1 ? 's' : ''}`;
+        
+        const absHours = Math.floor(absMinutes / 60);
+        if (absHours < 24) return `In ${absHours} hr${absHours > 1 ? 's' : ''}`;
+        
+        const absDays = Math.floor(absHours / 24);
+        if (absDays === 1) return 'Tomorrow';
+        return `In ${absDays} days`;
     }
 
     if (seconds < 30) return 'Just now';

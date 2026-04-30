@@ -833,6 +833,21 @@ function showEditEventModal(event) {
                     <h2 style="color: #0f172a; margin: 0; font-size: 1.5rem; font-weight: 800; letter-spacing: -0.5px;">Edit Event</h2>
                     <button class="modal-close" onclick="closeEditEventModal()" style="background: #f8fafc; color: #64748b; border: none; width: 36px; height: 36px; border-radius: 50%; font-size: 1.25rem; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s;">×</button>
                 </div>
+
+                <style>
+                    @media (max-width: 900px) {
+                        #editEventModal .modal-content {
+                            width: 95% !important;
+                            margin: 10px !important;
+                        }
+                        #editEventModal form > div {
+                            grid-template-columns: 1fr !important;
+                        }
+                        #editEventModal .modal-body {
+                            max-height: 85vh !important;
+                        }
+                    }
+                </style>
                 
                 <div class="modal-body" style="padding: 0; max-height: 82vh; overflow-y: auto; scrollbar-width: thin;">
                     <form id="editEventForm" enctype="multipart/form-data">
@@ -897,14 +912,10 @@ function showEditEventModal(event) {
                                     <div class="form-group">
                                         <label style="display: block; font-size: 0.75rem; font-weight: 800; color: #1e293b; margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;">Event Type/Category <span style="color: #ef4444">*</span></label>
                                         <select name="event_type" required style="width: 100%; padding: 1rem 1.25rem; border: 1px solid #e2e8f0; border-radius: 12px; font-size: 1rem; font-weight: 600; background: white; cursor: pointer;">
-                                            <option value="Conference" ${event.event_type === 'Conference' ? 'selected' : ''}>Conference</option>
-                                            <option value="Workshop" ${event.event_type === 'Workshop' ? 'selected' : ''}>Workshop</option>
-                                            <option value="Entertainment" ${event.event_type === 'Entertainment' ? 'selected' : ''}>Entertainment</option>
-                                            <option value="Sports" ${event.event_type === 'Sports' ? 'selected' : ''}>Sports</option>
-                                            <option value="Exhibition" ${event.event_type === 'Exhibition' ? 'selected' : ''}>Exhibition</option>
-                                            <option value="Concert" ${event.event_type === 'Concert' ? 'selected' : ''}>Concert</option>
-                                            <option value="Social" ${event.event_type === 'Social' ? 'selected' : ''}>Social</option>
-                                            <option value="Other" ${event.event_type === 'Other' ? 'selected' : ''}>Other</option>
+                                            <option value="">Select Category</option>
+                                            ${(window.EVENT_CATEGORIES || ['Conference', 'Workshop', 'Entertainment', 'Sports', 'Exhibition', 'Concert', 'Social', 'Other']).map(cat => `
+                                                <option value="${cat}" ${event.event_type === cat || event.category === cat ? 'selected' : ''}>${cat}</option>
+                                            `).join('')}
                                         </select>
                                     </div>
 

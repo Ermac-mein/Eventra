@@ -207,3 +207,30 @@
 .modal-content-animate {
     animation: slideUp 0.3s ease-out forwards;
 }
+
+/* Authentication Dividers */
+.modal-divider, .auth-divider {
+    display: flex;
+    align-items: center;
+    text-align: center;
+    margin: 1.5rem 0;
+}
+
+.modal-divider::before,
+.modal-divider::after,
+.auth-divider::before,
+.auth-divider::after {
+    content: '';
+    flex: 1;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.modal-divider span,
+.auth-divider span {
+    padding: 0 1rem;
+    font-size: 0.85rem;
+    color: #94a3b8;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}

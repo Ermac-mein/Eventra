@@ -875,21 +875,7 @@ function toggleSidebarSection(id) {
   chevron.classList.toggle('rotated', isExpanded);
 }
 
-// Hardcoded Filter Lists
-const NIGERIA_STATES = [
-  'Abia', 'Adamawa', 'Akwa Ibom', 'Anambra', 'Bauchi', 'Bayelsa', 'Benue', 'Borno', 
-  'Cross River', 'Delta', 'Ebonyi', 'Edo', 'Ekiti', 'Enugu', 'Gombe', 'Imo', 'Jigawa', 
-  'Kaduna', 'Kano', 'Katsina', 'Kebbi', 'Kogi', 'Kwara', 'Lagos', 'Nasarawa', 'Niger', 
-  'Ogun', 'Ondo', 'Osun', 'Oyo', 'Plateau', 'Sokoto', 'Taraba', 'Yobe', 'Zamfara', 'FCT'
-];
-
-const EVENT_CATEGORIES = [
-  'Business', 'Conference', 'Workshop', 'Seminar', 'Entertainment', 'Sports', 'Exhibition', 
-  'Networking', 'Festival', 'Social', 'Educational', 'Personal', 'Religious', 
-  'Cultural', 'Community', 'Concert', 'Other'
-];
-
-const PRIORITY_TAGS = ['nearby', 'hot', 'upcoming', 'trending', 'featured'];
+// Filter lists now loaded globally from utils.js
 
 // Redesigned discovery rendering with Grid and Pagination
 function renderDiscovery(events = eventsData.all) {
@@ -1097,7 +1083,11 @@ function getFilteredEvents(events, filters) {
             event.event_name.toLowerCase().includes(searchQuery) ||
             (event.description && event.description.toLowerCase().includes(searchQuery));
 
-        const matchesState = selectedStates.length === 0 || (event.state && selectedStates.includes(event.state.toLowerCase()));
+        const eventStates = (event.state || '').toLowerCase().split(',').map(s => s.trim());
+        const matchesState = selectedStates.length === 0 || 
+            selectedStates.some(s => eventStates.includes(s.toLowerCase())) || 
+            eventStates.includes('all states') || 
+            eventStates.includes('all');
         
         const matchesCategory = selectedCategories.length === 0 || 
             selectedCategories.includes((event.category || event.event_type || 'General').toLowerCase());

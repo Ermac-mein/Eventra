@@ -77,7 +77,7 @@ try {
                 0 AS is_favorite,
                 $meritScore AS merit_score,
                 $priorityLabel AS priority_label
-                $publicBase AND e.state = ? $ticketFilter
+                $publicBase AND (FIND_IN_SET(?, e.state) OR e.state = 'all' OR e.state = 'All States') $ticketFilter
                 ORDER BY merit_score DESC LIMIT 10");
             $s->execute([$state]);
             $events = $s->fetchAll();
