@@ -773,7 +773,7 @@ body {
 }
 
 .address-link:hover {
-  color: var(--primary-color);
+  color: #2563eb;
   text-decoration: underline;
   cursor: pointer;
 }
