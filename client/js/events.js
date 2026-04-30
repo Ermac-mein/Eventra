@@ -512,6 +512,7 @@ async function deleteEvent(eventId) {
 
             // Show toast with Undo action
             showUndoToast(eventId);
+            setTimeout(() => window.location.reload(), 1500);
         } else {
             // Revert optimistic UI
             if (row) {
@@ -588,6 +589,7 @@ async function undoDelete(eventId) {
             const user = storage.getUser();
             await loadEvents(user.id);
             refreshStats(user.id);
+            setTimeout(() => window.location.reload(), 1500);
         } else {
             showNotification('Failed to undo: ' + data.message, 'error');
         }
@@ -697,6 +699,7 @@ async function restoreEvent(eventId) {
             // Auto-switch to Active Events tab and reload the full list
             setTimeout(() => {
                 switchEventTab('active');
+                window.location.reload();
             }, 500);
         } else {
             // Revert
@@ -753,6 +756,7 @@ async function permanentDeleteEvent(eventId) {
                     const tbody = document.querySelector('.table-card table tbody');
                     if (tbody) tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 2rem; color: var(--client-text-muted);">🎉 Trash is empty!</td></tr>';
                 }
+                window.location.reload();
             }, 400);
         } else {
             if (row) { row.style.opacity = '1'; row.style.transform = 'translateX(0)'; }

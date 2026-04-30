@@ -519,6 +519,7 @@ function initUserIcon() {
           showNotification('Profile updated successfully!', 'success');
           if (profileSideModal) profileSideModal.classList.remove('open');
           setupUI(); // Refresh icon and label immediately
+          setTimeout(() => window.location.reload(), 1500);
         } else {
           showNotification(result.message || 'Error updating profile', 'error');
         }
@@ -824,13 +825,25 @@ function createEventCard(event, index) {
         <div class="event-date-time">${eventDate} • ${eventTime.substring(0, 5)}</div>
         <h3 class="event-title">${eventName}</h3>
         
-        <div class="event-location">
-          <a href="${mapUrl}" target="_blank" class="address-link" onclick="event.stopPropagation();">
+        <div class="event-location" style="display: flex; flex-direction: column; gap: 0.35rem; margin-top: 0.25rem;">
+          ${(event.address || event.location) ? `
+          <a href="${mapUrl}" target="_blank" class="address-link" onclick="event.stopPropagation();" style="display: flex; align-items: flex-start; gap: 0.4rem; text-decoration: none; color: inherit;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink: 0; margin-top: 0.1rem;">
+              <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/>
+            </svg>
+            <span class="location-truncate" style="line-height: 1.3;">${escapeHTML(event.address || event.location)}</span>
+          </a>` : ''}
+          ${event.state ? `
+          <div style="font-size: 0.85rem; color: #6b7280; padding-left: 1.25rem; line-height: 1.4; word-break: break-word;">
+            ${escapeHTML(event.state)}
+          </div>` : ''}
+          ${(!event.address && !event.location && !event.state) ? `
+          <div style="display: flex; align-items: center; gap: 0.4rem; color: #6b7280;">
             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/>
             </svg>
-            <span class="location-truncate">${escapeHTML(full_address)}</span>
-          </a>
+            <span class="location-truncate">TBD</span>
+          </div>` : ''}
         </div>
         
         <div class="event-card-description">${desc}</div>

@@ -787,6 +787,7 @@ async function publishEvent(eventId) {
     // ── Step 2: react to the result — UI changes ONLY on success ──
     if (publishResult.success) {
         showNotification('Event published successfully!', 'success');
+        setTimeout(() => window.location.reload(), 1500);
 
         if (typeof closeEventActionModal === 'function') {
             closeEventActionModal();
@@ -1317,11 +1318,9 @@ async function handleEventUpdate(e) {
                     window.updateEventInList(result.event);
                 } else if (typeof window.updateEventOnDashboard === 'function') {
                     window.updateEventOnDashboard(result.event);
-                } else {
-                    // Fallback to refresh if no update function is available
-                    setTimeout(() => window.location.reload(), 500);
                 }
             }
+            setTimeout(() => window.location.reload(), 500);
         } else {
             showNotification('Failed to update event: ' + result.message, 'error');
             submitBtn.textContent = originalText;

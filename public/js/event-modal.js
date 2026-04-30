@@ -126,6 +126,9 @@ function renderModalContent(container, eventData) {
   
   container.innerHTML = `
     <button class="modal-close" onclick="closeEventDetailsModal()" style="position: absolute; top: 1rem; right: 1rem; background: rgba(255,255,255,0.9); backdrop-filter: blur(8px); border: none; width: 40px; height: 40px; border-radius: 50%; font-size: 1.5rem; cursor: pointer; z-index: 10; box-shadow: 0 4px 12px rgba(0,0,0,0.1); display: flex; align-items: center; justify-content: center; transition: all 0.2s ease;">&times;</button>
+    <button class="modal-share" onclick="shareEventFromModal('${escapeHTML(eventData.id)}', '${escapeHTML(eventData.event_name.replace(/'/g, "\\'"))}', '${escapeHTML((eventData.client_name || eventData.organizer_name || 'Eventra').replace(/'/g, "\\'"))}')" style="position: absolute; top: 1rem; right: 4rem; background: rgba(255,255,255,0.9); backdrop-filter: blur(8px); border: none; width: 40px; height: 40px; border-radius: 50%; font-size: 1.2rem; cursor: pointer; z-index: 10; box-shadow: 0 4px 12px rgba(0,0,0,0.1); display: flex; align-items: center; justify-content: center; transition: all 0.2s ease;" title="Share Event">
+      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
+    </button>
     
     <div style="position: relative; height: 320px; overflow: hidden; border-radius: 20px 20px 0 0; margin: -2rem -2rem 2rem -2rem;">
       <img src="${eventImage}" onerror="this.src='../assets/default-event.jpg'" style="width: 100%; height: 100%; object-fit: cover;" alt="${eventData.event_name}">
@@ -167,15 +170,16 @@ function renderModalContent(container, eventData) {
           <div style="width: 44px; height: 44px; background: #ecfdf5; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; flex-shrink: 0;">📍</div>
           <div>
             <div style="font-size: 0.75rem; color: #6b7280; font-weight: 600; text-transform: uppercase; margin-bottom: 0.25rem;">Location</div>
-            <div style="font-weight: 600; color: #111827; font-size: 0.95rem;">${escapeHTML(eventData.location || '')} ${escapeHTML(eventData.state || 'TBD')}</div>
-            ${eventData.address ? `<div style="font-size: 0.8rem; color: #6b7280; margin-top: 0.2rem;">
-              <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(eventData.address + ', ' + (eventData.city || '') + ', ' + (eventData.state || ''))}" target="_blank" class="address-link">
+            <div style="font-weight: 600; color: #111827; font-size: 0.95rem; margin-bottom: 0.2rem;">${escapeHTML(eventData.location || '')}</div>
+            ${eventData.address ? `<div style="font-size: 0.8rem; margin-bottom: 0.3rem;">
+              <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(eventData.address + ', ' + (eventData.city || '') + ', ' + (eventData.state || ''))}" target="_blank" class="address-link" style="color: #6b7280; text-decoration: none; display: inline-flex; align-items: center;">
                 ${escapeHTML(eventData.address)}
                 <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-left: 4px;">
                   <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
                 </svg>
               </a>
             </div>` : ''}
+            <div style="font-size: 0.85rem; color: #4b5563;">${escapeHTML(eventData.state || 'TBD')}</div>
           </div>
         </div>
         
@@ -220,6 +224,32 @@ function closeEventDetailsModal() {
 function handleBuyTicket() {
   if (currentEventData) {
     window.location.href = `checkout.html?id=${currentEventData.id}&quantity=1`;
+  }
+}
+
+function shareEventFromModal(id, title, organizer) {
+  const shareTitle = `Eventra: ${title}`;
+  const shareText = `Check out ${title} organized by ${organizer} on Eventra!`;
+  
+  if (typeof shareEvent === 'function') {
+    // Pass null for event object, use global shareEvent
+    shareEvent(null, id, shareTitle, shareText);
+  } else if (navigator.share) {
+    navigator.share({
+      title: shareTitle,
+      text: shareText,
+      url: window.location.origin + '/pages/checkout.html?id=' + id
+    }).catch(console.error);
+  } else {
+    // Fallback to copy to clipboard
+    const url = window.location.origin + '/pages/checkout.html?id=' + id;
+    navigator.clipboard.writeText(url).then(() => {
+      if (typeof showNotification === 'function') {
+        showNotification('Link copied to clipboard!', 'success');
+      } else {
+        alert('Link copied to clipboard!');
+      }
+    });
   }
 }
 
