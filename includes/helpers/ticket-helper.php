@@ -126,8 +126,9 @@ function generateTicketQRCode(array $ticketData): string
         ]);
 
         $qrcode = new QRCode($options);
-        // Use raw barcode as requested: "custom ticket ID must appear as the QR code's encoded value"
-        $svgData = $qrcode->render($ticketData['barcode']);
+        // Encode a public verification URL instead of raw barcode
+        $verificationUrl = SITE_URL . '/api/tickets/validate-ticket.php?barcode=' . $ticketData['barcode'];
+        $svgData = $qrcode->render($verificationUrl);
 
         $fileName = 'qr_' . $ticketData['barcode'] . '.png';
 

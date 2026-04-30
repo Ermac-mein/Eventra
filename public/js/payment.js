@@ -134,7 +134,9 @@ async function startPolling(reference) {
                     const cleanedName = (order.event_name || '').replace(/\s*#\d+$/, '');
                     
                     // Replace confetti with the specified QR code image
-                    icon.innerHTML = `<img src="../assets/qrcode.png" alt="Ticket QR Code" style="width: 150px; height: 150px; border-radius: 1rem; margin-bottom: 1rem; box-shadow: 0 8px 16px rgba(0,0,0,0.1); border: 4px solid white;">`;
+                    const receiptUrl = `${window.location.origin}/api/payments/get-order.php?reference=${reference}`;
+                    const qrGenUrl = `${window.location.origin}/api/barcodes/generate-barcode.php?text=${encodeURIComponent(receiptUrl)}`;
+                    icon.innerHTML = `<img src="${qrGenUrl}" alt="Ticket QR Code" style="width: 150px; height: 150px; border-radius: 1rem; margin-bottom: 1rem; box-shadow: 0 8px 16px rgba(0,0,0,0.1); border: 4px solid white;">`;
                     
                     title.textContent = 'Payment Successful!';
                     msg.innerHTML = `Your tickets for <strong>${escapeHTML(cleanedName)}</strong> are ready.<br>Reference: ${escapeHTML(reference)}`;

@@ -317,12 +317,12 @@ class EmailHelper
 
         $qrHtml = $qrSafe !== ''
             ? '<img src="' . $qrSafe . '" alt="QR Code"
-                   width="130" height="130"
-                   style="width:130px;height:130px;display:block;image-rendering:pixelated;">'
-            : '<div style="width:130px;height:130px;background:#e0e0e0;
+                   width="142" height="142"
+                   style="width:142px;height:142px;display:block;border-radius:0.8rem;image-rendering:pixelated;">'
+            : '<div style="width:142px;height:142px;background:#e0e0e0;
                            display:flex;align-items:center;justify-content:center;
                            font-size:10px;color:#aaa;letter-spacing:1px;
-                           border-radius:4px;">NO QR</div>';
+                           border-radius:1rem;">NO QR</div>';
 
         /* ── 5. Event banner image ────────────────────────────── */
         $imgRaw = trim((string) ($ticketData['event_image'] ?? ''));
@@ -573,12 +573,14 @@ class EmailHelper
             width: 150px;
             height: 150px;
             background: white;
-            border-radius: 12px;
+            border-radius: 1rem;
             margin: 0 auto 15px;
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 8px;
+            padding: 4px;
+            border: 4px solid white;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
         }
         .barcode-text {
             font-family: 'Barlow Condensed', sans-serif;
