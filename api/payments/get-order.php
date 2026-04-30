@@ -29,12 +29,13 @@ try {
             e.event_name, e.event_date, e.event_time, e.location, e.address, e.image_path, e.price,
             t.barcode, u.name as user_name, a.email as user_email
         FROM orders o
-        INNER JOIN events e ON o.event_id = e.id
-        INNER JOIN users u ON o.user_id = u.id
-        INNER JOIN auth_accounts a ON u.user_auth_id = a.id
+        JOIN events e ON o.event_id = e.id
+        JOIN users u ON o.user_id = u.id
+        JOIN auth_accounts a ON u.user_auth_id = a.id
         LEFT JOIN payments p ON p.reference = o.transaction_reference
-        LEFT JOIN tickets t ON (t.order_id = o.id OR (p.id IS NOT NULL AND t.payment_id = p.id))
+        LEFT JOIN tickets t ON t.order_id = o.id
         WHERE o.transaction_reference = ?
+        ORDER BY t.id DESC
         LIMIT 1
     ");
     $stmt->execute([$reference]);
@@ -120,11 +121,17 @@ try {
     </html>
     <?php
 
-} catch (Exception $e) {
-    error_log("[get-order.php] Error: " . $e->getMessage());
+} catch (Throwable $e) {
+    error_log("[get-order.php] Fatal Error: " . $e->getMessage() . " in " . $e->getFile() . ":" . $e->getLine());
+    if (ob_get_length()) ob_clean();
     header('Content-Type: application/json');
     http_response_code(500);
-    echo json_encode(['success' => false, 'message' => 'Error retrieving receipt.']);
+    echo json_encode([
+        'success' => false, 
+        'message' => 'Error retrieving receipt: ' . $e->getMessage(),
+        'file' => basename($e->getFile()),
+        'line' => $e->getLine()
+    ]);
 }
 
 

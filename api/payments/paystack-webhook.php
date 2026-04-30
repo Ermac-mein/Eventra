@@ -136,12 +136,13 @@ function processSuccessfulPayment(PDO $pdo, array $order, array $psData): void
                 $ticketCustomId = generateTicketId($pdo);
 
                 $pdo->prepare("
-                    INSERT INTO tickets (user_id, event_id, payment_id, custom_id, barcode, status)
-                    VALUES (?, ?, ?, ?, ?, 'valid')
+                    INSERT INTO tickets (user_id, event_id, payment_id, order_id, custom_id, barcode, status)
+                    VALUES (?, ?, ?, ?, ?, ?, 'valid')
                 ")->execute([
                     $order['user_id'],
                     $order['event_id'],
                     $payment_id,
+                    $order['id'],
                     $ticketCustomId,
                     $barcode,
                 ]);

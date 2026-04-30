@@ -50,6 +50,18 @@ foreach ($files as $jobFile) {
 
         $reference = $jobData['reference'];
         $payment_id = $jobData['payment_id'];
+        
+        // --- Security Check: Ensure payment is confirmed in DB before sending ---
+        $stmtStatus = $pdo->prepare("SELECT status FROM payments WHERE id = ?");
+        $stmtStatus->execute([$payment_id]);
+        $dbStatus = $stmtStatus->fetchColumn();
+
+        if ($dbStatus !== 'paid' && $dbStatus !== 'success') {
+            error_log("[process-ticket-queue.php] Skipping job for reference $reference: Payment status is $dbStatus (not paid/success).");
+            @unlink($jobFile);
+            continue;
+        }
+
         $order_id = $jobData['order_id'];
         $barcodes = $jobData['barcodes'] ?? [];
         $ticket_ids = $jobData['ticket_ids'] ?? [];

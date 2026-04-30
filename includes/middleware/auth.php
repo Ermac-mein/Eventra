@@ -181,12 +181,26 @@ function checkAuth($requiredRole = null)
                 $pdo = getPDO();
 
                 // Set session variables for Bearer token auth
-                $stmt = $pdo->prepare("SELECT id, role FROM auth_accounts WHERE id = ?");
+                $stmt = $pdo->prepare("SELECT id, role, is_active, deleted_at FROM auth_accounts WHERE id = ?");
                 $stmt->execute([$auth_id]);
-                $account = $stmt->fetch(PDO::FETCH_ASSOC);
+                $user = $stmt->fetch(PDO::FETCH_ASSOC);
+
+                if (!$user) {
+                    error_log("[checkAuth] Auth ID $auth_id not found in auth_accounts.");
+                    return null;
+                }
+
+                if ($requiredRole && $user['role'] !== $requiredRole) {
+                    error_log("[checkAuth] Role mismatch for $auth_id: expected $requiredRole, got " . $user['role']);
+                    return null;
+                }
                 
-                if ($account) {
-                    $role = $account['role'];
+                if (!$user['is_active'] || $user['deleted_at']) {
+                    error_log("[checkAuth] User $auth_id is inactive or deleted.");
+                    return null;
+                }
+                    
+                    $role = $user['role'];
                     
                     // Set auth_id and role in session
                     $_SESSION['auth_id'] = $auth_id;
@@ -213,8 +227,7 @@ function checkAuth($requiredRole = null)
                     }
                     
                     $userId = $profileId ?? $auth_id;
-                }
-            } catch (PDOException $e) {
+                } catch (PDOException $e) {
                 error_log("Auth DB error: " . $e->getMessage());
                 if (isset($_SERVER['REQUEST_URI']) && strpos($_SERVER['REQUEST_URI'], '/api/') !== false) {
                     if (!headers_sent()) header('Content-Type: application/json');

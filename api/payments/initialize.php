@@ -118,7 +118,12 @@ try {
     // Validate OTP session (must match body and be within 10 minutes)
     if (!$otp_verified_ref || (time() - $otp_verified_at) > 600) {
         http_response_code(403);
-        echo json_encode(['success' => false, 'message' => 'Security verification required. Please complete OTP.']);
+        echo json_encode([
+            'success' => false, 
+            'message' => 'Security verification required. Please complete OTP.',
+            'auth_id' => $auth_id,
+            'reason' => 'otp_missing_or_expired'
+        ]);
         exit;
     }
 

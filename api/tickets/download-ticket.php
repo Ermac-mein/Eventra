@@ -42,6 +42,21 @@ try {
         exit;
     }
 
+    // Security Enforcement: Block downloads if ticket is cancelled or payment isn't confirmed
+    if ($ticket['status'] === 'cancelled') {
+        http_response_code(403);
+        header('Content-Type: application/json');
+        echo json_encode(['success' => false, 'message' => 'This ticket has been cancelled and cannot be downloaded.']);
+        exit;
+    }
+
+    if ($ticket['payment_status'] !== 'paid' && $ticket['payment_status'] !== 'success') {
+        http_response_code(403);
+        header('Content-Type: application/json');
+        echo json_encode(['success' => false, 'message' => 'Payment for this ticket has not been confirmed.']);
+        exit;
+    }
+
     // Build file path
     $pdfPath = __DIR__ . '/../../public/assets/event_assets/tickets/ticket_' . $barcode . '.pdf';
 

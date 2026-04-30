@@ -18,18 +18,19 @@ if (!$barcode) {
 
 try {
     $stmt = $pdo->prepare("
-        SELECT t.*, e.event_name, e.event_date, e.event_time, e.location, e.address, u.name as user_name 
+        SELECT t.*, e.event_name, e.event_date, e.event_time, e.location, e.address, u.name as user_name, p.status as payment_status 
         FROM tickets t
         JOIN events e ON t.event_id = e.id
         JOIN users u ON t.user_id = u.id
+        JOIN payments p ON t.payment_id = p.id
         WHERE t.barcode = ?
     ");
     $stmt->execute([$barcode]);
     $ticket = $stmt->fetch();
 
-    if (!$ticket) {
+    if (!$ticket || ($ticket['payment_status'] !== 'paid' && $ticket['payment_status'] !== 'success')) {
         header('Content-Type: application/json');
-        echo json_encode(['success' => false, 'message' => 'Invalid ticket barcode']);
+        echo json_encode(['success' => false, 'message' => 'Ticket invalid or payment not confirmed']);
         exit;
     }
 
