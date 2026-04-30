@@ -179,7 +179,7 @@ function renderModalContent(container, eventData) {
                 </svg>
               </a>
             </div>` : ''}
-            <div style="font-size: 0.85rem; color: #4b5563;">${escapeHTML(eventData.state || 'TBD')}</div>
+            <div style="font-size: 0.85rem; color: #4b5563; line-height: 1.5; margin-top: 0.5rem; display: block;">${escapeHTML(eventData.state || 'TBD').replace(/,/g, ', ')}</div>
           </div>
         </div>
         
@@ -194,7 +194,15 @@ function renderModalContent(container, eventData) {
       
       <div style="margin-bottom: 2.5rem;">
         <h3 style="font-size: 1.1rem; color: #111827; margin-bottom: 1rem; font-weight: 700; letter-spacing: -0.01em;">About this event</h3>
-        <div style="color: #4b5563; line-height: 1.8; font-size: 0.95rem; white-space: pre-line;">${escapeHTML(eventData.description || 'No description provided for this event.')}</div>
+        <div style="color: #4b5563; line-height: 1.8; font-size: 0.95rem; white-space: pre-line; margin-bottom: 1.5rem;">${escapeHTML(eventData.description || 'No description provided for this event.')}</div>
+        
+        <h4 style="font-size: 0.95rem; color: #111827; margin-bottom: 0.5rem; font-weight: 600;">Share with friends</h4>
+        <div style="display: flex; align-items: center; gap: 0.5rem; background: #f3f4f6; padding: 0.5rem; border-radius: 8px;">
+          <input type="text" readonly value="${window.location.origin}/pages/checkout.html?id=${eventData.id}" style="flex: 1; background: transparent; border: none; outline: none; color: #4b5563; font-size: 0.9rem; padding: 0.25rem 0.5rem;" id="eventShareLink_${eventData.id}">
+          <button onclick="copyEventLink('eventShareLink_${eventData.id}')" style="background: white; border: 1px solid #d1d5db; border-radius: 6px; padding: 0.5rem; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; box-shadow: 0 1px 2px rgba(0,0,0,0.05);" onmouseover="this.style.background='#f9fafb'" onmouseout="this.style.background='white'" title="Copy link">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4b5563" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+          </button>
+        </div>
       </div>
       
       <div style="margin-bottom: 2rem;">
@@ -249,6 +257,23 @@ function shareEventFromModal(id, title, organizer) {
       } else {
         alert('Link copied to clipboard!');
       }
+    });
+  }
+}
+
+function copyEventLink(inputId) {
+  const linkInput = document.getElementById(inputId);
+  if (linkInput) {
+    linkInput.select();
+    linkInput.setSelectionRange(0, 99999);
+    navigator.clipboard.writeText(linkInput.value).then(() => {
+      if (typeof showNotification === 'function') {
+        showNotification('Link copied to clipboard!', 'success');
+      } else {
+        alert('Link copied to clipboard!');
+      }
+    }).catch(err => {
+      console.error('Failed to copy link: ', err);
     });
   }
 }
@@ -353,6 +378,7 @@ window.openEventDetailsModal = openEventDetailsModal;
 window.closeEventDetailsModal = closeEventDetailsModal;
 window.handleBuyTicket = handleBuyTicket;
 window.allEventsData = allEventsData;
+window.copyEventLink = copyEventLink;
 
 // Initialize enhanced search when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
