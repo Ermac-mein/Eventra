@@ -827,7 +827,7 @@ function createEventCard(event, index) {
         
         <div class="event-location" style="display: flex; flex-direction: column; align-items: flex-start; text-align: left; gap: 0.35rem; margin-top: 0.25rem;">
           ${(event.address || event.location) ? `
-          <a href="${mapUrl}" target="_blank" class="address-link" onclick="event.stopPropagation();" style="display: flex; align-items: flex-start; gap: 0.4rem; text-decoration: none; color: inherit; width: 100%;">
+          <a href="${mapUrl}" target="_blank" class="address-link" onclick="event.stopPropagation();" style="display: flex; align-items: flex-start; gap: 0.4rem; width: 100%;">
             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink: 0; margin-top: 0.1rem;">
               <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/>
             </svg>
@@ -1471,13 +1471,27 @@ function showEventModal(eventId) {
   if (window.lucide) window.lucide.createIcons();
   if (document.getElementById('modalEventDate')) document.getElementById('modalEventDate').textContent = (event.event_date || '').split('-').reverse().join('/');
   if (document.getElementById('modalEventTime')) document.getElementById('modalEventTime').textContent = event.event_time || 'TBA';
-  const full_address = `${event.address || ''}, ${event.city || ''}, ${event.state || ''}`.replace(/^, /, '').replace(/, , /g, ', ').replace(/, $/, '') || 'Nigeria';
-  const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(full_address || 'Nigeria')}`;
+  const addressStr = escapeHTML(event.address || '');
+  const cityStr = escapeHTML(event.city || '');
+  let stateStr = escapeHTML(event.state || '');
+  if (stateStr) stateStr = stateStr.replace(/,/g, ', ');
+  const firstLine = [addressStr, cityStr].filter(Boolean).join(', ');
+  const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(firstLine + (stateStr ? ', ' + stateStr : '') || 'Nigeria')}`;
+  let locationHTML = '';
+  if (firstLine) {
+     locationHTML += `<a href="${mapUrl}" target="_blank" class="address-link" style="display: block;">${firstLine}</a>`;
+     if (stateStr) locationHTML += `<div style="margin-top: 0.75rem; font-size: 0.9em; line-height: 1.6; color: #4b5563; display: block;">${stateStr}</div>`;
+  } else if (stateStr) {
+     locationHTML += `<div style="line-height: 1.6; color: inherit;">${stateStr}</div>`;
+  } else {
+     locationHTML += `Nigeria`;
+  }
   if (document.getElementById('modalEventLocation')) {
-      document.getElementById('modalEventLocation').innerHTML = `<a href="${mapUrl}" target="_blank" class="address-link">${escapeHTML(full_address)}</a>`;
+      document.getElementById('modalEventLocation').innerHTML = locationHTML;
   }
   if (document.getElementById('modalEventDescription')) document.getElementById('modalEventDescription').textContent = event.description || 'No description available';
   if (document.getElementById('modalEventCategory')) document.getElementById('modalEventCategory').textContent = event.category || event.event_type || 'General';
+  if (document.getElementById('modalEventShareLink')) document.getElementById('modalEventShareLink').value = `${window.location.origin}/public/pages/checkout.html?id=${event.id}`;
   const modalPrice = !event.price || parseFloat(event.price) === 0 ? 'Free' : `₦${parseFloat(event.price).toLocaleString()}`;
   if (document.getElementById('modalEventPrice')) document.getElementById('modalEventPrice').textContent = modalPrice;
 
