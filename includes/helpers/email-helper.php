@@ -218,13 +218,23 @@ class EmailHelper
         return htmlspecialchars($v, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
     }
 
+    private static function resolveImageUrl(string $path): string
+    {
+        if (empty($path)) return '';
+        if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://') || str_starts_with($path, 'data:image/')) {
+            return $path;
+        }
+        $appUrl = rtrim((string) ($_ENV['APP_URL'] ?? SITE_URL ?? ''), '/');
+        return $appUrl . '/' . ltrim($path, '/');
+    }
+
     private static function detailRow(string $label, string $value, bool $priceStyle = false): string
     {
         $valueStyle = $priceStyle
             ? 'font-family:\'Barlow Condensed\',Arial,sans-serif;font-size:17px;font-weight:800;color:#d4af37;line-height:1.2;display:block;'
             : 'font-family:\'Barlow Condensed\',Arial,sans-serif;font-size:15px;font-weight:600;color:#d4af37;line-height:1.2;display:block;';
 
-        return '<div style="margin-bottom:14px;">'
+        return '<div style="margin-bottom:14px;word-break:break-word;">'
             . '<span style="display:block;font-family:\'Barlow Condensed\',Arial,sans-serif;'
             . 'font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;'
             . 'color:rgba(255,255,255,0.30);margin-bottom:3px;">'
@@ -246,12 +256,20 @@ class EmailHelper
         $ticketId = self::esc($ticketData['ticket_id'] ?? ($ticketData['barcode'] ?? ''));
         $eventTitle = self::esc($ticketData['event_name'] ?? 'LIVE CONCERT');
         $userName = self::esc($ticketData['user_name'] ?? 'Attendee');
+        
+        // Venue (Address) and Location (States)
+        $venue = self::esc($ticketData['address'] ?? '—');
         $location = self::esc($ticketData['location'] ?? '—');
-        $state = self::esc($ticketData['state'] ?? '');
+        
         $organizer = self::esc($ticketData['organizer'] ?? '');
         $ticketType = self::esc($ticketData['ticket_type'] ?? '');
         $tickDispRaw = $ticketData['ticket_type_display']
             ?? ($ticketData['ticket_type'] ?? '');
+            
+        // Dynamic Ticket Type Logic
+        if (isset($ticketData['amount']) && (float)$ticketData['amount'] <= 0) {
+            $tickDispRaw = 'Free';
+        }
         $tickDisp = self::esc($tickDispRaw);
         $year = date('Y');
 
@@ -274,7 +292,26 @@ class EmailHelper
 
         /* ── 4. QR code ──────────────────────────────────────── */
         $qrRaw = trim((string) ($ticketData['qr_base64'] ?? ''));
-        $qrSafe = (str_starts_with($qrRaw, 'data:image/') && strlen($qrRaw) > 100)
+        
+        // Ensure QR code is present or generated
+        if ($qrRaw === '' && !empty($barcode)) {
+            // Check if we can generate it using the library
+            if (class_exists('chillerlan\QRCode\QRCode')) {
+                try {
+                    $options = new \chillerlan\QRCode\QROptions([
+                        'version'    => \chillerlan\QRCode\QRCode::VERSION_AUTO,
+                        'outputType' => \chillerlan\QRCode\QRCode::OUTPUT_IMAGE_PNG,
+                        'eccLevel'   => \chillerlan\QRCode\QRCode::ECC_M,
+                    ]);
+                    $qrcode = new \chillerlan\QRCode\QRCode($options);
+                    $qrRaw = $qrcode->render($barcode);
+                } catch (\Throwable $e) {
+                    error_log('[EmailHelper] Dynamic QR generation failed: ' . $e->getMessage());
+                }
+            }
+        }
+
+        $qrSafe = ($qrRaw !== '' && (str_starts_with($qrRaw, 'data:image/') || str_starts_with($qrRaw, 'http')))
             ? $qrRaw
             : '';
 
@@ -289,11 +326,7 @@ class EmailHelper
 
         /* ── 5. Event banner image ────────────────────────────── */
         $imgRaw = trim((string) ($ticketData['event_image'] ?? ''));
-        $imgSafe = ($imgRaw !== '' && (
-            str_starts_with($imgRaw, 'data:image/') ||
-            str_starts_with($imgRaw, 'http://') ||
-            str_starts_with($imgRaw, 'https://')
-        )) ? $imgRaw : '';
+        $imgSafe = self::resolveImageUrl($imgRaw);
 
         $eventImgHtml = $imgSafe !== ''
             ? '<img src="' . $imgSafe . '" alt="Event" width="100%"
@@ -338,10 +371,8 @@ class EmailHelper
         /* ── 7. Build Col A (left detail column) ─────────────── */
         $colA = self::detailRow('Date', $eventDate);
         $colA .= self::detailRow('Time', $eventTime);
-        $colA .= self::detailRow('Venue', $location);
-        if ($state !== '') {
-            $colA .= self::detailRow('State', $state);
-        }
+        $colA .= self::detailRow('Venue', $venue);
+        $colA .= self::detailRow('Location', $location);
 
         /* ── 8. Build Col B (right detail column) ────────────── */
         $colB = '';
@@ -445,33 +476,20 @@ class EmailHelper
 
         .event-title {
             font-family: 'Bebas Neue', cursive;
-            font-size: 52px;
-            line-height: 1.0;
+            font-size: 42px; /* Slightly reduced for better fit */
+            line-height: 1.1;
             color: #ffffff;
-            letter-spacing: 2px;
+            letter-spacing: 1px;
             text-transform: uppercase;
-            margin-bottom: 10px;
-            word-break: break-word;
-        }
-
-        .details-grid {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 20px;
-            margin-top: 20px;
-        }
-        .detail-col {
-            flex: 1;
-            min-width: 150px;
+            margin-bottom: 12px;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
         }
 
         .holder-section {
             margin-top: 30px;
             padding-top: 20px;
             border-top: 1px solid rgba(212,175,55,0.2);
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
         }
         .holder-info h4 {
             font-size: 9px;
@@ -485,6 +503,10 @@ class EmailHelper
             font-size: 20px;
             font-weight: 800;
             color: #fff;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 250px;
         }
         .ticket-id {
             text-align: right;
@@ -600,20 +622,29 @@ class EmailHelper
                     <div class="live-concert-badge">{$liveConcertLabel}</div>
                     <h1 class="event-title">{$eventTitle}</h1>
                     {$badgeHtml}
-                    <div class="details-grid">
-                        <div class="detail-col">{$colA}</div>
-                        <div class="detail-col">{$colB}</div>
-                    </div>
-                    <div class="holder-section">
-                        <div class="holder-info">
-                            <h4>Ticket Holder</h4>
-                            <div class="name">{$userName}</div>
-                        </div>
-                        <div class="ticket-id">
-                            <div class="label">Ticket ID</div>
-                            <div class="value">{$ticketId}</div>
-                        </div>
-                    </div>
+                    <table width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation" style="margin-top:20px;">
+                        <tr>
+                            <td width="50%" valign="top">{$colA}</td>
+                            <td width="50%" valign="top">{$colB}</td>
+                        </tr>
+                    </table>
+
+                    <table width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation" style="margin-top:30px;padding-top:20px;border-top:1px solid rgba(212,175,55,0.2);">
+                        <tr>
+                            <td align="left" valign="middle">
+                                <div class="holder-info">
+                                    <h4>Ticket Holder</h4>
+                                    <div class="name">{$userName}</div>
+                                </div>
+                            </td>
+                            <td align="right" valign="middle">
+                                <div class="ticket-id">
+                                    <div class="label">Ticket ID</div>
+                                    <div class="value">{$ticketId}</div>
+                                </div>
+                            </td>
+                        </tr>
+                    </table>
                 </div>
             </td>
             <td class="td-perf"></td>

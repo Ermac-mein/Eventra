@@ -69,7 +69,7 @@ try {
     // ── Fetch event + organizer subaccount ─────────────────────────────────
     $eStmt = $pdo->prepare("
         SELECT e.id, e.event_name, e.price, e.status, e.max_capacity, e.attendee_count,
-               e.event_date, e.event_time, e.state,
+               e.event_date, e.event_time, e.state, e.address, e.location, e.image_path,
                e.client_id AS organizer_id,
                c.subaccount_code, c.verification_status
         FROM events e
@@ -171,10 +171,12 @@ try {
                     'event_name' => $event['event_name'],
                     'event_date' => $event['event_date'],
                     'event_time' => $event['event_time'],
-                    'location' => $event['state'] ?? 'Nigeria',
-                    'user_name' => $user_name,
+                    'location'   => $event['location'] ?? $event['state'] ?? 'Nigeria',
+                    'address'    => $event['address'] ?? '',
+                    'event_image'=> $event['image_path'] ?? '',
+                    'user_name'  => $user_name,
                     'payment_status' => 'paid',
-                    'amount' => 0
+                    'amount'     => 0
                 ];
                 $qrPath = generateTicketQRCode($ticketData);
                 $pdfPath = generateTicketPDF($ticketData);
