@@ -133,23 +133,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                 return;
             }
 
-            // 3. OTP Verification
-            if (typeof showOTPModal === 'function') {
-                showOTPModal(email, phone, async (otpReference) => {
-                    // Success Callback: Proceed to Initialize Order
-                    await proceedToPayment(eventId, currentQuantity, fname, lname, email, phone, payBtn, eventData, otpReference);
-                }, () => {
-                    // Cancel Callback: Re-enable button
-                    resetPayBtn(eventData, currentQuantity);
-                });
-            } else {
-                // Fallback if OTP modal helper is missing
-                await proceedToPayment(eventId, currentQuantity, fname, lname, email, phone, payBtn, eventData);
-            }
+            // 3. Proceed to Payment directly
+            await proceedToPayment(eventId, currentQuantity, fname, lname, email, phone, payBtn, eventData);
         });
     }
 
-    async function proceedToPayment(eventId, currentQuantity, fname, lname, email, phone, payBtn, eventData, otpReference = null) {
+    async function proceedToPayment(eventId, currentQuantity, fname, lname, email, phone, payBtn, eventData) {
         // Disable button & show loading
         payBtn.disabled = true;
         payBtn.innerHTML = '<span class="btn-spinner"></span> Initializing...';
@@ -161,8 +150,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     event_id: eventId,
-                    quantity: currentQuantity,
-                    otp_reference: otpReference
+                    quantity: currentQuantity
                 })
             });
             

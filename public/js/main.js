@@ -833,9 +833,9 @@ function createEventCard(event, index) {
             </svg>
             <span class="location-truncate" style="line-height: 1.3;">${escapeHTML(event.address || event.location)}</span>
           </a>` : ''}
-          ${event.state ? `
+          ${(event.city || event.state) ? `
           <div style="font-size: 0.85rem; color: #6b7280; padding-left: 1.25rem; line-height: 1.5; word-break: break-word; margin-top: 0.5rem;">
-            ${escapeHTML(event.state).replace(/,/g, ', ')}
+            ${[event.city, event.state].filter(Boolean).map(escapeHTML).join(', ')}
           </div>` : ''}
           ${(!event.address && !event.location && !event.state) ? `
           <div style="display: flex; align-items: center; gap: 0.4rem; color: #6b7280;">

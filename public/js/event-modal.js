@@ -179,7 +179,7 @@ function renderModalContent(container, eventData) {
                 </svg>
               </a>
             </div>` : ''}
-            <div style="font-size: 0.85rem; color: #4b5563; line-height: 1.5; margin-top: 0.5rem; display: block;">${escapeHTML(eventData.state || 'TBD').replace(/,/g, ', ')}</div>
+            <div style="font-size: 0.85rem; color: #4b5563; line-height: 1.5; margin-top: 0.5rem; display: block;">${[eventData.city, eventData.state].filter(Boolean).map(escapeHTML).join(', ') || 'TBD'}</div>
           </div>
         </div>
         
