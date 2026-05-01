@@ -29,14 +29,20 @@ try {
     // Use user_id directly (it is client_id from clientMiddleware)
     $resolved_client_id = $user_id;
 
-    // Get event details with client auth id
-    $stmt = $pdo->prepare("
-        SELECT e.*, c.client_auth_id 
-        FROM events e 
-        JOIN clients c ON e.client_id = c.id 
-        WHERE e.id = ?
-    ");
-    $stmt->execute([$event_id]);
+    // Get event details with client auth id - Scoped to client
+    $sql = "SELECT e.*, c.client_auth_id 
+            FROM events e 
+            JOIN clients c ON e.client_id = c.id 
+            WHERE e.id = ?";
+    $params = [$event_id];
+
+    if ($role !== 'admin') {
+        $sql .= " AND e.client_id = ?";
+        $params[] = $resolved_client_id;
+    }
+
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute($params);
     $event = $stmt->fetch();
 
     if (!$event) {
@@ -57,8 +63,17 @@ try {
     $pdo->beginTransaction();
 
     // Update event status to published and ensure admin_status is approved
-    $stmt = $pdo->prepare("UPDATE events SET status = 'published', admin_status = 'approved' WHERE id = ?");
-    $stmt->execute([$event_id]);
+    // Update event status to published and ensure admin_status is approved
+    $sql = "UPDATE events SET status = 'published', admin_status = 'approved' WHERE id = ?";
+    $params = [$event_id];
+
+    if ($role !== 'admin') {
+        $sql .= " AND client_id = ?";
+        $params[] = $resolved_client_id;
+    }
+
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute($params);
 
     // Commit the DB change FIRST — publish is persisted regardless of notification outcome
     $pdo->commit();

@@ -12,24 +12,28 @@ class Ticket
     /**
      * Validate a ticket and mark it as used (atomic, locked transaction).
      *
-     * Checks (in order):
-     *   1. Ticket exists
-     *   2. Payment is confirmed (paid)
-     *   3. Event has not expired (event_date >= today)
-     *   4. Ticket has not already been used (single-entry)
-     *   5. Marks ticket as used atomically
-     *
      * @param PDO    $pdo
-     * @param string $barcode  Raw barcode string OR base64-encoded signed QR payload
+     * @param string $barcode          Raw barcode string OR base64-encoded signed QR payload
+     * @param int|null $scannerClientId Optional: Enforce that the ticket belongs to this client's event.
      * @return array ['success' => bool, 'message' => string, 'data' => array|null]
      */
-    public static function validateAndUse(PDO $pdo, string $barcode): array
+    public static function validateAndUse(PDO $pdo, string $barcode, ?int $scannerClientId = null): array
     {
         // 1. Try to decode as a signed QR payload
         $resolvedBarcode = self::resolveBarcode($barcode);
 
         $pdo->beginTransaction();
         try {
+            $whereClauses = ["t.barcode = ?"];
+            $params = [$resolvedBarcode];
+
+            if ($scannerClientId !== null) {
+                $whereClauses[] = "e.client_id = ?";
+                $params[] = $scannerClientId;
+            }
+
+            $whereSql = implode(" AND ", $whereClauses);
+
             $stmt = $pdo->prepare("
                 SELECT t.*,
                        p.status  AS payment_status,
@@ -37,6 +41,7 @@ class Ticket
                        e.event_name,
                        e.event_date,
                        e.id      AS event_id,
+                       e.client_id,
                        c.business_name AS client_name,
                        u.name AS buyer_name,
                        a.email AS buyer_email
@@ -46,11 +51,12 @@ class Ticket
                 JOIN clients  c ON e.client_id  = c.id
                 JOIN users    u ON t.user_id     = u.id
                 JOIN auth_accounts a ON u.user_auth_id = a.id
-                WHERE t.barcode = ?
+                WHERE $whereSql
                 FOR UPDATE
             ");
-            $stmt->execute([$resolvedBarcode]);
+            $stmt->execute($params);
             $ticket = $stmt->fetch(PDO::FETCH_ASSOC);
+
 
             // Check: ticket exists
             if (!$ticket) {

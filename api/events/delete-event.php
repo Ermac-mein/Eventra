@@ -43,13 +43,20 @@ if (!$event_id) {
 
 try {
     // Get event details before deletion
-    $stmt = $pdo->prepare("
-        SELECT e.event_name, e.client_id, c.client_auth_id 
-        FROM events e 
-        JOIN clients c ON e.client_id = c.id 
-        WHERE e.id = ?
-    ");
-    $stmt->execute([$event_id]);
+    // Build scoped SELECT
+    $sql = "SELECT e.event_name, e.client_id, c.client_auth_id 
+            FROM events e 
+            JOIN clients c ON e.client_id = c.id 
+            WHERE e.id = ?";
+    $params = [$event_id];
+
+    if ($user_role === 'client') {
+        $sql .= " AND e.client_id = ?";
+        $params[] = $user_id;
+    }
+
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute($params);
     $event = $stmt->fetch();
 
     if (!$event) {
@@ -77,8 +84,16 @@ try {
     }
 
     // Soft delete the event (set deleted_at timestamp)
-    $stmt = $pdo->prepare("UPDATE events SET deleted_at = NOW() WHERE id = ?");
-    $stmt->execute([$event_id]);
+    $sql = "UPDATE events SET deleted_at = NOW() WHERE id = ?";
+    $params = [$event_id];
+
+    if ($user_role === 'client') {
+        $sql .= " AND client_id = ?";
+        $params[] = $user_id;
+    }
+
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute($params);
 
     // Define metadata for notifications
     $metadata = ['event_id' => $event_id, 'event_name' => $event['event_name']];

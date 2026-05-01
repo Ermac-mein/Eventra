@@ -185,6 +185,36 @@ try {
     $event_visibility = $_POST['event_visibility'] ?? 'public'; // public or private
     $price = $_POST['price'] ?? 0.00;
 
+    // ── Parse per-state locations JSON ───────────────────────────────────────
+    $locations_json = null;
+    $raw_locations = $_POST['locations_json'] ?? null;
+    if ($raw_locations) {
+        $decoded = json_decode($raw_locations, true);
+        if (is_array($decoded) && count($decoded) > 0) {
+            // Sanitise each entry
+            $clean_locations = [];
+            foreach ($decoded as $loc) {
+                $s = trim($loc['state'] ?? '');
+                $a = trim($loc['address'] ?? '');
+                if ($s !== '') {
+                    $clean_locations[] = ['state' => $s, 'address' => $a];
+                }
+            }
+            if (!empty($clean_locations)) {
+                $locations_json = json_encode($clean_locations);
+                // Keep $state as comma-joined list for backward-compat
+                if (empty($state)) {
+                    $state = implode(',', array_column($clean_locations, 'state'));
+                }
+                // Use first entry as canonical address fallback
+                if (empty($address) && !empty($clean_locations[0]['address'])) {
+                    $address = $clean_locations[0]['address'];
+                }
+            }
+        }
+    }
+    // ─────────────────────────────────────────────────────────────────────────
+
     // New pricing fields
     $ticket_type = $_POST['ticket_type'] ?? 'regular';
     $ticket_type_mode = $_POST['ticket_type_mode'] ?? 'all';
@@ -340,8 +370,8 @@ try {
             external_link, price, image_path, status, scheduled_publish_time, 
             category, event_visibility, ticket_count, total_tickets, 
             sales_count, view_count, is_boosted, admin_status,
-            latitude, longitude, metadata
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            latitude, longitude, metadata, locations
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ");
 
     $stmt->execute([
@@ -373,7 +403,8 @@ try {
         'approved',        // admin_status — automatically approved to be visible when published
         $latitude,
         $longitude,
-        $metadata_json
+        $metadata_json,
+        $locations_json    // per-state address map (JSON)
     ]);
 
     $event_id = $pdo->lastInsertId();

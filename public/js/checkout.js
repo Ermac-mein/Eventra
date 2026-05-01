@@ -174,29 +174,29 @@ document.addEventListener('DOMContentLoaded', async () => {
                         phone: phone
                     }
                 };
-                
                 sessionStorage.setItem('pending_order', JSON.stringify(orderData));
-                
-                // Redirect to payment.html (handled by authorization_url)
                 window.location.href = result.authorization_url;
+
+            } else if (result.reason === 'otp_missing_or_expired') {
+                // Paid event only — free events never reach this branch
+                resetPayBtn(eventData, currentQuantity);
+                showOTPModal(email, phone, async (newOtpRef) => {
+                    await proceedToPayment(eventId, currentQuantity, fname, lname, email, phone, payBtn, eventData, newOtpRef);
+                }, () => {
+                    resetPayBtn(eventData, currentQuantity);
+                });
+
             } else {
                 Swal.fire('Error', result.message || 'Payment initialization failed.', 'error');
                 resetPayBtn(eventData, currentQuantity);
             }
         } catch (err) {
             const errMsg = err?.message || 'Could not connect to payment server. Please check your connection and try again.';
-            
-            // Check if it's a security/OTP requirement
             if (errMsg.toLowerCase().includes('otp') || errMsg.toLowerCase().includes('security verification')) {
-                // Reset button state first
                 resetPayBtn(eventData, currentQuantity);
-                
-                // Trigger OTP Modal
                 showOTPModal(email, phone, async (newOtpRef) => {
-                    // Retry with the new reference
                     await proceedToPayment(eventId, currentQuantity, fname, lname, email, phone, payBtn, eventData, newOtpRef);
                 }, () => {
-                    // On cancel, ensure button is in correct state
                     resetPayBtn(eventData, currentQuantity);
                 });
             } else {

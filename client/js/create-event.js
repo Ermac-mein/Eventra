@@ -450,6 +450,9 @@ function showCreateEventModal() {
     const createEventForm = document.getElementById('createEventForm');
     createEventForm.addEventListener('submit', handleEventCreation);
 
+    // Inject the per-state address container below the main address textarea
+    injectPerStateContainer();
+
     // Add persistence: save on input
     createEventForm.addEventListener('input', () => saveFormState('createEventForm'));
     createEventForm.addEventListener('change', () => saveFormState('createEventForm'));
@@ -636,6 +639,37 @@ async function handleEventCreation(e) {
     e.preventDefault();
     
     const formData = new FormData(e.target);
+
+    // ── Build structured locations JSON from per-state address fields ──────────
+    const perStateTextareas = document.querySelectorAll('#perStateAddressContainer textarea[data-state]');
+    if (perStateTextareas.length > 0) {
+        // Multi-state mode: collect each state → address pair
+        const locations = Array.from(perStateTextareas).map(ta => ({
+            state:   ta.dataset.state,
+            address: ta.value.trim()
+        })).filter(l => l.state);
+
+        // Validate all per-state addresses are filled
+        const missing = locations.filter(l => !l.address);
+        if (missing.length > 0) {
+            showNotification(`Please enter the venue address for: ${missing.map(l => l.state).join(', ')}`, 'error');
+            return;
+        }
+
+        formData.set('locations_json', JSON.stringify(locations));
+        // Use the first state's address as the canonical `address` fallback
+        if (locations[0] && !formData.get('address')) {
+            formData.set('address', locations[0].address);
+        }
+    } else {
+        // Single-state: build a minimal locations array from the main address field
+        const singleState  = formData.get('state') || '';
+        const singleAddr   = formData.get('address') || '';
+        if (singleState && singleAddr) {
+            formData.set('locations_json', JSON.stringify([{ state: singleState, address: singleAddr }]));
+        }
+    }
+    // ─────────────────────────────────────────────────────────────────────────
     
     // Show loading state
     const submitBtn = e.target.querySelector('button[type="submit"]');
@@ -653,14 +687,8 @@ async function handleEventCreation(e) {
 
         if (result.success) {
             showNotification('Event created successfully!', 'success');
-            
-            // Clear saved form state
             clearFormState('createEventForm');
-            
-            // Close modal
             closeCreateEventModal();
-            
-            // Reload page to show new event
             setTimeout(() => window.location.reload(), 1000);
         } else {
             showNotification('Failed to create event: ' + result.message, 'error');
@@ -842,6 +870,69 @@ function updateSelectedStates() {
     
     // Trigger input event for persistence
     hiddenInput.dispatchEvent(new Event('input', { bubbles: true }));
+
+    // Inject per-state address fields if multiple states are selected
+    renderPerStateAddressFields(selectedValues);
+}
+
+/**
+ * Dynamically renders one address textarea per selected state.
+ * The inputs are named `state_address[StateName]` so they can be
+ * collected and serialised as a `locations` JSON blob on submit.
+ */
+function renderPerStateAddressFields(states) {
+    const container = document.getElementById('perStateAddressContainer');
+    if (!container) return;
+
+    if (!states || states.length <= 1) {
+        // Single state — no extra per-state fields needed (main address field is sufficient)
+        container.innerHTML = '';
+        container.style.display = 'none';
+        return;
+    }
+
+    container.style.display = 'block';
+
+    // Preserve existing values before re-render
+    const existing = {};
+    container.querySelectorAll('textarea[data-state]').forEach(ta => {
+        existing[ta.dataset.state] = ta.value;
+    });
+
+    container.innerHTML = `
+        <div style="margin-bottom:0.5rem; font-size:0.85rem; font-weight:700; color:#722f37; text-transform:uppercase; letter-spacing:0.5px;">
+            📍 Per-State Venue Address
+        </div>
+        <p style="font-size:0.8rem; color:#6b7280; margin-bottom:1rem;">
+            Enter the specific venue address for each selected state.
+        </p>
+        ${states.map(state => `
+            <div style="margin-bottom:1rem;">
+                <label style="display:block; font-size:0.8rem; font-weight:600; color:#374151; margin-bottom:0.4rem;">
+                    ${state} <span style="color:#ef4444">*</span>
+                </label>
+                <textarea
+                    name="state_address_${state.replace(/\s+/g, '_')}"
+                    data-state="${state}"
+                    placeholder="Full venue address in ${state}..."
+                    rows="2"
+                    required
+                    style="width:100%; padding:0.75rem 1rem; border:2px solid #e5e7eb; border-radius:10px; font-size:0.9rem; background:white; font-family:inherit; resize:vertical;"
+                >${existing[state] || ''}</textarea>
+            </div>
+        `).join('')}
+    `;
+}
+
+// Expose per-state container placeholder in the form HTML (injected once the form opens)
+function injectPerStateContainer() {
+    const addressGroup = document.querySelector('#createEventForm .form-group textarea[name="address"]')?.closest('.form-group');
+    if (!addressGroup) return;
+    if (document.getElementById('perStateAddressContainer')) return;
+    const div = document.createElement('div');
+    div.id = 'perStateAddressContainer';
+    div.style.cssText = 'display:none; background:#f8fafc; padding:1.25rem; border-radius:12px; border:2px solid #e5e7eb; margin-top:1rem;';
+    addressGroup.after(div);
 }
 
 window.toggleStateSelect = toggleStateSelect;

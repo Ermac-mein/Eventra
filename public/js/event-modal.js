@@ -168,20 +168,44 @@ function renderModalContent(container, eventData) {
         
         <div style="display: flex; align-items: flex-start; gap: 1rem;">
           <div style="width: 44px; height: 44px; background: #ecfdf5; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; flex-shrink: 0;">📍</div>
-          <div>
+          <div style="flex: 1; min-width: 0;">
             <div style="font-size: 0.75rem; color: #6b7280; font-weight: 600; text-transform: uppercase; margin-bottom: 0.25rem;">Location</div>
-            <div style="font-weight: 600; color: #111827; font-size: 0.95rem; margin-bottom: 0.2rem;">${escapeHTML(eventData.location || '')}</div>
-            ${eventData.address ? `<div style="font-size: 0.8rem; margin-bottom: 0.3rem;">
-              <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(eventData.address + ', ' + (eventData.city || '') + ', ' + (eventData.state || ''))}" target="_blank" class="address-link" style="color: #6b7280; text-decoration: none; display: inline-flex; align-items: center;">
-                ${escapeHTML(eventData.address)}
-                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-left: 4px;">
-                  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
-                </svg>
-              </a>
-            </div>` : ''}
-            <div style="font-size: 0.85rem; color: #4b5563; line-height: 1.5; margin-top: 0.5rem; display: block;">${[eventData.city, eventData.state].filter(Boolean).map(escapeHTML).join(', ') || 'TBD'}</div>
+            ${(() => {
+              // Try structured locations JSON first
+              let locs = null;
+              try { locs = eventData.locations ? (typeof eventData.locations === 'string' ? JSON.parse(eventData.locations) : eventData.locations) : null; } catch(e) {}
+              if (Array.isArray(locs) && locs.length > 0) {
+                return locs.map(loc => {
+                  const mapQuery = encodeURIComponent((loc.address || '') + ', ' + loc.state);
+                  const addrLine = loc.address
+                    ? `<a href="https://www.google.com/maps/search/?api=1&query=${mapQuery}" target="_blank"
+                          style="color:#4b5563; text-decoration:none; font-size:0.82rem; display:inline-flex; align-items:center; gap:3px; word-break:break-word;"
+                          onclick="event.stopPropagation();">
+                          ${escapeHTML(loc.address)}
+                          <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                        </a>`
+                    : '';
+                  return `<div style="margin-bottom:0.6rem; padding-bottom:0.6rem; border-bottom:1px dashed #e5e7eb;">
+                            <div style="font-weight:600; color:#111827; font-size:0.9rem; margin-bottom:0.2rem;">${escapeHTML(loc.state)}</div>
+                            ${addrLine}
+                          </div>`;
+                }).join('');
+              }
+              // Fallback: single address display
+              return `
+                <div style="font-weight: 600; color: #111827; font-size: 0.95rem; margin-bottom: 0.2rem;">${escapeHTML(eventData.location || '')}</div>
+                ${eventData.address ? `<div style="font-size: 0.8rem; margin-bottom: 0.3rem;">
+                  <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(eventData.address + ', ' + (eventData.city || '') + ', ' + (eventData.state || ''))}" target="_blank" class="address-link" style="color: #6b7280; text-decoration: none; display: inline-flex; align-items: center;" onclick="event.stopPropagation();">
+                    ${escapeHTML(eventData.address)}
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-left: 4px;"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                  </a>
+                </div>` : ''}
+                <div style="font-size: 0.85rem; color: #4b5563; line-height: 1.5; margin-top: 0.5rem; display: block;">${[eventData.city, eventData.state].filter(Boolean).map(escapeHTML).join(', ') || 'TBD'}</div>
+              `;
+            })()}
           </div>
         </div>
+
         
         <div style="display: flex; align-items: flex-start; gap: 1rem;">
           <div style="width: 44px; height: 44px; background: #fdf2f8; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; flex-shrink: 0;">🎟️</div>

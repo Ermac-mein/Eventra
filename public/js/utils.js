@@ -92,6 +92,35 @@ function timeAgo(date, shortForm = false) {
 }
 
 /**
+ * Formats a UTC ISO 8601 date string to the user's local time string.
+ * @param {string} utcString - The UTC date string from the database.
+ * @param {object} options - Intl.DateTimeFormat options.
+ * @returns {string} - Formatted local date/time string.
+ */
+function formatLocalDateTime(utcString, options = {}) {
+    if (!utcString) return 'TBA';
+    
+    // Ensure the string is treated as UTC if it doesn't have a Z or offset
+    const dateStr = (utcString.endsWith('Z') || utcString.includes('+') || (utcString.includes('-') && utcString.includes(':') && utcString.split('-').length > 3)) 
+        ? utcString 
+        : utcString.replace(' ', 'T') + 'Z';
+        
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return utcString;
+
+    const defaultOptions = {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true
+    };
+
+    return new Intl.DateTimeFormat('en-US', { ...defaultOptions, ...options }).format(date);
+}
+
+/**
  * Real-time timer to update all elements with data-timestamp attribute
  */
 (function initRealtimeTimers() {

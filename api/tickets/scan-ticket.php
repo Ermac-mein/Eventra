@@ -31,7 +31,7 @@ try {
     }
 
     // Run backend validation (atomic, locked transaction)
-    $result = Ticket::validateAndUse($pdo, $qrData);
+    $result = Ticket::validateAndUse($pdo, $qrData, $client_auth_id);
 
     if ($result['success']) {
         echo json_encode([

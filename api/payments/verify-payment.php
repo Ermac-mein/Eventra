@@ -178,7 +178,7 @@ try {
             SELECT t.id, t.barcode 
             FROM tickets t 
             JOIN payments p ON t.payment_id = p.id 
-            WHERE p.reference = ?
+            WHERE p.reference COLLATE utf8mb4_unicode_ci = ?
         ");
         $tStmt->execute([$reference]);
         $existingTickets = $tStmt->fetchAll(PDO::FETCH_ASSOC);

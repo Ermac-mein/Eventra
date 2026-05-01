@@ -79,26 +79,35 @@ foreach ($files as $jobFile) {
         foreach ($barcodes as $index => $barcode) {
             try {
                 $ticketDataForLoop = array_merge($ticketData, ['barcode' => $barcode]);
+                $ticket_id = $ticket_ids[$index] ?? null;
 
                 // Generate QR code
                 $qrCodePath = generateTicketQRCode($ticketDataForLoop);
                 if ($qrCodePath && file_exists($qrCodePath)) {
-                    $pdfPaths[$index] = $qrCodePath;
-                    
                     // Update ticket with QR code path
-                    if (isset($ticket_ids[$index])) {
+                    if ($ticket_id) {
                         $stmt = $pdo->prepare("UPDATE tickets SET qr_code_path = ? WHERE id = ?");
-                        $stmt->execute([str_replace(__DIR__ . '/../../', '', $qrCodePath), $ticket_ids[$index]]);
+                        $stmt->execute([str_replace(__DIR__ . '/../../', '', $qrCodePath), $ticket_id]);
                     }
                 }
 
                 // Generate PDF
                 $pdfPath = generateTicketPDF($ticketDataForLoop);
+                // Only add to pdfPaths if BOTH QR and PDF succeeded
                 if ($pdfPath && file_exists($pdfPath)) {
-                    $pdfPaths[$index] = $pdfPath;
+                    $pdfPaths[] = $pdfPath;
+                } else {
+                    error_log("[process-ticket-queue.php] PDF missing after generation for barcode $barcode (ticket $ticket_id)");
                 }
-            } catch (Exception $e) {
-                error_log("[process-ticket-queue.php] Failed to generate ticket for barcode $barcode: " . $e->getMessage());
+            } catch (\Throwable $genError) {
+                // Log structured failure
+                error_log(sprintf(
+                    '[process-ticket-queue.php] Ticket generation FAILED | barcode=%s ticket_id=%d order=%d error=%s',
+                    $barcode,
+                    $ticket_id ?? 0,
+                    $order_id ?? 0,
+                    $genError->getMessage()
+                ));
             }
         }
 

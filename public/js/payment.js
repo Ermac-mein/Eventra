@@ -133,21 +133,25 @@ async function startPolling(reference) {
                     // SUCCESS!
                     const cleanedName = (order.event_name || '').replace(/\s*#\d+$/, '');
                     
-                    // Replace confetti with the specified QR code image
-                    const receiptUrl = `${window.location.origin}/api/payments/get-order.php?reference=${reference}`;
-                    const qrGenUrl = `${window.location.origin}/api/barcodes/generate-barcode.php?text=${encodeURIComponent(receiptUrl)}`;
-                    icon.innerHTML = `<img src="${qrGenUrl}" alt="Ticket QR Code" style="width: 150px; height: 150px; border-radius: 1rem; margin-bottom: 1rem; box-shadow: 0 8px 16px rgba(0,0,0,0.1); border: 4px solid white;">`;
+                    // Build QR using the SAME validation URL as the ticket PDF
+                    // so the on-screen QR is identical to the one printed on the ticket
+                    const firstBarcode  = order.barcode || (order.tickets && order.tickets[0]?.barcode);
+                    const qrPayload     = firstBarcode
+                        ? `${window.location.origin}/api/tickets/validate-ticket.php?barcode=${encodeURIComponent(firstBarcode)}`
+                        : `${window.location.origin}/api/payments/get-order.php?reference=${reference}`;
+                    const qrGenUrl = `${window.location.origin}/api/barcodes/generate-barcode.php?text=${encodeURIComponent(qrPayload)}`;
+                    icon.innerHTML = `<img src="${qrGenUrl}" alt="Scan to validate ticket" style="width: 160px; height: 160px; border-radius: 1rem; margin-bottom: 1rem; box-shadow: 0 8px 16px rgba(0,0,0,0.12); border: 4px solid white;">
+                                      <div style="font-size:0.72rem;color:#6b7280;margin-top:-0.5rem;margin-bottom:0.5rem;">Scan to validate ticket</div>`;
                     
-                    title.textContent = 'Payment Successful!';
-                    msg.innerHTML = `Your tickets for <strong>${escapeHTML(cleanedName)}</strong> are ready.<br>Reference: ${escapeHTML(reference)}`;
+                    title.textContent = order.is_free ? 'Ticket Confirmed! 🎉' : 'Payment Successful! 🎉';
+                    msg.innerHTML = `Your ticket${(order.quantity||1) > 1 ? 's' : ''} for <strong>${escapeHTML(cleanedName)}</strong> ${order.is_free ? 'have been issued' : 'are ready'}.<br><span style="font-size:0.8rem;color:#6b7280;">Ref: ${escapeHTML(reference)}</span>`;
                     
                     if (order) {
                         renderSummary(order, order.quantity || 1);
                     }
                     
-                    if (order.barcode) {
-                        const barcode = order.barcode;
-                        downloadBtn.href = `/api/tickets/download-ticket.php?code=${barcode}`;
+                    if (firstBarcode) {
+                        downloadBtn.href = `/api/tickets/download-ticket.php?code=${firstBarcode}`;
                         downloadBtn.target = '_blank';
                         actions.style.display = 'flex';
                     }

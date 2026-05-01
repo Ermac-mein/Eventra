@@ -166,13 +166,25 @@ function processSuccessfulPayment(PDO $pdo, array $order, array $psData): void
                 try {
                     $qrCodePath = generateTicketQRCode($ticketData);
                     $pdfPath    = generateTicketPDF($ticketData);
-                    $pdfPaths[] = $pdfPath;
-
-                    $pdo->prepare("UPDATE tickets SET qr_code_path = ? WHERE id = ?")
-                        ->execute([str_replace(__DIR__ . '/../../', '', $qrCodePath), $ticket_id]);
+                    // Only add to pdfPaths if BOTH QR and PDF succeeded
+                    if ($pdfPath && file_exists($pdfPath)) {
+                        $pdfPaths[] = $pdfPath;
+                        $pdo->prepare("UPDATE tickets SET qr_code_path = ? WHERE id = ?")
+                            ->execute([str_replace(__DIR__ . '/../../', '', $qrCodePath), $ticket_id]);
+                    } else {
+                        error_log("[Webhook] PDF missing after generation for barcode $barcode (ticket $ticket_id)");
+                    }
                 } catch (\Throwable $genError) {
-                    error_log("[Webhook] Error generating ticket $barcode: " . $genError->getMessage());
-                    // Continue to next ticket – don't crash the whole webhook
+                    // Log structured failure — ticket row exists in DB but PDF/QR were not generated.
+                    // Email will be suppressed for this ticket; operator must re-generate manually.
+                    error_log(sprintf(
+                        '[Webhook] Ticket generation FAILED | barcode=%s ticket_id=%d order=%d error=%s',
+                        $barcode,
+                        $ticket_id,
+                        $order['id'],
+                        $genError->getMessage()
+                    ));
+                    // Continue to next ticket — don't abort the whole webhook response
                 }
 
                 $barcodes[] = $barcode;

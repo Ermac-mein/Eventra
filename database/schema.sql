@@ -212,6 +212,11 @@ CREATE TABLE IF NOT EXISTS events (
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
 
 ALTER TABLE events ADD COLUMN IF NOT EXISTS ticket_type VARCHAR(50) DEFAULT 'regular';
+ALTER TABLE events ADD COLUMN IF NOT EXISTS locations JSON DEFAULT NULL COMMENT 'Per-state address map: [{"state":"Lagos","address":"123 Victoria Island..."},...]';
+ALTER TABLE events ADD COLUMN IF NOT EXISTS sales_count INT UNSIGNED NOT NULL DEFAULT 0;
+ALTER TABLE events ADD COLUMN IF NOT EXISTS view_count INT UNSIGNED NOT NULL DEFAULT 0;
+ALTER TABLE events ADD COLUMN IF NOT EXISTS is_boosted TINYINT(1) NOT NULL DEFAULT 0;
+ALTER TABLE events ADD COLUMN IF NOT EXISTS admin_status ENUM(''approved'',''pending'',''rejected'') DEFAULT ''approved'';
 
 -- =============================================================================
 -- ORDERS
@@ -266,7 +271,7 @@ CREATE TABLE IF NOT EXISTS payments (
     KEY idx_payment_user_event (user_id, event_id),
     CONSTRAINT fk_payment_event FOREIGN KEY (event_id) REFERENCES events (id) ON DELETE CASCADE,
     CONSTRAINT fk_payment_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
-) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
 
 ALTER TABLE payments ADD COLUMN IF NOT EXISTS quantity INT UNSIGNED NOT NULL DEFAULT 1;
 ALTER TABLE payments ADD COLUMN IF NOT EXISTS ticket_type VARCHAR(50) DEFAULT 'regular';
@@ -302,7 +307,7 @@ CREATE TABLE IF NOT EXISTS tickets (
     CONSTRAINT fk_ticket_event FOREIGN KEY (event_id) REFERENCES events (id) ON DELETE CASCADE,
     CONSTRAINT fk_ticket_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
     CONSTRAINT fk_ticket_order FOREIGN KEY (order_id) REFERENCES orders (id) ON DELETE SET NULL
-) ENGINE = INNODB DEFAULT CHARSET = UTF8MB4;
+) ENGINE = INNODB DEFAULT CHARSET = UTF8MB4 COLLATE = UTF8MB4_UNICODE_CI;
 
 ALTER TABLE tickets ADD COLUMN IF NOT EXISTS ticket_type VARCHAR(50) DEFAULT 'regular';
 
@@ -339,7 +344,7 @@ CREATE TABLE IF NOT EXISTS notifications (
     KEY idx_notif_recipient (recipient_auth_id),
     CONSTRAINT fk_notif_recipient FOREIGN KEY (recipient_auth_id) REFERENCES auth_accounts (id) ON DELETE CASCADE,
     CONSTRAINT fk_notif_sender FOREIGN KEY (sender_auth_id) REFERENCES auth_accounts (id) ON DELETE SET NULL
-) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
 
 -- =============================================================================
 -- MEDIA FOLDERS
@@ -355,7 +360,7 @@ CREATE TABLE IF NOT EXISTS media_folders (
     PRIMARY KEY (id),
     KEY idx_folder_client (client_id),
     CONSTRAINT fk_folder_client FOREIGN KEY (client_id) REFERENCES clients (id) ON DELETE CASCADE
-) ENGINE = INNODB DEFAULT CHARSET = UTF8MB4;
+) ENGINE = INNODB DEFAULT CHARSET = UTF8MB4 COLLATE = UTF8MB4_UNICODE_CI;
 
 -- =============================================================================
 -- MEDIA
@@ -379,7 +384,7 @@ CREATE TABLE IF NOT EXISTS media (
     KEY idx_media_folder (folder_id),
     CONSTRAINT fk_media_client FOREIGN KEY (client_id) REFERENCES clients (id) ON DELETE CASCADE,
     CONSTRAINT fk_media_folder FOREIGN KEY (folder_id) REFERENCES media_folders (id) ON DELETE SET NULL
-) ENGINE = INNODB DEFAULT CHARSET = UTF8MB4;
+) ENGINE = INNODB DEFAULT CHARSET = UTF8MB4 COLLATE = UTF8MB4_UNICODE_CI;
 
 ALTER TABLE media ADD COLUMN IF NOT EXISTS deleted_at DATETIME NULL DEFAULT NULL;
 
@@ -451,7 +456,7 @@ CREATE TABLE IF NOT EXISTS payment_otps (
     INDEX (user_id),
     INDEX (payment_reference),
     CONSTRAINT fk_payment_otps_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
-) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
 
 -- =============================================================================
 -- TICKET DAILY SEQUENCE
@@ -460,7 +465,7 @@ CREATE TABLE IF NOT EXISTS ticket_daily_sequence (
     seq_date DATE NOT NULL,
     seq_value INT UNSIGNED NOT NULL DEFAULT 0,
     PRIMARY KEY (seq_date)
-) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
 
 -- =============================================================================
 -- SEED DEFAULT SYSTEM ADMIN

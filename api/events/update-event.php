@@ -120,9 +120,17 @@ try {
     // Use user_id (which is client_id from checkAuth('client'))
     $real_client_id = $user_id;
 
-    // Get current event details
-    $stmt = $pdo->prepare("SELECT * FROM events WHERE id = ?");
-    $stmt->execute([$event_id]);
+    // Get current event details - Scoped to client
+    $sql = "SELECT * FROM events WHERE id = ?";
+    $params = [$event_id];
+
+    if ($role !== 'admin') {
+        $sql .= " AND client_id = ?";
+        $params[] = $real_client_id;
+    }
+
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute($params);
     $event = $stmt->fetch();
 
     if (!$event) {
@@ -306,6 +314,27 @@ try {
     ]);
     $metadata_json = json_encode($new_metadata);
 
+    // ── Parse per-state locations JSON ───────────────────────────────────────
+    $new_locations_json = $event['locations'] ?? null; // preserve existing by default
+    $raw_locations = $_POST['locations_json'] ?? null;
+    if ($raw_locations) {
+        $decoded = json_decode($raw_locations, true);
+        if (is_array($decoded) && count($decoded) > 0) {
+            $clean_locations = [];
+            foreach ($decoded as $loc) {
+                $s = trim($loc['state'] ?? '');
+                $a = trim($loc['address'] ?? '');
+                if ($s !== '') {
+                    $clean_locations[] = ['state' => $s, 'address' => $a];
+                }
+            }
+            if (!empty($clean_locations)) {
+                $new_locations_json = json_encode($clean_locations);
+            }
+        }
+    }
+    // ─────────────────────────────────────────────────────────────────────────
+
     // Begin transaction — all DB writes below must succeed together
     $pdo->beginTransaction();
 
@@ -332,11 +361,17 @@ try {
             ticket_count  = COALESCE(?, ticket_count),
             scheduled_publish_time = ?,
             metadata = ?,
+            locations = COALESCE(?, locations),
             updated_at = NOW()
             WHERE id = ?";
+    
+    if ($role !== 'admin') {
+        $sql .= " AND client_id = ?";
+    }
 
     $stmt = $pdo->prepare($sql);
-    $stmt->execute([
+    
+    $execute_params = [
         $_POST['event_name'],
         $_POST['event_type'],
         $_POST['event_date'],
@@ -358,8 +393,15 @@ try {
         $new_ticket_count,
         $scheduled_publish_time,
         $metadata_json,
+        $new_locations_json,   // per-state address map
         $event_id
-    ]);
+    ];
+
+    if ($role !== 'admin') {
+        $execute_params[] = $real_client_id;
+    }
+
+    $stmt->execute($execute_params);
 
     try {
         $message = "Event '{$_POST['event_name']}' has been updated";
@@ -384,9 +426,17 @@ try {
         error_log("[Update Event Notification Error] " . $notif_err->getMessage());
     }
 
-    // Fetch updated event data to return to client
-    $stmt = $pdo->prepare("SELECT * FROM events WHERE id = ?");
-    $stmt->execute([$event_id]);
+    // Fetch updated event data to return to client - Scoped
+    $sql = "SELECT * FROM events WHERE id = ?";
+    $params = [$event_id];
+
+    if ($role !== 'admin') {
+        $sql .= " AND client_id = ?";
+        $params[] = $real_client_id;
+    }
+
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute($params);
     $updated_event = $stmt->fetch();
 
     // Commit only after all DB work succeeds — success response follows commit

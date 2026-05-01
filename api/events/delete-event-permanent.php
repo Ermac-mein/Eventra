@@ -24,8 +24,17 @@ if (!$event_id) {
 
 try {
     // Get event details
-    $stmt = $pdo->prepare("SELECT event_name, client_id, deleted_at FROM events WHERE id = ?");
-    $stmt->execute([$event_id]);
+    // Get event details - Scoped
+    $sql = "SELECT event_name, client_id, deleted_at FROM events WHERE id = ?";
+    $params = [$event_id];
+
+    if ($user_role === 'client') {
+        $sql .= " AND client_id = ?";
+        $params[] = $user_id;
+    }
+
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute($params);
     $event = $stmt->fetch();
 
     if (!$event) {
@@ -48,8 +57,16 @@ try {
     }
 
     // Permanently delete the event (hard delete)
-    $stmt = $pdo->prepare("DELETE FROM events WHERE id = ?");
-    $stmt->execute([$event_id]);
+    $sql = "DELETE FROM events WHERE id = ?";
+    $params = [$event_id];
+
+    if ($user_role === 'client') {
+        $sql .= " AND client_id = ?";
+        $params[] = $user_id;
+    }
+
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute($params);
 
     // Notify admin about permanent deletion if deleted by client
     if ($user_role === 'client') {

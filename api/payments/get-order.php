@@ -32,7 +32,7 @@ try {
         JOIN events e ON o.event_id = e.id
         JOIN users u ON o.user_id = u.id
         JOIN auth_accounts a ON u.user_auth_id = a.id
-        LEFT JOIN payments p ON p.reference = o.transaction_reference
+        LEFT JOIN payments p ON p.reference COLLATE utf8mb4_unicode_ci = o.transaction_reference COLLATE utf8mb4_unicode_ci
         LEFT JOIN tickets t ON t.order_id = o.id
         WHERE o.transaction_reference = ?
         ORDER BY t.id DESC
