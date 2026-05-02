@@ -133,8 +133,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                 return;
             }
 
-            // 3. Proceed to payment initialization directly
-            await proceedToPayment(eventId, currentQuantity, fname, lname, email, phone, payBtn, eventData);
+            // 3. Show security verification (OTP) before proceeding
+            showOTPModal(email, phone, async (otpRef) => {
+                await proceedToPayment(eventId, currentQuantity, fname, lname, email, phone, payBtn, eventData, otpRef);
+            }, () => {
+                // Cancelled logic is handled within resetPayBtn or via simple return
+                showNotification('Verification required to proceed.', 'info');
+            });
         });
     }
 

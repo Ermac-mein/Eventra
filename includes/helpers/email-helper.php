@@ -289,29 +289,14 @@ class EmailHelper
         }
 
         /* ── 4. QR code ──────────────────────────────────────── */
-        $qrRaw = trim((string) ($ticketData['qr_base64'] ?? ''));
-        
-        // Ensure QR code is present or generated
-        if ($qrRaw === '' && !empty($barcode)) {
-            // Check if we can generate it using the library
-            if (class_exists('chillerlan\QRCode\QRCode')) {
-                try {
-                    $options = new \chillerlan\QRCode\QROptions([
-                        'version'    => \chillerlan\QRCode\QRCode::VERSION_AUTO,
-                        'outputType' => \chillerlan\QRCode\QRCode::OUTPUT_IMAGE_PNG,
-                        'eccLevel'   => \chillerlan\QRCode\QRCode::ECC_M,
-                    ]);
-                    $qrcode = new \chillerlan\QRCode\QRCode($options);
-                    $qrRaw = $qrcode->render($barcode);
-                } catch (\Throwable $e) {
-                    error_log('[EmailHelper] Dynamic QR generation failed: ' . $e->getMessage());
-                }
+        $staticQrPath = __DIR__ . '/../../public/assets/qrcode.png';
+        $qrSafe = '';
+        if (file_exists($staticQrPath)) {
+            $qrData = @file_get_contents($staticQrPath);
+            if ($qrData) {
+                $qrSafe = 'data:image/png;base64,' . base64_encode($qrData);
             }
         }
-
-        $qrSafe = ($qrRaw !== '' && (str_starts_with($qrRaw, 'data:image/') || str_starts_with($qrRaw, 'http')))
-            ? $qrRaw
-            : '';
 
         $qrHtml = $qrSafe !== ''
             ? '<img src="' . $qrSafe . '" alt="QR Code"

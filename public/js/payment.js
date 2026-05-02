@@ -139,7 +139,7 @@ async function startPolling(reference) {
                     const qrPayload     = firstBarcode
                         ? `${window.location.origin}/api/tickets/validate-ticket.php?barcode=${encodeURIComponent(firstBarcode)}`
                         : `${window.location.origin}/api/payments/get-order.php?reference=${reference}`;
-                    const qrGenUrl = `${window.location.origin}/api/barcodes/generate-barcode.php?text=${encodeURIComponent(qrPayload)}`;
+                    const qrGenUrl = `/public/assets/qrcode.png`;
                     icon.innerHTML = `<img src="${qrGenUrl}" alt="Scan to validate ticket" style="width: 160px; height: 160px; border-radius: 1rem; margin-bottom: 1rem; box-shadow: 0 8px 16px rgba(0,0,0,0.12); border: 4px solid white;">
                                       <div style="font-size:0.72rem;color:#6b7280;margin-top:-0.5rem;margin-bottom:0.5rem;">Scan to validate ticket</div>`;
                     

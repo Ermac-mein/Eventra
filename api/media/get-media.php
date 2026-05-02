@@ -69,6 +69,13 @@ try {
         $create_stmt->execute([$client_id]);
     }
 
+    // Auto-fix misplaced files: move files with 'Event Assets' name into the corresponding folder ID
+    $pdo->prepare("
+        UPDATE media 
+        SET folder_id = (SELECT id FROM media_folders WHERE client_id = ? AND name = 'Event Assets' AND is_deleted = 0 LIMIT 1)
+        WHERE client_id = ? AND folder_id IS NULL AND folder_name = 'Event Assets'
+    ")->execute([$client_id, $client_id]);
+
     $folders_sql = "SELECT id, name, created_at FROM media_folders WHERE client_id = ? AND is_deleted = ?";
     $f_params = [$client_id, $is_trash];
 

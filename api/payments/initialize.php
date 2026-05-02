@@ -65,6 +65,21 @@ try {
     $user_email = $user['email'];
     $user_name = $user['name'];
 
+    // ── OTP Verification Check (Enforced for all events) ──────────────────────────
+    $otp_verified_ref = $_SESSION['otp_verified_ref'] ?? null;
+    $otp_verified_at  = $_SESSION['otp_verified_at']  ?? 0;
+    if (!$otp_verified_ref || (time() - $otp_verified_at) > 600) {
+        http_response_code(403);
+        echo json_encode([
+            'success' => false, 
+            'message' => 'Security verification required. Please complete OTP.',
+            'auth_id' => $auth_id,
+            'reason'  => 'otp_missing_or_expired'
+        ]);
+        exit;
+    }
+    // ─────────────────────────────────────────────────────────────────────────
+
 
 
     // ── Fetch event + organizer subaccount ─────────────────────────────────
@@ -213,21 +228,7 @@ try {
         }
     }
 
-    // ── OTP Verification Check (PAID EVENTS ONLY) ────────────────────────────
-    // Free events bypass this guard entirely — no payment risk, no OTP needed.
-    $otp_verified_ref = $_SESSION['otp_verified_ref'] ?? null;
-    $otp_verified_at  = $_SESSION['otp_verified_at']  ?? 0;
-    if (!$otp_verified_ref || (time() - $otp_verified_at) > 600) {
-        http_response_code(403);
-        echo json_encode([
-            'success' => false, 
-            'message' => 'Security verification required. Please complete OTP.',
-            'auth_id' => $auth_id,
-            'reason'  => 'otp_missing_or_expired'
-        ]);
-        exit;
-    }
-    // ─────────────────────────────────────────────────────────────────────────
+
 
     $pdo->beginTransaction();
 
