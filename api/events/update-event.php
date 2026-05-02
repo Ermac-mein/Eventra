@@ -156,7 +156,7 @@ try {
     // Handle image upload if provided using standardized path
     $image_path = $event['image_path']; // Keep existing image by default
     if (isset($_FILES['event_image']) && $_FILES['event_image']['error'] === UPLOAD_ERR_OK) {
-        $upload_dir = __DIR__ . "/../../public/assets/event_assets/";
+        $upload_dir = dirname(__DIR__, 2) . DIRECTORY_SEPARATOR . 'public' . DIRECTORY_SEPARATOR . 'assets' . DIRECTORY_SEPARATOR . 'event_assets' . DIRECTORY_SEPARATOR;
 
         if (!is_dir($upload_dir)) {
             mkdir($upload_dir, 0755, true);
@@ -292,9 +292,6 @@ try {
     }
 
     // Admin-only fields
-    $new_admin_status = ($role === 'admin' && isset($_POST['admin_status']))
-        ? $_POST['admin_status']
-        : ($event['admin_status'] ?? 'pending');
     $new_is_boosted = ($role === 'admin' && isset($_POST['is_boosted']))
         ? (int)$_POST['is_boosted']
         : (int)($event['is_boosted'] ?? 0);
@@ -355,7 +352,6 @@ try {
             phone_contact_2 = ?,
             image_path = ?,
             category = ?,
-            admin_status = ?,
             is_boosted = ?,
             total_tickets = COALESCE(?, total_tickets),
             ticket_count  = COALESCE(?, ticket_count),
@@ -387,7 +383,6 @@ try {
         $_POST['phone_contact_2'] ?? null,
         $image_path,
         $_POST['category'] ?? $_POST['event_type'],
-        $new_admin_status,
         $new_is_boosted,
         $new_total_tickets,
         $new_ticket_count,

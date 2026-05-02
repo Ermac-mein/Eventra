@@ -216,7 +216,7 @@ ALTER TABLE events ADD COLUMN IF NOT EXISTS locations JSON DEFAULT NULL COMMENT 
 ALTER TABLE events ADD COLUMN IF NOT EXISTS sales_count INT UNSIGNED NOT NULL DEFAULT 0;
 ALTER TABLE events ADD COLUMN IF NOT EXISTS view_count INT UNSIGNED NOT NULL DEFAULT 0;
 ALTER TABLE events ADD COLUMN IF NOT EXISTS is_boosted TINYINT(1) NOT NULL DEFAULT 0;
-ALTER TABLE events ADD COLUMN IF NOT EXISTS admin_status ENUM(''approved'',''pending'',''rejected'') DEFAULT ''approved'';
+ALTER TABLE events ADD COLUMN IF NOT EXISTS admin_status ENUM('approved','pending','rejected') DEFAULT 'approved';
 
 -- =============================================================================
 -- ORDERS
@@ -369,7 +369,7 @@ CREATE TABLE IF NOT EXISTS media (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     client_id BIGINT UNSIGNED NOT NULL,
     folder_id BIGINT UNSIGNED DEFAULT NULL,
-    folder_name VARCHAR(100) DEFAULT 'event access',
+    folder_name VARCHAR(100) DEFAULT 'Event Assets',
     file_name VARCHAR(255) NOT NULL,
     file_extension VARCHAR(20) DEFAULT NULL,
     file_path VARCHAR(500) NOT NULL,

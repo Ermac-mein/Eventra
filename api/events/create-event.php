@@ -114,7 +114,7 @@ try {
     // 2. Handle file upload if present using standardized path
     $image_path = null;
     if (isset($_FILES['event_image']) && $_FILES['event_image']['error'] === UPLOAD_ERR_OK) {
-        $upload_dir = __DIR__ . "/../../public/assets/event_assets/";
+        $upload_dir = dirname(__DIR__, 2) . DIRECTORY_SEPARATOR . 'public' . DIRECTORY_SEPARATOR . 'assets' . DIRECTORY_SEPARATOR . 'event_assets' . DIRECTORY_SEPARATOR;
 
         if (!is_dir($upload_dir)) {
             mkdir($upload_dir, 0755, true);
@@ -183,7 +183,7 @@ try {
     $address = $_POST['address'] ?? '';
     $visibility = $_POST['visibility'] ?? 'all states';
     $event_visibility = $_POST['event_visibility'] ?? 'public'; // public or private
-    $price = $_POST['price'] ?? 0.00;
+    $price = !empty($_POST['price']) ? floatval($_POST['price']) : 0.00;
 
     // ── Parse per-state locations JSON ───────────────────────────────────────
     $locations_json = null;
@@ -291,8 +291,8 @@ try {
         'Taraba' => ['lat' => 7.8927, 'lng' => 10.7423], 'Yobe' => ['lat' => 12.2939, 'lng' => 11.4390], 
         'Zamfara' => ['lat' => 12.1222, 'lng' => 6.2236]
     ];
-    $latitude = $state_centroids[$state]['lat'] ?? 0;
-    $longitude = $state_centroids[$state]['lng'] ?? 0;
+    $latitude = isset($state_centroids[$state]) ? floatval($state_centroids[$state]['lat']) : 0.0;
+    $longitude = isset($state_centroids[$state]) ? floatval($state_centroids[$state]['lng']) : 0.0;
 
     // Date cap: event_date must be within 365 days from today
     if (!empty($event_date) && strtotime($event_date) > strtotime('+365 days')) {
@@ -305,7 +305,7 @@ try {
     if (
         empty($event_name) || empty($description) || empty($event_type) ||
         empty($event_date) || empty($event_time) || empty($phone_contact_1) ||
-        empty($state) || empty($address) || empty($image_path)
+        empty($state) || empty($address) || ($status !== 'draft' && empty($image_path))
     ) {
         http_response_code(400);
         $missing = [];
@@ -369,9 +369,9 @@ try {
             phone_contact_1, phone_contact_2, state, address, visibility, tag,
             external_link, price, image_path, status, scheduled_publish_time, 
             category, event_visibility, ticket_count, total_tickets, 
-            sales_count, view_count, is_boosted, admin_status,
+            sales_count, view_count, is_boosted,
             latitude, longitude, metadata, locations
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ");
 
     $stmt->execute([
@@ -400,7 +400,6 @@ try {
         0,                 // sales_count starts at 0
         0,                 // view_count starts at 0
         0,                 // is_boosted — always false on client create
-        'approved',        // admin_status — automatically approved to be visible when published
         $latitude,
         $longitude,
         $metadata_json,

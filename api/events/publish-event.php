@@ -62,9 +62,8 @@ try {
     // Begin transaction
     $pdo->beginTransaction();
 
-    // Update event status to published and ensure admin_status is approved
-    // Update event status to published and ensure admin_status is approved
-    $sql = "UPDATE events SET status = 'published', admin_status = 'approved' WHERE id = ?";
+    // Update event status to published
+    $sql = "UPDATE events SET status = 'published' WHERE id = ?";
     $params = [$event_id];
 
     if ($role !== 'admin') {
