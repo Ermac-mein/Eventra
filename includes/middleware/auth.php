@@ -254,7 +254,18 @@ function checkAuth($requiredRole = null)
         if (strpos($_SERVER['REQUEST_URI'], '/api/') !== false || (isset($_SERVER['HTTP_ACCEPT']) && strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false)) {
             http_response_code(403);
             header('Content-Type: application/json');
-            echo json_encode(['success' => false, 'message' => 'Unauthorized. Please log in.']);
+            $reason = !$userId ? 'Session expired or invalid token' : 'Insufficient permissions';
+            echo json_encode([
+                'success' => false, 
+                'message' => "Unauthorized: $reason. Please log in again.",
+                'debug_info' => [
+                    'userId_found' => !!$userId,
+                    'role_match' => $hasAuthorizedRole,
+                    'required_role' => $requiredRole,
+                    'actual_role' => $role ?? 'none',
+                    'has_token' => !!getBearerToken()
+                ]
+            ]);
             exit;
         }
 

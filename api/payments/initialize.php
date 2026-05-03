@@ -56,7 +56,7 @@ try {
 
     if (!$user) {
         http_response_code(403);
-        echo json_encode(['success' => false, 'message' => 'User profile not found.']);
+        echo json_encode(['success' => false, 'message' => 'User profile not found. Please ensure your profile is complete.']);
         exit;
     }
 
@@ -66,15 +66,27 @@ try {
     $user_name = $user['name'];
 
     // ── OTP Verification Check (Enforced for all events) ──────────────────────────
-    $otp_verified_ref = $_SESSION['otp_verified_ref'] ?? null;
-    $otp_verified_at  = $_SESSION['otp_verified_at']  ?? 0;
-    if (!$otp_verified_ref || (time() - $otp_verified_at) > 600) {
+    $session_otp_ref = $_SESSION['otp_verified_ref'] ?? null;
+    $otp_verified_at = $_SESSION['otp_verified_at']  ?? 0;
+    
+    // Check if OTP was verified in session AND if it matches the reference sent (if provided)
+    $otp_match = true;
+    if ($otp_reference && $session_otp_ref && $otp_reference !== $session_otp_ref) {
+        $otp_match = false;
+    }
+
+    if (!$session_otp_ref || (time() - $otp_verified_at) > 600 || !$otp_match) {
         http_response_code(403);
         echo json_encode([
             'success' => false, 
-            'message' => 'Security verification required. Please complete OTP.',
+            'message' => 'Security verification required. Please complete the OTP verification process.',
             'auth_id' => $auth_id,
-            'reason'  => 'otp_missing_or_expired'
+            'reason'  => 'otp_missing_or_expired',
+            'debug'   => [
+                'session_ref' => $session_otp_ref,
+                'provided_ref' => $otp_reference,
+                'time_diff' => time() - $otp_verified_at
+            ]
         ]);
         exit;
     }
