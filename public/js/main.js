@@ -826,24 +826,52 @@ function createEventCard(event, index) {
         <h3 class="event-title">${eventName}</h3>
         
         <div class="event-location" style="display: flex; flex-direction: column; align-items: flex-start; text-align: left; gap: 0.35rem; margin-top: 0.25rem;">
-          ${(event.address || event.location) ? `
-          <a href="${mapUrl}" target="_blank" class="address-link" onclick="event.stopPropagation();" style="display: flex; align-items: flex-start; gap: 0.4rem; width: 100%;">
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink: 0; margin-top: 0.1rem;">
-              <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/>
-            </svg>
-            <span class="location-truncate" style="line-height: 1.3;">${escapeHTML(event.address || event.location)}</span>
-          </a>` : ''}
-          ${(event.city || event.state) ? `
-          <div style="font-size: 0.85rem; color: #6b7280; padding-left: 1.25rem; line-height: 1.5; word-break: break-word; margin-top: 0.2rem;">
-            ${[event.city, event.state].filter(Boolean).map(escapeHTML).join(', ')}
-          </div>` : ''}
-          ${(!event.address && !event.location && !event.state) ? `
-          <div style="display: flex; align-items: center; gap: 0.4rem; color: #6b7280;">
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/>
-            </svg>
-            <span class="location-truncate">TBD</span>
-          </div>` : ''}
+          ${(() => {
+            const states = (event.state || '').split(',').map(s => s.trim()).filter(Boolean);
+            const isMultipleStates = states.length > 1 && !states.includes('All States') && !states.includes('Nationwide');
+            
+            if (isMultipleStates) {
+              return `
+                <div style="display: flex; align-items: center; gap: 0.4rem; color: #6b7280; width: 100%;">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink: 0;">
+                    <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/>
+                  </svg>
+                  <span class="location-truncate" style="font-weight: 600; color: #722f37;">Various Locations</span>
+                </div>`;
+            }
+            
+            if (event.address || event.location) {
+              return `
+                <a href="${mapUrl}" target="_blank" class="address-link" onclick="event.stopPropagation();" style="display: flex; align-items: flex-start; gap: 0.4rem; width: 100%;">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink: 0; margin-top: 0.1rem;">
+                    <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/>
+                  </svg>
+                  <span class="location-truncate" style="line-height: 1.3;">${escapeHTML(event.address || event.location)}</span>
+                </a>
+                ${(event.city || event.state) ? `
+                <div style="font-size: 0.85rem; color: #6b7280; padding-left: 1.25rem; line-height: 1.5; word-break: break-word; margin-top: 0.2rem;">
+                  ${[event.city, event.state].filter(Boolean).map(escapeHTML).join(', ')}
+                </div>` : ''}`;
+            }
+            
+            if (event.city || event.state) {
+              return `
+                <div style="display: flex; align-items: flex-start; gap: 0.4rem; color: #6b7280; width: 100%;">
+                   <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink: 0; margin-top: 0.1rem;">
+                    <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/>
+                  </svg>
+                  <span class="location-truncate">${[event.city, event.state].filter(Boolean).map(escapeHTML).join(', ')}</span>
+                </div>`;
+            }
+            
+            return `
+              <div style="display: flex; align-items: center; gap: 0.4rem; color: #6b7280;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/>
+                </svg>
+                <span class="location-truncate">TBD</span>
+              </div>`;
+          })()}
         </div>
         
         <div class="event-card-description">${desc}</div>
@@ -1473,19 +1501,45 @@ function showEventModal(eventId) {
   if (document.getElementById('modalEventTime')) document.getElementById('modalEventTime').textContent = event.event_time || 'TBA';
   const addressStr = escapeHTML(event.address || '');
   const cityStr = escapeHTML(event.city || '');
-  let stateStr = escapeHTML(event.state || '');
-  if (stateStr) stateStr = stateStr.replace(/,/g, ', ');
+  let stateStr = (event.state || '');
+  const states = stateStr.split(',').map(s => s.trim()).filter(Boolean);
+  const isMultipleStates = states.length > 1 && !states.includes('All States') && !states.includes('Nationwide');
+
   const firstLine = [addressStr, cityStr].filter(Boolean).join(', ');
   const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(firstLine + (stateStr ? ', ' + stateStr : '') || 'Nigeria')}`;
+  
   let locationHTML = '';
-  if (firstLine) {
-     locationHTML += `<a href="${mapUrl}" target="_blank" class="address-link" style="display: block;">${firstLine}</a>`;
-     if (stateStr) locationHTML += `<div style="margin-top: 0.75rem; font-size: 0.9em; line-height: 1.6; color: #4b5563; display: block;">${stateStr}</div>`;
-  } else if (stateStr) {
-     locationHTML += `<div style="line-height: 1.6; color: inherit;">${stateStr}</div>`;
+  if (isMultipleStates) {
+    // Truncated view for multiple states
+    const visibleStates = states.slice(0, 2);
+    const hiddenStates = states.slice(2);
+    
+    locationHTML = `
+      <div id="truncatedLocations">
+        ${visibleStates.map(s => `<div style="margin-bottom: 0.5rem; font-weight: 600;">📍 ${escapeHTML(s)}</div>`).join('')}
+        ${states.length > 2 ? `<button onclick="toggleModalLocations(true)" style="background: none; border: none; color: #722f37; font-weight: 700; cursor: pointer; padding: 0; font-size: 0.9rem; margin-top: 0.25rem;">+ ${states.length - 2} more (See More)</button>` : ''}
+        ${states.length === 2 ? `<button onclick="toggleModalLocations(true)" style="background: none; border: none; color: #722f37; font-weight: 700; cursor: pointer; padding: 0; font-size: 0.9rem; margin-top: 0.25rem;">See More Locations</button>` : ''}
+      </div>
+      <div id="fullLocations" style="display: none;">
+        ${states.map(s => `<div style="margin-bottom: 0.75rem; border-bottom: 1px dashed #eee; padding-bottom: 0.5rem;">
+          <div style="font-weight: 600; margin-bottom: 0.25rem;">📍 ${escapeHTML(s)}</div>
+          ${addressStr ? `<div style="font-size: 0.85rem; color: #6b7280;">${addressStr}</div>` : ''}
+        </div>`).join('')}
+        <button onclick="toggleModalLocations(false)" style="background: none; border: none; color: #722f37; font-weight: 700; cursor: pointer; padding: 0; font-size: 0.9rem; margin-top: 0.5rem;">See Less</button>
+      </div>
+    `;
   } else {
-     locationHTML += `Nigeria`;
+    // Standard single or All States view
+    if (firstLine) {
+       locationHTML += `<a href="${mapUrl}" target="_blank" class="address-link" style="display: block;">${firstLine}</a>`;
+       if (stateStr) locationHTML += `<div style="margin-top: 0.75rem; font-size: 0.9em; line-height: 1.6; color: #4b5563; display: block;">${escapeHTML(stateStr.replace(/,/g, ', '))}</div>`;
+    } else if (stateStr) {
+       locationHTML += `<div style="line-height: 1.6; color: inherit;">${escapeHTML(stateStr.replace(/,/g, ', '))}</div>`;
+    } else {
+       locationHTML += `Nigeria`;
+    }
   }
+
   if (document.getElementById('modalEventLocation')) {
       document.getElementById('modalEventLocation').innerHTML = locationHTML;
   }
@@ -1869,3 +1923,63 @@ function updateTicketPriceDisplay(event, ticketType) {
     vipPriceDisplay.textContent = `₦${vipPrice.toLocaleString()}`;
   }
 }
+
+// Toggle Modal Locations for multiple states
+function toggleModalLocations(showFull) {
+  const truncated = document.getElementById('truncatedLocations');
+  const full = document.getElementById('fullLocations');
+  if (truncated && full) {
+    truncated.style.display = showFull ? 'none' : 'block';
+    full.style.display = showFull ? 'block' : 'none';
+  }
+}
+
+// Share Modal Link Function
+function copyModalShareLink() {
+  const linkInput = document.getElementById('modalEventShareLink');
+  let url = (linkInput && linkInput.value) ? linkInput.value : '';
+
+  if (!url && window.currentModalEventId) {
+    url = `${window.location.origin}/public/pages/checkout.html?id=${window.currentModalEventId}`;
+  }
+
+  if (!url) return;
+
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(url)
+      .then(() => {
+        if (typeof showNotification === 'function') {
+          showNotification('Link copied to clipboard!', 'success');
+        } else if (typeof Swal !== 'undefined') {
+          Swal.fire({ 
+            toast: true, 
+            position: 'top-end', 
+            icon: 'success', 
+            title: 'Link copied to clipboard!', 
+            showConfirmButton: false, 
+            timer: 2000,
+            background: '#fff',
+            color: '#000'
+          });
+        } else {
+          alert('Link copied to clipboard!');
+        }
+      })
+      .catch(() => {
+        const ta = document.createElement('textarea');
+        ta.value = url;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try {
+          document.execCommand('copy');
+          showNotification('Link copied to clipboard!', 'success');
+        } catch (err) {}
+        document.body.removeChild(ta);
+      });
+  }
+}
+
+window.toggleModalLocations = toggleModalLocations;
+window.copyModalShareLink = copyModalShareLink;

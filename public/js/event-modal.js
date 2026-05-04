@@ -174,23 +174,58 @@ function renderModalContent(container, eventData) {
               // Try structured locations JSON first
               let locs = null;
               try { locs = eventData.locations ? (typeof eventData.locations === 'string' ? JSON.parse(eventData.locations) : eventData.locations) : null; } catch(e) {}
+              
+              const states = (eventData.state || '').split(',').map(s => s.trim()).filter(Boolean);
+              const isMultipleStates = states.length > 1 && !states.includes('All States') && !states.includes('Nationwide');
+
               if (Array.isArray(locs) && locs.length > 0) {
-                return locs.map(loc => {
+                // If we have detailed locations array, handle it
+                const visibleLocs = locs.slice(0, 2);
+                const hiddenLocs = locs.slice(2);
+                
+                let html = '<div id="modalTruncatedLocs">';
+                html += visibleLocs.map(loc => {
                   const mapQuery = encodeURIComponent((loc.address || '') + ', ' + loc.state);
-                  const addrLine = loc.address
-                    ? `<a href="https://www.google.com/maps/search/?api=1&query=${mapQuery}" target="_blank"
-                          style="color:#4b5563; text-decoration:none; font-size:0.82rem; display:inline-flex; align-items:center; gap:3px; word-break:break-word;"
-                          onclick="event.stopPropagation();">
-                          ${escapeHTML(loc.address)}
-                          <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-                        </a>`
-                    : '';
                   return `<div style="margin-bottom:0.6rem; padding-bottom:0.6rem; border-bottom:1px dashed #e5e7eb;">
-                            <div style="font-weight:600; color:#111827; font-size:0.9rem; margin-bottom:0.2rem;">${escapeHTML(loc.state)}</div>
-                            ${addrLine}
+                            <div style="font-weight:600; color:#111827; font-size:0.9rem; margin-bottom:0.2rem;">📍 ${escapeHTML(loc.state)}</div>
+                            ${loc.address ? `<a href="https://www.google.com/maps/search/?api=1&query=${mapQuery}" target="_blank" style="color:#4b5563; text-decoration:none; font-size:0.82rem; display:inline-flex; align-items:center; gap:3px;">${escapeHTML(loc.address)}</a>` : ''}
                           </div>`;
                 }).join('');
+                
+                if (locs.length > 2) {
+                  html += `<button onclick="document.getElementById('modalFullLocs').style.display='block'; document.getElementById('modalTruncatedLocs').style.display='none';" style="background:none; border:none; color:#722f37; font-weight:700; cursor:pointer; padding:0; font-size:0.85rem;">+ ${locs.length - 2} more (See More)</button>`;
+                }
+                html += '</div>';
+                
+                html += '<div id="modalFullLocs" style="display:none;">';
+                html += locs.map(loc => {
+                  const mapQuery = encodeURIComponent((loc.address || '') + ', ' + loc.state);
+                  return `<div style="margin-bottom:0.6rem; padding-bottom:0.6rem; border-bottom:1px dashed #e5e7eb;">
+                            <div style="font-weight:600; color:#111827; font-size:0.9rem; margin-bottom:0.2rem;">📍 ${escapeHTML(loc.state)}</div>
+                            ${loc.address ? `<a href="https://www.google.com/maps/search/?api=1&query=${mapQuery}" target="_blank" style="color:#4b5563; text-decoration:none; font-size:0.82rem; display:inline-flex; align-items:center; gap:3px;">${escapeHTML(loc.address)}</a>` : ''}
+                          </div>`;
+                }).join('');
+                html += `<button onclick="document.getElementById('modalFullLocs').style.display='none'; document.getElementById('modalTruncatedLocs').style.display='block';" style="background:none; border:none; color:#722f37; font-weight:700; cursor:pointer; padding:0; font-size:0.85rem;">See Less</button>`;
+                html += '</div>';
+                return html;
               }
+              
+              if (isMultipleStates) {
+                // If we only have a comma-separated string
+                const visibleStates = states.slice(0, 2);
+                return `
+                  <div id="modalTruncatedStates">
+                    ${visibleStates.map(s => `<div style="font-weight:600; color:#111827; font-size:0.9rem; margin-bottom:0.4rem;">📍 ${escapeHTML(s)}</div>`).join('')}
+                    ${states.length > 2 ? `<button onclick="document.getElementById('modalFullStates').style.display='block'; document.getElementById('modalTruncatedStates').style.display='none';" style="background:none; border:none; color:#722f37; font-weight:700; cursor:pointer; padding:0; font-size:0.85rem;">+ ${states.length - 2} more (See More)</button>` : ''}
+                    ${states.length === 2 ? `<button onclick="document.getElementById('modalFullStates').style.display='block'; document.getElementById('modalTruncatedStates').style.display='none';" style="background:none; border:none; color:#722f37; font-weight:700; cursor:pointer; padding:0; font-size:0.85rem;">See More</button>` : ''}
+                  </div>
+                  <div id="modalFullStates" style="display:none;">
+                    ${states.map(s => `<div style="font-weight:600; color:#111827; font-size:0.9rem; margin-bottom:0.6rem; border-bottom:1px dashed #eee; padding-bottom:0.3rem;">📍 ${escapeHTML(s)}</div>`).join('')}
+                    <button onclick="document.getElementById('modalFullStates').style.display='none'; document.getElementById('modalTruncatedStates').style.display='block';" style="background:none; border:none; color:#722f37; font-weight:700; cursor:pointer; padding:0; font-size:0.85rem;">See Less</button>
+                  </div>
+                `;
+              }
+
               // Fallback: single address display
               return `
                 <div style="font-weight: 600; color: #111827; font-size: 0.95rem; margin-bottom: 0.2rem;">${escapeHTML(eventData.location || '')}</div>
