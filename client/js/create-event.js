@@ -191,7 +191,6 @@ function showCreateEventModal() {
                                         <div id="stateSelectContainer" class="state-select-container">
                                             <div class="state-select-display" id="stateSelectDisplay" onclick="toggleStateSelect()" style="padding: 1rem 1.25rem; border: 1px solid #e2e8f0; border-radius: 12px; font-weight: 600; cursor: pointer; display: flex; justify-content: space-between; align-items: center; background: white; min-width: 0;">
                                                 <span id="selectedStatesText" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; min-width: 0;">Select State(s)</span>
-                                                <span style="font-size: 0.8rem; opacity: 0.5; margin-left: 8px;">▼</span>
                                             </div>
                                             <div id="stateSelectDropdown" class="state-select-dropdown">
                                                 <div style="display: grid; gap: 4px;">
@@ -243,19 +242,19 @@ function showCreateEventModal() {
                                 <div id="ticketTypeConfigSection" style="background: white; padding: 1.5rem; border-radius: 12px; border: 2px solid #e5e7eb; margin-bottom: 1.5rem;">
                                     <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem; margin-bottom: 1.5rem;">
                                         <label style="display: flex; flex-direction: column; align-items: center; gap: 0.5rem; cursor: pointer; padding: 0.75rem; border: 2px solid #e5e7eb; border-radius: 10px; transition: all 0.2s;" class="ticket-type-label">
-                                            <input type="radio" name="ticket_type_mode" value="regular" class="ticket-type-radio" style="accent-color: #2563eb;">
+                                            <input type="checkbox" name="ticket_type_mode[]" value="regular" class="ticket-type-checkbox" style="accent-color: #2563eb;">
                                             <span style="font-weight: 700; font-size: 0.85rem;">Regular</span>
                                         </label>
                                         <label style="display: flex; flex-direction: column; align-items: center; gap: 0.5rem; cursor: pointer; padding: 0.75rem; border: 2px solid #e5e7eb; border-radius: 10px; transition: all 0.2s;" class="ticket-type-label">
-                                            <input type="radio" name="ticket_type_mode" value="vip" class="ticket-type-radio" style="accent-color: #2563eb;">
+                                            <input type="checkbox" name="ticket_type_mode[]" value="vip" class="ticket-type-checkbox" style="accent-color: #2563eb;">
                                             <span style="font-weight: 700; font-size: 0.85rem;">VIP</span>
                                         </label>
                                         <label style="display: flex; flex-direction: column; align-items: center; gap: 0.5rem; cursor: pointer; padding: 0.75rem; border: 2px solid #e5e7eb; border-radius: 10px; transition: all 0.2s;" class="ticket-type-label">
-                                            <input type="radio" name="ticket_type_mode" value="premium" class="ticket-type-radio" style="accent-color: #2563eb;">
+                                            <input type="checkbox" name="ticket_type_mode[]" value="premium" class="ticket-type-checkbox" style="accent-color: #2563eb;">
                                             <span style="font-weight: 700; font-size: 0.85rem;">Premium</span>
                                         </label>
                                         <label style="display: flex; flex-direction: column; align-items: center; gap: 0.5rem; cursor: pointer; padding: 0.75rem; border: 2px solid #e5e7eb; border-radius: 10px; transition: all 0.2s;" class="ticket-type-label">
-                                            <input type="radio" name="ticket_type_mode" value="all" class="ticket-type-radio" style="accent-color: #2563eb;" checked>
+                                            <input type="checkbox" name="ticket_type_mode[]" value="all" class="ticket-type-checkbox" style="accent-color: #2563eb;" checked>
                                             <span style="font-weight: 700; font-size: 0.85rem;">All</span>
                                         </label>
                                     </div>
@@ -518,70 +517,72 @@ function showCreateEventModal() {
         // Ensure priority fields are visible regardless of status
     });
 
-    // Ticket Type Mode Handler
-    const ticketTypeRadios = document.querySelectorAll('.ticket-type-radio');
+    // Ticket Type Mode Handler — multi-checkbox variant
+    const ticketTypeCheckboxes = document.querySelectorAll('.ticket-type-checkbox');
     const regularPriceSection = document.getElementById('regularPriceSection');
     const vipPriceSection = document.getElementById('vipPriceSection');
     const premiumPriceSection = document.getElementById('premiumPriceSection');
     const allPriceSection = document.getElementById('allPriceSection');
-    
+
     const regularPriceInput = document.getElementById('regularPriceInput');
     const vipPriceInput = document.getElementById('vipPriceInput');
     const premiumPriceInput = document.getElementById('premiumPriceInput');
     const allPriceInput = document.getElementById('allPriceInput');
 
     function updateTicketTypeSections() {
-        const selectedMode = document.querySelector('input[name="ticket_type_mode"]:checked')?.value || 'all';
-        
-        // Sections
+        // Collect ALL currently-checked ticket type checkboxes
+        const checkedBoxes = document.querySelectorAll('.ticket-type-checkbox:checked');
+        const selectedModes = Array.from(checkedBoxes).map(cb => cb.value);
+
+        // Show / hide each price config panel based on selection
         const sections = {
             'regular': document.getElementById('regularConfig'),
-            'vip': document.getElementById('vipConfig'),
+            'vip':     document.getElementById('vipConfig'),
             'premium': document.getElementById('premiumConfig'),
-            'all': document.getElementById('allConfig')
+            'all':     document.getElementById('allConfig')
         };
 
         Object.keys(sections).forEach(key => {
             if (sections[key]) {
-                sections[key].style.display = (selectedMode === key) ? 'block' : 'none';
+                sections[key].style.display = selectedModes.includes(key) ? 'block' : 'none';
             }
         });
 
-        // Toggle selected styles on labels
+        // Update label highlight styles
         document.querySelectorAll('.ticket-type-label').forEach(label => {
             const input = label.querySelector('input');
-            if (input.checked) {
+            if (input && input.checked) {
                 label.style.borderColor = '#2563eb';
-                label.style.background = '#eff6ff';
+                label.style.background  = '#eff6ff';
             } else {
                 label.style.borderColor = '#e5e7eb';
-                label.style.background = 'transparent';
+                label.style.background  = 'transparent';
             }
         });
-        
-        // Update required attribute
-        const regularPriceInput = document.getElementById('regularPriceInput');
-        const vipPriceInput = document.getElementById('vipPriceInput');
-        const premiumPriceInput = document.getElementById('premiumPriceInput');
-        const allPriceInput = document.getElementById('allPriceInput');
 
-        if (regularPriceInput) regularPriceInput.required = (selectedMode === 'regular');
-        if (vipPriceInput) vipPriceInput.required = (selectedMode === 'vip');
-        if (premiumPriceInput) premiumPriceInput.required = (selectedMode === 'premium');
-        if (allPriceInput) allPriceInput.required = (selectedMode === 'all');
+        // Update required attribute only for visible (checked) price inputs
+        const rpi = document.getElementById('regularPriceInput');
+        const vpi = document.getElementById('vipPriceInput');
+        const ppi = document.getElementById('premiumPriceInput');
+        const api = document.getElementById('allPriceInput');
+
+        if (rpi) rpi.required = selectedModes.includes('regular');
+        if (vpi) vpi.required = selectedModes.includes('vip');
+        if (ppi) ppi.required = selectedModes.includes('premium');
+        if (api) api.required = selectedModes.includes('all');
     }
 
-    ticketTypeRadios.forEach(radio => {
-        radio.addEventListener('change', updateTicketTypeSections);
+    ticketTypeCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', updateTicketTypeSections);
     });
 
-    // Sync prices when regular/vip/premium/all price inputs change
+    // Sync prices when inputs change
     if (regularPriceInput) regularPriceInput.addEventListener('change', updateTicketTypeSections);
-    if (vipPriceInput) vipPriceInput.addEventListener('change', updateTicketTypeSections);
+    if (vipPriceInput)     vipPriceInput.addEventListener('change', updateTicketTypeSections);
     if (premiumPriceInput) premiumPriceInput.addEventListener('change', updateTicketTypeSections);
-    if (allPriceInput) allPriceInput.addEventListener('change', updateTicketTypeSections);
+    if (allPriceInput)     allPriceInput.addEventListener('change', updateTicketTypeSections);
 
-    // Initial update
+    // Initial render
     updateTicketTypeSections();
 }
 
@@ -867,9 +868,25 @@ function updateSelectedStates() {
         displaySpan.style.color = '#334155';
         hiddenInput.value = selectedValues.join(',');
     }
-    
+
     // Trigger input event for persistence
     hiddenInput.dispatchEvent(new Event('input', { bubbles: true }));
+
+    // ── Address textarea enable / disable logic ───────────────────────────────
+    // Enable  : no selection, exactly 1 state, or "All States" is chosen.
+    // Disable : 2+ individual states are selected (per-state fields are used instead).
+    const mainAddressTextarea = document.querySelector('#createEventForm textarea[name="address"]');
+    if (mainAddressTextarea) {
+        const hasMultipleIndividual =
+            selectedValues.length > 1 && !selectedValues.includes('All States');
+        mainAddressTextarea.disabled   = hasMultipleIndividual;
+        mainAddressTextarea.style.background  = hasMultipleIndividual ? '#f3f4f6' : 'white';
+        mainAddressTextarea.style.cursor      = hasMultipleIndividual ? 'not-allowed' : 'text';
+        mainAddressTextarea.style.opacity     = hasMultipleIndividual ? '0.6' : '1';
+        mainAddressTextarea.placeholder       = hasMultipleIndividual
+            ? 'Using per-state addresses below…'
+            : 'Street address, landmarks…';
+    }
 
     // Inject per-state address fields if multiple states are selected
     renderPerStateAddressFields(selectedValues);

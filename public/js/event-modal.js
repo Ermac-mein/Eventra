@@ -302,6 +302,53 @@ function copyEventLink(inputId) {
   }
 }
 
+// ── copyModalShareLink ────────────────────────────────────────────────────────
+// Called by the share-copy button in the static event-details modal HTML.
+// Reads the link from the #modalEventShareLink input, or falls back to
+// building one from currentEventData, then copies it to the clipboard.
+function copyModalShareLink() {
+  const linkInput = document.getElementById('modalEventShareLink');
+  let url = (linkInput && linkInput.value) ? linkInput.value : '';
+
+  if (!url && window.currentEventData) {
+    url = `${window.location.origin}/public/pages/index.html?event_id=${window.currentEventData.id}`;
+  }
+
+  if (!url) return;
+
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(url)
+      .then(() => {
+        if (typeof showNotification === 'function') {
+          showNotification('Link copied to clipboard!', 'success');
+        } else if (typeof Swal !== 'undefined') {
+          Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Link copied!', showConfirmButton: false, timer: 2000 });
+        } else {
+          alert('Link copied!');
+        }
+      })
+      .catch(() => _fallbackCopy(url));
+  } else {
+    _fallbackCopy(url);
+  }
+}
+
+function _fallbackCopy(text) {
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.cssText = 'position:fixed;opacity:0;top:0;left:0;pointer-events:none;';
+  document.body.appendChild(ta);
+  ta.focus();
+  ta.select();
+  try {
+    document.execCommand('copy');
+    if (typeof showNotification === 'function') showNotification('Link copied!', 'success');
+  } catch (e) { /* silent */ }
+  document.body.removeChild(ta);
+}
+
+window.copyModalShareLink = copyModalShareLink;
+
 // Close modal on backdrop click
 document.addEventListener('click', (e) => {
   const modal = document.getElementById('eventDetailsModal');
@@ -405,6 +452,18 @@ window.allEventsData = allEventsData;
 window.copyEventLink = copyEventLink;
 
 // Initialize enhanced search when DOM is ready
+// Also: auto-open event details modal when URL contains ?event_id=ID or ?event=TAG
 document.addEventListener('DOMContentLoaded', () => {
   initializeEnhancedSearch();
+
+  const urlParams = new URLSearchParams(window.location.search);
+  const eventIdParam = urlParams.get('event_id') || urlParams.get('event');
+  if (eventIdParam) {
+    // Delay slightly to allow page JS / auth to initialise before opening modal
+    setTimeout(() => {
+      if (typeof openEventDetailsModal === 'function') {
+        openEventDetailsModal(eventIdParam);
+      }
+    }, 600);
+  }
 });

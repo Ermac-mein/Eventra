@@ -217,7 +217,20 @@ try {
 
     // New pricing fields
     $ticket_type = $_POST['ticket_type'] ?? 'regular';
-    $ticket_type_mode = $_POST['ticket_type_mode'] ?? 'all';
+    // Handle both legacy single-value radio ('ticket_type_mode') and new
+    // multi-checkbox array ('ticket_type_mode[]') submissions.
+    $raw_mode = $_POST['ticket_type_mode'] ?? null;
+    if ($raw_mode === null) {
+        $raw_mode = 'all'; // default
+    }
+    if (is_array($raw_mode)) {
+        // Multi-checkbox: join selected values into a comma-separated string
+        $ticket_type_mode = implode(',', array_filter(array_map('trim', $raw_mode)));
+        if (empty($ticket_type_mode)) $ticket_type_mode = 'all';
+    } else {
+        $ticket_type_mode = trim((string)$raw_mode);
+        if (empty($ticket_type_mode)) $ticket_type_mode = 'all';
+    }
     $regular_price = !empty($_POST['regular_price']) ? floatval($_POST['regular_price']) : 0.00;
     $vip_price = !empty($_POST['vip_price']) ? floatval($_POST['vip_price']) : 0.00;
     $premium_price = !empty($_POST['premium_price']) ? floatval($_POST['premium_price']) : 0.00;
@@ -225,8 +238,8 @@ try {
     $vip_quantity = !empty($_POST['vip_quantity']) ? intval($_POST['vip_quantity']) : null;
     $premium_quantity = !empty($_POST['premium_quantity']) ? intval($_POST['premium_quantity']) : null;
 
-    // Handle 'all' mode logic
-    if ($ticket_type_mode === 'all') {
+    // Handle 'all' mode logic — if 'all' is one of the selected types, apply $price to all tiers
+    if ($ticket_type_mode === 'all' || str_contains($ticket_type_mode, 'all')) {
         $regular_price = floatval($price);
         $vip_price = floatval($price);
         $premium_price = floatval($price);

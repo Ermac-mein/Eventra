@@ -236,10 +236,21 @@ try {
     $required_fields = ['event_name', 'event_type', 'event_date', 'event_time', 'status', 'address', 'phone_contact_1'];
     
     // Price is required unless it's explicitly marked as free or mode is not 'all'
-    $ticket_type_mode = $_POST['ticket_type_mode'] ?? 'all';
+    // Handle both legacy radio ('ticket_type_mode') and new checkbox array ('ticket_type_mode[]')
+    $raw_mode = $_POST['ticket_type_mode'] ?? null;
+    if ($raw_mode === null) {
+        $raw_mode = 'all';
+    }
+    if (is_array($raw_mode)) {
+        $ticket_type_mode = implode(',', array_filter(array_map('trim', $raw_mode)));
+        if (empty($ticket_type_mode)) $ticket_type_mode = 'all';
+    } else {
+        $ticket_type_mode = trim((string)$raw_mode);
+        if (empty($ticket_type_mode)) $ticket_type_mode = 'all';
+    }
     $is_free = isset($_POST['is_free']) && $_POST['is_free'] === '1';
 
-    if ($ticket_type_mode === 'all' && !$is_free) {
+    if (($ticket_type_mode === 'all' || str_contains($ticket_type_mode, 'all')) && !$is_free) {
         $required_fields[] = 'price';
     }
 
@@ -264,7 +275,7 @@ try {
     $vip_price = !empty($_POST['vip_price']) ? floatval($_POST['vip_price']) : 0.00;
     $premium_price = !empty($_POST['premium_price']) ? floatval($_POST['premium_price']) : 0.00;
 
-    if ($ticket_type_mode === 'all') {
+    if ($ticket_type_mode === 'all' || str_contains($ticket_type_mode, 'all')) {
         $regular_price = floatval($price);
         $vip_price = floatval($price);
         $premium_price = floatval($price);

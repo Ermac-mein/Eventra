@@ -584,9 +584,27 @@ function displayEventPreview(event) {
 
                         <div style="margin-bottom: 2.5rem;">
                             <label style="display: block; font-size: 0.9rem; color: #111827; margin-bottom: 1rem; text-transform: uppercase; font-weight: 800; letter-spacing: 0.05em;">📍 Venue & Location</label>
-                            <div style="background: #f9fafb; padding: 1.25rem; border-radius: 16px; border: 1px solid #e5e7eb; color: #4b5563; font-weight: 500; line-height: 1.5;">
-                                ${escapeHTML(event.address) || 'No address provided'}
-                                ${event.state ? `<br><span style="color: #111827; font-weight: 700;">${escapeHTML(event.state)}</span>` : ''}
+                            <div style="background: #f9fafb; padding: 1.25rem; border-radius: 16px; border: 1px solid #e5e7eb; color: #4b5563; font-weight: 500; line-height: 1.6;">
+                                ${(() => {
+                                    // Try structured locations JSON (multi-state events)
+                                    let locs = null;
+                                    try {
+                                        locs = event.locations
+                                            ? (typeof event.locations === 'string' ? JSON.parse(event.locations) : event.locations)
+                                            : null;
+                                    } catch(e) {}
+                                    if (Array.isArray(locs) && locs.length > 1) {
+                                        return locs.map(loc => `
+                                            <div style="margin-bottom:0.6rem;padding-bottom:0.6rem;border-bottom:1px dashed #e5e7eb;">
+                                                <div style="font-weight:700;color:#111827;font-size:0.9rem;margin-bottom:0.2rem;">${escapeHTML(loc.state)}</div>
+                                                ${loc.address ? `<div style="color:#6b7280;font-size:0.82rem;">${escapeHTML(loc.address)}</div>` : ''}
+                                            </div>
+                                        `).join('');
+                                    }
+                                    // Fallback: single address/state
+                                    return (escapeHTML(event.address) || 'No address provided')
+                                        + (event.state ? `<br><span style="color:#111827;font-weight:700;">${escapeHTML(event.state)}</span>` : '');
+                                })()}
                             </div>
                         </div>
 
@@ -876,7 +894,6 @@ function showEditEventModal(event) {
                                     <div id="editStateSelectContainer" class="state-select-container" style="margin-bottom: 1rem;">
                                         <div class="state-select-display" id="editStateSelectDisplay" onclick="toggleEditStateSelect()" style="padding: 1rem 1.25rem; border: 1px solid #e2e8f0; border-radius: 12px; font-weight: 600; cursor: pointer; display: flex; justify-content: space-between; align-items: center; background: white; min-width: 0;">
                                             <span id="editSelectedStatesText" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; min-width: 0;">${event.state ? event.state.split(',').join(', ') : 'Select State(s)'}</span>
-                                            <span style="font-size: 0.8rem; opacity: 0.5; margin-left: 8px;">▼</span>
                                         </div>
                                         <div id="editStateSelectDropdown" class="state-select-dropdown" style="max-height: 250px; overflow-y: auto;">
                                             <div style="display: grid; gap: 4px;">
@@ -890,7 +907,13 @@ function showEditEventModal(event) {
                                         </div>
                                         <input type="hidden" name="state" id="editEventStateInput" value="${event.state || ''}" required>
                                     </div>
-                                    <textarea name="address" rows="3" placeholder="Full venue address..." required style="width: 100%; padding: 1rem 1.25rem; border: 1px solid #e2e8f0; border-radius: 12px; font-size: 0.95rem; resize: none; transition: all 0.3s; background: white;">${escapeHTML(event.address)}</textarea>
+
+                                    <div class="form-group">
+                                        <label style="display: block; font-size: 0.75rem; font-weight: 800; color: #64748b; text-transform: uppercase; margin-bottom: 0.5rem; letter-spacing: 0.025em;">Venue Address</label>
+                                        <div id="perStateEditAddressContainer" style="margin-bottom: 1rem; display: none;"></div>
+                                        <textarea name="address" id="editEventAddress" rows="3" placeholder="Full venue address..." style="width: 100%; padding: 0.75rem; border: 1px solid #e2e8f0; border-radius: 10px; font-size: 0.9rem; transition: all 0.2s;" onfocus="this.style.borderColor='#0f172a'; this.style.boxShadow='0 0 0 3px rgba(15, 23, 42, 0.1)';" onblur="this.style.borderColor='#e2e8f0'; this.style.boxShadow='none';">${escapeHTML(event.address || '')}</textarea>
+                                        <p id="editAddressHelpText" style="font-size: 0.7rem; color: #64748b; margin-top: 0.4rem; display: none;">Multiple states selected. Please provide specific addresses for each state above.</p>
+                                    </div>
                                 </div>
 
                                 <div style="background: #f8fafc; padding: 1.5rem; border-radius: 16px; border: 1px solid #e2e8f0;">
@@ -980,19 +1003,19 @@ function showEditEventModal(event) {
                                         <div id="editTicketTypeConfigSection" style="${parseFloat(event.price) === 0 ? 'display: none;' : ''}">
                                             <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem; margin-bottom: 1.5rem;">
                                                 <label class="edit-ticket-type-label" style="display: flex; flex-direction: column; align-items: center; gap: 0.4rem; cursor: pointer; padding: 0.8rem 0.2rem; border: 1px solid #e2e8f0; border-radius: 10px; transition: all 0.2s;">
-                                                    <input type="radio" name="ticket_type_mode" value="regular" ${event.ticket_type_mode === 'regular' ? 'checked' : ''} class="edit-ticket-type-radio" style="accent-color: #0f172a;">
+                                                    <input type="checkbox" name="ticket_type_mode[]" value="regular" ${event.ticket_type_mode && event.ticket_type_mode.includes('regular') ? 'checked' : ''} class="edit-ticket-type-checkbox" style="accent-color: #0f172a;">
                                                     <span style="font-weight: 700; font-size: 0.7rem; text-transform: uppercase;">Regular</span>
                                                 </label>
                                                 <label class="edit-ticket-type-label" style="display: flex; flex-direction: column; align-items: center; gap: 0.4rem; cursor: pointer; padding: 0.8rem 0.2rem; border: 1px solid #e2e8f0; border-radius: 10px; transition: all 0.2s;">
-                                                    <input type="radio" name="ticket_type_mode" value="vip" ${event.ticket_type_mode === 'vip' ? 'checked' : ''} class="edit-ticket-type-radio" style="accent-color: #0f172a;">
+                                                    <input type="checkbox" name="ticket_type_mode[]" value="vip" ${event.ticket_type_mode && event.ticket_type_mode.includes('vip') ? 'checked' : ''} class="edit-ticket-type-checkbox" style="accent-color: #0f172a;">
                                                     <span style="font-weight: 700; font-size: 0.7rem; text-transform: uppercase;">VIP</span>
                                                 </label>
                                                 <label class="edit-ticket-type-label" style="display: flex; flex-direction: column; align-items: center; gap: 0.4rem; cursor: pointer; padding: 0.8rem 0.2rem; border: 1px solid #e2e8f0; border-radius: 10px; transition: all 0.2s;">
-                                                    <input type="radio" name="ticket_type_mode" value="premium" ${event.ticket_type_mode === 'premium' ? 'checked' : ''} class="edit-ticket-type-radio" style="accent-color: #0f172a;">
+                                                    <input type="checkbox" name="ticket_type_mode[]" value="premium" ${event.ticket_type_mode && event.ticket_type_mode.includes('premium') ? 'checked' : ''} class="edit-ticket-type-checkbox" style="accent-color: #0f172a;">
                                                     <span style="font-weight: 700; font-size: 0.7rem; text-transform: uppercase;">Premium</span>
                                                 </label>
                                                 <label class="edit-ticket-type-label" style="display: flex; flex-direction: column; align-items: center; gap: 0.4rem; cursor: pointer; padding: 0.8rem 0.2rem; border: 1px solid #e2e8f0; border-radius: 10px; transition: all 0.2s;">
-                                                    <input type="radio" name="ticket_type_mode" value="all" ${(!event.ticket_type_mode || event.ticket_type_mode === 'all') ? 'checked' : ''} class="edit-ticket-type-radio" style="accent-color: #0f172a;">
+                                                    <input type="checkbox" name="ticket_type_mode[]" value="all" ${(!event.ticket_type_mode || event.ticket_type_mode.includes('all')) ? 'checked' : ''} class="edit-ticket-type-checkbox" style="accent-color: #0f172a;">
                                                     <span style="font-weight: 700; font-size: 0.7rem; text-transform: uppercase;">All</span>
                                                 </label>
                                             </div>
@@ -1117,7 +1140,7 @@ function showEditEventModal(event) {
     }
 
     // Ticket Type Configuration Logic (Edit Modal)
-    const editTicketTypeRadios = document.querySelectorAll('.edit-ticket-type-radio');
+    const editTicketTypeCheckboxes = document.querySelectorAll('.edit-ticket-type-checkbox');
     const editRegularPriceSection = document.getElementById('editRegularPriceSection');
     const editVipPriceSection = document.getElementById('editVipPriceSection');
     const editPremiumPriceSection = document.getElementById('editPremiumPriceSection');
@@ -1129,7 +1152,8 @@ function showEditEventModal(event) {
     const editAllPriceInput = document.getElementById('editAllPriceInput');
 
     function updateEditTicketTypeSections() {
-        const selectedMode = document.querySelector('input[name="ticket_type_mode"]:checked')?.value || 'all';
+        const checkedBoxes = document.querySelectorAll('.edit-ticket-type-checkbox:checked');
+        const selectedModes = Array.from(checkedBoxes).map(cb => cb.value);
         
         // Sections
         const sections = {
@@ -1141,7 +1165,10 @@ function showEditEventModal(event) {
 
         Object.keys(sections).forEach(key => {
             if (sections[key]) {
-                sections[key].style.display = (selectedMode === key) ? 'block' : 'none';
+                sections[key].style.display = selectedModes.includes(key) ? 'block' : 'none';
+                
+                // If All is selected, we can optionally hide others or just show all. 
+                // Creating consistency with create-event.js which shows All separately.
             }
         });
 
@@ -1158,41 +1185,73 @@ function showEditEventModal(event) {
         });
         
         // Update required attribute
-        if (editRegularPriceInput) editRegularPriceInput.required = (selectedMode === 'regular');
-        if (editVipPriceInput) editVipPriceInput.required = (selectedMode === 'vip');
-        if (editPremiumPriceInput) editPremiumPriceInput.required = (selectedMode === 'premium');
-        if (editAllPriceInput) editAllPriceInput.required = (selectedMode === 'all');
+        if (editRegularPriceInput) editRegularPriceInput.required = selectedModes.includes('regular');
+        if (editVipPriceInput) editVipPriceInput.required = selectedModes.includes('vip');
+        if (editPremiumPriceInput) editPremiumPriceInput.required = selectedModes.includes('premium');
+        if (editAllPriceInput) editAllPriceInput.required = selectedModes.includes('all');
     }
 
-    editTicketTypeRadios.forEach(radio => {
-        radio.addEventListener('change', updateEditTicketTypeSections);
+    // Initialize Ticket Sections
+    updateEditTicketTypeSections();
+
+    // Initialize State and Per-State Addresses
+    // Parse locations if present
+    if (event.locations) {
+        try {
+            const locs = typeof event.locations === 'string' ? JSON.parse(event.locations) : event.locations;
+            if (Array.isArray(locs) && locs.length > 0) {
+                // We need to render the fields first, then fill them
+                const selectedStates = event.state ? event.state.split(',') : [];
+                renderPerStateEditAddressFields(selectedStates);
+                
+                const container = document.getElementById('perStateEditAddressContainer');
+                locs.forEach(loc => {
+                    const ta = container.querySelector(`textarea[data-state="${loc.state}"]`);
+                    if (ta) ta.value = loc.address;
+                });
+                
+                // Update hidden input
+                const hiddenLocations = document.getElementById('editLocationsJsonInput');
+                if (hiddenLocations) hiddenLocations.value = JSON.stringify(locs);
+            }
+        } catch (e) {
+            console.error("Error parsing locations for edit modal", e);
+        }
+    } else {
+        // Just call update to handle the single state case / disabling
+        updateEditSelectedStates();
+    }
+
+    editTicketTypeCheckboxes.forEach(cb => {
+        cb.addEventListener('change', updateEditTicketTypeSections);
     });
 
     // Free Event Checkbox Handler (Edit Modal)
     const freeCheckbox = document.getElementById('editFreeEventCheckbox');
     const ticketConfig = document.getElementById('editTicketTypeConfigSection');
+    if (freeCheckbox && ticketConfig) {
+        const handleFreeToggle = () => {
+            if (freeCheckbox.checked) {
+                ticketConfig.style.display = 'none';
+                if (editRegularPriceInput) { editRegularPriceInput.value = 0; editRegularPriceInput.required = false; }
+                if (editVipPriceInput) { editVipPriceInput.value = 0; editVipPriceInput.required = false; }
+                if (editPremiumPriceInput) { editPremiumPriceInput.value = 0; editPremiumPriceInput.required = false; }
+                if (editAllPriceInput) { editAllPriceInput.value = 0; editAllPriceInput.required = false; }
+                
+                const qtyInputs = document.querySelectorAll('#editTicketTypeConfigSection input[type="number"]');
+                qtyInputs.forEach(input => {
+                    if (input.name.includes('quantity')) input.value = '';
+                });
+            } else {
+                ticketConfig.style.display = 'block';
+                updateEditTicketTypeSections();
+            }
+        };
 
-    freeCheckbox.addEventListener('change', function() {
-        if (this.checked) {
-            // If free, hide ticket config and set values to 0
-            if (ticketConfig) ticketConfig.style.display = 'none';
-            
-            if (editRegularPriceInput) { editRegularPriceInput.value = 0; editRegularPriceInput.required = false; }
-            if (editVipPriceInput) { editVipPriceInput.value = 0; editVipPriceInput.required = false; }
-            if (editPremiumPriceInput) { editPremiumPriceInput.value = 0; editPremiumPriceInput.required = false; }
-            if (editAllPriceInput) { editAllPriceInput.value = 0; editAllPriceInput.required = false; }
-            
-            // Clear quantity inputs so they don't override on submission
-            const qtyInputs = document.querySelectorAll('#editTicketTypeConfigSection input[type="number"]');
-            qtyInputs.forEach(input => {
-                if (input.name.includes('quantity')) input.value = '';
-            });
-        } else {
-            // Restore visibility and requirements
-            if (ticketConfig) ticketConfig.style.display = 'block';
-            updateEditTicketTypeSections(); // Recalculate requirements based on selected radio
-        }
-    });
+        // Initial state
+        handleFreeToggle();
+        freeCheckbox.addEventListener('change', handleFreeToggle);
+    }
 
     // Initial update
     updateEditTicketTypeSections();
@@ -1244,6 +1303,75 @@ function toggleEditStateSelect() {
     }
 }
 
+function renderPerStateEditAddressFields(selectedStates) {
+    const container = document.getElementById('perStateEditAddressContainer');
+    const mainAddress = document.getElementById('editEventAddress');
+    const helpText = document.getElementById('editAddressHelpText');
+    if (!container) return;
+
+    // Save existing values to prevent data loss when re-rendering
+    const existingValues = {};
+    container.querySelectorAll('textarea').forEach(ta => {
+        existingValues[ta.dataset.state] = ta.value;
+    });
+
+    if (selectedStates.length > 1) {
+        container.style.display = 'block';
+        if (mainAddress) {
+            mainAddress.disabled = true;
+            mainAddress.style.backgroundColor = '#f8fafc';
+            mainAddress.placeholder = 'Address disabled for multi-state events';
+        }
+        if (helpText) helpText.style.display = 'block';
+
+        container.innerHTML = selectedStates.map(state => `
+            <div style="margin-bottom: 0.75rem;">
+                <label style="display: block; font-size: 0.7rem; font-weight: 700; color: #475569; margin-bottom: 0.3rem;">Venue for ${state}</label>
+                <textarea 
+                    data-state="${state}"
+                    placeholder="Address for ${state}..." 
+                    style="width: 100%; padding: 0.6rem; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.85rem;"
+                    onfocus="this.style.borderColor='#0f172a';"
+                    onblur="this.style.borderColor='#e2e8f0';"
+                >${existingValues[state] || ''}</textarea>
+            </div>
+        `).join('');
+
+        // Re-inject locations_json hidden input logic if needed
+        const hiddenLocations = document.createElement('input');
+        hiddenLocations.type = 'hidden';
+        hiddenLocations.name = 'locations_json';
+        hiddenLocations.id = 'editLocationsJsonInput';
+        container.appendChild(hiddenLocations);
+
+        const updateJson = () => {
+            const locs = [];
+            container.querySelectorAll('textarea').forEach(ta => {
+                locs.push({ state: ta.dataset.state, address: ta.value });
+            });
+            hiddenLocations.value = JSON.stringify(locs);
+        };
+
+        container.querySelectorAll('textarea').forEach(ta => {
+            ta.addEventListener('input', updateJson);
+        });
+        updateJson();
+    } else {
+        container.style.display = 'none';
+        container.innerHTML = '';
+        if (mainAddress) {
+            mainAddress.disabled = false;
+            mainAddress.style.backgroundColor = 'white';
+            mainAddress.placeholder = 'Full venue address...';
+        }
+        if (helpText) helpText.style.display = 'none';
+        
+        // Remove locations_json input if it exists
+        const locInput = document.getElementById('editLocationsJsonInput');
+        if (locInput) locInput.remove();
+    }
+}
+
 function updateEditSelectedStates() {
     const checkboxes = document.querySelectorAll('.edit-state-checkbox:checked');
     const selectedValues = Array.from(checkboxes).map(cb => cb.value);
@@ -1259,6 +1387,8 @@ function updateEditSelectedStates() {
         displaySpan.style.color = '#1e293b';
         hiddenInput.value = selectedValues.join(',');
     }
+    
+    renderPerStateEditAddressFields(selectedValues);
     
     // Trigger input event for persistence
     hiddenInput.dispatchEvent(new Event('input', { bubbles: true }));
@@ -1517,51 +1647,7 @@ window.publishEvent = publishEvent;
 window.showEditEventModal = showEditEventModal;
 window.closeEditEventModal = closeEditEventModal;
 window.previewEditEventImage = previewEditEventImage;
-/**
- * Multi-select State Logic for Edit Modal
- */
-function toggleEditStateSelect() {
-    const dropdown = document.getElementById('editStateSelectDropdown');
-    const display = document.getElementById('editStateSelectDisplay');
-    if (!dropdown || !display) return;
-
-    dropdown.classList.toggle('active');
-    display.classList.toggle('active');
-
-    if (dropdown.classList.contains('active')) {
-        const closeDropdown = (e) => {
-            if (!document.getElementById('editStateSelectContainer').contains(e.target)) {
-                dropdown.classList.remove('active');
-                display.classList.remove('active');
-                document.removeEventListener('click', closeDropdown);
-            }
-        };
-        setTimeout(() => document.addEventListener('click', closeDropdown), 10);
-    }
-}
-
-function updateEditSelectedStates() {
-    const checkboxes = document.querySelectorAll('.edit-state-checkbox:checked');
-    const selectedValues = Array.from(checkboxes).map(cb => cb.value);
-    const displaySpan = document.getElementById('editSelectedStatesText');
-    const hiddenInput = document.getElementById('editEventStateInput');
-
-    if (selectedValues.length === 0) {
-        displaySpan.textContent = 'Select State(s)';
-        displaySpan.style.color = '#9ca3af';
-        hiddenInput.value = '';
-    } else {
-        displaySpan.textContent = selectedValues.join(', ');
-        displaySpan.style.color = '#334155';
-        hiddenInput.value = selectedValues.join(',');
-    }
-    
-    // Trigger input event for persistence
-    hiddenInput.dispatchEvent(new Event('input', { bubbles: true }));
-}
-
-window.toggleEditStateSelect = toggleEditStateSelect;
-window.updateEditSelectedStates = updateEditSelectedStates;
+// console.log("State Select Helpers initialized");
 window.showTicketPreviewModal = showTicketPreviewModal;
 window.closeTicketPreviewModal = closeTicketPreviewModal;
 window.showUserPreviewModal = showUserPreviewModal;
