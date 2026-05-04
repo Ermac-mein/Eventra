@@ -163,7 +163,7 @@ function generateTicketPDF(array $ticketData): string
     $options = new Options();
     $options->set('isRemoteEnabled', true);
     $options->set('isFontSubsettingEnabled', true);
-    $options->set('defaultFont', 'Inter');
+    $options->set('defaultFont', 'sans-serif');
     $options->set('dpi', 150);
     $dompdf = new Dompdf($options);
 
@@ -184,7 +184,7 @@ function generateTicketPDF(array $ticketData): string
     $ticket_id = $ticketData['barcode'];
     
     // Additional fields for improved design
-    $event_image_path = $ticketData['image_path'] ?? null;
+    $event_image_path = $ticketData['event_image'] ?? $ticketData['image_path'] ?? null;
     $ticket_type = strtoupper($ticketData['ticket_type'] ?? 'REGULAR');
     $event_type_label = $ticket_type;
     
