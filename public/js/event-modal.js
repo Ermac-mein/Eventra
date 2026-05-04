@@ -122,7 +122,38 @@ function renderModalContent(container, eventData) {
      }
   }
 
-  const eventPrice = !eventData.price || parseFloat(eventData.price) === 0 ? 'Free' : `₦${parseFloat(eventData.price).toLocaleString()}`;
+  // Robust Pricing & Ticket Type Display
+  let eventPriceDisplay = 'Free';
+  const regPrice = parseFloat(eventData.regular_price || 0);
+  const vipPrice = parseFloat(eventData.vip_price || 0);
+  const premPrice = parseFloat(eventData.premium_price || 0);
+  const legacyPrice = parseFloat(eventData.price || 0);
+
+  // Get active modes from metadata (ticket_type_mode)
+  let modes = (eventData.ticket_type_mode || 'all').split(',').map(m => m.trim().toLowerCase());
+  
+  if (modes.includes('all') || modes.length === 0) {
+      eventPriceDisplay = legacyPrice > 0 ? `₦${legacyPrice.toLocaleString()}` : 'Free';
+  } else {
+      let priceParts = [];
+      if (modes.includes('regular')) priceParts.push(regPrice);
+      if (modes.includes('vip')) priceParts.push(vipPrice);
+      if (modes.includes('premium')) priceParts.push(premPrice);
+      
+      const maxP = Math.max(...priceParts);
+      const minP = Math.min(...priceParts);
+      
+      if (maxP > 0) {
+          eventPriceDisplay = minP === maxP ? `₦${minP.toLocaleString()}` : `₦${minP.toLocaleString()} - ₦${maxP.toLocaleString()}`;
+      } else {
+          eventPriceDisplay = 'Free';
+      }
+  }
+
+  // Create ticket type badge/label
+  const ticketTypes = modes.includes('all') ? 'Regular, VIP, Premium' : modes.map(m => m.charAt(0).toUpperCase() + m.slice(1)).join(', ');
+  const displayValue = `${eventPriceDisplay}${ticketTypes ? ` (${ticketTypes})` : ''}`;
+
   
   container.innerHTML = `
     <button class="modal-close" onclick="closeEventDetailsModal()" style="position: absolute; top: 1rem; right: 1rem; background: rgba(255,255,255,0.9); backdrop-filter: blur(8px); border: none; width: 40px; height: 40px; border-radius: 50%; font-size: 1.5rem; cursor: pointer; z-index: 10; box-shadow: 0 4px 12px rgba(0,0,0,0.1); display: flex; align-items: center; justify-content: center; transition: all 0.2s ease;">&times;</button>
@@ -245,8 +276,8 @@ function renderModalContent(container, eventData) {
         <div style="display: flex; align-items: flex-start; gap: 1rem;">
           <div style="width: 44px; height: 44px; background: #fdf2f8; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; flex-shrink: 0;">🎟️</div>
           <div>
-            <div style="font-size: 0.75rem; color: #6b7280; font-weight: 600; text-transform: uppercase; margin-bottom: 0.25rem;">Price</div>
-            <div style="font-weight: 700; color: #111827; font-size: 1rem;">${escapeHTML(eventPrice)}</div>
+            <div style="font-size: 0.75rem; color: #6b7280; font-weight: 600; text-transform: uppercase; margin-bottom: 0.25rem;">Tickets</div>
+            <div style="font-weight: 700; color: #111827; font-size: 1rem;">${escapeHTML(displayValue)}</div>
           </div>
         </div>
       </div>

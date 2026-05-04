@@ -722,31 +722,40 @@ function escapeHTML(str) {
 // Create event card
 function createEventCard(event, index) {
   // Handle pricing - prefer new fields if available
+  // Handle pricing - robust multi-tier logic
   let price = 'Free';
-  let priceDisplay = '';
-  
-  const regularPrice = parseFloat(event.regular_price || 0);
+  const regPrice = parseFloat(event.regular_price || 0);
   const vipPrice = parseFloat(event.vip_price || 0);
+  const premPrice = parseFloat(event.premium_price || 0);
   const legacyPrice = parseFloat(event.price || 0);
+
+  // Get active modes from metadata (ticket_type_mode)
+  let modes = (event.ticket_type_mode || 'all').split(',').map(m => m.trim().toLowerCase());
   
-  if (regularPrice > 0 && vipPrice > 0) {
-    // Both regular and VIP available
-    priceDisplay = `₦${regularPrice.toLocaleString()} - ₦${vipPrice.toLocaleString()}`;
-  } else if (regularPrice > 0) {
-    // Only regular price
-    priceDisplay = `₦${regularPrice.toLocaleString()}`;
-  } else if (vipPrice > 0) {
-    // Only VIP price
-    priceDisplay = `✨ ₦${vipPrice.toLocaleString()}`;
-  } else if (legacyPrice > 0) {
-    // Fallback to legacy price field
-    priceDisplay = `₦${legacyPrice.toLocaleString()}`;
+  if (modes.includes('all') || modes.length === 0) {
+      price = legacyPrice > 0 ? `₦${legacyPrice.toLocaleString()}` : 'Free';
   } else {
-    // Free event
-    priceDisplay = 'Free';
+      let priceParts = [];
+      if (modes.includes('regular')) priceParts.push(regPrice);
+      if (modes.includes('vip')) priceParts.push(vipPrice);
+      if (modes.includes('premium')) priceParts.push(premPrice);
+      
+      const maxP = Math.max(...priceParts);
+      const minP = Math.min(...priceParts);
+      
+      if (maxP > 0) {
+          price = minP === maxP ? `₦${minP.toLocaleString()}` : `₦${minP.toLocaleString()} - ₦${maxP.toLocaleString()}`;
+      } else {
+          price = 'Free';
+      }
   }
-  
-  price = priceDisplay;
+
+  // Append ticket types label
+  const typeLabel = modes.includes('all') ? 'Regular, VIP, Premium' : modes.map(m => m.charAt(0).toUpperCase() + m.slice(1)).join(', ');
+  if (typeLabel) {
+      price = `${price} (${typeLabel})`;
+  }
+
   
   // Security: Sanitize and Path Priority
   const eventImage = typeof getImageUrl === 'function' 
@@ -788,8 +797,7 @@ function createEventCard(event, index) {
   const shareTitle = `Eventra: ${eventName}`;
   const shareText = `Check out ${eventName} organized by ${organizer} on Eventra!`;
   
-  // Add VIP badge if both types exist - Added margin-right to prevent overlap with heart icon
-  const vipBadge = (regularPrice > 0 && vipPrice > 0) ? '<span style="background: linear-gradient(135deg, #2ecc71, #a855f7); color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.7rem; font-weight: 700; margin-right: 12px;">Regular/VIP</span>' : '';
+  // Ticket types are now integrated directly into the price string above
 
   const getPriorityIcon = (p) => {
     switch(p.toLowerCase()) {

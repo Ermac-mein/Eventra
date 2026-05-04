@@ -115,14 +115,18 @@ try {
             $events = $s->fetchAll();
         }
 
-        // Strip is_boosted from all non-admin responses
-        if ($user_role !== 'admin') {
-            $events = array_map(function($ev) {
+        // Process events: parse metadata and strip admin-only fields
+        $events = array_map(function($ev) use ($user_role) {
+            if (!empty($ev['metadata'])) {
+                $meta = json_decode($ev['metadata'], true);
+                if (is_array($meta)) $ev = array_merge($ev, $meta);
+            }
+            if ($user_role !== 'admin') {
                 unset($ev['is_boosted']);
                 unset($ev['priority']); // legacy
-                return $ev;
-            }, $events);
-        }
+            }
+            return $ev;
+        }, $events);
 
         echo json_encode(['success' => true, 'events' => $events, 'total' => count($events), 'waterfall' => true]);
         exit;
@@ -215,14 +219,18 @@ try {
     $stmt->execute();
     $events = $stmt->fetchAll();
 
-    // Strip is_boosted for non-admin
-    if ($user_role !== 'admin') {
-        $events = array_map(function($ev) {
+    // Process events: parse metadata and strip admin-only fields
+    $events = array_map(function($ev) use ($user_role) {
+        if (!empty($ev['metadata'])) {
+            $meta = json_decode($ev['metadata'], true);
+            if (is_array($meta)) $ev = array_merge($ev, $meta);
+        }
+        if ($user_role !== 'admin') {
             unset($ev['is_boosted']);
             unset($ev['priority']); // legacy
-            return $ev;
-        }, $events);
-    }
+        }
+        return $ev;
+    }, $events);
 
     // Stats for client context
     $stats = null;

@@ -28,6 +28,13 @@ try {
     $event = $stmt->fetch();
 
     if ($event) {
+        // Parse metadata if it exists
+        if (!empty($event['metadata'])) {
+            $metadata = json_decode($event['metadata'], true);
+            if (is_array($metadata)) {
+                $event = array_merge($event, $metadata);
+            }
+        }
         echo json_encode(['success' => true, 'event' => $event]);
     } else {
         echo json_encode(['success' => false, 'message' => 'Event not found']);
