@@ -23,12 +23,44 @@ use chillerlan\QRCode\QROptions;
 function base64_encode_image($path) {
     if (!$path) return '';
     
+    // Handle remote URLs
+    if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
+        $ctx = stream_context_create(['http' => ['timeout' => 5]]);
+        $data = @file_get_contents($path, false, $ctx);
+        if ($data === false) return '';
+        
+        $ext = strtolower(pathinfo(parse_url($path, PHP_URL_PATH), PATHINFO_EXTENSION));
+        $mimeType = match($ext) {
+            'jpg', 'jpeg' => 'image/jpeg',
+            'png' => 'image/png',
+            'webp' => 'image/webp',
+            'svg' => 'image/svg+xml',
+            default => 'image/png'
+        };
+        return 'data:' . $mimeType . ';base64,' . base64_encode($data);
+    }
+
     // Normalize path: handle relative paths and resolve to absolute
     $resolvedPath = $path;
+    
+    // If not absolute path, try to resolve it
     if (!file_exists($resolvedPath)) {
-        // Try relative to project root
         $root = realpath(__DIR__ . '/../../');
-        $resolvedPath = $root . DIRECTORY_SEPARATOR . ltrim(str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $path), DIRECTORY_SEPARATOR);
+        $cleanPath = ltrim(str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $path), DIRECTORY_SEPARATOR);
+        
+        // Try direct project root
+        $tryPath = $root . DIRECTORY_SEPARATOR . $cleanPath;
+        if (file_exists($tryPath)) {
+            $resolvedPath = $tryPath;
+        } else {
+            // Try inside public folder if not already there
+            if (!str_starts_with($cleanPath, 'public')) {
+                $tryPath = $root . DIRECTORY_SEPARATOR . 'public' . DIRECTORY_SEPARATOR . $cleanPath;
+                if (file_exists($tryPath)) {
+                    $resolvedPath = $tryPath;
+                }
+            }
+        }
     }
     
     if (!file_exists($resolvedPath)) {
@@ -127,12 +159,14 @@ function generateTicketQRCode(array $ticketData): string
 
         $qrcode = new QRCode($options);
         // Encode a public verification URL instead of raw barcode
-        $verificationUrl = SITE_URL . '/api/tickets/validate-ticket.php?barcode=' . $ticketData['barcode'];
+        $verificationUrl = APP_URL . '/api/tickets/validate-ticket.php?barcode=' . $ticketData['barcode'];
         $svgData = $qrcode->render($verificationUrl);
 
         $fileName = 'qr_' . $ticketData['barcode'] . '.png';
 
-        $dir = __DIR__ . '/../../public/assets/event_assets/qrcodes/';
+        $root = realpath(__DIR__ . '/../../');
+        $dir = $root . DIRECTORY_SEPARATOR . 'public' . DIRECTORY_SEPARATOR . 'assets' . DIRECTORY_SEPARATOR . 'event_assets' . DIRECTORY_SEPARATOR . 'qrcodes' . DIRECTORY_SEPARATOR;
+        
         if (!is_dir($dir)) {
             mkdir($dir, 0755, true);
         }
@@ -220,15 +254,17 @@ function generateTicketPDF(array $ticketData): string
     // Map data for EmailHelper::buildTicketHtml
     $richTicketData = [
         'barcode'             => $ticket_id,
-        'ticket_id'           => $ticket_id, // Ensure custom ID is used
+        'ticket_id'           => $ticket_id,
         'event_name'          => $event_name,
         'user_name'           => $user_name,
-        'location'            => $venue_name,
-        'state'               => $state,
+        'location'            => $venue_name, // Fallback venue name
+        'address'             => $ticketData['address'] ?? null,
+        'state'               => $ticketData['state'] ?? null,
+        'locations'           => $ticketData['locations'] ?? null,
         'ticket_type'         => $ticket_type,
         'ticket_type_display' => $event_type_label,
         'qr_base64'           => $qr_base64,
-        'event_image'         => $event_img_base64,
+        'event_image'         => $event_img_base64 ?: $event_image_path, // Prefer base64
         'amount'              => $price_value,
         'event_date'          => $ticketData['event_date'] ?? null,
         'event_time'          => $ticketData['event_time'] ?? null,
@@ -237,7 +273,7 @@ function generateTicketPDF(array $ticketData): string
     $html = EmailHelper::buildTicketHtml($richTicketData);
 
     $dompdf->loadHtml($html);
-    $dompdf->setPaper('A4', 'portrait');
+    $dompdf->setPaper('A4', 'landscape');
     $dompdf->render();
 
     $fileName = 'ticket_' . $ticketData['barcode'] . '.pdf';
@@ -247,7 +283,13 @@ function generateTicketPDF(array $ticketData): string
     }
 
     $filePath = $dir . $fileName;
-    file_put_contents($filePath, $dompdf->output());
+    $pdfOutput = $dompdf->output();
+    
+    if (empty($pdfOutput)) {
+        error_log("[TicketHelper] Dompdf output is empty for ticket " . $ticket_id);
+    }
+    
+    file_put_contents($filePath, $pdfOutput);
 
     return $filePath;
 }

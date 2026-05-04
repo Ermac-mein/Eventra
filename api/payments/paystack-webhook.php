@@ -34,7 +34,7 @@ function fetchOrder(PDO $pdo, string $reference): ?array
 {
     $stmt = $pdo->prepare("
         SELECT o.*,
-               e.event_name, e.event_date, e.event_time, e.address, e.location, e.image_path,
+               e.event_name, e.event_date, e.event_time, e.address, e.location, e.image_path, e.locations, e.state,
                u.id AS user_id, u.name AS user_name,
                a.id AS user_auth_id, a.email AS user_email, u.phone AS user_phone,
                c.client_auth_id AS organizer_auth_id,
@@ -158,6 +158,8 @@ function processSuccessfulPayment(PDO $pdo, array $order, array $psData): void
                     'event_time'     => $order['event_time'],
                     'location'       => $order['location'] ?? $order['address'],
                     'address'        => $order['address'],
+                    'state'          => $order['state'] ?? null,
+                    'locations'      => $order['locations'] ?? null,
                     'user_name'      => $order['user_name'],
                     'payment_status' => 'paid',
                     'event_image'    => $order['image_path'] ?? null,
@@ -205,6 +207,8 @@ function processSuccessfulPayment(PDO $pdo, array $order, array $psData): void
                     'event_time'     => $order['event_time'],
                     'location'       => $order['location'] ?? $order['address'],
                     'address'        => $order['address'],
+                    'state'          => $order['state'] ?? null,
+                    'locations'      => $order['locations'] ?? null,
                     'user_name'      => $order['user_name'],
                     'payment_status' => 'paid',
                     'event_image'    => $order['image_path'] ?? null,

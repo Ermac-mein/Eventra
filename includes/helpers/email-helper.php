@@ -239,9 +239,12 @@ class EmailHelper
 
         // Try the path as-is first
         if (!file_exists($localPath)) {
-            // Try relative to the project root (two levels up from this helper)
-            $projectRoot = rtrim(self::normalisePath(__DIR__ . '/../../'), '/');
-            $localPath   = $projectRoot . '/' . ltrim($localPath, '/');
+            // If it's not absolute (no drive letter on Windows)
+            if (!preg_match('/^[a-zA-Z]:/', $localPath)) {
+                // Resolve against the project root (two levels up from this helper)
+                $projectRoot = rtrim(self::normalisePath(__DIR__ . '/../../'), '/');
+                $localPath   = $projectRoot . '/' . ltrim($localPath, '/');
+            }
         }
 
         if (!file_exists($localPath)) {
@@ -437,13 +440,13 @@ class EmailHelper
         //                       https:// URL → <img src="https://..."> (email only, not PDF)
         if ($qrDataUri !== '') {
             $qrHtml = '<img src="' . htmlspecialchars($qrDataUri, ENT_QUOTES, 'UTF-8') . '"'
-                . ' alt="QR Code" width="142" height="142"'
-                . ' style="width:142px;height:142px;display:block;border-radius:0.8rem;">';
+                . ' alt="QR Code" width="130" height="130"'
+                . ' style="width:130px;height:130px;display:block;margin:0 auto;border-radius:10px;">';
         } else {
-            $qrHtml = '<div style="width:142px;height:142px;background:#e0e0e0;'
-                . 'display:flex;align-items:center;justify-content:center;'
-                . 'font-size:10px;color:#aaa;letter-spacing:1px;'
-                . 'border-radius:1rem;">NO QR</div>';
+            $qrHtml = '<div style="width:130px;height:130px;background:#222;'
+                . 'text-align:center;line-height:130px;'
+                . 'font-size:10px;color:#555;letter-spacing:1px;'
+                . 'border-radius:10px;">NO QR</div>';
         }
 
         /* ── FIX #2: Event banner — embed as base64 ──────────── */
@@ -451,11 +454,11 @@ class EmailHelper
         $imgBase64 = self::imageToDataUri($imgRaw);
 
         $eventImgHtml = $imgBase64 !== ''
-            ? '<img src="' . $imgBase64 . '" alt="Event" width="100%"'
-              . ' style="width:100%;height:100%;object-fit:cover;display:block;">'
-            : '<div style="width:100%;height:100%;min-height:140px;'
+            ? '<img src="' . $imgBase64 . '" alt="Event" width="100%" height="180"'
+              . ' style="width:100%;height:180px;display:block;">'
+            : '<div style="width:100%;height:180px;'
               . 'background:linear-gradient(135deg,#1a1a2e 0%,#0f3460 100%);'
-              . 'display:flex;align-items:center;justify-content:center;">'
+              . 'text-align:center;line-height:180px;">'
               . '<span style="font-size:10px;letter-spacing:3px;'
               . 'color:rgba(212,175,55,0.45);text-transform:uppercase;">Event Image</span>'
               . '</div>';
@@ -481,8 +484,39 @@ class EmailHelper
         /* ── Detail columns ──────────────────────────────────── */
         $colA  = self::detailRow('Date',     $eventDate);
         $colA .= self::detailRow('Time',     $eventTime);
-        $colA .= self::detailRow('Venue',    $venue);
-        $colA .= self::detailRow('Location', $location);
+
+        /* ── Venue & Location logic ─────────────────────────── */
+        $locations = $ticketData['locations'] ?? null;
+        if (is_string($locations)) {
+            $locations = json_decode($locations, true);
+        }
+
+        if (is_array($locations) && count($locations) > 1) {
+            $colA .= '<div style="margin-bottom:14px;word-break:break-word;">'
+                . '<span style="display:block;font-family:Arial,sans-serif;'
+                . 'font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;'
+                . 'color:rgba(255,255,255,0.30);margin-bottom:3px;">Venue & Location</span>';
+            foreach ($locations as $loc) {
+                $s = self::esc($loc['state'] ?? '');
+                $a = self::esc($loc['address'] ?? '');
+                $colA .= '<span style="font-family:Arial,sans-serif;font-size:13px;font-weight:600;color:#d4af37;line-height:1.2;display:block;margin-bottom:2px;">' 
+                    . $s . ' : ' . $a . '</span>';
+            }
+            $colA .= '</div>';
+        } else {
+            // Single state or fallback
+            $st = $ticketData['state'] ?? '';
+            $ad = $ticketData['address'] ?? $ticketData['location'] ?? '—';
+            
+            if (!empty($st) && strtolower($st) !== 'all states') {
+                $colA .= self::detailRow($st, $ad);
+            } else {
+                $colA .= self::detailRow('Venue', $ad);
+                if (!empty($st)) {
+                    $colA .= self::detailRow('Location', $st);
+                }
+            }
+        }
 
         $colB = '';
         if ($tickDisp !== '' || $ticketType !== '') {
@@ -648,16 +682,14 @@ class EmailHelper
             margin-bottom: 12px;
         }
         .qr-frame {
-            width: 150px;
-            height: 150px;
+            width: 140px;
+            height: 140px;
             background: white;
-            border-radius: 1rem;
-            margin: 0 auto 15px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 4px;
+            border-radius: 10px;
+            margin: 0 auto 12px;
+            padding: 5px;
             border: 4px solid white;
+            text-align: center;
         }
         .barcode-text {
             font-family: 'Courier New', Courier, monospace;
@@ -835,6 +867,8 @@ HTML;
                                 e.event_time,
                                 e.location,
                                 e.address,
+                                e.locations,
+                                e.state,
                                 e.image_path     AS event_image,
                                 u.name           AS user_name,
                                 p.amount,
