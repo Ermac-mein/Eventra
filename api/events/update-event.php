@@ -233,7 +233,15 @@ try {
     }
 
     // Validation
-    $required_fields = ['event_name', 'event_type', 'event_date', 'event_time', 'status', 'address', 'phone_contact_1'];
+    $required_fields = ['event_name', 'event_type', 'event_date', 'event_time', 'status', 'phone_contact_1'];
+    
+    // Address is required unless locations_json is provided
+    $has_locations = !empty($_POST['locations_json']);
+    if (!$has_locations && (empty($_POST['address']) || trim($_POST['address']) === '')) {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'message' => "Field 'address' is required"]);
+        exit;
+    }
     
     // Price is required unless it's explicitly marked as free or mode is not 'all'
     // Handle both legacy radio ('ticket_type_mode') and new checkbox array ('ticket_type_mode[]')
@@ -390,7 +398,7 @@ try {
         $_POST['state'],
         $_POST['visibility'] ?? 'all states',
         $_POST['event_visibility'] ?? 'public',
-        $_POST['address'],
+        $_POST['address'] ?? ($new_locations_json ? 'Multi-state' : ''),
         $_POST['phone_contact_1'],
         $_POST['phone_contact_2'] ?? null,
         $image_path,

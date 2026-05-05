@@ -254,7 +254,7 @@ function showCreateEventModal() {
                                             <span style="font-weight: 700; font-size: 0.85rem;">Premium</span>
                                         </label>
                                         <label style="display: flex; flex-direction: column; align-items: center; gap: 0.5rem; cursor: pointer; padding: 0.75rem; border: 2px solid #e5e7eb; border-radius: 10px; transition: all 0.2s;" class="ticket-type-label">
-                                            <input type="checkbox" name="ticket_type_mode[]" value="all" class="ticket-type-checkbox" style="accent-color: #2563eb;" checked>
+                                            <input type="checkbox" name="ticket_type_mode[]" value="all" class="ticket-type-checkbox" style="accent-color: #2563eb;">
                                             <span style="font-weight: 700; font-size: 0.85rem;">All</span>
                                         </label>
                                     </div>

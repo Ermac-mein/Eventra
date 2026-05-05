@@ -255,6 +255,29 @@ function updateEventsTable(events) {
         
         const isFree = basePrice === 0 && regPrice === 0 && vPrice === 0 && premPrice === 0;
         
+        // If not free, but base price is 0, we might have tiered prices
+        let displayPrice = 'Free';
+        if (!isFree) {
+            const mode = metadata.ticket_type_mode || 'all';
+            if (mode === 'all' || mode.includes('all')) {
+                displayPrice = basePrice > 0 ? `₦${basePrice.toLocaleString()}` : 'Paid';
+            } else {
+                const modes = mode.split(',').map(m => m.trim().toLowerCase());
+                const prices = [];
+                if (modes.includes('regular') && regPrice > 0) prices.push(`Reg: ₦${regPrice.toLocaleString()}`);
+                if (modes.includes('vip') && vPrice > 0) prices.push(`VIP: ₦${vPrice.toLocaleString()}`);
+                if (modes.includes('premium') && premPrice > 0) prices.push(`Prem: ₦${premPrice.toLocaleString()}`);
+                
+                if (prices.length > 0) {
+                    displayPrice = prices.join(', ');
+                } else if (basePrice > 0) {
+                    displayPrice = `₦${basePrice.toLocaleString()}`;
+                } else {
+                    displayPrice = 'Paid';
+                }
+            }
+        }
+        
         let regularPrice = isFree ? 'Free' : '—';
         let vipPrice = isFree ? 'Free' : '—';
         let premiumPrice = isFree ? 'Free' : '—';

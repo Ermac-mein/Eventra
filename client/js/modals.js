@@ -530,12 +530,12 @@ function displayEventPreview(event) {
         } else {
             const modes = mode.split(',').map(m => m.trim().toLowerCase());
             const prices = [];
-            if (modes.includes('regular') && regPrice > 0) prices.push(`Reg ₦${regPrice.toLocaleString()}`);
-            if (modes.includes('vip') && vPrice > 0) prices.push(`VIP ₦${vPrice.toLocaleString()}`);
-            if (modes.includes('premium') && premPrice > 0) prices.push(`Prem ₦${premPrice.toLocaleString()}`);
+            if (modes.includes('regular') && regPrice > 0) prices.push(`Regular: ₦${regPrice.toLocaleString()}`);
+            if (modes.includes('vip') && vPrice > 0) prices.push(`VIP: ₦${vPrice.toLocaleString()}`);
+            if (modes.includes('premium') && premPrice > 0) prices.push(`Premium: ₦${premPrice.toLocaleString()}`);
             
             if (prices.length > 0) {
-                price = prices.join(', ');
+                price = `<div style="display: flex; flex-direction: column; gap: 4px;">${prices.map(p => `<span>${p}</span>`).join('')}</div>`;
             } else if (basePrice > 0) {
                 price = `₦${basePrice.toLocaleString()}`;
             } else {
@@ -936,12 +936,12 @@ function showEditEventModal(event) {
                                         <input type="hidden" name="state" id="editEventStateInput" value="${event.state || ''}" required>
                                     </div>
 
-                                    <div class="form-group">
+                                    <div class="form-group" id="editMainAddressGroup" style="display: ${event.state && event.state.split(',').length > 1 ? 'none' : 'block'};">
                                         <label style="display: block; font-size: 0.75rem; font-weight: 800; color: #64748b; text-transform: uppercase; margin-bottom: 0.5rem; letter-spacing: 0.025em;">Venue Address</label>
-                                        <div id="perStateEditAddressContainer" style="margin-bottom: 1rem; display: none;"></div>
                                         <textarea name="address" id="editEventAddress" rows="3" placeholder="Full venue address..." style="width: 100%; padding: 0.75rem; border: 1px solid #e2e8f0; border-radius: 10px; font-size: 0.9rem; transition: all 0.2s;" onfocus="this.style.borderColor='#0f172a'; this.style.boxShadow='0 0 0 3px rgba(15, 23, 42, 0.1)';" onblur="this.style.borderColor='#e2e8f0'; this.style.boxShadow='none';">${escapeHTML(event.address || '')}</textarea>
-                                        <p id="editAddressHelpText" style="font-size: 0.7rem; color: #64748b; margin-top: 0.4rem; display: none;">Multiple states selected. Please provide specific addresses for each state above.</p>
                                     </div>
+                                    <div id="perStateEditAddressContainer" style="margin-bottom: 1rem; display: ${event.state && event.state.split(',').length > 1 ? 'block' : 'none'};"></div>
+                                    <p id="editAddressHelpText" style="font-size: 0.7rem; color: #64748b; margin-top: 0.4rem; display: ${event.state && event.state.split(',').length > 1 ? 'block' : 'none'};">Multiple states selected. Please provide specific addresses for each state above.</p>
                                 </div>
 
                                 <div style="background: #f8fafc; padding: 1.5rem; border-radius: 16px; border: 1px solid #e2e8f0;">
@@ -1024,7 +1024,7 @@ function showEditEventModal(event) {
                                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
                                             <h3 style="margin: 0; font-size: 0.8rem; font-weight: 800; color: #1e293b; text-transform: uppercase; letter-spacing: 1px;">💰 Tickets</h3>
                                             <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; padding: 0.5rem 1rem; background: white; border-radius: 10px; font-weight: 700; font-size: 0.8rem; color: #64748b; border: 1px solid #e2e8f0;">
-                                                <input type="checkbox" id="editFreeEventCheckbox" name="is_free" value="1" ${parseFloat(event.price) === 0 ? 'checked' : ''} class="state-checkbox-custom"> FREE
+                                                <input type="checkbox" id="editFreeEventCheckbox" name="is_free" value="1" ${parseFloat(event.price) === 0 && (!event.ticket_type_mode || event.ticket_type_mode === 'all') ? 'checked' : ''} class="state-checkbox-custom"> FREE
                                             </label>
                                         </div>
 
@@ -1043,7 +1043,7 @@ function showEditEventModal(event) {
                                                     <span style="font-weight: 700; font-size: 0.7rem; text-transform: uppercase;">Premium</span>
                                                 </label>
                                                 <label class="edit-ticket-type-label" style="display: flex; flex-direction: column; align-items: center; gap: 0.4rem; cursor: pointer; padding: 0.8rem 0.2rem; border: 1px solid #e2e8f0; border-radius: 10px; transition: all 0.2s;">
-                                                    <input type="checkbox" name="ticket_type_mode[]" value="all" ${(!event.ticket_type_mode || event.ticket_type_mode.includes('all')) ? 'checked' : ''} class="edit-ticket-type-checkbox" style="accent-color: #0f172a;">
+                                                    <input type="checkbox" name="ticket_type_mode[]" value="all" ${event.ticket_type_mode && event.ticket_type_mode.includes('all') ? 'checked' : ''} class="edit-ticket-type-checkbox" style="accent-color: #0f172a;">
                                                     <span style="font-weight: 700; font-size: 0.7rem; text-transform: uppercase;">All</span>
                                                 </label>
                                             </div>
@@ -1345,12 +1345,10 @@ function renderPerStateEditAddressFields(selectedStates) {
 
     if (selectedStates.length > 1) {
         container.style.display = 'block';
-        if (mainAddress) {
-            mainAddress.disabled = true;
-            mainAddress.style.backgroundColor = '#f8fafc';
-            mainAddress.placeholder = 'Address disabled for multi-state events';
-        }
+        const mainAddressGroup = document.getElementById('editMainAddressGroup');
+        if (mainAddressGroup) mainAddressGroup.style.display = 'none';
         if (helpText) helpText.style.display = 'block';
+        // ... rest of logic
 
         container.innerHTML = selectedStates.map(state => `
             <div style="margin-bottom: 0.75rem;">
