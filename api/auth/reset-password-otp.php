@@ -19,7 +19,7 @@ if (strlen($password) < 8) {
 
 try {
     // Get the user account (any role)
-    $stmt = $pdo->prepare("SELECT id FROM auth_accounts WHERE email = ? AND deleted_at IS NULL");
+    $stmt = $pdo->prepare("SELECT id, role FROM auth_accounts WHERE email = ? AND deleted_at IS NULL");
     $stmt->execute([$email]);
     $account = $stmt->fetch();
 
@@ -30,14 +30,18 @@ try {
 
     // Update password
     $hashedPassword = password_hash($password, PASSWORD_BCRYPT);
-    $stmt = $pdo->prepare("UPDATE auth_accounts SET password = ?, updated_at = NOW() WHERE id = ?");
+    $stmt = $pdo->prepare("UPDATE auth_accounts SET password = ? WHERE id = ?");
     $stmt->execute([$hashedPassword, $account['id']]);
 
     // Revoke all OTP tokens for this account
     $stmt = $pdo->prepare("UPDATE auth_tokens SET revoked = 1 WHERE auth_id = ? AND type = 'otp'");
     $stmt->execute([$account['id']]);
 
-    echo json_encode(['success' => true, 'message' => 'Password updated successfully.']);
+    echo json_encode([
+        'success' => true, 
+        'message' => 'Password updated successfully.',
+        'role' => $account['role']
+    ]);
 } catch (PDOException $e) {
     error_log("Password reset error: " . $e->getMessage());
     echo json_encode(['success' => false, 'message' => 'Database error occurred.']);
