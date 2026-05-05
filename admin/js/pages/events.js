@@ -78,7 +78,28 @@ document.addEventListener('DOMContentLoaded', async () => {
                     <td>${escapeHTML(event.event_time.substring(0, 5))}</td>
                     <td>${escapeHTML(event.event_type)}</td>
                     <td>${escapeHTML(event.phone || 'N/A')}</td>
-                    <td>${event.price > 0 ? '₦' + parseFloat(event.price).toLocaleString() : 'Free'}</td>
+                    <td>
+                        ${(() => {
+                            const basePrice = parseFloat(event.price) || 0;
+                            const regPrice = parseFloat(event.regular_price) || 0;
+                            const vPrice = parseFloat(event.vip_price) || 0;
+                            const premPrice = parseFloat(event.premium_price) || 0;
+                            const isFree = basePrice === 0 && regPrice === 0 && vPrice === 0 && premPrice === 0;
+                            
+                            if (isFree) return 'Free';
+                            
+                            const mode = event.ticket_type_mode || 'all';
+                            if (mode === 'all' || mode.includes('all')) {
+                                return '₦' + basePrice.toLocaleString();
+                            } else {
+                                const prices = [];
+                                if (regPrice > 0) prices.push('R: ₦' + regPrice.toLocaleString());
+                                if (vPrice > 0) prices.push('V: ₦' + vPrice.toLocaleString());
+                                if (premPrice > 0) prices.push('P: ₦' + premPrice.toLocaleString());
+                                return prices.length > 0 ? prices.join('<br>') : 'Paid';
+                            }
+                        })()}
+                    </td>
                     <td class="text-center">${parseInt(event.attendee_count) || 0}</td>
                     <td><span class="tag-badge">${escapeHTML(event.tag || 'None')}</span></td>
                     <td><a href="${escapeHTML(event.link || '#')}" target="_blank" class="link-btn"><i data-lucide="external-link"></i></a></td>
@@ -134,10 +155,17 @@ document.addEventListener('DOMContentLoaded', async () => {
             
             // Price Filter
             let priceMatch = true;
-            const price = parseFloat(event.price) || 0;
-            if (priceFilter.value === 'free') priceMatch = price === 0;
-            if (priceFilter.value === 'paid') priceMatch = price > 0;
-            if (priceFilter.value === 'premium') priceMatch = price > 50000;
+            const basePrice = parseFloat(event.price) || 0;
+            const regPrice = parseFloat(event.regular_price) || 0;
+            const vPrice = parseFloat(event.vip_price) || 0;
+            const premPrice = parseFloat(event.premium_price) || 0;
+            const isFree = basePrice === 0 && regPrice === 0 && vPrice === 0 && premPrice === 0;
+
+            if (priceFilter.value === 'free') priceMatch = isFree;
+            if (priceFilter.value === 'paid') priceMatch = !isFree;
+            if (priceFilter.value === 'premium') {
+                priceMatch = basePrice > 50000 || regPrice > 50000 || vPrice > 50000 || premPrice > 50000;
+            }
             
             // Attendee Filter
             let attendeeMatch = true;

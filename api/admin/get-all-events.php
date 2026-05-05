@@ -64,6 +64,15 @@ try {
     $stmt->execute();
     $events = $stmt->fetchAll();
 
+    // Process events: parse metadata
+    $events = array_map(function($ev) {
+        if (!empty($ev['metadata'])) {
+            $meta = json_decode($ev['metadata'], true);
+            if (is_array($meta)) $ev = array_merge($ev, $meta);
+        }
+        return $ev;
+    }, $events);
+
     echo json_encode([
         'success' => true,
         'events' => $events,

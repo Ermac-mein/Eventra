@@ -98,7 +98,16 @@ function displaySearchResults(results, query) {
                     <div style="font-weight: 600; font-size: 0.9rem; color: #111827;">${highlightText(event.title, query)}</div>
                     <div style="font-size: 0.75rem; color: #6b7280;">
                         ${event.subtitle || ''} ${event.category ? '• ' + event.category : ''} 
-                        ${event.price ? '• ' + (parseFloat(event.price) === 0 ? 'Free' : '₦' + parseFloat(event.price).toLocaleString()) : ''}
+                        ${(() => {
+                            const basePrice = parseFloat(event.price) || 0;
+                            const regPrice = parseFloat(event.regular_price) || 0;
+                            const vPrice = parseFloat(event.vip_price) || 0;
+                            const premPrice = parseFloat(event.premium_price) || 0;
+                            const isFree = basePrice === 0 && regPrice === 0 && vPrice === 0 && premPrice === 0;
+                            
+                            if (isFree) return '• Free';
+                            return '• ' + (basePrice > 0 ? `₦${basePrice.toLocaleString()}` : 'Paid');
+                        })()}
                     </div>
                 </div>
             </div>

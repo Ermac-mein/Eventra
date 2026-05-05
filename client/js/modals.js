@@ -514,7 +514,35 @@ function displayEventPreview(event) {
     const eventImage = event.image_path || 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=1200&fit=crop';
     const normalizedImage = eventImage.startsWith('http') ? eventImage : getImageUrl(eventImage);
     const status = event.status || 'draft';
-    const price = parseFloat(event.price) === 0 ? 'Free' : `₦${parseFloat(event.price).toLocaleString()}`;
+    // Format prices dynamically
+    let price = 'Free';
+    const basePrice = parseFloat(event.price) || 0;
+    const regPrice = parseFloat(event.regular_price) || 0;
+    const vPrice = parseFloat(event.vip_price) || 0;
+    const premPrice = parseFloat(event.premium_price) || 0;
+    
+    const isFree = basePrice === 0 && regPrice === 0 && vPrice === 0 && premPrice === 0;
+    
+    if (!isFree) {
+        const mode = event.ticket_type_mode || 'all';
+        if (mode === 'all' || mode.includes('all')) {
+            price = `₦${basePrice.toLocaleString()}`;
+        } else {
+            const modes = mode.split(',').map(m => m.trim().toLowerCase());
+            const prices = [];
+            if (modes.includes('regular') && regPrice > 0) prices.push(`Reg ₦${regPrice.toLocaleString()}`);
+            if (modes.includes('vip') && vPrice > 0) prices.push(`VIP ₦${vPrice.toLocaleString()}`);
+            if (modes.includes('premium') && premPrice > 0) prices.push(`Prem ₦${premPrice.toLocaleString()}`);
+            
+            if (prices.length > 0) {
+                price = prices.join(', ');
+            } else if (basePrice > 0) {
+                price = `₦${basePrice.toLocaleString()}`;
+            } else {
+                price = 'Paid';
+            }
+        }
+    }
     const date = new Date(event.event_date + 'T00:00:00').toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' });
     const time = event.event_time ? event.event_time.substring(0, 5) : '--:--';
     
@@ -1467,7 +1495,16 @@ async function handleEventUpdate(e) {
 function showTicketPreviewModal(ticket) {
     const imgSrc = ticket.event_image ? getImageUrl(ticket.event_image) : null;
     const heroBg = imgSrc ? `url("${imgSrc.replace(/"/g, '%22')}")` : 'linear-gradient(135deg, #6366f1 0%, #2ecc71 100%)';
-    const price = parseFloat(ticket.price || ticket.total_price || 0) === 0 ? 'Free' : `₦${parseFloat(ticket.price || ticket.total_price || 0).toLocaleString()}`;
+    // Format price for ticket display
+    const basePrice = parseFloat(ticket.price || ticket.total_price || 0);
+    const eventPrice = parseFloat(ticket.event_price || 0);
+    const regPrice = parseFloat(ticket.regular_price || 0);
+    const vPrice = parseFloat(ticket.vip_price || 0);
+    const premPrice = parseFloat(ticket.premium_price || 0);
+    
+    const isFree = basePrice === 0 && eventPrice === 0 && regPrice === 0 && vPrice === 0 && premPrice === 0;
+    const priceValue = basePrice > 0 ? basePrice : (eventPrice > 0 ? eventPrice : 0);
+    const price = isFree ? 'Free' : `₦${priceValue.toLocaleString()}`;
     const statusClass = ticket.status === 'valid' ? 'tkt-active' : ticket.status === 'used' ? 'tkt-used' : 'tkt-cancelled';
     const statusLabel = { valid: '✓ Valid', used: '👁 Used', cancelled: '✕ Cancelled' }[ticket.status] || (ticket.status ? ticket.status.toUpperCase() : 'N/A');
 

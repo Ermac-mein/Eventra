@@ -29,27 +29,58 @@ async function previewEvent(eventId) {
         const response = await fetch(`/api/events/get-event.php?id=${eventId}`);
         const result = await response.json();
         
-        if (result.success && result.event) {
-            const data = result.event;
-            event = {
-                id: eventId,
-                name: data.event_name,
-                custom_id: data.custom_id || eventId,
-                client_name: data.client_name || 'N/A',
-                price: parseFloat(data.price) === 0 ? 'Free' : `₦${parseFloat(data.price).toLocaleString()}`,
-                attendees: data.attendee_count,
-                category: data.category || data.event_type || 'General',
-                status: data.status ? data.status.charAt(0).toUpperCase() + data.status.slice(1) : 'Draft',
-                image: resolveImagePath(data.image_path),
-                tag: data.tag || 'Standard',
-                description: data.description,
-                address: data.address,
-                state: data.state,
-                date: data.event_date,
-                time: data.event_time,
-                priority: data.priority ? data.priority.charAt(0).toUpperCase() + data.priority.slice(1) : 'Normal',
-                phone: data.phone_contact_1 || 'N/A'
-            };
+            if (result.success && result.event) {
+                const data = result.event;
+                
+                // Format prices dynamically
+                let formattedPrice = 'Free';
+                const basePrice = parseFloat(data.price) || 0;
+                const regPrice = parseFloat(data.regular_price) || 0;
+                const vPrice = parseFloat(data.vip_price) || 0;
+                const premPrice = parseFloat(data.premium_price) || 0;
+                
+                const isFree = basePrice === 0 && regPrice === 0 && vPrice === 0 && premPrice === 0;
+                
+                if (!isFree) {
+                    const mode = data.ticket_type_mode || 'all';
+                    if (mode === 'all' || mode.includes('all')) {
+                        formattedPrice = `₦${basePrice.toLocaleString()}`;
+                    } else {
+                        const modes = mode.split(',').map(m => m.trim().toLowerCase());
+                        const prices = [];
+                        if (modes.includes('regular') && regPrice > 0) prices.push(`Regular ₦${regPrice.toLocaleString()}`);
+                        if (modes.includes('vip') && vPrice > 0) prices.push(`VIP ₦${vPrice.toLocaleString()}`);
+                        if (modes.includes('premium') && premPrice > 0) prices.push(`Premium ₦${premPrice.toLocaleString()}`);
+                        
+                        if (prices.length > 0) {
+                            formattedPrice = prices.join(', ');
+                        } else if (basePrice > 0) {
+                            formattedPrice = `₦${basePrice.toLocaleString()}`;
+                        } else {
+                            formattedPrice = 'Paid';
+                        }
+                    }
+                }
+
+                event = {
+                    id: eventId,
+                    name: data.event_name,
+                    custom_id: data.custom_id || eventId,
+                    client_name: data.client_name || 'N/A',
+                    price: formattedPrice,
+                    attendees: data.attendee_count,
+                    category: data.category || data.event_type || 'General',
+                    status: data.status ? data.status.charAt(0).toUpperCase() + data.status.slice(1) : 'Draft',
+                    image: resolveImagePath(data.image_path),
+                    tag: data.tag || 'Standard',
+                    description: data.description,
+                    address: data.address,
+                    state: data.state,
+                    date: data.event_date,
+                    time: data.event_time,
+                    priority: data.priority ? data.priority.charAt(0).toUpperCase() + data.priority.slice(1) : 'Normal',
+                    phone: data.phone_contact_1 || 'N/A'
+                };
         } else {
             throw new Error(result.message || 'Event not found');
         }

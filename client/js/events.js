@@ -207,7 +207,16 @@ function updateEventsTable(events) {
                 <td><div style="font-weight: 600;">${(event.event_name || '').replace(/\s*#\d+$/, '')}</div></td>
                 <td>${event.event_type}</td>
                 <td>${(event.event_date || '').split('-').reverse().join('/')}</td>
-                <td>${parseFloat(event.price) === 0 ? 'Free' : `₦${parseFloat(event.price).toLocaleString()}`}</td>
+                <td>
+                    ${(() => {
+                        const basePrice = parseFloat(event.price) || 0;
+                        const regPrice = parseFloat(event.regular_price) || 0;
+                        const vPrice = parseFloat(event.vip_price) || 0;
+                        const premPrice = parseFloat(event.premium_price) || 0;
+                        const isFree = basePrice === 0 && regPrice === 0 && vPrice === 0 && premPrice === 0;
+                        return isFree ? 'Free' : (basePrice > 0 ? `₦${basePrice.toLocaleString()}` : 'Paid');
+                    })()}
+                </td>
                 <td><span style="color:#ef4444;">${deletedAt}</span></td>
                 <td class="text-center">
                     <div style="display: flex; gap: 0.5rem; justify-content: center;">
@@ -236,27 +245,35 @@ function updateEventsTable(events) {
             console.error("Error parsing event metadata:", e);
         }
 
-        const isFree = parseFloat(event.price) === 0;
         const ticketTypeMode = metadata.ticket_type_mode || 'all';
+        
+        // Fix: Determine if free by checking all potential price sources
+        const basePrice = parseFloat(event.price) || 0;
+        const regPrice = parseFloat(metadata.regular_price) || 0;
+        const vPrice = parseFloat(metadata.vip_price) || 0;
+        const premPrice = parseFloat(metadata.premium_price) || 0;
+        
+        const isFree = basePrice === 0 && regPrice === 0 && vPrice === 0 && premPrice === 0;
         
         let regularPrice = isFree ? 'Free' : '—';
         let vipPrice = isFree ? 'Free' : '—';
         let premiumPrice = isFree ? 'Free' : '—';
 
         if (!isFree) {
-            if (ticketTypeMode === 'all') {
-                const p = `₦${parseFloat(event.price).toLocaleString()}`;
+            if (ticketTypeMode === 'all' || ticketTypeMode.includes('all')) {
+                const p = `₦${basePrice.toLocaleString()}`;
                 regularPrice = p;
                 vipPrice = p;
                 premiumPrice = p;
             } else {
-                if (metadata.regular_price !== undefined) regularPrice = `₦${parseFloat(metadata.regular_price).toLocaleString()}`;
-                if (metadata.vip_price !== undefined) vipPrice = `₦${parseFloat(metadata.vip_price).toLocaleString()}`;
-                if (metadata.premium_price !== undefined) premiumPrice = `₦${parseFloat(metadata.premium_price).toLocaleString()}`;
+                const modes = ticketTypeMode.split(',').map(m => m.trim().toLowerCase());
+                if (modes.includes('regular')) regularPrice = `₦${regPrice.toLocaleString()}`;
+                if (modes.includes('vip')) vipPrice = `₦${vPrice.toLocaleString()}`;
+                if (modes.includes('premium')) premiumPrice = `₦${premPrice.toLocaleString()}`;
             }
         }
 
-        const ticketTypeDisplay = isFree ? 'Free' : (ticketTypeMode.charAt(0).toUpperCase() + ticketTypeMode.slice(1));
+        const ticketTypeDisplay = isFree ? 'Free' : (ticketTypeMode.split(',').map(m => m.trim().charAt(0).toUpperCase() + m.trim().slice(1)).join(', '));
 
         return `
         <tr onclick="window.previewEvent(${event.id})" 
@@ -275,7 +292,7 @@ function updateEventsTable(events) {
             data-image="${event.image_path || ''}"
             data-event-name="${event.event_name.replace(/\s*#\d+$/, '')}"
             data-category="${event.event_type}"
-            data-price="${parseFloat(event.price) === 0 ? 'Free' : `₦${parseFloat(event.price).toLocaleString()}`}"
+            data-price="${isFree ? 'Free' : (ticketTypeMode === 'all' || ticketTypeMode.includes('all') ? `₦${basePrice.toLocaleString()}` : 'Paid')}"
             data-attendees="${event.attendee_count || 0}">
             <td><input type="checkbox" class="event-checkbox" data-id="${event.id}"></td>
             <td style="font-family:monospace;font-size:0.85rem;color:#635bff;font-weight:700;">${event.custom_id || event.id}</td>
@@ -784,12 +801,62 @@ async function previewEvent(eventId) {
         
         if (result.success && result.event) {
             const data = result.event;
+            
+            // Format prices dynamically
+            let formattedPrice = 'Free';
+            const basePrice = parseFloat(data.price) || 0;
+            const regPrice = parseFloat(data.regular_price) || 0;
+            const vPrice = parseFloat(data.vip_price) || 0;
+            const premPrice = parseFloat(data.premium_price) || 0;
+            
+            const isFree = basePrice === 0 && regPrice === 0 && vPrice === 0 && premPrice === 0;
+            
+            if (!isFree) {
+                const mode = data.ticket_type_mode || 'all';
+                if (mode === 'all' || mode.includes('all')) {
+                    formattedPrice = `₦${basePrice.toLocaleString()}`;
+                } else {
+                    const modes = mode.split(',').map(m => m.trim().toLowerCase());
+                    const prices = [];
+                    if (modes.includes('regular') && regPrice > 0) prices.push(`Regular ₦${regPrice.toLocaleString()}`);
+                    if (modes.includes('vip') && vPrice > 0) prices.push(`VIP ₦${vPrice.toLocaleString()}`);
+                    if (modes.includes('premium') && premPrice > 0) prices.push(`Premium ₦${premPrice.toLocaleString()}`);
+                    
+                    if (prices.length > 0) {
+                        formattedPrice = prices.join(', ');
+                    } else if (basePrice > 0) {
+                        formattedPrice = `₦${basePrice.toLocaleString()}`;
+                    } else {
+                        formattedPrice = 'Paid';
+                    }
+                }
+            }
+
+            let parsedLocations = [];
+            if (data.locations) {
+                try {
+                    parsedLocations = typeof data.locations === 'string' ? JSON.parse(data.locations) : data.locations;
+                } catch(e) {}
+            }
+            if ((!parsedLocations || parsedLocations.length === 0) && data.state) {
+                let stateList = [];
+                try {
+                    stateList = typeof data.state === 'string' && data.state.startsWith('[') ? JSON.parse(data.state) : [data.state];
+                } catch(e) {
+                    stateList = [data.state];
+                }
+                parsedLocations = stateList.map(s => ({
+                    state: s,
+                    address: data.address || ''
+                }));
+            }
+
             event = {
                 id: eventId,
                 name: data.event_name,
                 custom_id: data.custom_id || data.id, // Using Alphanumeric ID for display
                 client_name: data.client_name || 'N/A',
-                price: parseFloat(data.price) === 0 ? 'Free' : `₦${parseFloat(data.price).toLocaleString()}`,
+                price: formattedPrice,
                 attendees: data.attendee_count,
                 category: data.category || data.event_type || 'General',
                 status: data.status ? data.status.charAt(0).toUpperCase() + data.status.slice(1) : 'Draft',
@@ -798,6 +865,7 @@ async function previewEvent(eventId) {
                 description: data.description,
                 address: data.address,
                 state: data.state,
+                locations: parsedLocations,
                 date: data.event_date,
                 time: data.event_time,
                 total_tickets: data.total_tickets || 'No Limit',
@@ -931,13 +999,66 @@ async function previewEvent(eventId) {
                             <span style="width: 4px; height: 16px; background: var(--client-primary); border-radius: 4px;"></span>
                             Venue Location
                         </h3>
-                        <div style="display: flex; align-items: flex-start; gap: 15px; background: #f1f5f9; padding: 1.5rem; border-radius: 20px;">
-                            <div style="font-size: 1.5rem;">📍</div>
-                            <div>
-                                <div style="font-weight: 700; color: #1e293b; margin-bottom: 0.25rem;">${escapeHTML(state) || 'Location'}</div>
-                                <div style="color: #64748b; font-size: 0.875rem;">${escapeHTML(address) || 'No specific address available'}</div>
-                            </div>
-                        </div>
+                        ${(() => {
+                            if (event.locations && event.locations.length > 0) {
+                                const uniqueLocations = [];
+                                const seenStates = new Set();
+                                for (const loc of event.locations) {
+                                    if (!seenStates.has(loc.state)) {
+                                        seenStates.add(loc.state);
+                                        uniqueLocations.push(loc);
+                                    }
+                                }
+                                
+                                if (uniqueLocations.length === 1) {
+                                    const loc = uniqueLocations[0];
+                                    return `
+                                        <div style="display: flex; align-items: flex-start; gap: 15px; background: #f1f5f9; padding: 1.5rem; border-radius: 20px;">
+                                            <div style="font-size: 1.5rem;">📍</div>
+                                            <div>
+                                                <div style="font-weight: 700; color: #1e293b; margin-bottom: 0.25rem;">${escapeHTML(loc.state) || 'Location'}</div>
+                                                <div style="color: #64748b; font-size: 0.875rem;">${escapeHTML(loc.address) || 'No specific address available'}</div>
+                                            </div>
+                                        </div>
+                                    `;
+                                } else {
+                                    return `
+                                        <div style="background: #f1f5f9; padding: 1.5rem; border-radius: 20px;">
+                                            <div style="display: flex; align-items: center; justify-content: space-between; cursor: pointer; user-select: none;" onclick="const content = document.getElementById('venueDropdownContent_${event.id}'); const arrow = document.getElementById('venueDropdownArrow_${event.id}'); if(content.style.display === 'none'){ content.style.display = 'block'; arrow.style.transform = 'rotate(180deg)'; } else { content.style.display = 'none'; arrow.style.transform = 'rotate(0deg)'; }">
+                                                <div style="display: flex; align-items: center; gap: 15px;">
+                                                    <div style="font-size: 1.5rem;">📍</div>
+                                                    <div style="font-weight: 700; color: #1e293b;">Multiple Locations Selected</div>
+                                                </div>
+                                                <div style="display: flex; align-items: center; gap: 8px; color: var(--client-primary); font-weight: 600; font-size: 0.9rem;">
+                                                    See more
+                                                    <span id="venueDropdownArrow_${event.id}" style="display: inline-block; transition: transform 0.3s ease;">▼</span>
+                                                </div>
+                                            </div>
+                                            <div id="venueDropdownContent_${event.id}" style="display: none; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #e2e8f0; max-height: 200px; overflow-y: auto;">
+                                                <div style="display: grid; gap: 1rem;">
+                                                    ${uniqueLocations.map(loc => `
+                                                        <div style="background: white; padding: 1rem; border-radius: 12px; border: 1px solid #e2e8f0;">
+                                                            <div style="font-weight: 700; color: #1e293b; margin-bottom: 0.25rem;">${escapeHTML(loc.state)}</div>
+                                                            <div style="color: #64748b; font-size: 0.875rem;">${escapeHTML(loc.address) || 'No specific address available'}</div>
+                                                        </div>
+                                                    `).join('')}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    `;
+                                }
+                            } else {
+                                return `
+                                    <div style="display: flex; align-items: flex-start; gap: 15px; background: #f1f5f9; padding: 1.5rem; border-radius: 20px;">
+                                        <div style="font-size: 1.5rem;">📍</div>
+                                        <div>
+                                            <div style="font-weight: 700; color: #1e293b; margin-bottom: 0.25rem;">${escapeHTML(state) || 'Location'}</div>
+                                            <div style="color: #64748b; font-size: 0.875rem;">${escapeHTML(address) || 'No specific address available'}</div>
+                                        </div>
+                                    </div>
+                                `;
+                            }
+                        })()}
                     </div>
 
                     <div>

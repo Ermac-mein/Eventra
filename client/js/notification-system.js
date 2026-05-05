@@ -187,7 +187,7 @@ class NotificationManager {
         notificationList.appendChild(listContainer);
 
         notifications.forEach(notif => {
-            const title = notif.title || notif.type.replace('_', ' ').toUpperCase();
+            const title = notif.title || (notif.type ? String(notif.type).replace(/_/g, ' ').toUpperCase() : 'NOTIFICATION');
             const metadata = notif.metadata ? JSON.parse(notif.metadata) : null;
             const isRead = String(notif.is_read) === '1';
             
@@ -209,10 +209,10 @@ class NotificationManager {
                 </div>
                 <div style="flex: 1; min-width: 0;">
                     <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.25rem;">
-                        <h4 style="font-weight: 700; color: #1e293b; font-size: 0.9rem; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHTML(title)}</h4>
+                        <h4 style="font-weight: 700; color: #1e293b; font-size: 0.9rem; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${window.escapeHtml(title)}</h4>
                         ${!isRead ? '<span style="width: 8px; height: 8px; background: #3b82f6; border-radius: 50%; margin-top: 4px;"></span>' : ''}
                     </div>
-                    <p style="font-size: 0.85rem; color: #64748b; margin: 0 0 0.5rem 0; line-height: 1.4;">${escapeHTML(notif.message)}</p>
+                    <p style="font-size: 0.85rem; color: #64748b; margin: 0 0 0.5rem 0; line-height: 1.4;">${window.escapeHtml(notif.message)}</p>
                     <div style="font-size: 0.75rem; color: #94a3b8; font-weight: 500;">${window.timeAgo(notif.created_at)}</div>
                 </div>
             `;

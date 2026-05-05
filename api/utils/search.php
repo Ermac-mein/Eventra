@@ -31,7 +31,7 @@ try {
     ];
 
     // --- 1. SEARCH EVENTS ---
-    $eventSql = "SELECT id, event_name as title, SUBSTRING(description, 1, 60) as subtitle, category, price 
+    $eventSql = "SELECT id, event_name as title, SUBSTRING(description, 1, 60) as subtitle, category, price, metadata 
                  FROM events 
                  WHERE (event_name LIKE ? OR description LIKE ?) AND deleted_at IS NULL";
 
@@ -45,7 +45,20 @@ try {
     } else {
         $stmt->execute([$searchTerm, $searchTerm]);
     }
-    $results['events'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $events = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    // Merge metadata for events
+    $results['events'] = array_map(function($ev) {
+        if (!empty($ev['metadata'])) {
+            $meta = json_decode($ev['metadata'], true);
+            if (is_array($meta)) {
+                // Handle naming collision with 'title' and 'subtitle' if needed, 
+                // but here we just need the price fields.
+                $ev = array_merge($ev, $meta);
+            }
+        }
+        return $ev;
+    }, $events);
 
     // --- 2. SEARCH TICKETS / ORDERS ---
     $ticketSql = "SELECT t.id, e.event_name as title, CONCAT('Ticket #', t.id) as subtitle, u.name as extra
