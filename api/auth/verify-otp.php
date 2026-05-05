@@ -77,7 +77,7 @@ if ($intent === 'client_login_otp') {
 
         // 5. Fetch user details (must be client)
         $stmt = $pdo->prepare("
-            SELECT a.id, a.email, a.role, 
+            SELECT a.id, a.email, a.role, a.password_change_required,
                    c.id as client_id, c.business_name, c.name, c.profile_pic
             FROM auth_accounts a
             LEFT JOIN clients c ON c.client_auth_id = a.id
@@ -88,6 +88,22 @@ if ($intent === 'client_login_otp') {
 
         if (!$user) {
             echo json_encode(['success' => false, 'message' => 'User account not found.']);
+            exit;
+        }
+
+        if (isset($user['password_change_required']) && $user['password_change_required'] == 1) {
+            // Generate a reset token so they can change their password securely
+            $reset_token = bin2hex(random_bytes(32));
+            $expires_at  = date('Y-m-d H:i:s', strtotime('+30 minutes'));
+            $pdo->prepare("INSERT INTO auth_tokens (auth_id, token, type, expires_at) VALUES (?, ?, 'reset_password', ?)")
+                ->execute([$auth_id, $reset_token, $expires_at]);
+
+            echo json_encode([
+                'success' => true,
+                'next_step' => 'change_password',
+                'message' => 'You must change your password before logging in.',
+                'reset_token' => $reset_token
+            ]);
             exit;
         }
 

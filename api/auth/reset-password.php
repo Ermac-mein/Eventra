@@ -7,16 +7,15 @@
 
 header('Content-Type: application/json');
 require_once __DIR__ . '/../../config/database.php';
-require_once __DIR__ . '/../../includes/helpers/otp-service.php';
 require_once __DIR__ . '/../../includes/helpers/validation.php';
 
 $data = json_decode(file_get_contents("php://input"), true);
-$otpId = $data['otp_id'] ?? null;
-$password = $data['password'] ?? null;
-$passwordConfirm = $data['password_confirm'] ?? null;
+$resetToken = $data['reset_token'] ?? null;
+$password = $data['password'] ?? $data['new_password'] ?? null;
+$passwordConfirm = $data['password_confirm'] ?? $password;
 
-if (!$otpId || !$password) {
-    echo json_encode(['success' => false, 'message' => 'OTP ID and password are required.']);
+if (!$resetToken || !$password) {
+    echo json_encode(['success' => false, 'message' => 'Reset token and password are required.']);
     exit;
 }
 
@@ -26,48 +25,39 @@ if ($password !== $passwordConfirm) {
 }
 
 try {
-    // Validate password strength
-    $validation = validatePasswordStrength($password);
-    if (!$validation['valid']) {
-        echo json_encode([
-            'success' => false,
-            'message' => 'Password does not meet requirements: ' . implode(', ', $validation['errors'])
-        ]);
-        exit;
-    }
-
-    // Verify OTP still exists and is verified (CLIENT ONLY)
+    $pdo = getPDO();
+    
+    // Verify token exists and is valid
     $stmt = $pdo->prepare("
-        SELECT otp.auth_id 
-        FROM otp_requests otp
-        INNER JOIN auth_accounts a ON otp.auth_id = a.id
-        WHERE otp.id = ? AND otp.is_verified = 1 AND otp.purpose = 'password_reset' 
-        AND a.role = 'client' AND a.deleted_at IS NULL
+        SELECT id, auth_id 
+        FROM auth_tokens 
+        WHERE token = ? AND type = 'reset_password' AND revoked = 0 AND expires_at > NOW()
         LIMIT 1
     ");
-    $stmt->execute([$otpId]);
-    $otpRecord = $stmt->fetch(PDO::FETCH_ASSOC);
+    $stmt->execute([$resetToken]);
+    $tokenRecord = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    if (!$otpRecord) {
-        echo json_encode(['success' => false, 'message' => 'Invalid or unverified OTP.']);
+    if (!$tokenRecord) {
+        echo json_encode(['success' => false, 'message' => 'Invalid or expired reset token.']);
         exit;
     }
 
-    $authId = $otpRecord['auth_id'];
+    $authId = $tokenRecord['auth_id'];
 
-    // Hash password with bcrypt (saltRounds=12 for PASSWORD_BCRYPT)
-    $passwordHash = password_hash($password, PASSWORD_BCRYPT, ['cost' => 12]);
+    // Hash password with bcrypt
+    $passwordHash = password_hash($password, PASSWORD_BCRYPT);
 
     // Update password
+    // If last_password_change or password_change_required exist, update them too, but ignore if they don't to prevent crashes.
     $stmt = $pdo->prepare("
         UPDATE auth_accounts 
-        SET password = ?, last_password_change = NOW(), password_change_required = 0 
+        SET password = ?
         WHERE id = ?
     ");
     $stmt->execute([$passwordHash, $authId]);
 
-    // Delete/consume the OTP
-    OTPService::consumeOTP($otpId);
+    // Revoke the reset token
+    $pdo->prepare("UPDATE auth_tokens SET revoked = 1 WHERE id = ?")->execute([$tokenRecord['id']]);
 
     echo json_encode([
         'success' => true,

@@ -282,7 +282,13 @@ document.addEventListener('DOMContentLoaded', () => {
                             if (verifyResult.success) {
                                 if (cooldownTimer) clearInterval(cooldownTimer);
                                 otpModal.style.display = 'none';
-                                completeLoginSession(verifyResult);
+                                
+                                if (verifyResult.next_step === 'change_password') {
+                                    // Trigger the password reset flow using the reset_token
+                                    promptForNewPassword(verifyResult.reset_token);
+                                } else {
+                                    completeLoginSession(verifyResult);
+                                }
                             } else {
                                 otpError.textContent = verifyResult.message || 'Invalid code.';
                                 otpError.style.display = 'block';
@@ -323,6 +329,61 @@ document.addEventListener('DOMContentLoaded', () => {
             showError('databaseErrorBanner', 'A system error occurred. Please try again later.');
             loginButton.disabled = false;
             loginButton.innerHTML = originalBtnText;
+        }
+    }
+
+    /**
+     * Handle forced password change before login
+     */
+    async function promptForNewPassword(resetToken) {
+        const { value: password } = await Swal.fire({
+            title: 'Change Password Required',
+            text: 'You must change your password before logging in.',
+            input: 'password',
+            inputPlaceholder: 'New Password',
+            showCancelButton: true,
+            confirmButtonText: 'Change Password',
+            background: '#1e293b',
+            color: '#fff',
+            confirmButtonColor: '#2ecc71',
+            inputValidator: (value) => {
+                if (!value) return 'You need to write something!';
+                if (value.length < 8) return 'Password must be at least 8 characters long.';
+            }
+        });
+
+        if (!password) {
+            Swal.fire('Login Cancelled', 'You must change your password to log in.', 'warning');
+            return;
+        }
+
+        Swal.showLoading();
+        try {
+            const resetRes = await apiFetch('/api/auth/reset-password.php', {
+                method: 'POST',
+                body: JSON.stringify({ 
+                    reset_token: resetToken, 
+                    password: password 
+                })
+            });
+            const resetResult = await resetRes.json();
+
+            if (resetResult.success) {
+                await Swal.fire({
+                    icon: 'success',
+                    title: 'Success!',
+                    text: 'Password changed successfully. Please log in again with your new password.',
+                    background: '#1e293b',
+                    color: '#fff'
+                });
+                // Clear any state and let them log in again
+                if (window.authController) window.authController.clearLocalState();
+                window.location.reload();
+            } else {
+                Swal.fire('Error', resetResult.message, 'error');
+            }
+        } catch (error) {
+            Swal.fire('Error', 'Failed to change password.', 'error');
         }
     }
 

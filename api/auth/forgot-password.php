@@ -84,7 +84,7 @@ try {
 
     echo json_encode([
         'success' => true,
-        'message' => 'An OTP has been sent to your email ' . ($phone ? 'and phone number' : '') . '.',
+        'message' => 'An OTP has been sent to your email.',
         'otp_purpose' => 'password_reset'
     ]);
 
