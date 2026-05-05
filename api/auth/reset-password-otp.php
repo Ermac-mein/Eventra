@@ -18,8 +18,8 @@ if (strlen($password) < 8) {
 }
 
 try {
-    // Get the user account
-    $stmt = $pdo->prepare("SELECT id FROM auth_accounts WHERE email = ? AND role = 'client' AND deleted_at IS NULL");
+    // Get the user account (any role)
+    $stmt = $pdo->prepare("SELECT id FROM auth_accounts WHERE email = ? AND deleted_at IS NULL");
     $stmt->execute([$email]);
     $account = $stmt->fetch();
 

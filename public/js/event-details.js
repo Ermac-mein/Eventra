@@ -81,9 +81,42 @@ function renderEvent(event) {
         clientNameContainer.insertAdjacentHTML('beforeend', verificationBadge);
     }
     
-    const priceValue = parseFloat(event.price);
-    const isFree = !event.price || priceValue === 0;
-    const priceText = isFree ? 'Free' : `₦${priceValue.toLocaleString()}`;
+    // Handle pricing - robust multi-tier logic
+    let priceText = 'Free';
+    const regPrice = parseFloat(event.regular_price || 0);
+    const vipPrice = parseFloat(event.vip_price || 0);
+    const premPrice = parseFloat(event.premium_price || 0);
+    const legacyPrice = parseFloat(event.price || 0);
+
+    // Get active modes from metadata (ticket_type_mode)
+    let modes = (event.ticket_type_mode || 'all').split(',').map(m => m.trim().toLowerCase());
+    
+    if (modes.includes('all') || modes.length === 0) {
+        priceText = legacyPrice > 0 ? `₦${legacyPrice.toLocaleString()}` : 'Free';
+    } else {
+        let priceParts = [];
+        if (modes.includes('regular')) priceParts.push(regPrice);
+        if (modes.includes('vip')) priceParts.push(vipPrice);
+        if (modes.includes('premium')) priceParts.push(premPrice);
+        
+        const maxP = Math.max(...priceParts);
+        const minP = Math.min(...priceParts);
+        
+        if (maxP > 0) {
+            priceText = minP === maxP ? `₦${minP.toLocaleString()}` : `₦${minP.toLocaleString()} - ₦${maxP.toLocaleString()}`;
+        } else {
+            priceText = 'Free';
+        }
+    }
+
+    // Append ticket types label
+    const typeLabel = (modes.includes('all') || modes.length === 0) 
+        ? 'Regular, VIP, Premium' 
+        : modes.map(m => m.charAt(0).toUpperCase() + m.slice(1)).join(', ');
+        
+    if (typeLabel) {
+        priceText = `${priceText} (${typeLabel})`;
+    }
     
     document.getElementById('eventPrice').textContent = priceText;
     
@@ -118,11 +151,51 @@ function renderEvent(event) {
     document.getElementById('attendeeCountDisplay').textContent = `${count} people attending`;
 
     // Booking logic and Validation for past events
+    // Ticket Type Selector logic
     const bookBtn = document.getElementById('bookNowBtn');
     const buyTicketText = document.getElementById('buyTicketText');
     const eventDate = new Date(event.event_date);
     const now = new Date();
-    now.setHours(0, 0, 0, 0); // Only compare dates, not time precisely if not needed
+    now.setHours(0, 0, 0, 0); 
+
+    // Create ticket type selector if multiple modes exist
+    if (modes.length > 1 && !modes.includes('all')) {
+        const selectorContainer = document.createElement('div');
+        selectorContainer.style.cssText = 'margin: 1.5rem 0; padding: 1rem; background: #f8fafc; border-radius: 12px; border: 1px solid #e2e8f0;';
+        selectorContainer.innerHTML = `
+            <label style="display: block; font-size: 0.85rem; font-weight: 700; color: #475569; margin-bottom: 0.75rem;">Select Ticket Type</label>
+            <div id="ticketTypeGrid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                ${modes.map(mode => {
+                    const p = mode === 'vip' ? vipPrice : (mode === 'premium' ? premPrice : regPrice);
+                    return `
+                    <div class="tier-option" data-tier="${mode}" style="padding: 0.75rem; border: 2px solid #e2e8f0; border-radius: 10px; cursor: pointer; text-align: center; transition: all 0.2s;">
+                        <div style="font-weight: 700; text-transform: capitalize; font-size: 0.9rem;">${mode}</div>
+                        <div style="font-size: 0.8rem; color: #64748b;">${p > 0 ? '₦' + p.toLocaleString() : 'Free'}</div>
+                    </div>`;
+                }).join('')}
+            </div>
+            <input type="hidden" id="selectedTicketType" value="${modes[0]}">
+        `;
+        
+        // Insert before quantity or book button
+        const qtyGroup = document.querySelector('.quantity-selector');
+        if (qtyGroup) qtyGroup.parentNode.insertBefore(selectorContainer, qtyGroup);
+        else bookBtn.parentNode.insertBefore(selectorContainer, bookBtn);
+
+        // Selection logic
+        const options = selectorContainer.querySelectorAll('.tier-option');
+        options[0].style.borderColor = '#722f37';
+        options[0].style.background = '#fffafa';
+        
+        options.forEach(opt => {
+            opt.onclick = () => {
+                options.forEach(o => { o.style.borderColor = '#e2e8f0'; o.style.background = 'none'; });
+                opt.style.borderColor = '#722f37';
+                opt.style.background = '#fffafa';
+                document.getElementById('selectedTicketType').value = opt.dataset.tier;
+            };
+        });
+    }
 
     if (eventDate < now) {
         bookBtn.disabled = true;
@@ -131,11 +204,13 @@ function renderEvent(event) {
         bookBtn.style.boxShadow = 'none';
         buyTicketText.textContent = 'Event Concluded';
     } else {
-        buyTicketText.textContent = isFree ? 'Book Your Spot' : 'Buy Ticket Now';
+        buyTicketText.textContent = (modes.includes('all') && legacyPrice === 0) ? 'Book Your Spot' : 'Buy Ticket Now';
         bookBtn.onclick = () => {
             const qtyInput = document.getElementById('ticketQuantity');
             const qty = qtyInput ? qtyInput.value : 1;
-            window.location.href = `checkout.html?id=${event.id}&quantity=${qty}`;
+            const typeInput = document.getElementById('selectedTicketType');
+            const type = typeInput ? typeInput.value : (modes.length === 1 ? modes[0] : 'regular');
+            window.location.href = `checkout.html?id=${event.id}&quantity=${qty}&type=${type}`;
         };
     }
 }

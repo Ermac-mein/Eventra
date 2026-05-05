@@ -37,6 +37,7 @@ try {
             t.id,
             t.custom_id,
             t.barcode,
+            t.ticket_type,
             t.used,
             t.status,
             t.created_at AS purchase_date,

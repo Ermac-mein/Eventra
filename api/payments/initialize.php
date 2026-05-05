@@ -130,8 +130,23 @@ try {
         }
     }
 
-    // ── Calculate amount ─────────────────────────────────────────────────────
-    $unit_price  = (float)$event['price'];
+    // ── Calculate amount based on ticket type ──────────────────────────────────
+    $unit_price = (float)$event['price']; // Default
+    
+    // Check if event has multi-tier prices in metadata or specific columns
+    // The create-event.php stores these in regular_price, vip_price, premium_price columns
+    $stmt = $pdo->prepare("SELECT regular_price, vip_price, premium_price FROM events WHERE id = ?");
+    $stmt->execute([$event_id]);
+    $prices = $stmt->fetch(PDO::FETCH_ASSOC);
+    
+    if ($ticket_type === 'vip' && !empty($prices['vip_price'])) {
+        $unit_price = (float)$prices['vip_price'];
+    } elseif ($ticket_type === 'premium' && !empty($prices['premium_price'])) {
+        $unit_price = (float)$prices['premium_price'];
+    } elseif ($ticket_type === 'regular' && !empty($prices['regular_price'])) {
+        $unit_price = (float)$prices['regular_price'];
+    }
+    
     $total       = $unit_price * $quantity;
     $amount_kobo = (int)round($total * 100);
 

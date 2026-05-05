@@ -111,45 +111,39 @@ class NotificationManager {
 
     // Update notification badge
     updateNotificationBadge(count) {
-        let badge = document.querySelector('.notification-badge');
-        
-        if (!badge) {
-            // Create badge if it doesn't exist
-            const bellIcon = document.querySelector('[data-drawer="notifications"]');
-            if (bellIcon) {
-                badge = document.createElement('span');
-                badge.className = 'notification-badge';
-                badge.style.cssText = `
-                    position: absolute;
-                    top: -6px;
-                    right: -6px;
-                    background: #ef4444;
-                    color: white;
-                    border-radius: 50%;
-                    min-width: 18px;
-                    height: 18px;
-                    padding: 0 4px;
-                    font-size: 0.7rem;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    font-weight: 700;
-                    border: 2px solid white;
-                    z-index: 10;
-                    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-                `;
-                bellIcon.style.position = 'relative';
-                bellIcon.appendChild(badge);
-            }
+        const bellIcon = document.querySelector('[data-drawer="notifications"]') || document.getElementById('notificationBellIcon');
+        if (!bellIcon) return;
+
+        // Remove existing badge
+        const existingBadge = bellIcon.querySelector('.notification-badge');
+        if (existingBadge) {
+            existingBadge.remove();
         }
 
-        if (badge) {
-            if (count > 0) {
-                badge.textContent = count > 99 ? '99+' : count;
-                badge.style.display = 'flex';
-            } else {
-                badge.style.display = 'none';
-            }
+        if (count > 0) {
+            const badge = document.createElement('span');
+            badge.className = 'notification-badge';
+            badge.textContent = count > 99 ? '99+' : count;
+            badge.style.cssText = `
+                position: absolute;
+                top: -5px;
+                right: -5px;
+                background: #ef4444;
+                color: white;
+                border-radius: 50%;
+                width: 18px;
+                height: 18px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 10px;
+                font-weight: 700;
+                border: 2px solid white;
+                z-index: 10;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            `;
+            bellIcon.style.position = 'relative';
+            bellIcon.appendChild(badge);
         }
     }
 
@@ -161,52 +155,78 @@ class NotificationManager {
         const notificationList = document.getElementById('notificationList');
         if (!notificationList) return;
 
+        // Clear existing content
+        notificationList.innerHTML = '';
+
         if (!notifications || notifications.length === 0) {
             notificationList.innerHTML = `
-                <div style="text-align: center; padding: 3rem 1rem; color: #9ca3af;">
-                    <div style="font-size: 3rem; margin-bottom: 1rem;">🔔</div>
-                    <p>No notifications yet</p>
+                <div class="empty-notif-state" style="text-align: center; padding: 4rem 2rem; color: #94a3b8;">
+                    <div style="font-size: 4rem; margin-bottom: 1.5rem; filter: grayscale(0.5);">🎉</div>
+                    <h3 style="font-size: 1.25rem; font-weight: 700; color: #1e293b; margin-bottom: 0.5rem;">All caught up!</h3>
+                    <p style="font-size: 0.9rem;">You have no new notifications at the moment.</p>
                 </div>
             `;
             return;
         }
 
-        let html = `
-            <div style="padding: 0.75rem 1rem; border-bottom: 1px solid #e5e7eb; display: flex; justify-content: flex-end; background: #f9fafb;">
-                <button onclick="window.notificationManager.clearAll()" 
-                        style="color: #ef4444; background: white; border: 1px solid #fee2e2; padding: 0.4rem 0.75rem; border-radius: 6px; cursor: pointer; font-size: 0.75rem; font-weight: 600; transition: all 0.2s;">
-                    Clear All
-                </button>
-            </div>
-            <div id="actualNotificationItems">
+        // Header with Clear All
+        const header = document.createElement('div');
+        header.style.cssText = 'padding: 1rem 1.5rem; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; background: #fff;';
+        header.innerHTML = `
+            <span style="font-weight: 700; color: #1e293b; font-size: 0.9rem;">Notifications</span>
+            <button onclick="window.notificationManager.clearAll()" 
+                    style="color: #ef4444; background: #fef2f2; border: none; padding: 0.5rem 1rem; border-radius: 8px; cursor: pointer; font-size: 0.75rem; font-weight: 700; transition: all 0.2s;">
+                Clear All
+            </button>
         `;
+        notificationList.appendChild(header);
 
-        html += notifications.map(notif => {
+        // List Container
+        const listContainer = document.createElement('div');
+        listContainer.className = 'notif-list-container';
+        notificationList.appendChild(listContainer);
+
+        notifications.forEach(notif => {
             const title = notif.title || notif.type.replace('_', ' ').toUpperCase();
             const metadata = notif.metadata ? JSON.parse(notif.metadata) : null;
-            const isEventNotification = ['event_deleted', 'event_restored'].includes(notif.type);
-            const clickHandler = isEventNotification && metadata?.event_id 
-                ? `window.notificationManager.handleEventNotificationClick(${metadata.event_id}, '${notif.type}')` 
-                : `window.notificationManager.markSingleAsRead(${notif.id})`;
+            const isRead = String(notif.is_read) === '1';
             
-            return `
-                <div class="notification-item ${String(notif.is_read) === '0' ? 'unread' : ''}" 
-                     onclick="${clickHandler}"
-                     style="padding: 1rem; border-bottom: 1px solid #e5e7eb; cursor: pointer;">
-                    <div style="display: flex; gap: 1rem;">
-                        <div style="font-size: 1.5rem;">${getNotificationIcon(notif.type)}</div>
-                        <div style="flex: 1;">
-                            <div style="font-weight: 600; margin-bottom: 0.25rem;">${escapeHTML(title)}</div>
-                            <div style="font-size: 0.85rem; color: #6b7280; margin-bottom: 0.5rem;">${escapeHTML(notif.message)}</div>
-                            <div style="font-size: 0.75rem; color: #9ca3af;" class="notification-time" data-timestamp="${notif.created_at}">${window.timeAgo(notif.created_at)}</div>
-                        </div>
+            const notifItem = document.createElement('div');
+            notifItem.className = `notif-item ${isRead ? '' : 'unread'}`;
+            notifItem.style.cssText = `
+                padding: 1.25rem 1.5rem;
+                border-bottom: 1px solid #f1f5f9;
+                cursor: pointer;
+                transition: all 0.2s;
+                display: flex;
+                gap: 1rem;
+                background: ${isRead ? '#fff' : '#f8fafc'};
+            `;
+
+            notifItem.innerHTML = `
+                <div class="notif-icon" style="width: 40px; height: 40px; border-radius: 10px; background: #f1f5f9; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; flex-shrink: 0;">
+                    ${getNotificationIcon(notif.type)}
+                </div>
+                <div style="flex: 1; min-width: 0;">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.25rem;">
+                        <h4 style="font-weight: 700; color: #1e293b; font-size: 0.9rem; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHTML(title)}</h4>
+                        ${!isRead ? '<span style="width: 8px; height: 8px; background: #3b82f6; border-radius: 50%; margin-top: 4px;"></span>' : ''}
                     </div>
+                    <p style="font-size: 0.85rem; color: #64748b; margin: 0 0 0.5rem 0; line-height: 1.4;">${escapeHTML(notif.message)}</p>
+                    <div style="font-size: 0.75rem; color: #94a3b8; font-weight: 500;">${window.timeAgo(notif.created_at)}</div>
                 </div>
             `;
-        }).join('');
 
-        html += '</div>';
-        notificationList.innerHTML = html;
+            notifItem.onclick = () => {
+                if (['event_deleted', 'event_restored'].includes(notif.type) && metadata?.event_id) {
+                    this.handleEventNotificationClick(metadata.event_id, notif.type);
+                } else {
+                    this.markSingleAsRead(notif.id);
+                }
+            };
+
+            listContainer.appendChild(notifItem);
+        });
     }
 
     // Show toast notification for new notifications

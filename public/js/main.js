@@ -751,9 +751,12 @@ function createEventCard(event, index) {
   }
 
   // Append ticket types label
-  const typeLabel = modes.includes('all') ? 'Regular, VIP, Premium' : modes.map(m => m.charAt(0).toUpperCase() + m.slice(1)).join(', ');
+  const typeLabel = (modes.includes('all') || modes.length === 0) 
+      ? 'Regular, VIP, Premium' 
+      : modes.map(m => m.charAt(0).toUpperCase() + m.slice(1)).join(', ');
+      
   if (typeLabel) {
-      price = `${price} (${typeLabel})`;
+      price = `${price} <span class="ticket-type-label" style="font-size: 0.75rem; color: #6b7280; font-weight: 500;">(${typeLabel})</span>`;
   }
 
   

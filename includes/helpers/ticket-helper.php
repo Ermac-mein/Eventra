@@ -25,9 +25,9 @@ function base64_encode_image($path) {
     
     // Handle remote URLs
     if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
-        $ctx = stream_context_create(['http' => ['timeout' => 5]]);
+        $ctx = stream_context_create(['http' => ['timeout' => 10]]);
         $data = @file_get_contents($path, false, $ctx);
-        if ($data === false) return '';
+        if ($data === false || empty($data)) return '';
         
         $ext = strtolower(pathinfo(parse_url($path, PHP_URL_PATH), PATHINFO_EXTENSION));
         $mimeType = match($ext) {
@@ -42,29 +42,32 @@ function base64_encode_image($path) {
 
     // Normalize path: handle relative paths and resolve to absolute
     $resolvedPath = $path;
+    $root = realpath(__DIR__ . '/../../');
     
-    // If not absolute path, try to resolve it
+    // If path starts with /, it's relative to project root
+    if (str_starts_with($path, '/') || str_starts_with($path, '\\')) {
+        $resolvedPath = $root . $path;
+    }
+
     if (!file_exists($resolvedPath)) {
-        $root = realpath(__DIR__ . '/../../');
+        // Try cleaning and resolving
         $cleanPath = ltrim(str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $path), DIRECTORY_SEPARATOR);
-        
-        // Try direct project root
-        $tryPath = $root . DIRECTORY_SEPARATOR . $cleanPath;
-        if (file_exists($tryPath)) {
-            $resolvedPath = $tryPath;
-        } else {
-            // Try inside public folder if not already there
-            if (!str_starts_with($cleanPath, 'public')) {
-                $tryPath = $root . DIRECTORY_SEPARATOR . 'public' . DIRECTORY_SEPARATOR . $cleanPath;
-                if (file_exists($tryPath)) {
-                    $resolvedPath = $tryPath;
-                }
+        $tryPaths = [
+            $root . DIRECTORY_SEPARATOR . $cleanPath,
+            $root . DIRECTORY_SEPARATOR . 'public' . DIRECTORY_SEPARATOR . $cleanPath,
+            $root . DIRECTORY_SEPARATOR . 'public' . DIRECTORY_SEPARATOR . 'assets' . DIRECTORY_SEPARATOR . 'event_assets' . DIRECTORY_SEPARATOR . basename($path)
+        ];
+
+        foreach ($tryPaths as $tp) {
+            if (file_exists($tp)) {
+                $resolvedPath = $tp;
+                break;
             }
         }
     }
     
-    if (!file_exists($resolvedPath)) {
-        error_log("[TicketHelper] Image not found for base64 encoding: " . $path);
+    if (!file_exists($resolvedPath) || is_dir($resolvedPath)) {
+        error_log("[TicketHelper] Image not found for base64 encoding: " . $path . " (Resolved: " . $resolvedPath . ")");
         return '';
     }
     
@@ -73,7 +76,7 @@ function base64_encode_image($path) {
     finfo_close($finfo);
     
     $data = @file_get_contents($resolvedPath);
-    if ($data === false) return '';
+    if ($data === false || empty($data)) return '';
     
     return 'data:' . $mimeType . ';base64,' . base64_encode($data);
 }

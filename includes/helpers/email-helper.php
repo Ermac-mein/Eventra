@@ -108,7 +108,6 @@ class EmailHelper
             $mail->addReplyTo($_ENV['MAIL_REPLY_TO'] ?? EMAIL_FROM, EMAIL_FROM_NAME);
             $mail->addAddress($to);
 
-            // ── FIX #4: Verify each attachment exists AND is non-empty ────────
             foreach ($attachments as $filePath) {
                 $filePath = trim((string) $filePath);
                 if ($filePath === '') {
@@ -190,28 +189,17 @@ class EmailHelper
         return htmlspecialchars($v, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
     }
 
-    /**
-     * FIX #5: Normalise any path (Windows or Unix) to forward-slash form,
-     * then convert to an absolute path the current OS understands.
-     */
     private static function normalisePath(string $path): string
     {
-        // Replace Windows backslashes
         return str_replace('\\', '/', $path);
     }
 
     /**
      * Resolve an image path/URL to an inline base64 data-URI.
-     *
-     * Priority:
-     *   1. Already a data-URI  → return as-is
-     *   2. Absolute URL        → attempt to fetch (capped at 2 s)
-     *   3. Absolute local path → read directly
-     *   4. Relative path       → resolve against DOCUMENT_ROOT / APP_ROOT
-     *
      * Returns empty string if the image cannot be read.
+     * Cap the image at 200 KB after encoding to keep email under Gmail's 102 KB clip limit.
      */
-    private static function imageToDataUri(string $path): string
+    private static function imageToDataUri(string $path, int $maxBytes = 200000): string
     {
         $path = trim($path);
         if ($path === '') {
@@ -223,25 +211,26 @@ class EmailHelper
             return $path;
         }
 
-        // Remote URL — fetch with a tight timeout so PDF generation never hangs
+        // Remote URL
         if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
-            $ctx  = stream_context_create(['http' => ['timeout' => 2]]);
+            $ctx  = stream_context_create(['http' => ['timeout' => 3]]);
             $data = @file_get_contents($path, false, $ctx);
             if ($data !== false && $data !== '') {
+                if (strlen($data) > $maxBytes) {
+                    error_log("[EmailHelper] imageToDataUri: remote image too large (" . strlen($data) . " bytes), skipping.");
+                    return '';
+                }
                 $mime = self::guessMime($path);
                 return 'data:' . $mime . ';base64,' . base64_encode($data);
             }
             return '';
         }
 
-        // Local path (normalise Windows slashes)
+        // Local path
         $localPath = self::normalisePath($path);
 
-        // Try the path as-is first
         if (!file_exists($localPath)) {
-            // If it's not absolute (no drive letter on Windows)
             if (!preg_match('/^[a-zA-Z]:/', $localPath)) {
-                // Resolve against the project root (two levels up from this helper)
                 $projectRoot = rtrim(self::normalisePath(__DIR__ . '/../../'), '/');
                 $localPath   = $projectRoot . '/' . ltrim($localPath, '/');
             }
@@ -257,8 +246,55 @@ class EmailHelper
             return '';
         }
 
+        if (strlen($data) > $maxBytes) {
+            // Try to resize/compress using GD if available
+            $resized = self::resizeImageData($data, $localPath, 600, 300);
+            if ($resized !== '') {
+                $data = $resized;
+            } else {
+                error_log("[EmailHelper] imageToDataUri: local image too large (" . strlen($data) . " bytes), skipping.");
+                return '';
+            }
+        }
+
         $mime = self::guessMime($localPath);
         return 'data:' . $mime . ';base64,' . base64_encode($data);
+    }
+
+    /**
+     * Resize image using GD to fit within maxW x maxH, returns raw PNG bytes or ''.
+     */
+    private static function resizeImageData(string $rawData, string $path, int $maxW, int $maxH): string
+    {
+        if (!function_exists('imagecreatefromstring')) {
+            return '';
+        }
+        try {
+            $src = @imagecreatefromstring($rawData);
+            if (!$src) {
+                return '';
+            }
+            $origW = imagesx($src);
+            $origH = imagesy($src);
+
+            $ratio = min($maxW / $origW, $maxH / $origH, 1.0);
+            $newW  = (int) round($origW * $ratio);
+            $newH  = (int) round($origH * $ratio);
+
+            $dst = imagecreatetruecolor($newW, $newH);
+            imagecopyresampled($dst, $src, 0, 0, 0, 0, $newW, $newH, $origW, $origH);
+            imagedestroy($src);
+
+            ob_start();
+            imagejpeg($dst, null, 82);
+            $out = ob_get_clean();
+            imagedestroy($dst);
+
+            return $out !== false ? $out : '';
+        } catch (\Throwable $e) {
+            error_log('[EmailHelper] resizeImageData failed: ' . $e->getMessage());
+            return '';
+        }
     }
 
     private static function guessMime(string $path): string
@@ -274,47 +310,42 @@ class EmailHelper
     }
 
     /**
-     *
-     * @param  array  $ticketData  Full ticket data array
-     * @param  string $staticPath  Absolute path to qrcode.png fallback image
-     * @return string  data-URI  OR  https:// URL  OR  empty string
+     * Generate QR code as a base64 data-URI.
      */
     private static function generateQrDataUri(array $ticketData, string $staticPath = ''): string
     {
-        // ── Strategy 0: Return pre-generated base64 if provided ──────────────────
         if (!empty($ticketData['qr_base64'])) {
-            return $ticketData['qr_base64'];
+            $b64 = $ticketData['qr_base64'];
+            if (!str_starts_with($b64, 'data:')) {
+                $b64 = 'data:image/png;base64,' . $b64;
+            }
+            return $b64;
         }
 
-        // ── Build the payload the QR should encode ────────────────────────────
         $payload = self::buildQrPayload($ticketData);
 
-        // ── Strategy A: chillerlan/php-qrcode (Preferred as it's in composer.json) ──
+        // Strategy A: chillerlan/php-qrcode
         if (class_exists('chillerlan\QRCode\QRCode') &&
             class_exists('chillerlan\QRCode\QROptions')) {
             try {
                 $options = new \chillerlan\QRCode\QROptions([
-                    'outputType'  => \chillerlan\QRCode\QRCode::OUTPUT_IMAGE_PNG,
-                    'eccLevel'    => \chillerlan\QRCode\QRCode::ECC_H,
-                    'imageBase64' => true,
-                    'scale'       => 6,
+                    'outputType'       => \chillerlan\QRCode\QRCode::OUTPUT_IMAGE_PNG,
+                    'eccLevel'         => \chillerlan\QRCode\QRCode::ECC_H,
+                    'imageBase64'      => true,
+                    'scale'            => 6,
                     'imageTransparent' => false,
                 ]);
                 $qr     = new \chillerlan\QRCode\QRCode($options);
                 $result = $qr->render($payload);
-                // chillerlan returns a full data-URI when imageBase64 = true
                 return $result;
             } catch (\Throwable $e) {
                 error_log('[EmailHelper] chillerlan/php-qrcode failed: ' . $e->getMessage());
             }
         }
 
-        // ── Strategy B: endroid/qr-code (Fallback) ─────────────────────────
+        // Strategy B: endroid/qr-code
         if (class_exists('Endroid\QrCode\QrCode') &&
-            class_exists('Endroid\QrCode\Writer\PngWriter') &&
-            class_exists('Endroid\QrCode\Color\Color') &&
-            class_exists('Endroid\QrCode\Encoding\Encoding') &&
-            class_exists('Endroid\QrCode\ErrorCorrectionLevel')) {
+            class_exists('Endroid\QrCode\Writer\PngWriter')) {
             try {
                 $qrCode = \Endroid\QrCode\QrCode::create($payload)
                     ->setEncoding(new \Endroid\QrCode\Encoding\Encoding('UTF-8'))
@@ -332,11 +363,9 @@ class EmailHelper
             }
         }
 
-        // ── Strategy C: Static fallback PNG (user-supplied qrcode.png) ────
-        //    We still embed it as base64 so PDFs never have a broken image.
+        // Strategy C: Static fallback PNG
         $staticPath = self::normalisePath(trim($staticPath));
         if ($staticPath === '') {
-            // Default location relative to this file
             $staticPath = self::normalisePath(__DIR__ . '/../../public/assets/qrcode.png');
         }
         if (file_exists($staticPath)) {
@@ -347,30 +376,26 @@ class EmailHelper
             }
         }
 
-        // ── Strategy D: Google Charts API (email-only fallback) ───────────
-        error_log('[EmailHelper] QR: falling back to Google Charts API. Install endroid/qr-code for PDF-safe QR codes.');
+        // Strategy D: Google Charts (last resort — does NOT work in PDFs)
+        error_log('[EmailHelper] QR: falling back to Google Charts API. Install a QR library for PDF-safe codes.');
         return 'https://chart.googleapis.com/chart?cht=qr&chs=300x300&chld=H|2&chl=' . urlencode($payload);
     }
 
-    /**
-     * Build the string payload to encode in the QR code.
-     * Contains all information a scanner needs to verify the ticket.
-     */
     private static function buildQrPayload(array $d): string
     {
         $parts = [
-            'TICKET:'    . ($d['barcode']     ?? $d['ticket_id'] ?? ''),
-            'EVENT:'     . ($d['event_name']  ?? ''),
-            'DATE:'      . ($d['event_date']  ?? ''),
-            'VENUE:'     . ($d['address']     ?? ''),
-            'HOLDER:'    . ($d['user_name']   ?? ''),
-            'USER_ID:'   . ($d['user_id']     ?? ''),
-            'EVENT_ID:'  . ($d['event_id']    ?? ''),
-            'ORDER_ID:'  . ($d['order_id']    ?? ''),
-            'TYPE:'      . ($d['ticket_type'] ?? ''),
-            'AMOUNT:'    . ($d['amount']      ?? '0'),
-            'STATUS:'    . (isset($d['amount']) && (float)$d['amount'] <= 0 ? 'FREE' : 'PAID'),
-            'VERIFY:'    . strtoupper(substr(sha1(($d['barcode'] ?? '') . ($d['user_id'] ?? '')), 0, 10)),
+            'TICKET:'   . ($d['barcode']     ?? $d['ticket_id'] ?? ''),
+            'EVENT:'    . ($d['event_name']  ?? ''),
+            'DATE:'     . ($d['event_date']  ?? ''),
+            'VENUE:'    . ($d['address']     ?? ''),
+            'HOLDER:'   . ($d['user_name']   ?? ''),
+            'USER_ID:'  . ($d['user_id']     ?? ''),
+            'EVENT_ID:' . ($d['event_id']    ?? ''),
+            'ORDER_ID:' . ($d['order_id']    ?? ''),
+            'TYPE:'     . ($d['ticket_type'] ?? ''),
+            'AMOUNT:'   . ($d['amount']      ?? '0'),
+            'STATUS:'   . (isset($d['amount']) && (float)$d['amount'] <= 0 ? 'FREE' : 'PAID'),
+            'VERIFY:'   . strtoupper(substr(sha1(($d['barcode'] ?? '') . ($d['user_id'] ?? '')), 0, 10)),
         ];
 
         return implode('|', array_filter($parts, static fn($p) => $p !== substr($p, 0, strpos($p, ':') + 1)));
@@ -393,15 +418,23 @@ class EmailHelper
     }
 
     // ── buildTicketHtml ────────────────────────────────────────────────────────
-    public static function buildTicketHtml(array $ticketData, string $downloadUrl = ''): string
-    {
-        /* ── Sanitise text fields ─────────────────────────────── */
+    /**
+     * Build a fully self-contained ticket HTML.
+     *
+     * $forPdf = true  → simplified inline-style layout optimised for DomPDF/wkhtmltopdf
+     * $forPdf = false → richer layout for email (still keeps total size < ~90 KB)
+     */
+    public static function buildTicketHtml(
+        array  $ticketData,
+        string $downloadUrl = '',
+        bool   $forPdf      = false
+    ): string {
+        /* ── Sanitise text fields ─────────────────────────── */
         $barcode    = self::esc($ticketData['barcode']   ?? '');
         $ticketId   = self::esc($ticketData['ticket_id'] ?? ($ticketData['barcode'] ?? ''));
         $eventTitle = self::esc($ticketData['event_name'] ?? 'LIVE CONCERT');
         $userName   = self::esc($ticketData['user_name'] ?? 'Attendee');
         $venue      = self::esc($ticketData['address']   ?? '—');
-        $location   = self::esc($ticketData['location']  ?? '—');
         $organizer  = self::esc($ticketData['organizer'] ?? '');
         $ticketType = self::esc($ticketData['ticket_type'] ?? '');
         $year       = date('Y');
@@ -412,7 +445,7 @@ class EmailHelper
         }
         $tickDisp = self::esc($tickDispRaw);
 
-        /* ── Date & time ─────────────────────────────────────── */
+        /* ── Date & time ─────────────────────────────────── */
         $eventDate = !empty($ticketData['event_date'])
             ? self::esc(date('D, d M Y', strtotime((string) $ticketData['event_date'])))
             : 'TBC';
@@ -420,7 +453,7 @@ class EmailHelper
             ? self::esc(date('g:i A', strtotime((string) $ticketData['event_time'])))
             : 'TBC';
 
-        /* ── Price ───────────────────────────────────────────── */
+        /* ── Price ───────────────────────────────────────── */
         $amountDisplay = '';
         if (isset($ticketData['amount'])) {
             $amountFloat   = (float) $ticketData['amount'];
@@ -429,63 +462,72 @@ class EmailHelper
                 : 'Free';
         }
 
-        /* ── FIX #1: Dynamic QR code ─────────────────────────── */
-        // Path to the static qrcode.png the user provided (Windows path normalised)
+        /* ── QR code data-URI ────────────────────────────── */
         $staticQrPath = self::normalisePath(
             $ticketData['qr_path'] ?? (__DIR__ . '/../../public/assets/qrcode.png')
         );
         $qrDataUri = self::generateQrDataUri($ticketData, $staticQrPath);
 
-        // Decide how to render: data-URI → <img src="data:...">
-        //                       https:// URL → <img src="https://..."> (email only, not PDF)
-        if ($qrDataUri !== '') {
-            $qrHtml = '<img src="' . htmlspecialchars($qrDataUri, ENT_QUOTES, 'UTF-8') . '"'
-                . ' alt="QR Code" width="130" height="130"'
-                . ' style="width:130px;height:130px;display:block;margin:0 auto;border-radius:10px;">';
-        } else {
-            $qrHtml = '<div style="width:130px;height:130px;background:#222;'
-                . 'text-align:center;line-height:130px;'
-                . 'font-size:10px;color:#555;letter-spacing:1px;'
-                . 'border-radius:10px;">NO QR</div>';
+        // For PDF: never use a remote URL — replace with placeholder if no local URI
+        if ($forPdf && str_starts_with($qrDataUri, 'http')) {
+            // Attempt to fetch the Google Charts QR and embed it
+            $ctx  = stream_context_create(['http' => ['timeout' => 3]]);
+            $data = @file_get_contents($qrDataUri, false, $ctx);
+            $qrDataUri = ($data !== false && $data !== '')
+                ? 'data:image/png;base64,' . base64_encode($data)
+                : '';
         }
 
-        /* ── FIX #2: Event banner — embed as base64 ──────────── */
-        $imgRaw    = trim((string) ($ticketData['event_image'] ?? ''));
-        $imgBase64 = self::imageToDataUri($imgRaw);
+        if ($qrDataUri !== '') {
+            $qrSrc  = htmlspecialchars($qrDataUri, ENT_QUOTES, 'UTF-8');
+            $qrHtml = "<img src=\"{$qrSrc}\" alt=\"QR Code\" width=\"130\" height=\"130\""
+                . " style=\"width:130px;height:130px;display:block;\">";
+        } else {
+            $qrHtml = '<div style="width:130px;height:130px;background:#333;'
+                . 'text-align:center;line-height:130px;font-size:10px;color:#888;">'
+                . 'NO QR</div>';
+        }
 
-        $eventImgHtml = $imgBase64 !== ''
-            ? '<img src="' . $imgBase64 . '" alt="Event" width="100%" height="180"'
-              . ' style="width:100%;height:180px;display:block;">'
-            : '<div style="width:100%;height:180px;'
-              . 'background:linear-gradient(135deg,#1a1a2e 0%,#0f3460 100%);'
-              . 'text-align:center;line-height:180px;">'
-              . '<span style="font-size:10px;letter-spacing:3px;'
-              . 'color:rgba(212,175,55,0.45);text-transform:uppercase;">Event Image</span>'
-              . '</div>';
+        /* ── Event banner image ──────────────────────────── */
+        $imgRaw = trim((string) ($ticketData['event_image'] ?? ''));
+        // For email: cap at 150 KB to stay under Gmail clip. For PDF: allow larger.
+        $maxImgBytes = $forPdf ? 500000 : 150000;
+        $imgBase64   = self::imageToDataUri($imgRaw, $maxImgBytes);
 
-        /* ── Ticket-type badge ───────────────────────────────── */
-        $badgeBg = '#d4af37';
-        $badgeFg = '#111111';
+        if ($imgBase64 !== '') {
+            $safeImgSrc   = htmlspecialchars($imgBase64, ENT_QUOTES, 'UTF-8');
+            $eventImgHtml = "<img src=\"{$safeImgSrc}\" alt=\"Event\" "
+                . "style=\"width:100%;height:180px;object-fit:cover;display:block;\">";
+        } else {
+            // Gradient placeholder — works in all email clients and PDF renderers
+            $eventImgHtml = '<div style="width:100%;height:180px;'
+                . 'background:#0f3460;'
+                . 'text-align:center;line-height:180px;">'
+                . '<span style="font-size:11px;letter-spacing:3px;'
+                . 'color:rgba(212,175,55,0.6);text-transform:uppercase;">EVENT</span>'
+                . '</div>';
+        }
+
+        /* ── Ticket-type badge ───────────────────────────── */
+        $badgeBg = '#d4af37'; $badgeFg = '#111111';
         if ($tickDisp !== '') {
             $lower = strtolower($tickDispRaw);
             if (str_contains($lower, 'vip'))     { $badgeBg = '#c0392b'; $badgeFg = '#ffffff'; }
             if (str_contains($lower, 'premium')) { $badgeBg = '#9b59b6'; $badgeFg = '#ffffff'; }
             if (str_contains($lower, 'free'))    { $badgeBg = '#27ae60'; $badgeFg = '#ffffff'; }
         }
-        $badgeWrapStyle = 'line-height:1;margin-bottom:16px;min-height:22px;';
         $badgeHtml = $tickDisp !== ''
-            ? '<div style="' . $badgeWrapStyle . '">'
-              . '<span style="display:inline-block;background:' . $badgeBg . ';color:' . $badgeFg . ';'
+            ? '<div style="margin-bottom:16px;">'
+              . "<span style=\"display:inline-block;background:{$badgeBg};color:{$badgeFg};"
               . 'font-family:Arial,sans-serif;font-size:9px;font-weight:800;letter-spacing:2px;'
               . 'text-transform:uppercase;padding:4px 14px;border-radius:20px;">'
               . $tickDisp . '</span></div>'
-            : '<div style="' . $badgeWrapStyle . '"></div>';
+            : '<div style="margin-bottom:16px;"></div>';
 
-        /* ── Detail columns ──────────────────────────────────── */
-        $colA  = self::detailRow('Date',     $eventDate);
-        $colA .= self::detailRow('Time',     $eventTime);
+        /* ── Detail columns ──────────────────────────────── */
+        $colA  = self::detailRow('Date', $eventDate);
+        $colA .= self::detailRow('Time', $eventTime);
 
-        /* ── Venue & Location logic ─────────────────────────── */
         $locations = $ticketData['locations'] ?? null;
         if (is_string($locations)) {
             $locations = json_decode($locations, true);
@@ -493,27 +535,26 @@ class EmailHelper
 
         if (is_array($locations) && count($locations) > 1) {
             $colA .= '<div style="margin-bottom:14px;word-break:break-word;">'
-                . '<span style="display:block;font-family:Arial,sans-serif;'
-                . 'font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;'
-                . 'color:rgba(255,255,255,0.30);margin-bottom:3px;">Venue & Location</span>';
+                . '<span style="display:block;font-family:Arial,sans-serif;font-size:9px;'
+                . 'font-weight:700;letter-spacing:2px;text-transform:uppercase;'
+                . 'color:rgba(255,255,255,0.30);margin-bottom:3px;">Venue &amp; Location</span>';
             foreach ($locations as $loc) {
-                $s = self::esc($loc['state'] ?? '');
+                $s = self::esc($loc['state']   ?? '');
                 $a = self::esc($loc['address'] ?? '');
-                $colA .= '<span style="font-family:Arial,sans-serif;font-size:13px;font-weight:600;color:#d4af37;line-height:1.2;display:block;margin-bottom:2px;">' 
+                $colA .= '<span style="font-family:Arial,sans-serif;font-size:13px;'
+                    . 'font-weight:600;color:#d4af37;line-height:1.2;display:block;margin-bottom:2px;">'
                     . $s . ' : ' . $a . '</span>';
             }
             $colA .= '</div>';
         } else {
-            // Single state or fallback
-            $st = $ticketData['state'] ?? '';
-            $ad = $ticketData['address'] ?? $ticketData['location'] ?? '—';
-            
+            $st = $ticketData['state']   ?? '';
+            $ad = $ticketData['address'] ?? ($ticketData['location'] ?? '—');
             if (!empty($st) && strtolower($st) !== 'all states') {
-                $colA .= self::detailRow($st, $ad);
+                $colA .= self::detailRow($st, self::esc($ad));
             } else {
-                $colA .= self::detailRow('Venue', $ad);
+                $colA .= self::detailRow('Venue', self::esc($ad));
                 if (!empty($st)) {
-                    $colA .= self::detailRow('Location', $st);
+                    $colA .= self::detailRow('Location', self::esc($st));
                 }
             }
         }
@@ -529,15 +570,18 @@ class EmailHelper
             $colB .= self::detailRow('Organizer', $organizer);
         }
 
-        /* ── FIX #3: Download button — only when URL is valid ─── */
+        // Event Image for Background (PDF only)
+        $bgImage = $imgBase64;
+
+        /* ── Download button ─────────────────────────────── */
         $dlButtonHtml = '';
-        if ($downloadUrl !== '' && filter_var($downloadUrl, FILTER_VALIDATE_URL)) {
+        if (!$forPdf && $downloadUrl !== '' && filter_var($downloadUrl, FILTER_VALIDATE_URL)) {
             $safeUrl      = self::esc($downloadUrl);
             $dlButtonHtml = <<<BTN
-            <div style="text-align:center;margin-top:28px;" class="dl-btn-wrap">
+            <div style="text-align:center;margin-top:28px;">
                 <a href="{$safeUrl}"
                    style="display:inline-block;padding:13px 36px;
-                          background:linear-gradient(135deg,#d4af37,#f5d87a);
+                          background:#d4af37;
                           color:#111111;text-decoration:none;border-radius:7px;
                           font-family:Arial,sans-serif;font-size:14px;font-weight:800;
                           letter-spacing:1.5px;text-transform:uppercase;">
@@ -547,241 +591,349 @@ class EmailHelper
             BTN;
         }
 
-        /*
-         * ── FIX #2 cont.: CSS font stack ────────────────────────
-         * Google Fonts <link> removed entirely.
-         * "Bebas Neue" → impact, "Barlow Condensed" → Arial Narrow / Arial.
-         * These are built-in on every OS and every PDF renderer.
-         */
+        /* ─────────────────────────────────────────────────────────────────
+         *  TWO RENDERING PATHS
+         *  (A) EMAIL  — table-based layout, all images inlined, < ~90 KB total
+         *  (B) PDF    — flat single-column inline-style layout, DomPDF-safe
+         * ───────────────────────────────────────────────────────────────── */
+
+        if ($forPdf) {
+            return self::buildPdfHtml(
+                $eventTitle, $userName, $barcode, $ticketId,
+                $eventDate, $eventTime, $badgeHtml,
+                $colA, $colB, $imgBase64, $qrHtml,
+                $year
+            );
+        }
+
+        /* ── EMAIL HTML ─────────────────────────────────────────────────── */
         return <<<HTML
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Concert Ticket &mdash; {$eventTitle}</title>
-    <style>
-        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-        @page { margin: 0; size: A4 landscape; }
-
-        html, body {
-            width: 100%;
-            min-height: 100%;
-            background: #1a1a1a;
-            font-family: Arial, 'Helvetica Neue', Helvetica, sans-serif;
-            padding: 40px 20px;
-        }
-
-        .ticket-wrapper {
-            width: 100%;
-            max-width: 900px;
-            margin: 0 auto;
-            /* drop-shadow removed: unsupported in older PDF renderers */
-        }
-
-        .ticket-table {
-            width: 100%;
-            border-collapse: collapse;
-            border-spacing: 0;
-            border-radius: 16px;
-            overflow: hidden;
-            background: #0b0b0b;
-        }
-
-        .td-main {
-            width: 60%;
-            background: #111111;
-            vertical-align: top;
-            padding: 0;
-        }
-
-        .gold-accent {
-            height: 6px;
-            background: linear-gradient(90deg, #c9a227 0%, #f5d87a 50%, #c9a227 100%);
-        }
-
-        .main-inner { padding: 28px 28px 20px 28px; }
-
-        .live-concert-badge {
-            display: inline-block;
-            font-family: Impact, 'Arial Narrow', Arial, sans-serif;
-            font-size: 14px;
-            letter-spacing: 6px;
-            color: #d4af37;
-            border: 1.5px solid #d4af37;
-            padding: 6px 18px;
-            margin-bottom: 20px;
-            text-transform: uppercase;
-        }
-
-        .event-title {
-            font-family: Impact, 'Arial Narrow', Arial, sans-serif;
-            font-size: 42px;
-            line-height: 1.1;
-            color: #ffffff;
-            letter-spacing: 1px;
-            text-transform: uppercase;
-            margin-bottom: 12px;
-            word-wrap: break-word;
-            overflow-wrap: break-word;
-        }
-
-        .holder-info h4 {
-            font-size: 9px;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-            color: rgba(255,255,255,0.3);
-            margin-bottom: 4px;
-        }
-        .holder-info .name {
-            font-family: 'Arial Narrow', Arial, sans-serif;
-            font-size: 20px;
-            font-weight: 800;
-            color: #fff;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            max-width: 250px;
-        }
-        .ticket-id { text-align: right; }
-        .ticket-id .label {
-            font-size: 9px;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-            color: rgba(255,255,255,0.3);
-        }
-        .ticket-id .value {
-            font-family: 'Arial Narrow', Arial, sans-serif;
-            font-size: 14px;
-            font-weight: 700;
-            color: #d4af37;
-        }
-
-        /* Perforation */
-        .td-perf {
-            width: 2px;
-            background: repeating-linear-gradient(
-                to bottom,
-                transparent 0px, transparent 8px,
-                rgba(255,255,255,0.15) 8px, rgba(255,255,255,0.15) 16px
-            );
-            vertical-align: top;
-        }
-
-        .td-stub { width: 40%; background: #181818; vertical-align: top; }
-
-        .stub-image { height: 180px; overflow: hidden; position: relative; }
-
-        .qr-section { padding: 20px 20px 25px; text-align: center; }
-        .qr-label {
-            font-family: Arial, sans-serif;
-            font-size: 10px;
-            letter-spacing: 3px;
-            text-transform: uppercase;
-            color: rgba(255,255,255,0.3);
-            margin-bottom: 12px;
-        }
-        .qr-frame {
-            width: 140px;
-            height: 140px;
-            background: white;
-            border-radius: 10px;
-            margin: 0 auto 12px;
-            padding: 5px;
-            border: 4px solid white;
-            text-align: center;
-        }
-        .barcode-text {
-            font-family: 'Courier New', Courier, monospace;
-            font-size: 12px;
-            font-weight: 700;
-            color: #d4af37;
-            letter-spacing: 1.5px;
-        }
-
-        @media (max-width: 600px) {
-            .ticket-table, .ticket-table tbody, .ticket-table tr,
-            .td-main, .td-perf, .td-stub { display:block !important; width:100% !important; }
-            .td-perf {
-                height: 2px !important;
-                background: repeating-linear-gradient(to right,
-                    transparent 0px, transparent 8px,
-                    rgba(255,255,255,0.15) 8px, rgba(255,255,255,0.15) 16px) !important;
-            }
-            .stub-image { height: 160px; }
-            .event-title { font-size: 36px; }
-        }
-
-        @media print {
-            html, body { background: white; padding: 0; }
-            .ticket-wrapper { filter: none; }
-            .dl-btn-wrap { display: none !important; }
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Ticket &mdash; {$eventTitle}</title>
 </head>
-<body>
-<div class="ticket-wrapper">
-    <table class="ticket-table" cellpadding="0" cellspacing="0" border="0" role="presentation">
-        <tbody>
+<body style="margin:0;padding:40px 10px;background:#1a1a1a;font-family:Arial,'Helvetica Neue',Helvetica,sans-serif;">
+
+<!--  Outer wrapper  -->
+<table width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation">
+<tr><td align="center">
+
+  <!--  Ticket card: max 700 px  -->
+  <table width="700" cellpadding="0" cellspacing="0" border="0" role="presentation"
+         style="max-width:700px;background:#0b0b0b;border-radius:16px;overflow:hidden;">
+  <tr>
+
+    <!-- ════ LEFT: main ticket body (420 px) ════ -->
+    <td width="420" valign="top"
+        style="width:420px;background:#111111;vertical-align:top;padding:0;">
+
+      <!-- Gold top bar -->
+      <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
+        <td height="6" style="height:6px;background:#d4af37;font-size:0;line-height:0;">&nbsp;</td>
+      </tr></table>
+
+      <!-- Main content -->
+      <table width="100%" cellpadding="0" cellspacing="0" border="0" style="padding:28px;">
+      <tr><td style="padding:28px;">
+
+        <!-- LIVE CONCERT badge -->
+        <div style="display:inline-block;font-family:Impact,'Arial Narrow',Arial,sans-serif;
+                    font-size:13px;letter-spacing:5px;color:#d4af37;
+                    border:1.5px solid #d4af37;padding:5px 16px;
+                    margin-bottom:18px;text-transform:uppercase;">LIVE CONCERT</div>
+
+        <!-- Event title -->
+        <div style="font-family:Impact,'Arial Narrow',Arial,sans-serif;
+                    font-size:38px;line-height:1.1;color:#ffffff;
+                    letter-spacing:1px;text-transform:uppercase;
+                    margin-bottom:10px;word-wrap:break-word;">{$eventTitle}</div>
+
+        <!-- Type badge -->
+        {$badgeHtml}
+
+        <!-- Detail columns -->
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:18px;">
         <tr>
-            <!-- LEFT: main ticket body -->
-            <td class="td-main">
-                <span class="gold-accent" style="display:block;"></span>
-                <div class="main-inner">
-                    <div class="live-concert-badge">LIVE CONCERT</div>
-                    <h1 class="event-title">{$eventTitle}</h1>
-                    {$badgeHtml}
-                    <table width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation" style="margin-top:20px;">
-                        <tr>
-                            <td width="50%" valign="top">{$colA}</td>
-                            <td width="50%" valign="top">{$colB}</td>
-                        </tr>
-                    </table>
-
-                    <table width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation"
-                           style="margin-top:30px;padding-top:20px;border-top:1px solid rgba(212,175,55,0.2);">
-                        <tr>
-                            <td align="left" valign="middle">
-                                <div class="holder-info">
-                                    <h4>Ticket Holder</h4>
-                                    <div class="name">{$userName}</div>
-                                </div>
-                            </td>
-                            <td align="right" valign="middle">
-                                <div class="ticket-id">
-                                    <div class="label">Ticket ID</div>
-                                    <div class="value">{$ticketId}</div>
-                                </div>
-                            </td>
-                        </tr>
-                    </table>
-                </div>
-            </td>
-
-            <!-- PERFORATION -->
-            <td class="td-perf"></td>
-
-            <!-- RIGHT: event image + QR stub -->
-            <td class="td-stub">
-                <div class="stub-image">
-                    {$eventImgHtml}
-                </div>
-                <div class="qr-section">
-                    <div class="qr-label">SCAN TO ENTER</div>
-                    <div class="qr-frame">
-                        {$qrHtml}
-                    </div>
-                    <div class="barcode-text">{$barcode}</div>
-                </div>
-            </td>
+          <td width="50%" valign="top">{$colA}</td>
+          <td width="50%" valign="top">{$colB}</td>
         </tr>
-        </tbody>
-    </table>
-    {$dlButtonHtml}
-</div>
+        </table>
+
+        <!-- Divider + holder row -->
+        <table width="100%" cellpadding="0" cellspacing="0" border="0"
+               style="margin-top:28px;border-top:1px solid rgba(212,175,55,0.25);padding-top:18px;">
+        <tr>
+          <td valign="middle">
+            <div style="font-family:Arial,sans-serif;font-size:9px;font-weight:700;
+                        letter-spacing:2px;text-transform:uppercase;
+                        color:rgba(255,255,255,0.3);margin-bottom:4px;">Ticket Holder</div>
+            <div style="font-family:'Arial Narrow',Arial,sans-serif;font-size:20px;
+                        font-weight:800;color:#fff;">{$userName}</div>
+          </td>
+          <td align="right" valign="middle">
+            <div style="font-family:Arial,sans-serif;font-size:9px;font-weight:700;
+                        letter-spacing:2px;text-transform:uppercase;
+                        color:rgba(255,255,255,0.3);margin-bottom:4px;">Ticket ID</div>
+            <div style="font-family:'Courier New',Courier,monospace;font-size:13px;
+                        font-weight:700;color:#d4af37;">{$ticketId}</div>
+          </td>
+        </tr>
+        </table>
+
+      </td></tr>
+      </table>
+    </td>
+
+    <!-- ════ PERFORATION (4 px) ════ -->
+    <td width="4" style="width:4px;background:repeating-linear-gradient(
+        to bottom,
+        transparent 0px,transparent 8px,
+        rgba(255,255,255,0.12) 8px,rgba(255,255,255,0.12) 16px
+    );font-size:0;line-height:0;">&nbsp;</td>
+
+    <!-- ════ RIGHT: image + QR stub (276 px) ════ -->
+    <td width="276" valign="top"
+        style="width:276px;background:#181818;vertical-align:top;padding:0;">
+
+      <!-- Event image (180 px tall) -->
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+      <tr><td style="padding:0;line-height:0;font-size:0;height:180px;overflow:hidden;">
+        {$eventImgHtml}
+      </td></tr>
+      </table>
+
+      <!-- Gold divider -->
+      <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
+        <td height="3" style="height:3px;background:#d4af37;font-size:0;line-height:0;">&nbsp;</td>
+      </tr></table>
+
+      <!-- QR section -->
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+      <tr><td align="center" style="padding:22px 16px 26px;">
+
+        <div style="font-family:Arial,sans-serif;font-size:9px;letter-spacing:3px;
+                    text-transform:uppercase;color:rgba(255,255,255,0.3);
+                    margin-bottom:14px;">SCAN TO ENTER</div>
+
+        <!-- QR white frame -->
+        <table cellpadding="0" cellspacing="0" border="0" align="center"
+               style="background:#ffffff;border-radius:10px;padding:8px;
+                      width:146px;height:146px;margin:0 auto 14px;">
+        <tr><td align="center" valign="middle" style="padding:0;">
+          {$qrHtml}
+        </td></tr>
+        </table>
+
+        <!-- Barcode text -->
+        <div style="font-family:'Courier New',Courier,monospace;font-size:11px;
+                    font-weight:700;color:#d4af37;letter-spacing:1px;
+                    word-break:break-all;">{$barcode}</div>
+
+      </td></tr>
+      </table>
+
+    </td>
+    <!-- ════ END RIGHT ════ -->
+
+  </tr>
+  </table>
+  <!-- End ticket card -->
+
+  {$dlButtonHtml}
+
+</td></tr>
+</table>
+
 </body>
 </html>
 HTML;
+    }
+
+    /**
+     * Separate flat HTML specifically for PDF rendering.
+     * Uses only simple CSS that DomPDF & wkhtmltopdf understand:
+     * no overflow:hidden on table cells, no CSS gradients on backgrounds,
+     * no filter, no object-fit.
+     */
+    private static function buildPdfHtml(
+        string $eventTitle,
+        string $userName,
+        string $barcode,
+        string $ticketId,
+        string $eventDate,
+        string $eventTime,
+        string $badgeHtml,
+        string $colA,
+        string $colB,
+        string $bgImage,
+        string $qrHtml,
+        string $year
+    ): string {
+        $bgStyle = $bgImage ? "background-image: url('{$bgImage}'); background-size: cover; background-position: center;" : "background: #111;";
+        
+        return <<<PDF
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Ticket &mdash; {$eventTitle}</title>
+<style>
+  @page { margin: 0px; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body {
+    background:#1a1a1a;
+    font-family: Arial, Helvetica, sans-serif;
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+  }
+  .ticket-container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    {$bgStyle}
+  }
+  .overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.75);
+  }
+  .content {
+    position: relative;
+    padding: 40px;
+    color: #ffffff;
+    z-index: 10;
+  }
+  .gold-accent {
+    color: #d4af37;
+  }
+  .event-title {
+    font-size: 48px;
+    font-weight: 900;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    line-height: 1;
+    letter-spacing: -1px;
+  }
+  .ticket-holder {
+    font-size: 24px;
+    font-weight: 700;
+    margin-top: 30px;
+  }
+  .details-grid {
+    margin-top: 40px;
+    width: 100%;
+  }
+  .detail-item {
+    margin-bottom: 20px;
+  }
+  .label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: rgba(255, 255, 255, 0.5);
+    margin-bottom: 5px;
+  }
+  .value {
+    font-size: 18px;
+    font-weight: 700;
+    color: #d4af37;
+  }
+  .qr-container {
+    position: absolute;
+    bottom: 40px;
+    right: 40px;
+    background: #ffffff;
+    padding: 10px;
+    border-radius: 12px;
+    text-align: center;
+  }
+  .qr-label {
+    font-size: 9px;
+    color: #000;
+    font-weight: 800;
+    margin-bottom: 5px;
+    text-transform: uppercase;
+  }
+  .barcode {
+    position: absolute;
+    bottom: 40px;
+    left: 40px;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.6);
+  }
+  .watermark {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(-45deg);
+    font-size: 120px;
+    font-weight: 900;
+    color: rgba(255, 255, 255, 0.03);
+    white-space: nowrap;
+    z-index: 1;
+  }
+</style>
+</head>
+<body>
+<div class="ticket-container">
+  <div class="overlay"></div>
+  <div class="watermark">EVENTRA TICKET</div>
+  
+  <div class="content">
+    <div style="font-size: 12px; letter-spacing: 4px; color: #d4af37; margin-bottom: 10px;">OFFICIAL TICKET</div>
+    <div class="event-title">{$eventTitle}</div>
+    
+    <div class="ticket-holder">
+      <div class="label">Attendee</div>
+      <div style="font-size: 32px;">{$userName}</div>
+    </div>
+
+    <table class="details-grid">
+      <tr>
+        <td width="33%" valign="top">
+          <div class="label">Date</div>
+          <div class="value">{$eventDate}</div>
+        </td>
+        <td width="33%" valign="top">
+          <div class="label">Time</div>
+          <div class="value">{$eventTime}</div>
+        </td>
+        <td width="33%" valign="top">
+          <div class="label">Ticket ID</div>
+          <div class="value" style="font-family: monospace;">{$ticketId}</div>
+        </td>
+      </tr>
+      <tr>
+        <td colspan="3" style="padding-top: 20px;">
+          <div class="label">Location</div>
+          <div class="value">{$colA}</div>
+        </td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="barcode">
+    ID: {$barcode} | Issued by Eventra © {$year}
+  </div>
+
+  <div class="qr-container">
+    <div class="qr-label">Scan to Verify</div>
+    {$qrHtml}
+  </div>
+</div>
+</body>
+</html>
+PDF;
     }
 
     // ── OTP email ─────────────────────────────────────────────────────────────
@@ -794,8 +946,7 @@ HTML;
 
         $body = <<<HTML
         <div style="font-family:Arial,sans-serif;max-width:600px;margin:auto;padding:40px;
-                    background:#ffffff;border-radius:16px;
-                    box-shadow:0 4px 24px rgba(0,0,0,0.06);border:1px solid #f1f5f9;">
+                    background:#ffffff;border-radius:16px;border:1px solid #f1f5f9;">
             <div style="text-align:center;margin-bottom:32px;">
                 <h1 style="color:#2ecc71;margin:0;font-size:28px;font-weight:800;">Eventra</h1>
                 <p style="color:#64748b;margin-top:8px;font-size:14px;">Bringing your events to life</p>
@@ -828,15 +979,11 @@ HTML;
     // ── sendTicketEmailFull ────────────────────────────────────────────────────
 
     /**
-     * Send a full rich ticket email.
+     * Send a full rich ticket email + attach a PDF.
      *
-     * FIX SUMMARY applied here:
-     * • DB sync unchanged — still fetches freshest data.
-     * • buildTicketHtml() now produces a fully self-contained HTML (no
-     *   external resources) so the same HTML can be handed to DomPDF /
-     *   wkhtmltopdf / mPDF to generate a non-blank PDF.
-     * • PDF paths validated for existence AND non-zero size before attaching.
-     * • Download URL only appended if it passes FILTER_VALIDATE_URL.
+     * KEY FIX: PDF is now generated from buildTicketHtml(..., forPdf: true)
+     * which uses a DomPDF-safe flat layout — no overflow:hidden, no CSS gradients
+     * on table backgrounds, no object-fit — so it renders correctly.
      */
     public static function sendTicketEmailFull(
         string       $to,
@@ -884,8 +1031,6 @@ HTML;
                         $fresh = $stmt->fetch(\PDO::FETCH_ASSOC);
 
                         if ($fresh) {
-                            // Merge: fresh DB data wins, but keep caller-supplied
-                            // fields that DB doesn't have (e.g. organizer, qr_path)
                             $ticketData = array_merge(
                                 $ticketData,
                                 array_filter($fresh, static fn($v) => $v !== null)
@@ -915,10 +1060,10 @@ HTML;
             }
         }
 
-        /* ── 4. Build fully self-contained HTML ──────────────────── */
-        $body = self::buildTicketHtml($ticketData, $downloadUrl);
+        /* ── 4. Build email HTML (optimised for email clients) ───── */
+        $body = self::buildTicketHtml($ticketData, $downloadUrl, false);
 
-        /* ── 5. Validate PDF attachments ─────────────────────────── */
+        /* ── 5. Validate / regenerate PDF attachment ─────────────── */
         $attachments = [];
         $rawPaths    = is_array($pdfPath) ? $pdfPath : [$pdfPath];
 
@@ -927,14 +1072,27 @@ HTML;
             if ($path === '') {
                 continue;
             }
+
+            $shouldRegenerate = false;
             if (!file_exists($path)) {
-                error_log("[EmailHelper] PDF not found, skipping attachment: {$path}");
-                continue;
+                error_log("[EmailHelper] PDF not found, will attempt regeneration: {$path}");
+                $shouldRegenerate = true;
+            } elseif (filesize($path) === 0) {
+                error_log("[EmailHelper] PDF is empty (0 bytes), will attempt regeneration: {$path}");
+                $shouldRegenerate = true;
             }
-            if (filesize($path) === 0) {
-                error_log("[EmailHelper] PDF is empty (0 bytes), skipping: {$path}");
-                continue;
+
+            if ($shouldRegenerate) {
+                // Attempt to generate the PDF using the PDF-safe HTML
+                $regenerated = self::regeneratePdf($ticketData, $path);
+                if ($regenerated && file_exists($path) && filesize($path) > 0) {
+                    error_log("[EmailHelper] PDF regenerated successfully: {$path}");
+                } else {
+                    error_log("[EmailHelper] PDF regeneration failed, skipping attachment: {$path}");
+                    continue;
+                }
             }
+
             if (!in_array($path, $attachments, true)) {
                 $attachments[] = $path;
             }
@@ -942,6 +1100,92 @@ HTML;
 
         /* ── 6. Send ─────────────────────────────────────────────── */
         return self::sendEmail($to, $subject, $body, $attachments);
+    }
+
+    /**
+     * Attempt to (re)generate a PDF at $outputPath using available PDF libraries.
+     * Uses buildTicketHtml(..., forPdf: true) so rendering is always correct.
+     *
+     * Returns true if the PDF was written successfully.
+     */
+    public static function regeneratePdf(array $ticketData, string $outputPath): bool
+    {
+        // Build PDF-safe HTML
+        $html = self::buildTicketHtml($ticketData, '', true);
+
+        // ── Try DomPDF ──────────────────────────────────────────────────────
+        if (class_exists('Dompdf\Dompdf')) {
+            try {
+                $options = new \Dompdf\Options();
+                $options->set('isRemoteEnabled', false);
+                $options->set('isHtml5ParserEnabled', true);
+                $options->set('defaultFont', 'Arial');
+                $options->set('isFontSubsettingEnabled', true);
+
+                $dompdf = new \Dompdf\Dompdf($options);
+                $dompdf->loadHtml($html, 'UTF-8');
+                $dompdf->setPaper('A4', 'landscape');
+                $dompdf->render();
+
+                $output = $dompdf->output();
+                if ($output !== null && strlen($output) > 1000) {
+                    $written = file_put_contents($outputPath, $output);
+                    if ($written !== false && $written > 0) {
+                        return true;
+                    }
+                }
+                error_log('[EmailHelper] DomPDF output was empty or write failed.');
+            } catch (\Throwable $e) {
+                error_log('[EmailHelper] DomPDF failed: ' . $e->getMessage());
+            }
+        }
+
+        // ── Try mPDF ────────────────────────────────────────────────────────
+        if (class_exists('Mpdf\Mpdf')) {
+            try {
+                $mpdf = new \Mpdf\Mpdf([
+                    'orientation' => 'L',
+                    'margin_top'  => 0,
+                    'margin_bottom' => 0,
+                    'margin_left' => 0,
+                    'margin_right' => 0,
+                ]);
+                $mpdf->WriteHTML($html);
+                $mpdf->Output($outputPath, 'F');
+
+                if (file_exists($outputPath) && filesize($outputPath) > 0) {
+                    return true;
+                }
+            } catch (\Throwable $e) {
+                error_log('[EmailHelper] mPDF failed: ' . $e->getMessage());
+            }
+        }
+
+        // ── Try wkhtmltopdf via shell ────────────────────────────────────────
+        $wkPath = trim((string) shell_exec('which wkhtmltopdf 2>/dev/null'));
+        if ($wkPath !== '' && is_executable($wkPath)) {
+            try {
+                $tmpHtml = sys_get_temp_dir() . '/eventra_ticket_' . uniqid() . '.html';
+                file_put_contents($tmpHtml, $html);
+                $cmd = escapeshellcmd($wkPath)
+                    . ' --orientation Landscape --page-size A4'
+                    . ' --no-background --quiet'
+                    . ' ' . escapeshellarg($tmpHtml)
+                    . ' ' . escapeshellarg($outputPath)
+                    . ' 2>/dev/null';
+                shell_exec($cmd);
+                @unlink($tmpHtml);
+
+                if (file_exists($outputPath) && filesize($outputPath) > 0) {
+                    return true;
+                }
+            } catch (\Throwable $e) {
+                error_log('[EmailHelper] wkhtmltopdf failed: ' . $e->getMessage());
+            }
+        }
+
+        error_log('[EmailHelper] regeneratePdf: no PDF library available (DomPDF / mPDF / wkhtmltopdf).');
+        return false;
     }
 }
 
@@ -970,8 +1214,8 @@ if (!function_exists('sendTicketEmailFull')) {
 if (!function_exists('_detailCell')) {
     function _detailCell(string $label, string $value, string $class = ''): string
     {
-        $classAttr  = $class !== '' ? ' ' . htmlspecialchars($class, ENT_QUOTES, 'UTF-8') : '';
-        $safeLabel  = htmlspecialchars($label, ENT_QUOTES, 'UTF-8');
+        $classAttr = $class !== '' ? ' ' . htmlspecialchars($class, ENT_QUOTES, 'UTF-8') : '';
+        $safeLabel = htmlspecialchars($label, ENT_QUOTES, 'UTF-8');
         return '<div class="detail-item' . $classAttr . '">'
             . '<span class="detail-label">' . $safeLabel . '</span>'
             . '<span class="detail-value">' . $value . '</span>'

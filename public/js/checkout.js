@@ -3,6 +3,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const urlParams = new URLSearchParams(window.location.search);
     const eventId = urlParams.get('id');
     const quantityParam = urlParams.get('quantity') || '1';
+    const ticketType = urlParams.get('type') || 'regular';
     let currentQuantity = parseInt(quantityParam, 10);
     
     if (isNaN(currentQuantity) || currentQuantity < 1) currentQuantity = 1;
@@ -11,6 +12,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     window._checkoutEventData = null; // module-scope reference for helpers
     let paystackPublicKey = null;
     let currentUser = null;
+    let currentTicketType = ticketType;
 
     if (!eventId) {
         const isFromSuccess = sessionStorage.getItem('purchase_success_redirection');
@@ -68,7 +70,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         // Output Event Data to UI
-        renderEventSummary(eventData, currentQuantity);
+        renderEventSummary(eventData, currentQuantity, currentTicketType);
 
         // Fetch Paystack Config
         const paystackRes = await apiFetch('/api/payments/paystack.php');
@@ -96,7 +98,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         btnMinus.addEventListener('click', () => {
             if (currentQuantity > 1) {
                 currentQuantity--;
-                renderEventSummary(eventData, currentQuantity);
+                renderEventSummary(eventData, currentQuantity, currentTicketType);
             }
         });
         btnPlus.addEventListener('click', () => {
@@ -105,7 +107,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 return;
             }
             currentQuantity++;
-            renderEventSummary(eventData, currentQuantity);
+            renderEventSummary(eventData, currentQuantity, currentTicketType);
         });
     }
 
@@ -135,7 +137,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             // 3. Show security verification (OTP) before proceeding
             showOTPModal(email, phone, async (otpRef) => {
-                await proceedToPayment(eventId, currentQuantity, fname, lname, email, phone, payBtn, eventData, otpRef);
+                await proceedToPayment(eventId, currentQuantity, currentTicketType, fname, lname, email, phone, payBtn, eventData, otpRef);
             }, () => {
                 // Cancelled logic is handled within resetPayBtn or via simple return
                 showNotification('Verification required to proceed.', 'info');
@@ -143,7 +145,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
-    async function proceedToPayment(eventId, currentQuantity, fname, lname, email, phone, payBtn, eventData, otpReference = null) {
+    async function proceedToPayment(eventId, currentQuantity, currentTicketType, fname, lname, email, phone, payBtn, eventData, otpReference = null) {
         // Disable button & show loading
         payBtn.disabled = true;
         payBtn.innerHTML = '<span class="btn-spinner"></span> Initializing...';
@@ -156,6 +158,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 body: JSON.stringify({
                     event_id: eventId,
                     quantity: currentQuantity,
+                    ticket_type: currentTicketType,
                     otp_reference: otpReference
                 })
             });
@@ -215,8 +218,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 // Helper: Render Left Column
-function renderEventSummary(event, quantity) {
-    const price = event.price || 0;
+function renderEventSummary(event, quantity, ticketType = 'regular') {
+    let price = parseFloat(event.price || 0);
+
+    // Dynamic price lookup
+    if (ticketType === 'vip' && event.vip_price) price = parseFloat(event.vip_price);
+    else if (ticketType === 'premium' && event.premium_price) price = parseFloat(event.premium_price);
+    else if (ticketType === 'regular' && event.regular_price) price = parseFloat(event.regular_price);
+
     const total = price * quantity;
 
     // Use absolute URL from API with fallback
@@ -241,7 +250,7 @@ function renderEventSummary(event, quantity) {
     if (elLoc) elLoc.textContent = `${event.city || ''}, ${event.state || 'Nigeria'}`.replace(/^, /, '');
 
     const elCat = document.getElementById('summaryCategory');
-    if (elCat) elCat.textContent = event.category || event.event_type || 'General';
+    if (elCat) elCat.textContent = (ticketType.charAt(0).toUpperCase() + ticketType.slice(1)) + ' Ticket';
 
     const elDesc = document.getElementById('summaryDescription');
     if (elDesc) elDesc.textContent = event.description || '';
@@ -255,13 +264,12 @@ function renderEventSummary(event, quantity) {
     if (elTotal) elTotal.textContent = total === 0 ? 'FREE' : `₦${total.toLocaleString()}`;
 
     // Update button text
-    resetPayBtn(event, quantity);
+    resetPayBtn(price, quantity);
 }
 
-function resetPayBtn(event, quantity) {
+function resetPayBtn(price, quantity) {
      const payBtn = document.getElementById('paystackBtn');
      if (!payBtn) return;
-     const price = event.price || 0;
      const total = price * quantity;
      payBtn.disabled = false;
      payBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>

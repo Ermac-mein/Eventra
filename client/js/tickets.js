@@ -191,7 +191,7 @@ function updateTicketsTable(tickets) {
             <td>${(ticket.event_name || 'N/A').replace(/\s*#\d+$/, '')}</td>
             <td>${ticket.buyer_name || ticket.user_name || 'N/A'}</td>
             <td>${priceDisplay}</td>
-            <td><span style="font-size: 0.85rem; color: #64748b;">${ticket.category || 'General'}</span></td>
+            <td><span style="font-size: 0.85rem; color: #64748b; text-transform: capitalize;">${ticket.ticket_type || ticket.category || 'General'}</span></td>
             <td>${ticket.purchase_date || ticket.created_at || 'N/A'}</td>
             <td><span class="status-badge ${ticket.status === 'valid' ? 'status-paid' : ticket.status === 'used' ? 'status-refunded' : 'status-failed'}">${(ticket.status || 'N/A').toUpperCase()}</span></td>
         </tr>`;
