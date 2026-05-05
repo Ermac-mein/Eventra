@@ -1,3 +1,8 @@
+-- =============================================================================
+-- EVENTRA DATABASE SCHEMA
+-- Cleaned – No duplicates, no triggers that require special privileges
+-- =============================================================================
+
 CREATE DATABASE IF NOT EXISTS eventra_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 USE eventra_db;
@@ -75,8 +80,7 @@ CREATE TABLE IF NOT EXISTS auth_logs (
     metadata JSON DEFAULT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
-    KEY idx_auth_logs_auth (auth_id),
-    CONSTRAINT fk_auth_logs_auth FOREIGN KEY (auth_id) REFERENCES auth_accounts (id) ON DELETE SET NULL ON UPDATE CASCADE
+    KEY idx_auth_logs_auth (auth_id)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
 
 -- =============================================================================
@@ -203,6 +207,7 @@ CREATE TABLE IF NOT EXISTS events (
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     deleted_at DATETIME DEFAULT NULL,
     event_visibility ENUM('public', 'private') DEFAULT 'public',
+    ticket_type VARCHAR(100) DEFAULT 'all' COMMENT 'Comma-separated list of supported ticket types (regular,vip,premium) or all',
     PRIMARY KEY (id),
     UNIQUE KEY uq_event_custom_id (custom_id),
     KEY idx_event_client (client_id),
@@ -211,12 +216,28 @@ CREATE TABLE IF NOT EXISTS events (
     CONSTRAINT fk_event_client FOREIGN KEY (client_id) REFERENCES clients (id) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
 
-ALTER TABLE events ADD COLUMN IF NOT EXISTS ticket_type VARCHAR(50) DEFAULT 'regular';
-ALTER TABLE events ADD COLUMN IF NOT EXISTS locations JSON DEFAULT NULL COMMENT 'Per-state address map: [{"state":"Lagos","address":"123 Victoria Island..."},...]';
-ALTER TABLE events ADD COLUMN IF NOT EXISTS sales_count INT UNSIGNED NOT NULL DEFAULT 0;
-ALTER TABLE events ADD COLUMN IF NOT EXISTS view_count INT UNSIGNED NOT NULL DEFAULT 0;
-ALTER TABLE events ADD COLUMN IF NOT EXISTS is_boosted TINYINT(1) NOT NULL DEFAULT 0;
-ALTER TABLE events ADD COLUMN IF NOT EXISTS admin_status ENUM('approved','pending','rejected') DEFAULT 'approved';
+-- -----------------------------------------------------------------
+-- All extra event columns added once (no duplicates)
+-- -----------------------------------------------------------------
+ALTER TABLE events 
+    ADD COLUMN IF NOT EXISTS locations JSON DEFAULT NULL COMMENT 'Per-state address map',
+    ADD COLUMN IF NOT EXISTS sales_count INT UNSIGNED NOT NULL DEFAULT 0,
+    ADD COLUMN IF NOT EXISTS view_count INT UNSIGNED NOT NULL DEFAULT 0,
+    ADD COLUMN IF NOT EXISTS is_boosted TINYINT(1) NOT NULL DEFAULT 0,
+    ADD COLUMN IF NOT EXISTS ticket_count INT UNSIGNED DEFAULT NULL COMMENT 'Atomic available ticket stock',
+    ADD COLUMN IF NOT EXISTS total_tickets INT UNSIGNED DEFAULT NULL COMMENT 'Original capacity for sold-out % calc',
+    ADD COLUMN IF NOT EXISTS admin_status ENUM('pending','approved','banished','archived') NOT NULL DEFAULT 'pending' COMMENT 'Moderation status';
+
+-- Backfill ticket_count / total_tickets from existing max_capacity
+UPDATE events
+    SET total_tickets = max_capacity,
+        ticket_count  = GREATEST(0, IFNULL(max_capacity, 0) - IFNULL(attendee_count, 0))
+    WHERE max_capacity IS NOT NULL AND total_tickets IS NULL;
+
+-- Performance indexes
+ALTER TABLE events
+    ADD KEY IF NOT EXISTS idx_event_ranking (admin_status, event_date, ticket_count),
+    ADD KEY IF NOT EXISTS idx_event_lat_lng (latitude, longitude);
 
 -- =============================================================================
 -- ORDERS
@@ -273,8 +294,9 @@ CREATE TABLE IF NOT EXISTS payments (
     CONSTRAINT fk_payment_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
 
-ALTER TABLE payments ADD COLUMN IF NOT EXISTS quantity INT UNSIGNED NOT NULL DEFAULT 1;
-ALTER TABLE payments ADD COLUMN IF NOT EXISTS ticket_type VARCHAR(50) DEFAULT 'regular';
+ALTER TABLE payments 
+    ADD COLUMN IF NOT EXISTS quantity INT UNSIGNED NOT NULL DEFAULT 1,
+    ADD COLUMN IF NOT EXISTS ticket_type VARCHAR(50) DEFAULT 'regular';
 
 -- =============================================================================
 -- TICKETS
@@ -309,7 +331,8 @@ CREATE TABLE IF NOT EXISTS tickets (
     CONSTRAINT fk_ticket_order FOREIGN KEY (order_id) REFERENCES orders (id) ON DELETE SET NULL
 ) ENGINE = INNODB DEFAULT CHARSET = UTF8MB4 COLLATE = UTF8MB4_UNICODE_CI;
 
-ALTER TABLE tickets ADD COLUMN IF NOT EXISTS ticket_type VARCHAR(50) DEFAULT 'regular';
+ALTER TABLE tickets 
+    ADD COLUMN IF NOT EXISTS ticket_type VARCHAR(50) DEFAULT 'regular';
 
 -- =============================================================================
 -- FAVORITES
@@ -386,7 +409,8 @@ CREATE TABLE IF NOT EXISTS media (
     CONSTRAINT fk_media_folder FOREIGN KEY (folder_id) REFERENCES media_folders (id) ON DELETE SET NULL
 ) ENGINE = INNODB DEFAULT CHARSET = UTF8MB4 COLLATE = UTF8MB4_UNICODE_CI;
 
-ALTER TABLE media ADD COLUMN IF NOT EXISTS deleted_at DATETIME NULL DEFAULT NULL;
+ALTER TABLE media 
+    ADD COLUMN IF NOT EXISTS deleted_at DATETIME NULL DEFAULT NULL;
 
 -- =============================================================================
 -- SMS LOGS
@@ -485,54 +509,15 @@ INSERT IGNORE INTO admins (
 );
 
 -- =============================================================================
--- EVENTS TABLE: NEW COLUMNS (Refactor — priority deprecated, replaced by admin_status)
+-- FOREIGN KEY FIX FOR AUTH LOGS (CASCADE DELETE)
 -- =============================================================================
-ALTER TABLE events
-    ADD COLUMN IF NOT EXISTS ticket_count   INT UNSIGNED DEFAULT NULL COMMENT 'Atomic available ticket stock',
-    ADD COLUMN IF NOT EXISTS total_tickets  INT UNSIGNED DEFAULT NULL COMMENT 'Original capacity for sold-out % calc',
-    ADD COLUMN IF NOT EXISTS view_count     INT UNSIGNED NOT NULL DEFAULT 0 COMMENT 'Unique view tracking',
-    ADD COLUMN IF NOT EXISTS sales_count    INT UNSIGNED NOT NULL DEFAULT 0 COMMENT 'Successful checkouts minus refunds',
-    ADD COLUMN IF NOT EXISTS is_boosted     TINYINT(1) NOT NULL DEFAULT 0 COMMENT 'Admin secret override to push event',
-    ADD COLUMN IF NOT EXISTS admin_status   ENUM('pending','approved','banished','archived') NOT NULL DEFAULT 'pending' COMMENT 'Moderation status — replaces priority semantics';
-
--- Backfill: sync ticket_count / total_tickets from existing max_capacity
-UPDATE events
-    SET total_tickets = max_capacity,
-        ticket_count  = GREATEST(0, IFNULL(max_capacity, 0) - IFNULL(attendee_count, 0))
-    WHERE max_capacity IS NOT NULL AND total_tickets IS NULL;
-
--- Performance indexes
-ALTER TABLE events
-    ADD KEY IF NOT EXISTS idx_event_ranking (admin_status, event_date, ticket_count),
-    ADD KEY IF NOT EXISTS idx_event_lat_lng (latitude, longitude);
-
-SET FOREIGN_KEY_CHECKS = 1;
-
--- =============================================================================
--- CASCADING DELETION ENHANCEMENTS
--- =============================================================================
-
-ALTER TABLE auth_logs DROP FOREIGN KEY IF EXISTS fk_auth_logs_auth;
 ALTER TABLE auth_logs 
+    DROP FOREIGN KEY IF EXISTS fk_auth_logs_auth,
     ADD CONSTRAINT fk_auth_logs_auth 
-    FOREIGN KEY (auth_id) REFERENCES auth_accounts (id) 
-    ON DELETE CASCADE ON UPDATE CASCADE;
+        FOREIGN KEY (auth_id) REFERENCES auth_accounts (id) 
+        ON DELETE CASCADE ON UPDATE CASCADE;
 
--- 2. Add Trigger to ensure deleting a client also removes their auth_account.
--- This creates a reverse-cascade effect where deleting from the clients table 
--- triggers deletion of the master auth record, which then cascades to everything else.
-
-DROP TRIGGER IF EXISTS tr_delete_client_auth;
-
-DELIMITER //
-
-CREATE TRIGGER tr_delete_client_auth
-BEFORE DELETE ON clients
-FOR EACH ROW
-BEGIN
-    -- Only delete from auth_accounts if it still exists to prevent loops 
-    -- (standard engine handles this, but safety first)
-    DELETE FROM auth_accounts WHERE id = OLD.client_auth_id;
-END //
-
-DELIMITER ;
+-- =============================================================================
+-- RE-ENABLE FOREIGN KEY CHECKS
+-- =============================================================================
+SET FOREIGN_KEY_CHECKS = 1;

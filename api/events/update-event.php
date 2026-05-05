@@ -369,6 +369,7 @@ try {
             scheduled_publish_time = ?,
             metadata = ?,
             locations = COALESCE(?, locations),
+            ticket_type = ?,
             updated_at = NOW()
             WHERE id = ?";
     
@@ -400,6 +401,7 @@ try {
         $scheduled_publish_time,
         $metadata_json,
         $new_locations_json,   // per-state address map
+        $ticket_type_mode,     // ticket_type column
         $event_id
     ];
 
