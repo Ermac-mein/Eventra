@@ -444,6 +444,16 @@ async function apiFetch(url, options = {}) {
     ...options.headers
   };
 
+  // Automatically set Content-Type for JSON bodies if not provided
+  if (options.body && typeof options.body === 'string' && !headers['Content-Type'] && !headers['content-type']) {
+    try {
+        // Double check if it's likely JSON
+        if (options.body.trim().startsWith('{') || options.body.trim().startsWith('[')) {
+            headers['Content-Type'] = 'application/json';
+        }
+    } catch (e) {}
+  }
+  
   // Add Authorization header if token exists
   const token = window.storage ? window.storage.getToken() : null;
   if (token) {

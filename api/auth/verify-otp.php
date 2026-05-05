@@ -21,15 +21,33 @@ $intent = $data['intent'] ?? 'client_login_otp'; // Default to new flow
 // For new flow, we expect auth_id + otp
 if ($intent === 'client_login_otp') {
     $auth_id = $data['auth_id'] ?? null;
+    $identity = $data['identity'] ?? $data['email'] ?? null;
     $otp = $data['otp'] ?? '';
 
-    if (!$auth_id || !$otp) {
-        echo json_encode(['success' => false, 'message' => 'Missing required fields.']);
+    if (!$otp) {
+        echo json_encode(['success' => false, 'message' => 'Verification code is required.']);
+        exit;
+    }
+
+    if (!$auth_id && !$identity) {
+        echo json_encode(['success' => false, 'message' => 'Identity or Account ID is required.']);
         exit;
     }
 
     try {
         $pdo = getPDO();
+
+        // If auth_id is missing but identity (email) is provided, resolve it
+        if (!$auth_id && $identity) {
+            $stmt = $pdo->prepare("SELECT id FROM auth_accounts WHERE (email = ? OR username = ?) AND role = 'client' LIMIT 1");
+            $stmt->execute([$identity, $identity]);
+            $auth_id = $stmt->fetchColumn();
+            
+            if (!$auth_id) {
+                echo json_encode(['success' => false, 'message' => 'Account not found. Please login again.']);
+                exit;
+            }
+        }
 
         // 1. Fetch OTP record (hashed)
         $stmt = $pdo->prepare("SELECT token, expires_at FROM auth_tokens WHERE auth_id = ? AND type = 'otp' ORDER BY created_at DESC LIMIT 1");

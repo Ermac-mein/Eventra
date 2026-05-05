@@ -132,7 +132,6 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const response = await apiFetch('/api/clients/login.php', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     email: emailInput.value,
                     password: passwordInput.value,
@@ -523,7 +522,7 @@ async function handleForgotPassword() {
             Swal.showLoading();
             const verifyRes = await apiFetch('/api/auth/verify-otp.php', {
                 method: 'POST',
-                body: JSON.stringify({ identity, otp })
+                body: JSON.stringify({ identity, otp, intent: 'password_reset' })
             });
             const verifyResult = await verifyRes.json();
 
