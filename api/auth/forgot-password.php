@@ -25,7 +25,12 @@ if (!$email || !validateEmail($email)) {
 try {
     // Check if email exists in auth_accounts (Users and Clients)
     $stmt = $pdo->prepare("
-        SELECT a.id, a.role, a.email, a.name,
+        SELECT a.id, a.role, a.email,
+               CASE 
+                   WHEN a.role = 'client' THEN c.name 
+                   WHEN a.role = 'user' THEN u.name 
+                   ELSE a.username 
+               END as name,
                CASE 
                    WHEN a.role = 'client' THEN c.phone 
                    WHEN a.role = 'user' THEN u.phone 
@@ -50,12 +55,15 @@ try {
     $authId = $account['id'];
     $name = $account['name'] ?? 'User';
 
+    // Cleanup old OTPs for this user to avoid clutter and potential unique constraint issues
+    $stmt = $pdo->prepare("DELETE FROM auth_tokens WHERE auth_id = ? AND type = 'otp'");
+    $stmt->execute([$authId]);
+
     // Generate 6-digit OTP
     $otp = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
     $otpHash = password_hash($otp, PASSWORD_BCRYPT);
 
-    // Store OTP in database (using auth_tokens table or otp_requests if it exists)
-    // Looking at verify-password-reset-otp.php, it uses auth_tokens table
+    // Store OTP in database
     $stmt = $pdo->prepare("
         INSERT INTO auth_tokens (auth_id, token, type, expires_at)
         VALUES (?, ?, 'otp', DATE_ADD(NOW(), INTERVAL 15 MINUTE))

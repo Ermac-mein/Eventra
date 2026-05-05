@@ -324,32 +324,45 @@ class EmailHelper
 
         $payload = self::buildQrPayload($ticketData);
 
-        // Strategy A: chillerlan/php-qrcode
-        if (class_exists('chillerlan\QRCode\QRCode') &&
-            class_exists('chillerlan\QRCode\QROptions')) {
+        // Strategy A: chillerlan/php-qrcode (v5+)
+        if (class_exists('chillerlan\QRCode\QRCode')) {
             try {
                 $options = new \chillerlan\QRCode\QROptions([
-                    'outputType'       => \chillerlan\QRCode\QRCode::OUTPUT_IMAGE_PNG,
-                    'eccLevel'         => \chillerlan\QRCode\QRCode::ECC_H,
+                    'outputType'       => \chillerlan\QRCode\Output\QROutputInterface::GDIMAGE_PNG,
+                    'eccLevel'         => \chillerlan\QRCode\Common\EccLevel::H,
                     'imageBase64'      => true,
                     'scale'            => 6,
                     'imageTransparent' => false,
                 ]);
                 $qr     = new \chillerlan\QRCode\QRCode($options);
-                $result = $qr->render($payload);
-                return $result;
+                return $qr->render($payload);
             } catch (\Throwable $e) {
                 error_log('[EmailHelper] chillerlan/php-qrcode failed: ' . $e->getMessage());
             }
         }
 
-        // Strategy B: endroid/qr-code
-        if (class_exists('Endroid\QrCode\QrCode') &&
-            class_exists('Endroid\QrCode\Writer\PngWriter')) {
+        // Strategy B: endroid/qr-code (v4+)
+        if (class_exists('Endroid\QrCode\QrCode')) {
             try {
+                // Best practice for v4+ is to use the Builder
+                if (class_exists('Endroid\QrCode\Builder\Builder')) {
+                    $result = \Endroid\QrCode\Builder\Builder::create()
+                        ->writer(new \Endroid\QrCode\Writer\PngWriter())
+                        ->data($payload)
+                        ->encoding(new \Endroid\QrCode\Encoding\Encoding('UTF-8'))
+                        ->errorCorrectionLevel(new \Endroid\QrCode\ErrorCorrectionLevel\ErrorCorrectionLevelHigh())
+                        ->size(300)
+                        ->margin(10)
+                        ->foregroundColor(new \Endroid\QrCode\Color\Color(0, 0, 0))
+                        ->backgroundColor(new \Endroid\QrCode\Color\Color(255, 255, 255))
+                        ->build();
+                    return $result->getDataUri();
+                }
+
+                // Fallback for versions without Builder (v4.0+)
                 $qrCode = \Endroid\QrCode\QrCode::create($payload)
                     ->setEncoding(new \Endroid\QrCode\Encoding\Encoding('UTF-8'))
-                    ->setErrorCorrectionLevel(\Endroid\QrCode\ErrorCorrectionLevel::High)
+                    ->setErrorCorrectionLevel(new \Endroid\QrCode\ErrorCorrectionLevel\ErrorCorrectionLevelHigh())
                     ->setSize(300)
                     ->setMargin(10)
                     ->setForegroundColor(new \Endroid\QrCode\Color\Color(0, 0, 0))
@@ -357,7 +370,7 @@ class EmailHelper
 
                 $writer = new \Endroid\QrCode\Writer\PngWriter();
                 $result = $writer->write($qrCode);
-                return 'data:image/png;base64,' . base64_encode($result->getString());
+                return $result->getDataUri();
             } catch (\Throwable $e) {
                 error_log('[EmailHelper] endroid/qr-code failed: ' . $e->getMessage());
             }
