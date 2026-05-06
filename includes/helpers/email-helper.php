@@ -157,7 +157,7 @@ class EmailHelper
         string $barcode,
         string $pdfPath = ''
     ): array {
-        $subject    = "Your Ticket for {$eventName}";
+        $subject = "=?UTF-8?B?" . base64_encode("Your Ticket for {$eventName} — Eventra") . "?=";
         $safeUser   = htmlspecialchars($userName, ENT_QUOTES, 'UTF-8');
         $safeEvent  = htmlspecialchars($eventName, ENT_QUOTES, 'UTF-8');
         $safeBarcode = htmlspecialchars($barcode,  ENT_QUOTES, 'UTF-8');
@@ -232,7 +232,10 @@ class EmailHelper
         if (!file_exists($localPath)) {
             if (!preg_match('/^[a-zA-Z]:/', $localPath)) {
                 $projectRoot = rtrim(self::normalisePath(__DIR__ . '/../../'), '/');
-                $localPath   = $projectRoot . '/' . ltrim($localPath, '/');
+                // Guard: check if path already starts with projectRoot
+                if (strpos($localPath, $projectRoot) !== 0) {
+                    $localPath = $projectRoot . '/' . ltrim($localPath, '/');
+                }
             }
         }
 
@@ -307,6 +310,28 @@ class EmailHelper
             'svg'         => 'image/svg+xml',
             default       => 'image/png',
         };
+    }
+
+    /**
+     * Convert a local path to an absolute URL for use in emails.
+     */
+    private static function pathToUrl(string $path): string
+    {
+        $path = trim($path);
+        if ($path === '' || str_starts_with($path, 'http')) {
+            return $path;
+        }
+
+        $path = self::normalisePath($path);
+        $projectRoot = rtrim(self::normalisePath(__DIR__ . '/../../'), '/');
+        
+        // Remove project root prefix if present
+        if (strpos($path, $projectRoot) === 0) {
+            $path = substr($path, strlen($projectRoot));
+        }
+
+        $appUrl = rtrim(defined('APP_URL') ? APP_URL : ($_ENV['APP_URL'] ?? ''), '/');
+        return $appUrl . '/' . ltrim($path, '/');
     }
 
     /**
@@ -475,27 +500,37 @@ class EmailHelper
                 : 'Free';
         }
 
-        /* ── QR code data-URI ────────────────────────────── */
-        $staticQrPath = self::normalisePath(
-            $ticketData['qr_path'] ?? (__DIR__ . '/../../public/assets/qrcode.png')
-        );
-        $qrDataUri = self::generateQrDataUri($ticketData, $staticQrPath);
-
-        // For PDF: never use a remote URL — replace with placeholder if no local URI
-        if ($forPdf && str_starts_with($qrDataUri, 'http')) {
-            // Attempt to fetch the Google Charts QR and embed it
-            $ctx  = stream_context_create(['http' => ['timeout' => 3]]);
-            $data = @file_get_contents($qrDataUri, false, $ctx);
-            $qrDataUri = ($data !== false && $data !== '')
-                ? 'data:image/png;base64,' . base64_encode($data)
-                : '';
-        }
-
-        if ($qrDataUri !== '') {
-            $qrSrc  = htmlspecialchars($qrDataUri, ENT_QUOTES, 'UTF-8');
+        /* ── QR code data-URI or URL ────────────────────── */
+        $qrHtml = '';
+        if (!$forPdf && !empty($ticketData['barcode'])) {
+            // For email: use absolute URL to the generated QR file
+            $qrFile = 'public/assets/event_assets/qrcodes/qr_' . $ticketData['barcode'] . '.png';
+            $qrSrc = htmlspecialchars(self::pathToUrl($qrFile), ENT_QUOTES, 'UTF-8');
             $qrHtml = "<img src=\"{$qrSrc}\" alt=\"QR Code\" width=\"130\" height=\"130\""
                 . " style=\"width:130px;height:130px;display:block;\">";
         } else {
+            // For PDF: use base64
+            $staticQrPath = self::normalisePath(
+                $ticketData['qr_path'] ?? (__DIR__ . '/../../public/assets/qrcode.png')
+            );
+            $qrDataUri = self::generateQrDataUri($ticketData, $staticQrPath);
+
+            if ($forPdf && str_starts_with($qrDataUri, 'http')) {
+                $ctx  = stream_context_create(['http' => ['timeout' => 3]]);
+                $data = @file_get_contents($qrDataUri, false, $ctx);
+                $qrDataUri = ($data !== false && $data !== '')
+                    ? 'data:image/png;base64,' . base64_encode($data)
+                    : '';
+            }
+
+            if ($qrDataUri !== '') {
+                $qrSrc  = htmlspecialchars($qrDataUri, ENT_QUOTES, 'UTF-8');
+                $qrHtml = "<img src=\"{$qrSrc}\" alt=\"QR Code\" width=\"130\" height=\"130\""
+                    . " style=\"width:130px;height:130px;display:block;\">";
+            }
+        }
+
+        if ($qrHtml === '') {
             $qrHtml = '<div style="width:130px;height:130px;background:#333;'
                 . 'text-align:center;line-height:130px;font-size:10px;color:#888;">'
                 . 'NO QR</div>';
@@ -503,22 +538,25 @@ class EmailHelper
 
         /* ── Event banner image ──────────────────────────── */
         $imgRaw = trim((string) ($ticketData['event_image'] ?? ''));
-        // For email: cap at 150 KB to stay under Gmail clip. For PDF: allow larger.
-        $maxImgBytes = $forPdf ? 500000 : 150000;
-        $imgBase64   = self::imageToDataUri($imgRaw, $maxImgBytes);
-
-        if ($imgBase64 !== '') {
-            $safeImgSrc   = htmlspecialchars($imgBase64, ENT_QUOTES, 'UTF-8');
+        $imgBase64 = ''; // Initialize
+        
+        if (!$forPdf) {
+            // FOR EMAIL: Use absolute URL to keep HTML size small (<80KB)
+            $safeImgSrc = htmlspecialchars(self::pathToUrl($imgRaw), ENT_QUOTES, 'UTF-8');
             $eventImgHtml = "<img src=\"{$safeImgSrc}\" alt=\"Event\" "
                 . "style=\"width:100%;height:180px;object-fit:cover;display:block;\">";
         } else {
-            // Gradient placeholder — works in all email clients and PDF renderers
-            $eventImgHtml = '<div style="width:100%;height:180px;'
-                . 'background:#0f3460;'
-                . 'text-align:center;line-height:180px;">'
-                . '<span style="font-size:11px;letter-spacing:3px;'
-                . 'color:rgba(212,175,55,0.6);text-transform:uppercase;">EVENT</span>'
-                . '</div>';
+            // FOR PDF: Use base64 for reliable local rendering
+            $imgBase64 = self::imageToDataUri($imgRaw, 500000);
+            if ($imgBase64 !== '') {
+                $safeImgSrc = htmlspecialchars($imgBase64, ENT_QUOTES, 'UTF-8');
+                $eventImgHtml = "<img src=\"{$safeImgSrc}\" alt=\"Event\" "
+                    . "style=\"width:100%;height:180px;object-fit:cover;display:block;\">";
+            } else {
+                $eventImgHtml = '<div style="width:100%;height:180px;background:#0f3460;text-align:center;line-height:180px;">'
+                    . '<span style="font-size:11px;letter-spacing:3px;color:rgba(212,175,55,0.6);text-transform:uppercase;">EVENT</span>'
+                    . '</div>';
+            }
         }
 
         /* ── Ticket-type badge ───────────────────────────── */
@@ -571,13 +609,14 @@ class EmailHelper
             foreach ($locations as $loc) {
                 $s = self::esc($loc['state']   ?? '');
                 $a = self::esc($loc['address'] ?? '');
-                $colA .= '<div style="margin-bottom:10px;">'
-                    . '<span style="font-family:Arial,sans-serif;font-size:15px;'
-                    . 'font-weight:700;color:#1a1a2e;line-height:1.3;display:block;">'
-                    . $s . '</span>'
-                    . '<span style="font-family:Arial,sans-serif;font-size:12px;'
-                    . 'font-weight:400;color:rgba(255,255,255,0.60);line-height:1.4;display:block;">'
-                    . $a . '</span>'
+                
+                // Typography for Location blocks
+                $stateStyle = 'font-family:Arial,sans-serif;font-size:16px;font-weight:700;color:#ffffff;line-height:1.3;display:block;';
+                $addrStyle  = 'font-family:Arial,sans-serif;font-size:13px;font-weight:400;color:#cccccc;line-height:1.4;display:block;';
+
+                $colA .= '<div style="margin-bottom:12px;">'
+                    . '<span style="' . $stateStyle . '">' . $s . '</span>'
+                    . '<span style="' . $addrStyle . '">' . $a . '</span>'
                     . '</div>';
             }
             $colA .= '</div>';
@@ -589,10 +628,10 @@ class EmailHelper
                     . '<span style="display:block;font-family:Arial,sans-serif;font-size:9px;'
                     . 'font-weight:700;letter-spacing:2px;text-transform:uppercase;'
                     . 'color:rgba(255,255,255,0.30);margin-bottom:6px;">Venue &amp; Location</span>'
-                    . '<div style="margin-bottom:6px;">'
-                    . '<span style="font-family:Arial,sans-serif;font-size:15px;font-weight:700;color:#1a1a2e;display:block;">'
+                    . '<div style="margin-bottom:12px;">'
+                    . '<span style="font-family:Arial,sans-serif;font-size:16px;font-weight:700;color:#ffffff;display:block;">'
                     . self::esc($st) . '</span>'
-                    . '<span style="font-family:Arial,sans-serif;font-size:12px;font-weight:400;color:rgba(255,255,255,0.60);display:block;">'
+                    . '<span style="font-family:Arial,sans-serif;font-size:13px;font-weight:400;color:#cccccc;display:block;">'
                     . self::esc($ad) . '</span>'
                     . '</div></div>';
             } else {
@@ -617,26 +656,11 @@ class EmailHelper
             $colB .= self::detailRow('Organizer', $organizer);
         }
 
-        // Event Image for Background (PDF only)
-        $bgImage = $imgBase64;
+        // Event Image for Background
+        $bgImage = $forPdf ? $imgBase64 : self::pathToUrl($imgRaw);
 
-        /* ── Download button ─────────────────────────────── */
+        /* ── Download button removed from email view as requested ── */
         $dlButtonHtml = '';
-        if (!$forPdf && $downloadUrl !== '' && filter_var($downloadUrl, FILTER_VALIDATE_URL)) {
-            $safeUrl      = self::esc($downloadUrl);
-            $dlButtonHtml = <<<BTN
-            <div style="text-align:center;margin-top:28px;">
-                <a href="{$safeUrl}"
-                   style="display:inline-block;padding:13px 36px;
-                          background:#d4af37;
-                          color:#111111;text-decoration:none;border-radius:7px;
-                          font-family:Arial,sans-serif;font-size:14px;font-weight:800;
-                          letter-spacing:1.5px;text-transform:uppercase;">
-                    &#8675;&nbsp;Download PDF Ticket
-                </a>
-            </div>
-            BTN;
-        }
 
         /* ─────────────────────────────────────────────────────────────────
          *  TWO RENDERING PATHS
@@ -675,7 +699,11 @@ class EmailHelper
 
     <!-- ════ LEFT: main ticket body (420 px) ════ -->
     <td width="420" valign="top"
-        style="width:420px;background:#111111;vertical-align:top;padding:0;">
+        background="{$bgImage}"
+        style="width:420px;background-color:#111111;background-image:url('{$bgImage}');background-size:cover;background-position:center;vertical-align:top;padding:0;">
+
+      <!--  Inner overlay for readability  -->
+      <div style="background: linear-gradient(to right, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.2) 100%); width:100%; height:100%;">
 
       <!-- Gold top bar -->
       <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
@@ -732,6 +760,7 @@ class EmailHelper
 
       </td></tr>
       </table>
+      </div>
     </td>
 
     <!-- ════ PERFORATION (4 px) ════ -->
@@ -815,7 +844,7 @@ HTML;
             $bgStyle = 'background: #111111;';
         }
 
-        $overlayBg = $bgImage ? 'rgba(0,0,0,0.65)' : 'rgba(0,0,0,0.0)';
+        $overlayBg = $bgImage ? 'linear-gradient(to right, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.3) 100%)' : 'rgba(0,0,0,0.0)';
         $textColor  = '#ffffff';
         $labelColor = 'rgba(255,255,255,0.55)';
         $valueColor = '#f5c842';
@@ -907,20 +936,20 @@ HTML;
     padding-bottom: 4px;
   }
   .loc-state {
-    font-size: 15px;
+    font-size: 16px;
     font-weight: 700;
-    color: #1a1a2e;
+    color: #ffffff;
     display: block;
     margin-bottom: 2px;
   }
   .loc-address {
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 400;
-    color: rgba(255,255,255,0.65);
+    color: #cccccc;
     display: block;
   }
   .loc-block {
-    margin-bottom: 8px;
+    margin-bottom: 12px;
   }
   .divider {
     height: 3px;
@@ -939,20 +968,21 @@ HTML;
   }
   .qr-box {
     position: absolute;
-    bottom: 28px;
-    right: 36px;
+    bottom: 24px;
+    right: 24px;
     z-index: 10;
     background: #ffffff;
-    padding: 8px;
+    padding: 10px;
     border-radius: 10px;
     text-align: center;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
   }
   .qr-box-label {
-    font-size: 8px;
+    font-size: 9px;
     color: #111;
     font-weight: 800;
     text-transform: uppercase;
-    margin-bottom: 4px;
+    margin-bottom: 6px;
     letter-spacing: 1px;
   }
 </style>
@@ -1005,7 +1035,7 @@ HTML;
   </div>
 
   <div class="qr-box">
-    <div class="qr-box-label">Scan to Verify</div>
+    <div class="qr-box-label">SCAN TO ENTER</div>
     {$qrHtml}
   </div>
 </div>
@@ -1126,7 +1156,7 @@ PDF;
             $ticketData['event_name'] ?? 'Your Event',
             ENT_QUOTES, 'UTF-8'
         );
-        $subject = "=?UTF-8?B?" . base64_encode("Your Ticket for {$eventName} — Eventra") . "?=";
+        $subject = "=?UTF-8?B?" . base64_encode("Your Ticket for " . ($ticketData['event_name'] ?? 'Event') . " — Eventra") . "?=";
 
         /* ── 3. Download URL ─────────────────────────────────────── */
         $appUrl      = rtrim((string) ($_ENV['APP_URL'] ?? ''), '/');

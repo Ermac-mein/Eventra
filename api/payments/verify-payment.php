@@ -147,6 +147,7 @@ try {
         $metadata = $result['data']['metadata'] ?? [];
         $quantity = max(1, (int) ($metadata['quantity'] ?? 1));
         $ticket_type = $metadata['ticket_type'] ?? 'regular';
+        $selected_locs = $metadata['selected_locs'] ?? null;
 
         // 1. Update order status
         $pdo->prepare("
@@ -244,7 +245,10 @@ try {
                     'user_name'      => $order['user_name'],
                     'payment_status' => 'paid',
                     'event_image'    => $order['image_path'] ?? null,
-                    'amount'         => $order['amount']
+                    'amount'         => $order['amount'],
+                    'ticket_type'    => $ticket_type,
+                    'quantity'       => $quantity,
+                    'selected_locs'  => $selected_locs
                 ];
 
                 try {
@@ -277,6 +281,9 @@ try {
                     'user_name'  => $order['user_name'],
                     'order_id'   => $order['id'],
                     'amount'     => $order['amount'],
+                    'ticket_type'=> $ticket_type,
+                    'quantity'   => $quantity,
+                    'selected_locs' => $selected_locs
                 ], $pdfPaths);
             }
 

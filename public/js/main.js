@@ -1790,36 +1790,31 @@ function showEventModal(eventId) {
 
   let locationHTML = "";
   if (isMultipleStates) {
-    // Truncated view for multiple states
     const locList = Array.isArray(locs) && locs.length > 0 
       ? locs 
       : states.map(s => ({ state: s, address: "" }));
 
-    const visibleLocs = locList.slice(0, 2);
+    // Initialise selection state — all selected by default
+    window.selectedEventLocations = locList.map((_, i) => i);
 
-    locationHTML = `
-      <div id="truncatedLocations">
-        ${visibleLocs.map((loc) => `
-          <div style="margin-bottom: 0.5rem;">
-            <div style="font-weight: 600;">📍 ${escapeHTML(loc.state)}</div>
-            ${loc.address && loc.address !== 'Multi-state' ? `<div style="font-size: 0.85rem; color: #6b7280; padding-left: 18px;">${escapeHTML(loc.address)}</div>` : ""}
+    locationHTML = `<div id="modalLocsContainer">`;
+    locList.forEach((loc, idx) => {
+      const mapQuery = encodeURIComponent((loc.address || '') + ', ' + loc.state);
+      locationHTML += `
+        <label for="locChk_${idx}" style="display:flex;align-items:flex-start;gap:0;margin-bottom:12px;padding:10px 12px;border-radius:10px;border:1px solid #e5e7eb;cursor:pointer;transition:background 0.15s;"
+               onmouseover="this.style.background='#f9fafb'"
+               onmouseout="this.style.background='transparent'">
+          <input type="checkbox" id="locChk_${idx}" data-loc-index="${idx}" checked
+                 onchange="window._updateLocSelection()"
+                 style="width:16px;height:16px;accent-color:#1a1a2e;margin-right:10px;cursor:pointer;flex-shrink:0;margin-top:2px;">
+          <div style="flex:1;">
+            <div style="font-size:0.95rem;font-weight:700;color:#1a1a2e;margin-bottom:3px;">📍 ${escapeHTML(loc.state)}</div>
+            ${loc.address && loc.address !== 'Multi-state' ? `<a href="https://www.google.com/maps/search/?api=1&query=${mapQuery}" target="_blank" onclick="event.stopPropagation()" style="color:#6b7280;text-decoration:none;font-size:0.8rem;display:inline-flex;align-items:center;gap:3px;">${escapeHTML(loc.address)}</a>` : ""}
           </div>
-        `).join("")}
-        ${locList.length > 2 ? `<button onclick="toggleModalLocations(true)" style="background: none; border: none; color: #722f37; font-weight: 700; cursor: pointer; padding: 0; font-size: 0.9rem; margin-top: 0.25rem;">+ ${locList.length - 2} more (See More)</button>` : ""}
-        ${locList.length === 2 && !Array.isArray(locs) ? `<button onclick="toggleModalLocations(true)" style="background: none; border: none; color: #722f37; font-weight: 700; cursor: pointer; padding: 0; font-size: 0.9rem; margin-top: 0.25rem;">See More Locations</button>` : ""}
-      </div>
-      <div id="fullLocations" style="display: none;">
-        ${locList
-          .map(
-            (loc) => `<div style="margin-bottom: 0.75rem; border-bottom: 1px dashed #eee; padding-bottom: 0.5rem;">
-          <div style="font-weight: 600; margin-bottom: 0.25rem;">📍 ${escapeHTML(loc.state)}</div>
-          ${loc.address && loc.address !== 'Multi-state' ? `<div style="font-size: 0.85rem; color: #6b7280; padding-left: 18px;">${escapeHTML(loc.address)}</div>` : ""}
-        </div>`,
-          )
-          .join("")}
-        <button onclick="toggleModalLocations(false)" style="background: none; border: none; color: #722f37; font-weight: 700; cursor: pointer; padding: 0; font-size: 0.9rem; margin-top: 0.5rem;">See Less</button>
-      </div>
-    `;
+        </label>`;
+    });
+    locationHTML += `</div>`;
+    locationHTML += `<div style="font-size:0.75rem;color:#9ca3af;margin-top:4px;">Select the location(s) you plan to attend</div>`;
   } else {
     // Standard single or All States view
     if (firstLine && firstLine !== 'Multi-state') {
@@ -1958,8 +1953,16 @@ function showEventModal(eventId) {
         const ticketType =
           document.querySelector('input[name="selectedTicketType"]:checked')
             ?.value || "regular";
+        
+        let url = `/public/pages/checkout.html?id=${event.id}&quantity=${quantity}&ticket_type=${ticketType}`;
+        
+        // Pass selected locations if applicable
+        if (window.selectedEventLocations && Array.isArray(window.selectedEventLocations)) {
+          url += '&selected_locs=' + encodeURIComponent(JSON.stringify(window.selectedEventLocations));
+        }
+
         closeEventModal();
-        window.location.href = `/public/pages/checkout.html?id=${event.id}&quantity=${quantity}&ticket_type=${ticketType}`;
+        window.location.href = url;
       };
     }
   }
@@ -2352,3 +2355,14 @@ function copyModalShareLink() {
 
 window.toggleModalLocations = toggleModalLocations;
 window.copyModalShareLink = copyModalShareLink;
+
+/**
+ * Update global location selection from checkboxes
+ */
+window._updateLocSelection = function() {
+  const checked = [];
+  document.querySelectorAll('#modalLocsContainer input[data-loc-index]').forEach(chk => {
+    if (chk.checked) checked.push(parseInt(chk.dataset.locIndex, 10));
+  });
+  window.selectedEventLocations = checked;
+};

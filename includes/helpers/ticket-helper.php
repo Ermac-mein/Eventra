@@ -44,9 +44,17 @@ function base64_encode_image($path) {
     $resolvedPath = $path;
     $root = realpath(__DIR__ . '/../../');
     
-    // If path starts with /, it's relative to project root
+    // If path starts with / or \, it might be relative to root or already absolute
     if (str_starts_with($path, '/') || str_starts_with($path, '\\')) {
-        $resolvedPath = $root . $path;
+        // Check if $path already contains the $root prefix
+        $normalizedRoot = str_replace('\\', '/', $root);
+        $normalizedPath = str_replace('\\', '/', $path);
+        
+        if (strpos($normalizedPath, $normalizedRoot) === 0) {
+            $resolvedPath = $path;
+        } else {
+            $resolvedPath = $root . DIRECTORY_SEPARATOR . ltrim($path, '/\\');
+        }
     }
 
     if (!file_exists($resolvedPath)) {
@@ -271,6 +279,8 @@ function generateTicketPDF(array $ticketData): string
         'amount'              => $price_value,
         'event_date'          => $ticketData['event_date'] ?? null,
         'event_time'          => $ticketData['event_time'] ?? null,
+        'selected_locs'       => $ticketData['selected_locs'] ?? null,
+        'quantity'            => $ticketData['quantity'] ?? 1,
     ];
 
     $html = EmailHelper::buildTicketHtml($richTicketData, '', true);
@@ -290,9 +300,16 @@ function generateTicketPDF(array $ticketData): string
     
     if (empty($pdfOutput)) {
         error_log("[TicketHelper] Dompdf output is empty for ticket " . $ticket_id);
+        return '';
     }
     
     file_put_contents($filePath, $pdfOutput);
+
+    // Verify file exists and is non-empty
+    if (!file_exists($filePath) || filesize($filePath) === 0) {
+        error_log("[TicketHelper] PDF file creation failed or empty: " . $filePath);
+        return '';
+    }
 
     return $filePath;
 }
