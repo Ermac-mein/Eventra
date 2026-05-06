@@ -98,7 +98,7 @@ try {
     $eStmt = $pdo->prepare("
         SELECT e.id, e.event_name, e.price, e.status, e.max_capacity, e.attendee_count,
                e.event_date, e.event_time, e.state, e.address, e.location, e.image_path,
-               e.client_id AS organizer_id,
+               e.metadata, e.client_id AS organizer_id,
                c.subaccount_code, c.verification_status
         FROM events e
         JOIN clients c ON e.client_id = c.id
@@ -106,6 +106,13 @@ try {
     ");
     $eStmt->execute([$event_id]);
     $event = $eStmt->fetch(PDO::FETCH_ASSOC);
+    
+    if ($event && !empty($event['metadata'])) {
+        $meta = json_decode($event['metadata'], true);
+        if (is_array($meta)) {
+            $event = array_merge($event, $meta);
+        }
+    }
 
     if (!$event) {
         http_response_code(404);
@@ -131,20 +138,15 @@ try {
     }
 
     // ── Calculate amount based on ticket type ──────────────────────────────────
-    $unit_price = (float)$event['price']; // Default
+    $unit_price = (float)$event['price']; // Default base price
     
-    // Check if event has multi-tier prices in metadata or specific columns
-    // The create-event.php stores these in regular_price, vip_price, premium_price columns
-    $stmt = $pdo->prepare("SELECT regular_price, vip_price, premium_price FROM events WHERE id = ?");
-    $stmt->execute([$event_id]);
-    $prices = $stmt->fetch(PDO::FETCH_ASSOC);
-    
-    if ($ticket_type === 'vip' && !empty($prices['vip_price'])) {
-        $unit_price = (float)$prices['vip_price'];
-    } elseif ($ticket_type === 'premium' && !empty($prices['premium_price'])) {
-        $unit_price = (float)$prices['premium_price'];
-    } elseif ($ticket_type === 'regular' && !empty($prices['regular_price'])) {
-        $unit_price = (float)$prices['regular_price'];
+    // Check for tiered pricing in merged metadata/columns
+    if ($ticket_type === 'vip' && !empty($event['vip_price'])) {
+        $unit_price = (float)$event['vip_price'];
+    } elseif ($ticket_type === 'premium' && !empty($event['premium_price'])) {
+        $unit_price = (float)$event['premium_price'];
+    } elseif ($ticket_type === 'regular' && !empty($event['regular_price'])) {
+        $unit_price = (float)$event['regular_price'];
     }
     
     $total       = $unit_price * $quantity;

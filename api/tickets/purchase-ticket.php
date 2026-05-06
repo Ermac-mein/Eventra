@@ -34,8 +34,8 @@ if (!$event_id || $quantity < 1) {
 }
 
 // Validate ticket type
-if (!in_array($ticket_type, ['regular', 'vip'])) {
-    echo json_encode(['success' => false, 'message' => 'Invalid ticket type. Must be regular or vip']);
+if (!in_array($ticket_type, ['regular', 'vip', 'premium'])) {
+    echo json_encode(['success' => false, 'message' => 'Invalid ticket type. Must be regular, vip or premium']);
     exit;
 }
 
@@ -86,16 +86,26 @@ try {
         exit;
     }
 
+    // Merge metadata if present
+    if (!empty($event['metadata'])) {
+        $meta = json_decode($event['metadata'], true);
+        if (is_array($meta)) {
+            $event = array_merge($event, $meta);
+        }
+    }
+
     if ($event['max_capacity'] !== null && ($event['attendee_count'] + $quantity) > $event['max_capacity']) {
         $pdo->rollBack();
         echo json_encode(['success' => false, 'message' => 'Sorry, this event is sold out or has insufficient capacity.']);
         exit;
     }
 
-    // 2. Calculate total price (support VIP/Regular pricing)
+    // 2. Calculate total price (support VIP/Regular/Premium pricing)
     $total_price = 0;
     if ($ticket_type === 'vip') {
         $total_price = (float) ($event['vip_price'] ?? $event['price']) * $quantity;
+    } elseif ($ticket_type === 'premium') {
+        $total_price = (float) ($event['premium_price'] ?? $event['price']) * $quantity;
     } else {
         $total_price = (float) ($event['regular_price'] ?? $event['price']) * $quantity;
     }

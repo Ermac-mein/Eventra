@@ -378,9 +378,6 @@ try {
             metadata = ?,
             locations = COALESCE(?, locations),
             ticket_type = ?,
-            regular_price = ?,
-            vip_price = ?,
-            premium_price = ?,
             updated_at = NOW()
             WHERE id = ?";
     
@@ -413,9 +410,6 @@ try {
         $metadata_json,
         $new_locations_json,   // per-state address map
         $ticket_type_mode,     // ticket_type column
-        $regular_price,
-        $vip_price,
-        $premium_price,
         $event_id
     ];
 
