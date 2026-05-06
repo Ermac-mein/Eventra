@@ -1793,7 +1793,7 @@ function showEventModal(eventId) {
     // Truncated view for multiple states
     const locList = Array.isArray(locs) && locs.length > 0 
       ? locs 
-      : states.map(s => ({ state: s, address: event.address || "" }));
+      : states.map(s => ({ state: s, address: "" }));
 
     const visibleLocs = locList.slice(0, 2);
 
