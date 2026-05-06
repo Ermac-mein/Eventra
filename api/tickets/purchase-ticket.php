@@ -27,6 +27,7 @@ $quantity = (int) ($data['quantity'] ?? 1);
 $ticket_type = $data['ticket_type'] ?? 'regular'; // Support VIP/Regular ticket types
 $payment_reference = $data['payment_reference'] ?? null;
 $referred_by_client_name = $data['referred_by_client'] ?? null;
+$selected_locs = $data['selected_locs'] ?? null;
 
 if (!$event_id || $quantity < 1) {
     echo json_encode(['success' => false, 'message' => 'Invalid event ID or quantity']);
@@ -153,6 +154,11 @@ try {
                 $verificationSuccess = false;
                 $gatewayResponse = json_encode(['success' => false, 'message' => 'Amount mismatch on gateway.']);
             }
+            
+            // Extract selected_locs from metadata if not already provided
+            if (!$selected_locs && isset($paystackResult->data->metadata->selected_locs)) {
+                $selected_locs = $paystackResult->data->metadata->selected_locs;
+            }
         }
 
         if (!$verificationSuccess) {
@@ -221,16 +227,22 @@ try {
             'barcode'        => $barcode,
             'event_id'       => $event_id,
             'user_id'        => $user_id,
-            'order_id'       => null, // This file doesn't use orders table consistently
+            'payment_id'     => $payment_id,
+            'order_id'       => $payment_id,
             'event_name'     => $event['event_name'],
             'event_date'     => $event['event_date'],
             'event_time'     => $event['event_time'],
             'location'       => $event['location'] ?? $event['address'],
-            'address'        => $event['address'],
+            'address'        => $event['address'] ?? null,
+            'state'          => $event['state'] ?? null,
+            'locations'      => $event['locations'] ?? null,
             'user_name'      => $user['name'],
             'payment_status' => 'paid',
             'event_image'    => $event['image_path'] ?? null,
-            'amount'         => $total_price
+            'ticket_type'    => $ticket_type,
+            'amount'         => $total_price,
+            'quantity'       => $quantity,
+            'selected_locs'  => $selected_locs,
         ];
 
         try {

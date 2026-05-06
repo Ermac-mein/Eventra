@@ -23,9 +23,11 @@ try {
     $tStmt = $pdo->prepare("
         SELECT 
             t.barcode, t.status, t.event_id, t.user_id, t.payment_id,
-            e.event_name, e.event_date, e.event_time, e.location, e.address, e.image_path,
+            t.ticket_type,
+            e.event_name, e.event_date, e.event_time,
+            e.location, e.address, e.state, e.locations, e.image_path,
             u.name as user_name,
-            p.status as payment_status, p.id as order_id
+            p.status as payment_status, p.id as order_id, p.amount, p.quantity, p.paystack_response
         FROM tickets t
         JOIN events e ON t.event_id = e.id
         JOIN users u ON t.user_id = u.id
@@ -40,6 +42,16 @@ try {
         header('Content-Type: application/json');
         echo json_encode(['success' => false, 'message' => 'Ticket not found.']);
         exit;
+    }
+
+    $selectedLocs = null;
+    if (!empty($ticket['paystack_response'])) {
+        $pr = json_decode($ticket['paystack_response'], true);
+        if (isset($pr['selected_locs'])) {
+            $selectedLocs = $pr['selected_locs'];
+        } elseif (isset($pr['data']['metadata']['selected_locs'])) {
+            $selectedLocs = $pr['data']['metadata']['selected_locs'];
+        }
     }
 
     // Security Enforcement: Block downloads if ticket is cancelled or payment isn't confirmed
@@ -62,7 +74,17 @@ try {
 
     if (!file_exists($pdfPath)) {
         try {
-            // Generate the PDF on-the-fly
+            // Ensure event_image is available for ticket generation
+            if (empty($ticket['event_image']) && !empty($ticket['image_path'])) {
+                $ticket['event_image'] = $ticket['image_path'];
+            }
+            $ticket = array_merge($ticket, [
+                'event_image'    => $ticket['image_path'] ?? null,
+                'ticket_type'    => $ticket['ticket_type'] ?? 'regular',
+                'amount'         => $ticket['amount'] ?? 0,
+                'quantity'       => $ticket['quantity'] ?? 1,
+                'selected_locs'  => $selectedLocs,
+            ]);
             generateTicketPDF($ticket);
             
             if (!file_exists($pdfPath)) {

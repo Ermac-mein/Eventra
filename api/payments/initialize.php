@@ -15,6 +15,7 @@ $event_id      = (int)($body['event_id']    ?? $_POST['event_id']    ?? 0);
 $quantity      = max(1, (int)($body['quantity']    ?? $_POST['quantity']    ?? 1));
 $ticket_type   = $body['ticket_type'] ?? $_POST['ticket_type'] ?? 'regular';
 $otp_reference = $body['otp_reference'] ?? $_POST['otp_reference'] ?? null;
+$selected_locs = $body['selected_locs'] ?? $_POST['selected_locs'] ?? null;
 
 if (!$event_id) {
     http_response_code(400);
@@ -171,11 +172,9 @@ try {
             // 2. Create success payment
             require_once '../../api/utils/id-generator.php';
             $paymentCustomId = generatePaymentId($pdo);
-            $payStmt = $pdo->prepare("
-                INSERT INTO payments (event_id, user_id, custom_id, reference, amount, quantity, ticket_type, status, paid_at)
-                VALUES (?, ?, ?, ?, 0, ?, ?, 'paid', NOW())
-            ");
-            $payStmt->execute([$event_id, $user_id, $paymentCustomId, $reference, $quantity, $ticket_type]);
+            $meta_data = json_encode(['status' => 'free', 'selected_locs' => $selected_locs]);
+            $stmt = $pdo->prepare("INSERT INTO payments (event_id, user_id, custom_id, reference, amount, status, paystack_response, payment_id, transaction_id, ticket_type, quantity, paid_at) VALUES (?, ?, ?, ?, ?, 'paid', ?, ?, ?, ?, ?, NOW())");
+            $stmt->execute([$event_id, $user_id, $paymentCustomId, $reference, 0, $meta_data, 'free_' . uniqid(), 'free_' . uniqid(), $ticket_type, $quantity]);
             $payment_id = $pdo->lastInsertId();
 
             // 3. Create ticket(s)
@@ -210,7 +209,10 @@ try {
                     'event_image'=> $event['image_path'] ?? '',
                     'user_name'  => $user_name,
                     'payment_status' => 'paid',
-                    'amount'     => 0
+                    'amount'     => 0,
+                    'ticket_type' => $ticket_type,
+                    'quantity'   => $quantity,
+                    'selected_locs' => $selected_locs
                 ];
                 $qrPath = generateTicketQRCode($ticketData);
                 $pdfPath = generateTicketPDF($ticketData);
@@ -293,6 +295,7 @@ try {
             'ticket_type'=> $ticket_type,
             'user_id'    => $user_id,
             'user_name'  => $user_name,
+            'selected_locs' => $selected_locs
         ],
     ];
 

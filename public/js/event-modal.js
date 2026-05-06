@@ -210,63 +210,64 @@ function renderModalContent(container, eventData) {
               const isMultipleStates = states.length > 1 && !states.includes('All States') && !states.includes('Nationwide');
 
               if (Array.isArray(locs) && locs.length > 0) {
-                // If we have detailed locations array, handle it
-                const visibleLocs = locs.slice(0, 2);
-                const hiddenLocs = locs.slice(2);
-                
-                let html = '<div id="modalTruncatedLocs">';
-                html += visibleLocs.map(loc => {
+                const isMulti = locs.length > 1;
+                // Initialise selection state — all selected by default
+                window.selectedEventLocations = locs.map((_, i) => i);
+
+                let html = '<div id="modalLocsContainer">';
+                locs.forEach((loc, idx) => {
                   const mapQuery = encodeURIComponent((loc.address || '') + ', ' + loc.state);
-                  return `<div style="margin-bottom:0.6rem; padding-bottom:0.6rem; border-bottom:1px dashed #e5e7eb;">
-                            <div style="font-weight:600; color:#111827; font-size:0.9rem; margin-bottom:0.2rem;">📍 ${escapeHTML(loc.state)}</div>
-                            ${loc.address ? `<a href="https://www.google.com/maps/search/?api=1&query=${mapQuery}" target="_blank" style="color:#4b5563; text-decoration:none; font-size:0.82rem; display:inline-flex; align-items:center; gap:3px;">${escapeHTML(loc.address)}</a>` : ''}
-                          </div>`;
-                }).join('');
-                
-                if (locs.length > 2) {
-                  html += `<button onclick="document.getElementById('modalFullLocs').style.display='block'; document.getElementById('modalTruncatedLocs').style.display='none';" style="background:none; border:none; color:#722f37; font-weight:700; cursor:pointer; padding:0; font-size:0.85rem;">+ ${locs.length - 2} more (See More)</button>`;
+                  const checkboxHtml = isMulti
+                    ? `<input type="checkbox" id="locChk_${idx}" data-loc-index="${idx}" checked
+                         onchange="window._updateLocSelection()"
+                         style="width:16px;height:16px;accent-color:#1a1a2e;margin-right:10px;cursor:pointer;flex-shrink:0;">` : '';
+
+                  html += `<label for="locChk_${idx}" style="display:flex;align-items:flex-start;gap:0;margin-bottom:12px;padding:10px 12px;border-radius:10px;border:1px solid #e5e7eb;cursor:${isMulti ? 'pointer' : 'default'};transition:background 0.15s;"
+                            onmouseover="${isMulti ? 'this.style.background=\'#f9fafb\'' : ''}"
+                            onmouseout="${isMulti ? 'this.style.background=\'transparent\'' : ''}">
+                    ${checkboxHtml}
+                    <div style="flex:1;">
+                      <div style="font-size:1rem;font-weight:700;color:#1a1a2e;margin-bottom:3px;">📍 ${escapeHTML(loc.state)}</div>
+                      ${loc.address ? `<a href="https://www.google.com/maps/search/?api=1&query=${mapQuery}" target="_blank" onclick="event.stopPropagation()" style="color:#6b7280;text-decoration:none;font-size:0.82rem;display:inline-flex;align-items:center;gap:3px;">${escapeHTML(loc.address)}</a>` : ''}
+                    </div>
+                  </label>`;
+                });
+                html += '</div>';
+
+                if (isMulti) {
+                  html += `<div id="locSelectionHint" style="font-size:0.78rem;color:#9ca3af;margin-top:4px;">Select the location(s) you plan to attend</div>`;
                 }
-                html += '</div>';
-                
-                html += '<div id="modalFullLocs" style="display:none;">';
-                html += locs.map(loc => {
-                  const mapQuery = encodeURIComponent((loc.address || '') + ', ' + loc.state);
-                  return `<div style="margin-bottom:0.6rem; padding-bottom:0.6rem; border-bottom:1px dashed #e5e7eb;">
-                            <div style="font-weight:600; color:#111827; font-size:0.9rem; margin-bottom:0.2rem;">📍 ${escapeHTML(loc.state)}</div>
-                            ${loc.address ? `<a href="https://www.google.com/maps/search/?api=1&query=${mapQuery}" target="_blank" style="color:#4b5563; text-decoration:none; font-size:0.82rem; display:inline-flex; align-items:center; gap:3px;">${escapeHTML(loc.address)}</a>` : ''}
-                          </div>`;
-                }).join('');
-                html += `<button onclick="document.getElementById('modalFullLocs').style.display='none'; document.getElementById('modalTruncatedLocs').style.display='block';" style="background:none; border:none; color:#722f37; font-weight:700; cursor:pointer; padding:0; font-size:0.85rem;">See Less</button>`;
-                html += '</div>';
                 return html;
               }
               
               if (isMultipleStates) {
-                // If we only have a comma-separated string
-                const visibleStates = states.slice(0, 2);
-                return `
-                  <div id="modalTruncatedStates">
-                    ${visibleStates.map(s => `<div style="font-weight:600; color:#111827; font-size:0.9rem; margin-bottom:0.4rem;">📍 ${escapeHTML(s)}</div>`).join('')}
-                    ${states.length > 2 ? `<button onclick="document.getElementById('modalFullStates').style.display='block'; document.getElementById('modalTruncatedStates').style.display='none';" style="background:none; border:none; color:#722f37; font-weight:700; cursor:pointer; padding:0; font-size:0.85rem;">+ ${states.length - 2} more (See More)</button>` : ''}
-                    ${states.length === 2 ? `<button onclick="document.getElementById('modalFullStates').style.display='block'; document.getElementById('modalTruncatedStates').style.display='none';" style="background:none; border:none; color:#722f37; font-weight:700; cursor:pointer; padding:0; font-size:0.85rem;">See More</button>` : ''}
-                  </div>
-                  <div id="modalFullStates" style="display:none;">
-                    ${states.map(s => `<div style="font-weight:600; color:#111827; font-size:0.9rem; margin-bottom:0.6rem; border-bottom:1px dashed #eee; padding-bottom:0.3rem;">📍 ${escapeHTML(s)}</div>`).join('')}
-                    <button onclick="document.getElementById('modalFullStates').style.display='none'; document.getElementById('modalTruncatedStates').style.display='block';" style="background:none; border:none; color:#722f37; font-weight:700; cursor:pointer; padding:0; font-size:0.85rem;">See Less</button>
-                  </div>
-                `;
+                // If we only have a comma-separated string, use state-only checkboxes
+                window.selectedEventLocations = states.map((_, i) => i);
+                let html = '<div id="modalLocsContainer">';
+                states.forEach((s, idx) => {
+                  html += `<label for="stateChk_${idx}" style="display:flex;align-items:center;gap:0;margin-bottom:10px;padding:8px 12px;border-radius:10px;border:1px solid #e5e7eb;cursor:pointer;transition:background 0.15s;"
+                            onmouseover="this.style.background='#f9fafb'" onmouseout="this.style.background='transparent'">
+                    <input type="checkbox" id="stateChk_${idx}" data-state-index="${idx}" checked
+                       onchange="window._updateLocSelection()"
+                       style="width:16px;height:16px;accent-color:#1a1a2e;margin-right:10px;cursor:pointer;">
+                    <div style="font-size:0.9rem;font-weight:700;color:#1a1a2e;">📍 ${escapeHTML(s)}</div>
+                  </label>`;
+                });
+                html += '</div>';
+                html += `<div style="font-size:0.78rem;color:#9ca3af;margin-top:4px;">Select the location(s) you plan to attend</div>`;
+                return html;
               }
 
               // Fallback: single address display
               return `
-                <div style="font-weight: 600; color: #111827; font-size: 0.95rem; margin-bottom: 0.2rem;">${escapeHTML(eventData.location || '')}</div>
-                ${eventData.address ? `<div style="font-size: 0.8rem; margin-bottom: 0.3rem;">
-                  <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(eventData.address + ', ' + (eventData.city || '') + ', ' + (eventData.state || ''))}" target="_blank" class="address-link" style="color: #6b7280; text-decoration: none; display: inline-flex; align-items: center;" onclick="event.stopPropagation();">
+                <div style="font-size:1rem;font-weight:700;color:#1a1a2e;margin-bottom:4px;">📍 ${escapeHTML(eventData.location || '')}</div>
+                ${eventData.address ? `<div style="font-size:0.8rem;margin-bottom:0.3rem;">
+                  <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(eventData.address + ', ' + (eventData.city || '') + ', ' + (eventData.state || ''))}" target="_blank" class="address-link" style="color:#6b7280;text-decoration:none;display:inline-flex;align-items:center;" onclick="event.stopPropagation();">
                     ${escapeHTML(eventData.address)}
-                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-left: 4px;"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-left:4px;"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
                   </a>
                 </div>` : ''}
-                <div style="font-size: 0.85rem; color: #4b5563; line-height: 1.5; margin-top: 0.5rem; display: block;">${[eventData.city, eventData.state].filter(Boolean).map(escapeHTML).join(', ') || 'TBD'}</div>
+                <div style="font-size:0.85rem;color:#4b5563;line-height:1.5;margin-top:0.5rem;display:block;">${[eventData.city, eventData.state].filter(Boolean).map(escapeHTML).join(', ') || 'TBD'}</div>
               `;
             })()}
           </div>
@@ -321,7 +322,12 @@ function closeEventDetailsModal() {
 
 function handleBuyTicket() {
   if (currentEventData) {
-    window.location.href = `checkout.html?id=${currentEventData.id}&quantity=1`;
+    let url = `checkout.html?id=${currentEventData.id}&quantity=1`;
+    // Pass selected locations if user made a selection
+    if (window.selectedEventLocations && Array.isArray(window.selectedEventLocations) && window.selectedEventLocations.length > 0) {
+      url += '&selected_locs=' + encodeURIComponent(JSON.stringify(window.selectedEventLocations));
+    }
+    window.location.href = url;
   }
 }
 
@@ -516,6 +522,23 @@ window.closeEventDetailsModal = closeEventDetailsModal;
 window.handleBuyTicket = handleBuyTicket;
 window.allEventsData = allEventsData;
 window.copyEventLink = copyEventLink;
+
+/**
+ * Keep window.selectedEventLocations in sync with checkbox state.
+ * Called by each checkbox's onchange handler in the location section.
+ */
+window._updateLocSelection = function () {
+  const checked = [];
+  // Handle locs-type checkboxes
+  document.querySelectorAll('[data-loc-index]').forEach(chk => {
+    if (chk.checked) checked.push(parseInt(chk.dataset.locIndex, 10));
+  });
+  // Handle state-type checkboxes
+  document.querySelectorAll('[data-state-index]').forEach(chk => {
+    if (chk.checked) checked.push(parseInt(chk.dataset.stateIndex, 10));
+  });
+  window.selectedEventLocations = checked;
+};
 
 // Initialize enhanced search when DOM is ready
 // Also: auto-open event details modal when URL contains ?event_id=ID or ?event=TAG

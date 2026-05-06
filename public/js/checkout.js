@@ -4,6 +4,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const eventId = urlParams.get('id');
     const quantityParam = urlParams.get('quantity') || '1';
     const ticketType = urlParams.get('type') || urlParams.get('ticket_type') || 'regular';
+    const selectedLocsParam = urlParams.get('selected_locs');
     let currentQuantity = parseInt(quantityParam, 10);
     
     if (isNaN(currentQuantity) || currentQuantity < 1) currentQuantity = 1;
@@ -137,7 +138,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             // 3. Show security verification (OTP) before proceeding
             showOTPModal(email, phone, async (otpRef) => {
-                await proceedToPayment(eventId, currentQuantity, currentTicketType, fname, lname, email, phone, payBtn, eventData, otpRef);
+                await proceedToPayment(eventId, currentQuantity, currentTicketType, fname, lname, email, phone, payBtn, eventData, otpRef, selectedLocsParam);
             }, () => {
                 // Cancelled logic is handled within resetPayBtn or via simple return
                 showNotification('Verification required to proceed.', 'info');
@@ -145,7 +146,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
-    async function proceedToPayment(eventId, currentQuantity, currentTicketType, fname, lname, email, phone, payBtn, eventData, otpReference = null) {
+    async function proceedToPayment(eventId, currentQuantity, currentTicketType, fname, lname, email, phone, payBtn, eventData, otpReference = null, selectedLocs = null) {
         // Disable button & show loading
         payBtn.disabled = true;
         payBtn.innerHTML = '<span class="btn-spinner"></span> Initializing...';
@@ -159,7 +160,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                     event_id: eventId,
                     quantity: currentQuantity,
                     ticket_type: currentTicketType,
-                    otp_reference: otpReference
+                    otp_reference: otpReference,
+                    selected_locs: selectedLocs
                 })
             });
             
@@ -190,7 +192,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 // Paid event only — free events never reach this branch
                 resetPayBtn(eventData, currentQuantity);
                 showOTPModal(email, phone, async (newOtpRef) => {
-                    await proceedToPayment(eventId, currentQuantity, fname, lname, email, phone, payBtn, eventData, newOtpRef);
+                    await proceedToPayment(eventId, currentQuantity, currentTicketType, fname, lname, email, phone, payBtn, eventData, newOtpRef, selectedLocs);
                 }, () => {
                     resetPayBtn(eventData, currentQuantity);
                 });
@@ -204,7 +206,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (errMsg.toLowerCase().includes('otp') || errMsg.toLowerCase().includes('security verification')) {
                 resetPayBtn(eventData, currentQuantity);
                 showOTPModal(email, phone, async (newOtpRef) => {
-                    await proceedToPayment(eventId, currentQuantity, fname, lname, email, phone, payBtn, eventData, newOtpRef);
+                    await proceedToPayment(eventId, currentQuantity, currentTicketType, fname, lname, email, phone, payBtn, eventData, newOtpRef, selectedLocs);
                 }, () => {
                     resetPayBtn(eventData, currentQuantity);
                 });

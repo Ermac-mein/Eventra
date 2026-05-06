@@ -546,24 +546,55 @@ class EmailHelper
             $locations = json_decode($locations, true);
         }
 
-        if (is_array($locations) && count($locations) > 1) {
+        $selectedLocs = $ticketData['selected_locs'] ?? null;
+        if (is_string($selectedLocs)) {
+            $selectedLocs = json_decode($selectedLocs, true);
+        }
+
+        if (is_array($locations) && count($locations) > 0) {
+            // Filter locations if selectedLocs is present
+            if (is_array($selectedLocs) && count($selectedLocs) > 0) {
+                $filtered = [];
+                foreach ($selectedLocs as $idx) {
+                    if (isset($locations[$idx])) {
+                        $filtered[] = $locations[$idx];
+                    }
+                }
+                if (!empty($filtered)) {
+                    $locations = $filtered;
+                }
+            }
             $colA .= '<div style="margin-bottom:14px;word-break:break-word;">'
                 . '<span style="display:block;font-family:Arial,sans-serif;font-size:9px;'
                 . 'font-weight:700;letter-spacing:2px;text-transform:uppercase;'
-                . 'color:rgba(255,255,255,0.30);margin-bottom:3px;">Venue &amp; Location</span>';
+                . 'color:rgba(255,255,255,0.30);margin-bottom:6px;">Venue &amp; Location</span>';
             foreach ($locations as $loc) {
                 $s = self::esc($loc['state']   ?? '');
                 $a = self::esc($loc['address'] ?? '');
-                $colA .= '<span style="font-family:Arial,sans-serif;font-size:13px;'
-                    . 'font-weight:600;color:#d4af37;line-height:1.2;display:block;margin-bottom:2px;">'
-                    . $s . ' : ' . $a . '</span>';
+                $colA .= '<div style="margin-bottom:10px;">'
+                    . '<span style="font-family:Arial,sans-serif;font-size:15px;'
+                    . 'font-weight:700;color:#1a1a2e;line-height:1.3;display:block;">'
+                    . $s . '</span>'
+                    . '<span style="font-family:Arial,sans-serif;font-size:12px;'
+                    . 'font-weight:400;color:rgba(255,255,255,0.60);line-height:1.4;display:block;">'
+                    . $a . '</span>'
+                    . '</div>';
             }
             $colA .= '</div>';
         } else {
             $st = $ticketData['state']   ?? '';
             $ad = $ticketData['address'] ?? ($ticketData['location'] ?? '—');
             if (!empty($st) && strtolower($st) !== 'all states') {
-                $colA .= self::detailRow($st, self::esc($ad));
+                $colA .= '<div style="margin-bottom:14px;word-break:break-word;">'
+                    . '<span style="display:block;font-family:Arial,sans-serif;font-size:9px;'
+                    . 'font-weight:700;letter-spacing:2px;text-transform:uppercase;'
+                    . 'color:rgba(255,255,255,0.30);margin-bottom:6px;">Venue &amp; Location</span>'
+                    . '<div style="margin-bottom:6px;">'
+                    . '<span style="font-family:Arial,sans-serif;font-size:15px;font-weight:700;color:#1a1a2e;display:block;">'
+                    . self::esc($st) . '</span>'
+                    . '<span style="font-family:Arial,sans-serif;font-size:12px;font-weight:400;color:rgba(255,255,255,0.60);display:block;">'
+                    . self::esc($ad) . '</span>'
+                    . '</div></div>';
             } else {
                 $colA .= self::detailRow('Venue', self::esc($ad));
                 if (!empty($st)) {
@@ -577,8 +608,11 @@ class EmailHelper
             $colB .= self::detailRow('Ticket Type', $tickDisp ?: $ticketType);
         }
         if ($amountDisplay !== '') {
-            $colB .= self::detailRow('Price', $amountDisplay, true);
+            $colB .= self::detailRow('Amount Paid', $amountDisplay, true);
         }
+        // Quantity bought
+        $qtyBought = isset($ticketData['quantity']) ? (int)$ticketData['quantity'] : 1;
+        $colB .= self::detailRow('Qty Bought', (string)$qtyBought);
         if ($organizer !== '') {
             $colB .= self::detailRow('Organizer', $organizer);
         }
@@ -731,7 +765,6 @@ class EmailHelper
                     text-transform:uppercase;color:rgba(255,255,255,0.3);
                     margin-bottom:14px;">SCAN TO ENTER</div>
 
-        <!-- QR white frame -->
         <table cellpadding="0" cellspacing="0" border="0" align="center"
                style="background:#ffffff;border-radius:10px;padding:8px;
                       width:146px;height:146px;margin:0 auto 14px;">
@@ -740,7 +773,6 @@ class EmailHelper
         </td></tr>
         </table>
 
-        <!-- Barcode text -->
         <div style="font-family:'Courier New',Courier,monospace;font-size:11px;
                     font-weight:700;color:#d4af37;letter-spacing:1px;
                     word-break:break-all;">{$barcode}</div>
@@ -749,13 +781,11 @@ class EmailHelper
       </table>
 
     </td>
-    <!-- ════ END RIGHT ════ -->
+    <!-- END RIGHT -->
 
   </tr>
   </table>
   <!-- End ticket card -->
-
-  {$dlButtonHtml}
 
 </td></tr>
 </table>
@@ -765,12 +795,6 @@ class EmailHelper
 HTML;
     }
 
-    /**
-     * Separate flat HTML specifically for PDF rendering.
-     * Uses only simple CSS that DomPDF & wkhtmltopdf understand:
-     * no overflow:hidden on table cells, no CSS gradients on backgrounds,
-     * no filter, no object-fit.
-     */
     private static function buildPdfHtml(
         string $eventTitle,
         string $userName,
@@ -785,8 +809,17 @@ HTML;
         string $qrHtml,
         string $year
     ): string {
-        $bgStyle = $bgImage ? "background-image: url('{$bgImage}'); background-size: cover; background-position: center;" : "background: #111;";
-        
+        if ($bgImage) {
+            $bgStyle = "background-image: url('{$bgImage}'); background-size: cover; background-position: center; background-repeat: no-repeat;";
+        } else {
+            $bgStyle = 'background: #111111;';
+        }
+
+        $overlayBg = $bgImage ? 'rgba(0,0,0,0.65)' : 'rgba(0,0,0,0.0)';
+        $textColor  = '#ffffff';
+        $labelColor = 'rgba(255,255,255,0.55)';
+        $valueColor = '#f5c842';
+
         return <<<PDF
 <!DOCTYPE html>
 <html lang="en">
@@ -794,153 +827,185 @@ HTML;
 <meta charset="UTF-8">
 <title>Ticket &mdash; {$eventTitle}</title>
 <style>
-  @page { margin: 0px; }
-  * { box-sizing:border-box; margin:0; padding:0; }
-  body {
-    background:#1a1a1a;
+  @page { margin: 0px; size: A4 landscape; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    width: 100%; height: 100%;
     font-family: Arial, Helvetica, sans-serif;
-    margin: 0;
-    padding: 0;
-    width: 100%;
-    height: 100%;
+    background: #ffffff;
   }
-  .ticket-container {
+  .ticket-wrap {
     position: relative;
-    width: 100%;
-    height: 100%;
-    overflow: hidden;
+    width: 100%; height: 100%;
+    min-height: 595px;
     {$bgStyle}
   }
   .overlay {
     position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.75);
-  }
-  .content {
-    position: relative;
-    padding: 40px;
-    color: #ffffff;
-    z-index: 10;
-  }
-  .gold-accent {
-    color: #d4af37;
-  }
-  .event-title {
-    font-size: 48px;
-    font-weight: 900;
-    text-transform: uppercase;
-    margin-bottom: 10px;
-    line-height: 1;
-    letter-spacing: -1px;
-  }
-  .ticket-holder {
-    font-size: 24px;
-    font-weight: 700;
-    margin-top: 30px;
-  }
-  .details-grid {
-    margin-top: 40px;
-    width: 100%;
-  }
-  .detail-item {
-    margin-bottom: 20px;
-  }
-  .label {
-    font-size: 10px;
-    text-transform: uppercase;
-    letter-spacing: 2px;
-    color: rgba(255, 255, 255, 0.5);
-    margin-bottom: 5px;
-  }
-  .value {
-    font-size: 18px;
-    font-weight: 700;
-    color: #d4af37;
-  }
-  .qr-container {
-    position: absolute;
-    bottom: 40px;
-    right: 40px;
-    background: #ffffff;
-    padding: 10px;
-    border-radius: 12px;
-    text-align: center;
-  }
-  .qr-label {
-    font-size: 9px;
-    color: #000;
-    font-weight: 800;
-    margin-bottom: 5px;
-    text-transform: uppercase;
-  }
-  .barcode {
-    position: absolute;
-    bottom: 40px;
-    left: 40px;
-    font-family: 'Courier New', Courier, monospace;
-    font-size: 12px;
-    color: rgba(255, 255, 255, 0.6);
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: {$overlayBg};
   }
   .watermark {
     position: absolute;
-    top: 50%;
-    left: 50%;
+    top: 50%; left: 50%;
+    font-size: 110px; font-weight: 900;
+    color: rgba(255,255,255,0.04);
     transform: translate(-50%, -50%) rotate(-45deg);
-    font-size: 120px;
-    font-weight: 900;
-    color: rgba(255, 255, 255, 0.03);
     white-space: nowrap;
     z-index: 1;
+  }
+  .content {
+    position: relative;
+    z-index: 10;
+    padding: 38px 44px 140px 44px;
+    color: {$textColor};
+  }
+  .label {
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: {$labelColor};
+    margin-bottom: 4px;
+    font-weight: 700;
+  }
+  .value {
+    font-size: 16px;
+    font-weight: 700;
+    color: {$valueColor};
+    margin-bottom: 14px;
+  }
+  .event-title {
+    font-size: 42px;
+    font-weight: 900;
+    text-transform: uppercase;
+    line-height: 1.05;
+    letter-spacing: -1px;
+    margin-bottom: 8px;
+    color: {$textColor};
+  }
+  .official-tag {
+    font-size: 11px;
+    letter-spacing: 4px;
+    color: #d4af37;
+    margin-bottom: 10px;
+  }
+  .attendee-name {
+    font-size: 26px;
+    font-weight: 800;
+    margin-top: 24px;
+    margin-bottom: 6px;
+    color: {$textColor};
+  }
+  .details-table {
+    margin-top: 26px;
+    width: 70%;
+    border-collapse: collapse;
+  }
+  .details-table td {
+    vertical-align: top;
+    padding-right: 32px;
+    padding-bottom: 4px;
+  }
+  .loc-state {
+    font-size: 15px;
+    font-weight: 700;
+    color: #1a1a2e;
+    display: block;
+    margin-bottom: 2px;
+  }
+  .loc-address {
+    font-size: 12px;
+    font-weight: 400;
+    color: rgba(255,255,255,0.65);
+    display: block;
+  }
+  .loc-block {
+    margin-bottom: 8px;
+  }
+  .divider {
+    height: 3px;
+    background: #d4af37;
+    width: 60px;
+    margin: 12px 0 20px 0;
+  }
+  .barcode-strip {
+    position: absolute;
+    bottom: 36px;
+    left: 44px;
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+    color: rgba(255,255,255,0.55);
+    z-index: 10;
+  }
+  .qr-box {
+    position: absolute;
+    bottom: 28px;
+    right: 36px;
+    z-index: 10;
+    background: #ffffff;
+    padding: 8px;
+    border-radius: 10px;
+    text-align: center;
+  }
+  .qr-box-label {
+    font-size: 8px;
+    color: #111;
+    font-weight: 800;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+    letter-spacing: 1px;
   }
 </style>
 </head>
 <body>
-<div class="ticket-container">
+<div class="ticket-wrap">
   <div class="overlay"></div>
-  <div class="watermark">EVENTRA TICKET</div>
-  
-  <div class="content">
-    <div style="font-size: 12px; letter-spacing: 4px; color: #d4af37; margin-bottom: 10px;">OFFICIAL TICKET</div>
-    <div class="event-title">{$eventTitle}</div>
-    
-    <div class="ticket-holder">
-      <div class="label">Attendee</div>
-      <div style="font-size: 32px;">{$userName}</div>
-    </div>
+  <div class="watermark">EVENTRA</div>
 
-    <table class="details-grid">
+  <div class="content">
+    <div class="official-tag">OFFICIAL TICKET &mdash; EVENTRA</div>
+    {$badgeHtml}
+    <div class="event-title">{$eventTitle}</div>
+    <div class="divider"></div>
+
+    <div class="label">Attendee</div>
+    <div class="attendee-name">{$userName}</div>
+
+    <table class="details-table">
       <tr>
-        <td width="33%" valign="top">
+        <td>
           <div class="label">Date</div>
           <div class="value">{$eventDate}</div>
         </td>
-        <td width="33%" valign="top">
+        <td>
           <div class="label">Time</div>
           <div class="value">{$eventTime}</div>
         </td>
-        <td width="33%" valign="top">
+        <td>
           <div class="label">Ticket ID</div>
-          <div class="value" style="font-family: monospace;">{$ticketId}</div>
+          <div class="value" style="font-family:monospace;font-size:13px;">{$ticketId}</div>
         </td>
       </tr>
       <tr>
-        <td colspan="3" style="padding-top: 20px;">
-          <div class="label">Location</div>
-          <div class="value">{$colA}</div>
+        <td colspan="3">
+          <div class="label" style="margin-top:10px;">Venue &amp; Location</div>
+          {$colA}
+        </td>
+      </tr>
+      <tr>
+        <td colspan="3">
+          {$colB}
         </td>
       </tr>
     </table>
   </div>
 
-  <div class="barcode">
-    ID: {$barcode} | Issued by Eventra © {$year}
+  <div class="barcode-strip">
+    ID: {$barcode} &nbsp;|&nbsp; Issued by Eventra &copy; {$year}
   </div>
 
-  <div class="qr-container">
-    <div class="qr-label">Scan to Verify</div>
+  <div class="qr-box">
+    <div class="qr-box-label">Scan to Verify</div>
     {$qrHtml}
   </div>
 </div>
@@ -953,7 +1018,7 @@ PDF;
 
     public static function sendRegistrationOTP(string $to, string $name, string $otp): array
     {
-        $subject  = "Verify your Eventra account — OTP: {$otp}";
+        $subject  = "=?UTF-8?B?" . base64_encode("Verify your Eventra account — OTP: {$otp}") . "?=";
         $safeName = htmlspecialchars($name, ENT_QUOTES, 'UTF-8');
         $year     = date('Y');
 
@@ -1061,7 +1126,7 @@ PDF;
             $ticketData['event_name'] ?? 'Your Event',
             ENT_QUOTES, 'UTF-8'
         );
-        $subject = "Your Ticket for {$eventName} — Eventra";
+        $subject = "=?UTF-8?B?" . base64_encode("Your Ticket for {$eventName} — Eventra") . "?=";
 
         /* ── 3. Download URL ─────────────────────────────────────── */
         $appUrl      = rtrim((string) ($_ENV['APP_URL'] ?? ''), '/');
@@ -1130,7 +1195,7 @@ PDF;
         if (class_exists('Dompdf\Dompdf')) {
             try {
                 $options = new \Dompdf\Options();
-                $options->set('isRemoteEnabled', false);
+                $options->set('isRemoteEnabled', true);
                 $options->set('isHtml5ParserEnabled', true);
                 $options->set('defaultFont', 'Arial');
                 $options->set('isFontSubsettingEnabled', true);
