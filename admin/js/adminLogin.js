@@ -190,43 +190,75 @@ document.addEventListener('DOMContentLoaded', () => {
         const basePath = typeof getBasePath === 'function' ? getBasePath() : '../../';
         const escapeHTML = window.escapeHTML || (text => text);
 
+        const showFallback = () => {
+            sliderContainer.innerHTML = `
+                <img src="${basePath}public/assets/images/admin-login-bg.jpg" 
+                     alt="Eventra Admin" 
+                     class="slider-img active" 
+                     onerror="this.src='https://images.unsplash.com/photo-1540575861501-7cf05a4b125a?auto=format&fit=crop&q=80&w=1920'">
+            `;
+        };
+
         try {
             const response = await apiFetch('/api/events/get-events.php?status=published&limit=10');
             const data = await response.json();
 
-            if (data.success && data.events.length > 0) {
-                const events = data.events.filter(e => e.image_path);
-                if (events.length === 0) return;
+            if (data.success && data.events && data.events.length > 0) {
+                const eventsWithImages = data.events.filter(e => e.image_path);
+                
+                if (eventsWithImages.length === 0) {
+                    showFallback();
+                    return;
+                }
 
                 // Inject images
-                sliderContainer.innerHTML = events.map((event, index) => {
+                sliderContainer.innerHTML = eventsWithImages.map((event, index) => {
                     const cleanPath = event.image_path.replace(/^\/+/, '');
-                    // Normalize path: if it starts with public/, remove it as it's assumed to be in the root for the browser
-                    const webPath = cleanPath.startsWith('public/') ? cleanPath.replace('public/', '') : cleanPath;
+                    // Normalize path: Ensure it points to the correct location relative to admin/pages/
+                    // If it already starts with public/, keep it. If it starts with assets/, it might be missing public/
+                    let webPath = cleanPath;
+                    if (cleanPath.startsWith('assets/') && !cleanPath.includes('public/')) {
+                        webPath = 'public/' + cleanPath;
+                    }
+                    
                     const imgUrl = event.image_path.startsWith('http') ? event.image_path : basePath + webPath;
+                    
                     return `
                         <img src="${imgUrl}" 
                              alt="${escapeHTML(event.event_name)}" 
                              class="slider-img ${index === 0 ? 'active' : ''}" 
-                             data-index="${index}">
+                             data-index="${index}"
+                             onerror="this.style.display='none'">
                     `;
                 }).join('');
 
                 let currentIndex = 0;
+                const images = sliderContainer.querySelectorAll('.slider-img');
                 
+                if (images.length === 0) {
+                    showFallback();
+                    return;
+                }
+
                 const updateSlider = () => {
-                    const images = document.querySelectorAll('.slider-img');
-                    if (images.length === 0) return;
+                    const currentImages = sliderContainer.querySelectorAll('.slider-img');
+                    if (currentImages.length <= 1) return;
                     
-                    images[currentIndex].classList.remove('active');
-                    currentIndex = (currentIndex + 1) % images.length;
-                    images[currentIndex].classList.add('active');
+                    currentImages[currentIndex].classList.remove('active');
+                    currentIndex = (currentIndex + 1) % currentImages.length;
+                    currentImages[currentIndex].classList.add('active');
                 };
 
                 // Cycle every 5 seconds
-                setInterval(updateSlider, 5000);
+                if (images.length > 1) {
+                    setInterval(updateSlider, 5000);
+                }
+            } else {
+                showFallback();
             }
         } catch (error) {
+            console.error('Slider Error:', error);
+            showFallback();
         }
     }
 

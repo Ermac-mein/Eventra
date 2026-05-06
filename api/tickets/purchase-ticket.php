@@ -198,14 +198,64 @@ try {
 
     $pdo->commit();
 
-    // 7. Post-Processing: Notifications
+    // 7. Post-Processing: QR/PDF Generation and Email
+    require_once '../../includes/helpers/ticket-helper.php';
+    require_once '../../includes/helpers/email-helper.php';
+    
+    // Fetch user details for ticket and email
+    $stmt = $pdo->prepare("SELECT u.name, a.email FROM users u JOIN auth_accounts a ON u.user_auth_id = a.id WHERE u.id = ?");
+    $stmt->execute([$user_id]);
+    $user = $stmt->fetch();
+    
+    if (!$user) {
+        error_log("[purchase-ticket.php] Critical Error: User not found for ID $user_id after successful purchase.");
+        echo json_encode(['success' => true, 'message' => 'Purchased, but user profile missing for delivery.']);
+        exit;
+    }
+
+    $pdfPaths = [];
+    $lastTicketData = [];
+    
+    foreach ($tickets_generated as $barcode) {
+        $ticketData = [
+            'barcode'        => $barcode,
+            'event_id'       => $event_id,
+            'user_id'        => $user_id,
+            'order_id'       => null, // This file doesn't use orders table consistently
+            'event_name'     => $event['event_name'],
+            'event_date'     => $event['event_date'],
+            'event_time'     => $event['event_time'],
+            'location'       => $event['location'] ?? $event['address'],
+            'address'        => $event['address'],
+            'user_name'      => $user['name'],
+            'payment_status' => 'paid',
+            'event_image'    => $event['image_path'] ?? null,
+            'amount'         => $total_price
+        ];
+
+        try {
+            $qrCodePath = generateTicketQRCode($ticketData);
+            $pdfPath    = generateTicketPDF($ticketData);
+            
+            if ($pdfPath && file_exists($pdfPath)) {
+                $pdfPaths[] = $pdfPath;
+                $pdo->prepare("UPDATE tickets SET qr_code_path = ? WHERE barcode = ?")
+                    ->execute([str_replace(__DIR__ . '/../../', '', $qrCodePath), $barcode]);
+            }
+            $lastTicketData = $ticketData;
+        } catch (\Throwable $genError) {
+            error_log("[purchase-ticket.php] Ticket generation FAILED | barcode=$barcode error=" . $genError->getMessage());
+        }
+    }
+
+    if (!empty($pdfPaths)) {
+        EmailHelper::sendTicketEmailFull($user['email'], $lastTicketData, $pdfPaths);
+    }
+
+    // 8. Notifications
     try {
         require_once '../utils/notification-helper.php';
-        $stmt = $pdo->prepare("SELECT u.name, a.email FROM users u JOIN auth_accounts a ON u.user_auth_id = a.id WHERE u.id = ?");
-        $stmt->execute([$user_id]);
-        $user = $stmt->fetch();
-
-        // Resolve client_auth_id (auth_accounts.id) for the event organizer
+        // ... (rest of notification logic)
         $clientAuthStmt = $pdo->prepare("SELECT client_auth_id FROM clients WHERE id = ?");
         $clientAuthStmt->execute([$event['client_id']]);
         $client_auth_id = $clientAuthStmt->fetchColumn();
@@ -214,14 +264,19 @@ try {
         if ($admin_id && $client_auth_id && function_exists('createTicketPurchaseNotification')) {
             createTicketPurchaseNotification(
                 $admin_id,
-                $client_auth_id,  // auth_accounts.id of the organizer
-                $auth_id,         // auth_accounts.id of the buyer (from checkAuth)
+                $client_auth_id,
+                $auth_id,
                 $user['name'],
                 $user['email'],
                 $event['event_name'],
                 $quantity,
                 $total_price
             );
+        }
+        
+        // Individual ticket issued notifications
+        foreach ($tickets_generated as $barcode) {
+            createTicketIssuedNotification($auth_id, $event['event_name'], $barcode);
         }
     } catch (Exception $e) {
         error_log("Notification Error: " . $e->getMessage());

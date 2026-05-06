@@ -273,7 +273,7 @@ function generateTicketPDF(array $ticketData): string
         'event_time'          => $ticketData['event_time'] ?? null,
     ];
 
-    $html = EmailHelper::buildTicketHtml($richTicketData);
+    $html = EmailHelper::buildTicketHtml($richTicketData, '', true);
 
     $dompdf->loadHtml($html);
     $dompdf->setPaper('A4', 'landscape');
