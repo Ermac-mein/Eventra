@@ -1001,7 +1001,7 @@ async function previewEvent(eventId) {
                         <div style="font-weight: 700; color: #1e293b; font-size: 0.9rem;">${escapeHTML(price)}</div>
                     </div>
                     <div style="background: #f8fafc; padding: 1.25rem; border-radius: 20px; border: 1px solid #e2e8f0;">
-                        <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">✨</div>
+                        <div style="font-size: 1.5rem; margin-bottom: 0.5rem;"></div>
                         <div style="font-size: 0.65rem; color: #94a3b8; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em;">Category</div>
                         <div style="font-weight: 700; color: #1e293b; font-size: 0.9rem;">${escapeHTML(category)}</div>
                     </div>

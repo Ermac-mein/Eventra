@@ -1030,7 +1030,7 @@ function showEditEventModal(event) {
 
                                         <div id="editTicketTypeConfigSection" style="${parseFloat(event.price) === 0 ? 'display: none;' : ''}">
                                             <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem; margin-bottom: 1.5rem;">
-                                                <label class="edit-ticket-type-label" style="display: flex; flex-direction: column; align-items: center; gap: 0.4rem; cursor: pointer; padding: 0.8rem 0.2rem; border: 1px solid #e2e8f0; border-radius: 10px; transition: all 0.2s;">
+                                                <label class="edit-ticket-type-label" style="display: flex; flex-direction: column; align-items: center; gap: 0.4rem; cursor: pointer; padding: 0.8rem 0.2rem; border: 1px solid #e2e8f0; border-radius: 10px; transition: all 0.2s;">Ticket Type</label>
                                                     <input type="checkbox" name="ticket_type_mode[]" value="regular" ${event.ticket_type_mode && event.ticket_type_mode.includes('regular') ? 'checked' : ''} class="edit-ticket-type-checkbox" style="accent-color: #0f172a;">
                                                     <span style="font-weight: 700; font-size: 0.7rem; text-transform: uppercase;">Regular</span>
                                                 </label>

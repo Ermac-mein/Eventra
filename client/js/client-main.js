@@ -4,12 +4,12 @@
  */
 
 // Initialize logout functionality
-document.addEventListener('DOMContentLoaded', () => {
-    initLogout();
-    // initNotifications(); // Handled by drawer-system.js
-    initProfileClick();
-    loadGlobalProfile();
-    initInactivityMonitor();
+document.addEventListener("DOMContentLoaded", () => {
+  initLogout();
+  // initNotifications(); // Handled by drawer-system.js
+  initProfileClick();
+  loadGlobalProfile();
+  initInactivityMonitor();
 });
 
 function initInactivityMonitor() {

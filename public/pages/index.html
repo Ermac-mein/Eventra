@@ -731,10 +731,23 @@
           <p>Sign in to discover and manage amazing experiences</p>
         </div>
         <div class="modal-body">
-          <div id="googleSignInContainer" style="margin-bottom: 1.5rem; display: flex; justify-content: center; min-height: 44px; width: 100%;">
+          <div
+            id="googleSignInContainer"
+            style="
+              margin-bottom: 1.5rem;
+              display: flex;
+              justify-content: center;
+              min-height: 44px;
+              width: 100%;
+            "
+          >
             <button id="googleSignIn" class="google-signin">
-                <img src="https://www.gstatic.com/images/branding/product/1x/gsa_512dp.png" alt="Google" class="google-icon">
-                Sign in with Google
+              <img
+                src="https://www.gstatic.com/images/branding/product/1x/gsa_512dp.png"
+                alt="Google"
+                class="google-icon"
+              />
+              Sign in with Google
             </button>
           </div>
         </div>
@@ -803,12 +816,76 @@
             <p id="modalEventDescription"></p>
           </div>
 
-          <div style="margin-bottom: 1.5rem; margin-top: 1.5rem;">
-            <h4 style="font-size: 0.95rem; color: #111827; margin-bottom: 0.5rem; font-weight: 600;">Share with friends</h4>
-            <div style="display: flex; align-items: center; gap: 0.5rem; background: #f3f4f6; padding: 0.5rem; border-radius: 8px;">
-              <input type="text" readonly value="" style="flex: 1; background: transparent; border: none; outline: none; color: #4b5563; font-size: 0.9rem; padding: 0.25rem 0.5rem;" id="modalEventShareLink">
-              <button onclick="copyModalShareLink()" style="background: white; border: 1px solid #d1d5db; border-radius: 6px; padding: 0.5rem; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; box-shadow: 0 1px 2px rgba(0,0,0,0.05);" onmouseover="this.style.background='#f9fafb'" onmouseout="this.style.background='white'" title="Copy link">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4b5563" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+          <div style="margin-bottom: 1.5rem; margin-top: 1.5rem">
+            <h4
+              style="
+                font-size: 0.95rem;
+                color: #111827;
+                margin-bottom: 0.5rem;
+                font-weight: 600;
+              "
+            >
+              Share with friends
+            </h4>
+            <div
+              style="
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+                background: #f3f4f6;
+                padding: 0.5rem;
+                border-radius: 8px;
+              "
+            >
+              <input
+                type="text"
+                readonly
+                value=""
+                style="
+                  flex: 1;
+                  background: transparent;
+                  border: none;
+                  outline: none;
+                  color: #4b5563;
+                  font-size: 0.9rem;
+                  padding: 0.25rem 0.5rem;
+                "
+                id="modalEventShareLink"
+              />
+              <button
+                onclick="copyModalShareLink()"
+                style="
+                  background: white;
+                  border: 1px solid #d1d5db;
+                  border-radius: 6px;
+                  padding: 0.5rem;
+                  cursor: pointer;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  transition: all 0.2s;
+                  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+                "
+                onmouseover="this.style.background = '#f9fafb'"
+                onmouseout="this.style.background = 'white'"
+                title="Copy link"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#4b5563"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                  <path
+                    d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"
+                  ></path>
+                </svg>
               </button>
             </div>
           </div>
@@ -890,12 +967,46 @@
                   "
                 />
                 <div>
-                  <div style="font-weight: 600; color: #1e293b">
-                    ✨ VIP Ticket
-                  </div>
+                  <div style="font-weight: 600; color: #1e293b">VIP Ticket</div>
                   <div
                     style="font-size: 0.8rem; color: #64748b"
                     id="vipTicketPrice"
+                  >
+                    ₦0
+                  </div>
+                </div>
+              </label>
+              <label
+                style="
+                  display: flex;
+                  align-items: center;
+                  gap: 1rem;
+                  cursor: pointer;
+                  padding: 0.75rem;
+                  background: white;
+                  border-radius: 8px;
+                  border: 2px solid transparent;
+                  transition: all 0.2s;
+                "
+              >
+                <input
+                  type="radio"
+                  name="selectedTicketType"
+                  value="premium"
+                  style="
+                    width: 1rem;
+                    height: 1rem;
+                    accent-color: #2ecc71;
+                    cursor: pointer;
+                  "
+                />
+                <div>
+                  <div style="font-weight: 600; color: #1e293b">
+                    Premium Ticket
+                  </div>
+                  <div
+                    style="font-size: 0.8rem; color: #64748b"
+                    id="premiumTicketPrice"
                   >
                     ₦0
                   </div>
