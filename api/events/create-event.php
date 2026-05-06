@@ -383,8 +383,9 @@ try {
             external_link, price, image_path, status, scheduled_publish_time, 
             category, event_visibility, ticket_count, total_tickets, 
             sales_count, view_count, is_boosted,
-            latitude, longitude, metadata, locations, ticket_type
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            latitude, longitude, metadata, locations, ticket_type,
+            regular_price, vip_price, premium_price
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ");
 
     $stmt->execute([
@@ -417,7 +418,10 @@ try {
         $longitude,
         $metadata_json,
         $locations_json,    // per-state address map (JSON)
-        $ticket_type_mode  // ticket_type column
+        $ticket_type_mode,  // ticket_type column
+        $regular_price,
+        $vip_price,
+        $premium_price
     ]);
 
     $event_id = $pdo->lastInsertId();

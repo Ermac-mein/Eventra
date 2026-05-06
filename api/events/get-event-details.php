@@ -72,6 +72,14 @@ try {
     // Ensure price is numeric
     $event['price'] = (float) ($event['price'] ?? 0);
 
+    // Merge metadata if present
+    if (!empty($event['metadata'])) {
+        $meta = json_decode($event['metadata'], true);
+        if (is_array($meta)) {
+            $event = array_merge($event, $meta);
+        }
+    }
+
     // Calculate a mock end_datetime if not present (default 4 hours after start)
     $event['event_start_datetime'] = $event['event_date'] . ' ' . ($event['event_time'] ?: '00:00:00');
     $event['event_end_datetime'] = date('Y-m-d H:i:s', strtotime($event['event_start_datetime'] . ' +4 hours'));

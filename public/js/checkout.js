@@ -3,7 +3,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const urlParams = new URLSearchParams(window.location.search);
     const eventId = urlParams.get('id');
     const quantityParam = urlParams.get('quantity') || '1';
-    const ticketType = urlParams.get('type') || 'regular';
+    const ticketType = urlParams.get('type') || urlParams.get('ticket_type') || 'regular';
     let currentQuantity = parseInt(quantityParam, 10);
     
     if (isNaN(currentQuantity) || currentQuantity < 1) currentQuantity = 1;
