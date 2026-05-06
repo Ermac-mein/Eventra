@@ -27,7 +27,9 @@ try {
             o.id, o.event_id, o.amount, o.payment_status, o.refund_status,
             o.transaction_reference, o.created_at,
             e.event_name, e.event_date, e.event_time, e.location, e.address, e.image_path, e.price,
-            t.barcode, u.name as user_name, a.email as user_email
+            e.metadata,
+            t.barcode, u.name as user_name, a.email as user_email,
+            p.quantity, p.ticket_type
         FROM orders o
         JOIN events e ON o.event_id = e.id
         JOIN users u ON o.user_id = u.id
@@ -46,6 +48,14 @@ try {
         http_response_code(404);
         echo json_encode(['success' => false, 'message' => 'Order not found.']);
         exit;
+    }
+
+    // Decode metadata if present to expose tiered pricing (vip_price, premium_price etc)
+    if (!empty($order['metadata'])) {
+        $meta = json_decode($order['metadata'], true);
+        if (is_array($meta)) {
+            $order = array_merge($order, $meta);
+        }
     }
 
     // 3. Handle JSON request

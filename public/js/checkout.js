@@ -170,6 +170,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const orderData = {
                     eventId: eventId,
                     quantity: currentQuantity,
+                    ticket_type: currentTicketType,
                     order_id: result.order_id,
                     reference: result.reference,
                     authorization_url: result.authorization_url,

@@ -296,7 +296,7 @@ try {
         ],
     ];
 
-    if (!empty($event['subaccount_code'])) {
+    if (!empty($event['subaccount_code']) && !str_starts_with($event['subaccount_code'], 'SETTLE_MOCK_')) {
         $paystackPayload['subaccount'] = $event['subaccount_code'];
         $paystackPayload['bearer']     = 'subaccount';
     }

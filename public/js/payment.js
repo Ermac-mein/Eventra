@@ -54,7 +54,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
     }
 
-    const { eventId, quantity, contactInfo, authorization_url } = orderData;
+    const { eventId, quantity, ticket_type, contactInfo, authorization_url } = orderData;
 
     // 3. Pending order has an authorization URL (Paid Event)
     if (authorization_url) {
@@ -73,11 +73,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         
         if (result.success && result.event) {
             const eventData = result.event;
-            renderSummary(eventData, quantity);
+            renderSummary(eventData, quantity, ticket_type);
             
             const isFree = parseFloat(eventData.price || 0) === 0;
             if (isFree) {
-                setupFreeEventState(paymentForm, eventData, quantity);
+                setupFreeEventState(paymentForm, eventData, quantity, ticket_type);
             } else {
                 // If it's not free and has no auth_url, it's likely the old manual OTP flow
                 // Re-enable the form for legacy support if needed, but marketplace is priority
@@ -149,7 +149,7 @@ async function startPolling(reference) {
                     msg.innerHTML = `Your ticket${(order.quantity||1) > 1 ? 's' : ''} for <strong>${escapeHTML(cleanedName)}</strong> ${order.is_free ? 'have been issued' : 'are ready'}.<br><span style="font-size:0.8rem;color:#6b7280;">Ref: ${escapeHTML(reference)}</span>`;
                     
                     if (order) {
-                        renderSummary(order, order.quantity || 1);
+                        renderSummary(order, order.quantity || quantity || 1, order.ticket_type || ticket_type || 'regular');
                     }
                     
                     if (firstBarcode) {
@@ -213,7 +213,7 @@ async function startPolling(reference) {
 
 // ─── Free Event Handler ─────────────────────────────────────────────────────
 
-function setupFreeEventState(form, eventData, quantity) {
+function setupFreeEventState(form, eventData, quantity, ticketType = 'regular') {
     const paymentLoading = document.getElementById('paymentLoading');
     if (paymentLoading) paymentLoading.style.display = 'none';
     form.style.display = 'block';
@@ -245,6 +245,7 @@ function setupFreeEventState(form, eventData, quantity) {
                 body: JSON.stringify({
                     event_id: eventData.id,
                     quantity: quantity,
+                    ticket_type: ticketType,
                     payment_reference: finalRef
                 })
             });
@@ -271,8 +272,22 @@ function setupFreeEventState(form, eventData, quantity) {
 
 // ─── Summary UI ─────────────────────────────────────────────────────────────
 
-function renderSummary(event, qty) {
-    const priceNum = parseFloat(event.price || 0);
+function renderSummary(event, qty, ticketType = 'regular') {
+    // Merge metadata if present
+    if (event.metadata && typeof event.metadata === 'string') {
+        try {
+            const meta = JSON.parse(event.metadata);
+            Object.assign(event, meta);
+        } catch(e) {}
+    }
+
+    let priceNum = parseFloat(event.price || 0);
+
+    // Dynamic price lookup (tiered pricing)
+    if (ticketType === 'vip' && event.vip_price) priceNum = parseFloat(event.vip_price);
+    else if (ticketType === 'premium' && event.premium_price) priceNum = parseFloat(event.premium_price);
+    else if (ticketType === 'regular' && event.regular_price) priceNum = parseFloat(event.regular_price);
+
     const total = priceNum * qty;
     const container = document.getElementById('summaryContent');
     if (!container) return;
@@ -296,6 +311,9 @@ function renderSummary(event, qty) {
             <div>
                 <h4 style="font-weight: 700; color: #1e293b;">${escapeHTML(cleanEventName)}</h4>
                 <p style="font-size: 0.8rem; color: #64748b;">${escapeHTML(locationStr)}</p>
+                <p style="font-size: 0.75rem; color: #722f37; font-weight: 600; margin-top: 4px; text-transform: uppercase;">
+                    ${escapeHTML(ticketType)} Ticket
+                </p>
             </div>
         </div>
         <div class="summary-item">
