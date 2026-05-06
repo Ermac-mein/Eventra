@@ -1726,6 +1726,11 @@ function showEventModal(eventId) {
     return;
   }
 
+  // Pre-calculate prices
+  const regularPrice = parseFloat(event.regular_price || 0);
+  const vipPrice = parseFloat(event.vip_price || 0);
+  const premiumPrice = parseFloat(event.premium_price || 0);
+
   // Populate modal
   const modal = document.getElementById("eventDetailsModal");
   const modalImage = document.getElementById("modalEventImage");
@@ -1837,12 +1842,7 @@ function showEventModal(eventId) {
   if (document.getElementById("modalEventPrice"))
     document.getElementById("modalEventPrice").textContent = modalPrice;
 
-  // Handle VIP/Regular pricing in modal
-  const regularPrice = parseFloat(event.regular_price || 0);
-  const vipPrice = parseFloat(event.vip_price || 0);
-  const premiumPrice = parseFloat(event.premium_price || 0);
   const ticketTypeSection = document.getElementById("ticketTypeSection");
-
   if (ticketTypeSection) {
     const availableTypes = [];
     if (regularPrice > 0) availableTypes.push("regular");
@@ -1864,13 +1864,13 @@ function showEventModal(eventId) {
         'input[name="selectedTicketType"][value="premium"]',
       );
 
-      if (regularRadio)
+      if (regularRadio && regularRadio.closest("label"))
         regularRadio.closest("label").style.display =
           regularPrice > 0 ? "flex" : "none";
-      if (vipRadio)
+      if (vipRadio && vipRadio.closest("label"))
         vipRadio.closest("label").style.display =
           vipPrice > 0 ? "flex" : "none";
-      if (premiumRadio)
+      if (premiumRadio && premiumRadio.closest("label"))
         premiumRadio.closest("label").style.display =
           premiumPrice > 0 ? "flex" : "none";
 
@@ -2246,6 +2246,7 @@ if (document.readyState === "loading") {
 
 // Helper function to update ticket price display based on selected type
 function updateTicketPriceDisplay(event, ticketType) {
+  if (!event) return;
   const regularPrice = parseFloat(event.regular_price || 0);
   const vipPrice = parseFloat(event.vip_price || 0);
   const premiumPrice = parseFloat(event.premium_price || 0);
