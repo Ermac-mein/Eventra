@@ -1776,10 +1776,14 @@ function showEventModal(eventId) {
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean);
-  const isMultipleStates =
-    states.length > 1 &&
-    !states.includes("All States") &&
-    !states.includes("Nationwide");
+  
+  // Try structured locations JSON
+  let locs = null;
+  try {
+    locs = event.locations ? (typeof event.locations === "string" ? JSON.parse(event.locations) : event.locations) : null;
+  } catch (e) {}
+
+  const isMultipleStates = (Array.isArray(locs) && locs.length > 1) || (states.length > 1 && !states.includes("All States") && !states.includes("Nationwide"));
 
   const firstLine = [addressStr, cityStr].filter(Boolean).join(", ");
   const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(firstLine + (stateStr ? ", " + stateStr : "") || "Nigeria")}`;
@@ -1787,23 +1791,29 @@ function showEventModal(eventId) {
   let locationHTML = "";
   if (isMultipleStates) {
     // Truncated view for multiple states
-    const visibleStates = states.slice(0, 2);
-    const hiddenStates = states.slice(2);
+    const locList = Array.isArray(locs) && locs.length > 0 
+      ? locs 
+      : states.map(s => ({ state: s, address: event.address || "" }));
+
+    const visibleLocs = locList.slice(0, 2);
 
     locationHTML = `
       <div id="truncatedLocations">
-        ${visibleStates.map((s) => `<div style="margin-bottom: 0.5rem; font-weight: 600;">📍 ${escapeHTML(s)}</div>`).join("")}
-        ${states.length > 2 ? `<button onclick="toggleModalLocations(true)" style="background: none; border: none; color: #722f37; font-weight: 700; cursor: pointer; padding: 0; font-size: 0.9rem; margin-top: 0.25rem;">+ ${states.length - 2} more (See More)</button>` : ""}
-        ${states.length === 2 ? `<button onclick="toggleModalLocations(true)" style="background: none; border: none; color: #722f37; font-weight: 700; cursor: pointer; padding: 0; font-size: 0.9rem; margin-top: 0.25rem;">See More Locations</button>` : ""}
+        ${visibleLocs.map((loc) => `
+          <div style="margin-bottom: 0.5rem;">
+            <div style="font-weight: 600;">📍 ${escapeHTML(loc.state)}</div>
+            ${loc.address && loc.address !== 'Multi-state' ? `<div style="font-size: 0.85rem; color: #6b7280; padding-left: 18px;">${escapeHTML(loc.address)}</div>` : ""}
+          </div>
+        `).join("")}
+        ${locList.length > 2 ? `<button onclick="toggleModalLocations(true)" style="background: none; border: none; color: #722f37; font-weight: 700; cursor: pointer; padding: 0; font-size: 0.9rem; margin-top: 0.25rem;">+ ${locList.length - 2} more (See More)</button>` : ""}
+        ${locList.length === 2 && !Array.isArray(locs) ? `<button onclick="toggleModalLocations(true)" style="background: none; border: none; color: #722f37; font-weight: 700; cursor: pointer; padding: 0; font-size: 0.9rem; margin-top: 0.25rem;">See More Locations</button>` : ""}
       </div>
       <div id="fullLocations" style="display: none;">
-        ${states
+        ${locList
           .map(
-            (
-              s,
-            ) => `<div style="margin-bottom: 0.75rem; border-bottom: 1px dashed #eee; padding-bottom: 0.5rem;">
-          <div style="font-weight: 600; margin-bottom: 0.25rem;">📍 ${escapeHTML(s)}</div>
-          ${addressStr ? `<div style="font-size: 0.85rem; color: #6b7280;">${addressStr}</div>` : ""}
+            (loc) => `<div style="margin-bottom: 0.75rem; border-bottom: 1px dashed #eee; padding-bottom: 0.5rem;">
+          <div style="font-weight: 600; margin-bottom: 0.25rem;">📍 ${escapeHTML(loc.state)}</div>
+          ${loc.address && loc.address !== 'Multi-state' ? `<div style="font-size: 0.85rem; color: #6b7280; padding-left: 18px;">${escapeHTML(loc.address)}</div>` : ""}
         </div>`,
           )
           .join("")}
@@ -1812,7 +1822,7 @@ function showEventModal(eventId) {
     `;
   } else {
     // Standard single or All States view
-    if (firstLine) {
+    if (firstLine && firstLine !== 'Multi-state') {
       locationHTML += `<a href="${mapUrl}" target="_blank" class="address-link" style="display: block;">${firstLine}</a>`;
       if (stateStr)
         locationHTML += `<div style="margin-top: 0.75rem; font-size: 0.9em; line-height: 1.6; color: #4b5563; display: block;">${escapeHTML(stateStr.replace(/,/g, ", "))}</div>`;
