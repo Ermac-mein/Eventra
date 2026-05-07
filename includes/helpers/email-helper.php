@@ -442,13 +442,13 @@ class EmailHelper
     private static function detailRow(string $label, string $value, bool $priceStyle = false): string
     {
         $valueStyle = $priceStyle
-            ? 'font-family:Arial,sans-serif;font-size:17px;font-weight:800;color:#d4af37;line-height:1.2;display:block;'
-            : 'font-family:Arial,sans-serif;font-size:15px;font-weight:600;color:#d4af37;line-height:1.2;display:block;';
+            ? 'font-family:Arial,sans-serif;font-size:17px;font-weight:800;color:#ffffff;line-height:1.2;display:block;'
+            : 'font-family:Arial,sans-serif;font-size:15px;font-weight:600;color:#ffffff;line-height:1.2;display:block;';
 
         return '<div style="margin-bottom:14px;word-break:break-word;">'
             . '<span style="display:block;font-family:Arial,sans-serif;'
             . 'font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;'
-            . 'color:rgba(255,255,255,0.30);margin-bottom:3px;">'
+            . 'color:#ffffff;margin-bottom:3px;">'
             . self::esc($label)
             . '</span>'
             . '<span style="' . $valueStyle . '">' . $value . '</span>'
@@ -506,8 +506,8 @@ class EmailHelper
             // For email: use absolute URL to the generated QR file
             $qrFile = 'public/assets/event_assets/qrcodes/qr_' . $ticketData['barcode'] . '.png';
             $qrSrc = htmlspecialchars(self::pathToUrl($qrFile), ENT_QUOTES, 'UTF-8');
-            $qrHtml = "<img src=\"{$qrSrc}\" alt=\"QR Code\" width=\"130\" height=\"130\""
-                . " style=\"width:130px;height:130px;display:block;\">";
+            $qrHtml = "<img src=\"{$qrSrc}\" alt=\"QR Code\" width=\"150\" height=\"150\""
+                . " style=\"width:150px;height:150px;display:block;\">";
         } else {
             // For PDF: use base64
             $staticQrPath = self::normalisePath(
@@ -525,14 +525,14 @@ class EmailHelper
 
             if ($qrDataUri !== '') {
                 $qrSrc  = htmlspecialchars($qrDataUri, ENT_QUOTES, 'UTF-8');
-                $qrHtml = "<img src=\"{$qrSrc}\" alt=\"QR Code\" width=\"130\" height=\"130\""
-                    . " style=\"width:130px;height:130px;display:block;\">";
+                $qrHtml = "<img src=\"{$qrSrc}\" alt=\"QR Code\" width=\"150\" height=\"150\""
+                    . " style=\"width:150px;height:150px;display:block;\">";
             }
         }
 
         if ($qrHtml === '') {
-            $qrHtml = '<div style="width:130px;height:130px;background:#333;'
-                . 'text-align:center;line-height:130px;font-size:10px;color:#888;">'
+            $qrHtml = '<div style="width:150px;height:150px;background:#333;'
+                . 'text-align:center;line-height:150px;font-size:10px;color:#888;">'
                 . 'NO QR</div>';
         }
 
@@ -605,14 +605,14 @@ class EmailHelper
             $colA .= '<div style="margin-bottom:14px;word-break:break-word;">'
                 . '<span style="display:block;font-family:Arial,sans-serif;font-size:9px;'
                 . 'font-weight:700;letter-spacing:2px;text-transform:uppercase;'
-                . 'color:rgba(255,255,255,0.30);margin-bottom:6px;">Venue &amp; Location</span>';
+                . 'color:#ffffff;margin-bottom:6px;">Venue &amp; Location</span>';
             foreach ($locations as $loc) {
                 $s = self::esc($loc['state']   ?? '');
                 $a = self::esc($loc['address'] ?? '');
                 
                 // Typography for Location blocks
                 $stateStyle = 'font-family:Arial,sans-serif;font-size:16px;font-weight:700;color:#ffffff;line-height:1.3;display:block;';
-                $addrStyle  = 'font-family:Arial,sans-serif;font-size:13px;font-weight:400;color:#cccccc;line-height:1.4;display:block;';
+                $addrStyle  = 'font-family:Arial,sans-serif;font-size:13px;font-weight:400;color:#ffffff;line-height:1.4;display:block;';
 
                 $colA .= '<div style="margin-bottom:12px;">'
                     . '<span style="' . $stateStyle . '">' . $s . '</span>'
@@ -627,11 +627,11 @@ class EmailHelper
                 $colA .= '<div style="margin-bottom:14px;word-break:break-word;">'
                     . '<span style="display:block;font-family:Arial,sans-serif;font-size:9px;'
                     . 'font-weight:700;letter-spacing:2px;text-transform:uppercase;'
-                    . 'color:rgba(255,255,255,0.30);margin-bottom:6px;">Venue &amp; Location</span>'
+                    . 'color:#ffffff;margin-bottom:6px;">Venue &amp; Location</span>'
                     . '<div style="margin-bottom:12px;">'
                     . '<span style="font-family:Arial,sans-serif;font-size:16px;font-weight:700;color:#ffffff;display:block;">'
                     . self::esc($st) . '</span>'
-                    . '<span style="font-family:Arial,sans-serif;font-size:13px;font-weight:400;color:#cccccc;display:block;">'
+                    . '<span style="font-family:Arial,sans-serif;font-size:13px;font-weight:400;color:#ffffff;display:block;">'
                     . self::esc($ad) . '</span>'
                     . '</div></div>';
             } else {
@@ -686,7 +686,7 @@ class EmailHelper
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>Ticket &mdash; {$eventTitle}</title>
 </head>
-<body style="margin:0;padding:40px 10px;background:#1a1a1a;font-family:Arial,'Helvetica Neue',Helvetica,sans-serif;">
+<body style="margin:0;padding:40px 10px;background-color:#ffffff;font-family:Arial,'Helvetica Neue',Helvetica,sans-serif;">
 
 <!--  Outer wrapper  -->
 <table width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation">
@@ -744,16 +744,16 @@ class EmailHelper
           <td valign="middle">
             <div style="font-family:Arial,sans-serif;font-size:9px;font-weight:700;
                         letter-spacing:2px;text-transform:uppercase;
-                        color:rgba(255,255,255,0.3);margin-bottom:4px;">Ticket Holder</div>
+                        color:#ffffff;margin-bottom:4px;">Ticket Holder</div>
             <div style="font-family:'Arial Narrow',Arial,sans-serif;font-size:20px;
                         font-weight:800;color:#fff;">{$userName}</div>
           </td>
           <td align="right" valign="middle">
             <div style="font-family:Arial,sans-serif;font-size:9px;font-weight:700;
                         letter-spacing:2px;text-transform:uppercase;
-                        color:rgba(255,255,255,0.3);margin-bottom:4px;">Ticket ID</div>
+                        color:#ffffff;margin-bottom:4px;">Ticket ID</div>
             <div style="font-family:'Courier New',Courier,monospace;font-size:13px;
-                        font-weight:700;color:#d4af37;">{$ticketId}</div>
+                        font-weight:700;color:#ffffff;">{$ticketId}</div>
           </td>
         </tr>
         </table>
@@ -774,12 +774,7 @@ class EmailHelper
     <td width="276" valign="top"
         style="width:276px;background:#181818;vertical-align:top;padding:0;">
 
-      <!-- Event image (180 px tall) -->
-      <table width="100%" cellpadding="0" cellspacing="0" border="0">
-      <tr><td style="padding:0;line-height:0;font-size:0;height:180px;overflow:hidden;">
-        {$eventImgHtml}
-      </td></tr>
-      </table>
+
 
       <!-- Gold divider -->
       <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
@@ -791,19 +786,19 @@ class EmailHelper
       <tr><td align="center" style="padding:22px 16px 26px;">
 
         <div style="font-family:Arial,sans-serif;font-size:9px;letter-spacing:3px;
-                    text-transform:uppercase;color:rgba(255,255,255,0.3);
+                    text-transform:uppercase;color:#ffffff;
                     margin-bottom:14px;">SCAN TO ENTER</div>
 
         <table cellpadding="0" cellspacing="0" border="0" align="center"
                style="background:#ffffff;border-radius:10px;padding:8px;
-                      width:146px;height:146px;margin:0 auto 14px;">
+                      width:166px;height:166px;margin:0 auto 14px;">
         <tr><td align="center" valign="middle" style="padding:0;">
           {$qrHtml}
         </td></tr>
         </table>
 
         <div style="font-family:'Courier New',Courier,monospace;font-size:11px;
-                    font-weight:700;color:#d4af37;letter-spacing:1px;
+                    font-weight:700;color:#ffffff;letter-spacing:1px;
                     word-break:break-all;">{$barcode}</div>
 
       </td></tr>
@@ -822,6 +817,12 @@ class EmailHelper
 </body>
 </html>
 HTML;
+
+        // Minify HTML to reduce size and prevent Gmail clipping
+        $html = preg_replace('/<!--(.|\s)*?-->/', '', $html); // Remove comments
+        $html = preg_replace('/\s+/', ' ', $html); // Collapse whitespace
+        $html = str_replace("> <", "><", $html); // Remove whitespace between tags
+        return trim($html);
     }
 
     private static function buildPdfHtml(
@@ -846,8 +847,8 @@ HTML;
 
         $overlayBg = $bgImage ? 'linear-gradient(to right, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.3) 100%)' : 'rgba(0,0,0,0.0)';
         $textColor  = '#ffffff';
-        $labelColor = 'rgba(255,255,255,0.55)';
-        $valueColor = '#f5c842';
+        $labelColor = '#ffffff';
+        $valueColor = '#ffffff';
 
         return <<<PDF
 <!DOCTYPE html>

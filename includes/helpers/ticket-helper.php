@@ -166,12 +166,14 @@ function generateTicketQRCode(array $ticketData): string
             'version' => QRCode::VERSION_AUTO,
             'outputType' => QRCode::OUTPUT_IMAGE_PNG,
             'eccLevel' => QRCode::ECC_M,
+            'scale' => 5, // Increase scale for better resolution
+            'imageTransparent' => false,
         ]);
 
         $qrcode = new QRCode($options);
         // Encode a public verification URL instead of raw barcode
         $verificationUrl = APP_URL . '/api/tickets/validate-ticket.php?barcode=' . $ticketData['barcode'];
-        $svgData = $qrcode->render($verificationUrl);
+        $qrData = $qrcode->render($verificationUrl);
 
         $fileName = 'qr_' . $ticketData['barcode'] . '.png';
 
@@ -183,7 +185,7 @@ function generateTicketQRCode(array $ticketData): string
         }
 
         $filePath = $dir . $fileName;
-        file_put_contents($filePath, $svgData);
+        file_put_contents($filePath, $qrData);
 
         return $filePath;
     } catch (\Throwable $e) {
@@ -285,7 +287,12 @@ function generateTicketPDF(array $ticketData): string
 
     $html = EmailHelper::buildTicketHtml($richTicketData, '', true);
 
-    $dompdf->loadHtml($html);
+    if (empty($html)) {
+        error_log("[TicketHelper] buildTicketHtml returned empty string for ticket " . $ticket_id);
+        return '';
+    }
+
+    $dompdf->loadHtml($html, 'UTF-8');
     $dompdf->setPaper('A4', 'landscape');
     $dompdf->render();
 

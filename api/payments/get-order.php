@@ -116,6 +116,14 @@ try {
                     <span class="label">Date</span>
                     <span class="value"><?php echo date('M d, Y H:i', strtotime($order['created_at'])); ?></span>
                 </div>
+                <div class="order-item">
+                    <span class="label">Ticket Type</span>
+                    <span class="value"><?php echo htmlspecialchars(strtoupper($order['ticket_type'] ?? 'Regular')); ?></span>
+                </div>
+                <div class="order-item">
+                    <span class="label">Quantity</span>
+                    <span class="value"><?php echo htmlspecialchars($order['quantity'] ?? '1'); ?></span>
+                </div>
                 
                 <div class="total-row">
                     <span class="total-label">Amount Paid</span>

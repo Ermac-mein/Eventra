@@ -106,6 +106,8 @@ try {
                         <tr><td style='padding: 8px; border-bottom: 1px solid #eee;'><strong>Reference:</strong></td><td style='padding: 8px; border-bottom: 1px solid #eee;'>{$payment_ref}</td></tr>
                         <tr><td style='padding: 8px; border-bottom: 1px solid #eee;'><strong>Amount:</strong></td><td style='padding: 8px; border-bottom: 1px solid #eee;'>&#8358;" . number_format($payment['amount'], 2) . "</td></tr>
                         <tr><td style='padding: 8px; border-bottom: 1px solid #eee;'><strong>Date:</strong></td><td style='padding: 8px; border-bottom: 1px solid #eee;'>{$payment['paid_at']}</td></tr>
+                        <tr><td style='padding: 8px; border-bottom: 1px solid #eee;'><strong>Ticket Type:</strong></td><td style='padding: 8px; border-bottom: 1px solid #eee;'>" . strtoupper($payment['ticket_type'] ?? 'Regular') . "</td></tr>
+                        <tr><td style='padding: 8px; border-bottom: 1px solid #eee;'><strong>Quantity:</strong></td><td style='padding: 8px; border-bottom: 1px solid #eee;'>{$payment['quantity']}</td></tr>
                     </table>
                     <p>Your tickets have been sent in a separate email.</p>
                 </div>
