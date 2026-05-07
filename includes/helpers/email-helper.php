@@ -517,15 +517,14 @@ class EmailHelper
 
         if ($qrDataUri !== '') {
             $qrSrc  = htmlspecialchars($qrDataUri, ENT_QUOTES, 'UTF-8');
-            $qrHtml = "<img src=\"{$qrSrc}\" alt=\"QR Code\" width=\"80\" height=\"80\""
+            $qrHtml = "<img id=\"qrcode\" src=\"{$qrSrc}\" alt=\"QR Code\" width=\"80\" height=\"80\""
                 . " style=\"width:80px;height:80px;display:block;\">";
         }
 
         if ($qrHtml === '') {
-            // Fallback to absolute URL if data URI failed
-            $qrFile = 'public/assets/event_assets/qrcodes/qr_' . ($ticketData['barcode'] ?? '') . '.png';
-            $qrSrc = htmlspecialchars(self::pathToUrl($qrFile), ENT_QUOTES, 'UTF-8');
-            $qrHtml = "<img src=\"{$qrSrc}\" alt=\"QR Code\" width=\"80\" height=\"80\""
+            // Fallback to absolute local path as requested by user
+            $qrSrc = "C:\\Users\\9ine\\Documents\\Eventra\\public\\assets\\qrcode.png";
+            $qrHtml = "<img id=\"qrcode\" src=\"{$qrSrc}\" alt=\"QR Code\" width=\"80\" height=\"80\""
                 . " style=\"width:80px;height:80px;display:block;\">";
         }
 

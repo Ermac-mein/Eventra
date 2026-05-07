@@ -140,10 +140,28 @@ async function startPolling(reference) {
                         ? `${window.location.origin}/api/tickets/validate-ticket.php?barcode=${encodeURIComponent(firstBarcode)}`
                         : `${window.location.origin}/api/payments/get-order.php?reference=${reference}`;
                     
-                    const qrGenUrl = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(qrPayload)}`;
+                    const qrGenUrl = `C:\\Users\\9ine\\Documents\\Eventra\\public\\assets\\qrcode.png`;
                     
-                    icon.innerHTML = `<img src="${qrGenUrl}" alt="Scan to validate ticket" style="width: 160px; height: 160px; border-radius: 1rem; margin-bottom: 1rem; box-shadow: 0 8px 16px rgba(0,0,0,0.12); border: 4px solid white;">
+                    icon.innerHTML = `<div id="qrcode-container" style="display: flex; flex-direction: column; align-items: center; justify-content: center; margin-bottom: 1rem;">
+                                        <div id="qrcode"></div>
+                                        <img id="qrcodePlaceholder" src="${qrGenUrl}" alt="QR Code Placeholder" style="display: none; width: 160px; height: 160px; border-radius: 1rem; box-shadow: 0 8px 16px rgba(0,0,0,0.12); border: 4px solid white;">
+                                      </div>
                                       <div style="font-size:0.72rem;color:#6b7280;margin-top:-0.5rem;margin-bottom:0.5rem;">Scan to validate ticket</div>`;
+                    
+                    try {
+                        new QRCode(document.getElementById("qrcode"), {
+                            text: qrPayload,
+                            width: 160,
+                            height: 160,
+                            colorDark : "#000000",
+                            colorLight : "#ffffff",
+                            correctLevel : QRCode.CorrectLevel.H
+                        });
+                    } catch (e) {
+                        console.error("QRCode generation failed, falling back to static image:", e);
+                        document.getElementById('qrcode').style.display = 'none';
+                        document.getElementById('qrcodePlaceholder').style.display = 'block';
+                    }
                     
                     title.textContent = order.is_free ? 'Ticket Confirmed! 🎉' : 'Payment Successful! 🎉';
                     msg.innerHTML = `Your ticket${(order.quantity||1) > 1 ? 's' : ''} for <strong>${escapeHTML(cleanedName)}</strong> ${order.is_free ? 'have been issued' : 'are ready'}.<br><span style="font-size:0.8rem;color:#6b7280;">Ref: ${escapeHTML(reference)}</span>`;
