@@ -18,7 +18,8 @@ if (!$barcode) {
 
 try {
     $stmt = $pdo->prepare("
-        SELECT t.*, e.event_name, e.event_date, e.event_time, e.location, e.address, u.name as user_name, p.status as payment_status 
+        SELECT t.*, e.event_name, e.event_date, e.event_time, e.location, e.address, 
+               u.name as user_name, p.status as payment_status, p.amount, p.quantity, p.ticket_type
         FROM tickets t
         JOIN events e ON t.event_id = e.id
         JOIN users u ON t.user_id = u.id
@@ -42,7 +43,10 @@ try {
             'status' => $ticket['status'],
             'event_name' => $ticket['event_name'],
             'user_name' => $ticket['user_name'],
-            'barcode' => $barcode
+            'barcode' => $barcode,
+            'amount' => $ticket['amount'],
+            'quantity' => $ticket['quantity'],
+            'ticket_type' => $ticket['ticket_type']
         ]);
         exit;
     }
@@ -80,7 +84,7 @@ try {
                 border-radius: 24px;
                 box-shadow: 0 10px 25px rgba(0,0,0,0.05);
                 width: 100%;
-                max-width: 400px;
+                max-width: 440px;
                 padding: 40px;
                 text-align: center;
                 border: 1px solid #e2e8f0;
@@ -102,14 +106,14 @@ try {
             .detail-box {
                 background: #f1f5f9;
                 border-radius: 16px;
-                padding: 20px;
+                padding: 24px;
                 text-align: left;
                 margin-bottom: 24px;
             }
-            .detail-item { margin-bottom: 12px; }
-            .detail-item:last-child { margin-bottom: 0; }
-            .label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-light); font-weight: 700; display: block; margin-bottom: 4px; }
-            .value { font-size: 16px; font-weight: 600; color: var(--text); }
+            .detail-item { margin-bottom: 16px; border-bottom: 1px solid rgba(0,0,0,0.03); padding-bottom: 12px; }
+            .detail-item:last-child { margin-bottom: 0; border-bottom: none; padding-bottom: 0; }
+            .label { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-light); font-weight: 700; display: block; margin-bottom: 4px; }
+            .value { font-size: 15px; font-weight: 700; color: var(--text); }
             .footer { font-size: 12px; color: var(--text-light); }
             .badge {
                 display: inline-block;
@@ -118,7 +122,7 @@ try {
                 font-size: 11px;
                 font-weight: 700;
                 text-transform: uppercase;
-                margin-top: 8px;
+                margin-top: 4px;
             }
             .badge-valid { background: var(--primary); color: white; }
         </style>
@@ -139,8 +143,20 @@ try {
                     <span class="value"><?php echo htmlspecialchars($ticket['user_name']); ?></span>
                 </div>
                 <div class="detail-item">
+                    <span class="label">Ticket Type</span>
+                    <span class="value"><?php echo htmlspecialchars(strtoupper($ticket['ticket_type'] ?? 'Regular')); ?></span>
+                </div>
+                <div class="detail-item">
+                    <span class="label">Quantity</span>
+                    <span class="value"><?php echo htmlspecialchars($ticket['quantity'] ?? '1'); ?></span>
+                </div>
+                <div class="detail-item">
+                    <span class="label">Amount Paid</span>
+                    <span class="value">₦<?php echo number_format($ticket['amount'], 2); ?></span>
+                </div>
+                <div class="detail-item">
                     <span class="label">Ticket ID</span>
-                    <span class="value"><?php echo htmlspecialchars($barcode); ?></span>
+                    <span class="value" style="font-family: monospace;"><?php echo htmlspecialchars($barcode); ?></span>
                 </div>
                 <div class="detail-item">
                     <span class="label">Status</span>

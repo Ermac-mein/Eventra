@@ -67,11 +67,31 @@ function showResult(result) {
     const title = document.getElementById('resultTitle');
     const statusIcon = document.getElementById('statusIcon');
 
+    // Remove any existing QR preview
+    const oldQr = panel.querySelector('.qr-preview');
+    if (oldQr) oldQr.remove();
+
     if (result.success) {
         iconContainer.className = 'result-type-icon success-bg';
         statusIcon.setAttribute('data-lucide', 'check-circle-2');
         title.textContent = 'Access Granted';
         title.style.color = '#722f37';
+
+        // Add QR preview if available
+        if (result.data.qr_code_path) {
+            const qrImg = document.createElement('img');
+            qrImg.src = result.data.qr_code_path;
+            qrImg.className = 'qr-preview';
+            qrImg.style.width = '120px';
+            qrImg.style.height = '120px';
+            qrImg.style.margin = '0 auto 1.5rem';
+            qrImg.style.display = 'block';
+            qrImg.style.borderRadius = '16px';
+            qrImg.style.padding = '8px';
+            qrImg.style.background = '#f8fafc';
+            qrImg.style.border = '1px solid #e2e8f0';
+            iconContainer.after(qrImg);
+        }
 
         document.getElementById('valAttendee').textContent = result.data.buyer_name;
         document.getElementById('valEvent').textContent = result.data.event_name;

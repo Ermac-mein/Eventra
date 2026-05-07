@@ -207,6 +207,9 @@ function generateTicketQRCode(array $ticketData): string
  */
 function generateTicketPDF(array $ticketData): string
 {
+    // Increase memory limit for PDF generation to prevent mid-render crashes
+    ini_set('memory_limit', '256M');
+
     $options = new Options();
     $options->set('isRemoteEnabled', true);
     $options->set('isFontSubsettingEnabled', true);
@@ -216,16 +219,9 @@ function generateTicketPDF(array $ticketData): string
 
     // Generate secure QR code
     $qrCodePath = generateTicketQRCode($ticketData);
-    $qr_code_image_path = $qrCodePath;
-
+    
     // Prepare template variables
     $event_name = htmlspecialchars($ticketData['event_name'] ?? 'Event');
-    $event_date = !empty($ticketData['event_date'])
-        ? date('D, d M Y', strtotime($ticketData['event_date']))
-        : 'TBC';
-    $event_time = !empty($ticketData['event_time'])
-        ? date('g:i A', strtotime($ticketData['event_time']))
-        : 'TBC';
     $venue_name = htmlspecialchars($ticketData['address'] ?? $ticketData['location'] ?? 'See event details');
     $attendee_name = htmlspecialchars($ticketData['user_name'] ?? 'Attendee');
     $ticket_id = $ticketData['barcode'];
@@ -246,38 +242,24 @@ function generateTicketPDF(array $ticketData): string
         $price_display = null;
     }
     
-    // State/Location information
-    $state = htmlspecialchars($ticketData['state'] ?? $ticketData['location_state'] ?? '');
-
     // Encode images to Base64 to fix "blank PDF" issues
     $qr_base64 = base64_encode_image($qrCodePath);
     $event_img_base64 = $event_image_path ? base64_encode_image($event_image_path) : '';
     
-    // User-requested variable names for template
-    $event_title = $event_name;
-    $date = $event_date;
-    $time = $event_time;
-    $venue = $venue_name;
-    $user_name = $attendee_name;
-    $ticket_id = $ticketData['barcode'];
-    $ticket_type_display = $event_type_label;
-    $price = $price_display;
-
-
     // Map data for EmailHelper::buildTicketHtml
     $richTicketData = [
         'barcode'             => $ticket_id,
         'ticket_id'           => $ticket_id,
         'event_name'          => $event_name,
-        'user_name'           => $user_name,
-        'location'            => $venue_name, // Fallback venue name
+        'user_name'           => $attendee_name,
+        'location'            => $venue_name, 
         'address'             => $ticketData['address'] ?? null,
         'state'               => $ticketData['state'] ?? null,
         'locations'           => $ticketData['locations'] ?? null,
         'ticket_type'         => $ticket_type,
         'ticket_type_display' => $event_type_label,
         'qr_base64'           => $qr_base64,
-        'event_image'         => $event_img_base64 ?: $event_image_path, // Prefer base64
+        'event_image'         => $event_img_base64 ?: $event_image_path,
         'amount'              => $price_value,
         'event_date'          => $ticketData['event_date'] ?? null,
         'event_time'          => $ticketData['event_time'] ?? null,
@@ -293,7 +275,9 @@ function generateTicketPDF(array $ticketData): string
     }
 
     $dompdf->loadHtml($html, 'UTF-8');
-    $dompdf->setPaper('A4', 'landscape');
+    // Set paper size to 800px x 350px (converted to points: 1px = 0.75pt at 72dpi default)
+    // 800 * 0.75 = 600pt, 350 * 0.75 = 262.5pt
+    $dompdf->setPaper([0, 0, 600, 262.5], 'landscape');
     $dompdf->render();
 
     $fileName = 'ticket_' . $ticketData['barcode'] . '.pdf';
@@ -305,8 +289,9 @@ function generateTicketPDF(array $ticketData): string
     $filePath = $dir . $fileName;
     $pdfOutput = $dompdf->output();
     
-    if (empty($pdfOutput)) {
-        error_log("[TicketHelper] Dompdf output is empty for ticket " . $ticket_id);
+    // Validation gate: Ensure the PDF is not empty or abnormally small
+    if (empty($pdfOutput) || strlen($pdfOutput) < 1000) {
+        error_log("[TicketHelper] Dompdf output is too small or empty for ticket " . $ticket_id . " (" . strlen($pdfOutput) . " bytes)");
         return '';
     }
     

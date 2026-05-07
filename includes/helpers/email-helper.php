@@ -839,204 +839,151 @@ HTML;
         string $qrHtml,
         string $year
     ): string {
-        if ($bgImage) {
-            $bgStyle = "background-image: url('{$bgImage}'); background-size: cover; background-position: center; background-repeat: no-repeat;";
-        } else {
-            $bgStyle = 'background: #111111;';
-        }
-
-        $overlayBg = $bgImage ? 'linear-gradient(to right, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.3) 100%)' : 'rgba(0,0,0,0.0)';
-        $textColor  = '#ffffff';
-        $labelColor = '#ffffff';
-        $valueColor = '#ffffff';
+        $bgStyle = $bgImage ? "background-image: url('{$bgImage}');" : "background-color: #111;";
 
         return <<<PDF
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Ticket &mdash; {$eventTitle}</title>
+<title>Ticket — {$eventTitle}</title>
 <style>
-  @page { margin: 0px; size: A4 landscape; }
+  @page { size: 800px 350px; margin: 0; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  html, body {
-    width: 100%; height: 100%;
-    font-family: Arial, Helvetica, sans-serif;
-    background: #ffffff;
+  body {
+    width: 800px; height: 350px;
+    font-family: 'Helvetica', 'Arial', sans-serif;
+    background: #000;
+    color: #fff;
+    overflow: hidden;
   }
-  .ticket-wrap {
+  .ticket {
+    width: 800px; height: 350px;
     position: relative;
-    width: 100%; height: 100%;
-    min-height: 595px;
+    overflow: hidden;
     {$bgStyle}
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
   }
+  /* Dark overlay for readability */
   .overlay {
     position: absolute;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background: {$overlayBg};
-  }
-  .watermark {
-    position: absolute;
-    top: 50%; left: 50%;
-    font-size: 110px; font-weight: 900;
-    color: rgba(255,255,255,0.04);
-    transform: translate(-50%, -50%) rotate(-45deg);
-    white-space: nowrap;
-    z-index: 1;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: linear-gradient(to right, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.2) 100%);
   }
   .content {
     position: relative;
     z-index: 10;
-    padding: 38px 44px 140px 44px;
-    color: {$textColor};
+    padding: 30px 40px;
+    height: 100%;
+  }
+  .event-title {
+    font-size: 36px;
+    font-weight: 900;
+    text-transform: uppercase;
+    line-height: 1;
+    margin-bottom: 15px;
+    color: #fff;
+    max-width: 500px;
+  }
+  .badge-container {
+    margin-bottom: 20px;
+  }
+  .details-container {
+    width: 550px;
+  }
+  .details-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .details-table td {
+    vertical-align: top;
+    padding-right: 20px;
   }
   .label {
     font-size: 9px;
     text-transform: uppercase;
     letter-spacing: 2px;
-    color: {$labelColor};
+    color: rgba(255,255,255,0.7);
     margin-bottom: 4px;
     font-weight: 700;
   }
   .value {
-    font-size: 16px;
+    font-size: 15px;
     font-weight: 700;
-    color: {$valueColor};
-    margin-bottom: 14px;
-  }
-  .event-title {
-    font-size: 42px;
-    font-weight: 900;
-    text-transform: uppercase;
-    line-height: 1.05;
-    letter-spacing: -1px;
-    margin-bottom: 8px;
-    color: {$textColor};
-  }
-  .official-tag {
-    font-size: 11px;
-    letter-spacing: 4px;
-    color: #d4af37;
-    margin-bottom: 10px;
-  }
-  .attendee-name {
-    font-size: 26px;
-    font-weight: 800;
-    margin-top: 24px;
-    margin-bottom: 6px;
-    color: {$textColor};
-  }
-  .details-table {
-    margin-top: 26px;
-    width: 70%;
-    border-collapse: collapse;
-  }
-  .details-table td {
-    vertical-align: top;
-    padding-right: 32px;
-    padding-bottom: 4px;
-  }
-  .loc-state {
-    font-size: 16px;
-    font-weight: 700;
-    color: #ffffff;
-    display: block;
-    margin-bottom: 2px;
-  }
-  .loc-address {
-    font-size: 13px;
-    font-weight: 400;
-    color: #cccccc;
-    display: block;
-  }
-  .loc-block {
+    color: #fff;
     margin-bottom: 12px;
   }
-  .divider {
-    height: 3px;
-    background: #d4af37;
-    width: 60px;
-    margin: 12px 0 20px 0;
-  }
-  .barcode-strip {
+  .holder-section {
     position: absolute;
-    bottom: 36px;
-    left: 44px;
-    font-family: 'Courier New', monospace;
-    font-size: 11px;
-    color: rgba(255,255,255,0.55);
-    z-index: 10;
+    bottom: 30px;
+    left: 40px;
   }
-  .qr-box {
-    position: absolute;
-    bottom: 24px;
-    right: 24px;
-    z-index: 10;
-    background: #ffffff;
-    padding: 10px;
-    border-radius: 10px;
-    text-align: center;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-  }
-  .qr-box-label {
-    font-size: 9px;
-    color: #111;
+  .holder-name {
+    font-size: 24px;
     font-weight: 800;
-    text-transform: uppercase;
-    margin-bottom: 6px;
-    letter-spacing: 1px;
+    color: #fff;
+  }
+  .ticket-id-section {
+    position: absolute;
+    bottom: 30px;
+    left: 300px;
+  }
+  .qr-code {
+    position: absolute;
+    bottom: 30px;
+    right: 30px;
+    width: 130px;
+    height: 130px;
+    background: #fff;
+    padding: 8px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .qr-code img {
+    width: 114px;
+    height: 114px;
   }
 </style>
 </head>
 <body>
-<div class="ticket-wrap">
+<div class="ticket">
   <div class="overlay"></div>
-  <div class="watermark">EVENTRA</div>
-
+  
   <div class="content">
-    <div class="official-tag">OFFICIAL TICKET &mdash; EVENTRA</div>
-    {$badgeHtml}
+    <div class="badge-container">
+      {$badgeHtml}
+    </div>
     <div class="event-title">{$eventTitle}</div>
-    <div class="divider"></div>
+    
+    <div class="details-container">
+      <table class="details-table">
+        <tr>
+          <td width="50%">
+            {$colA}
+          </td>
+          <td width="50%">
+            {$colB}
+          </td>
+        </tr>
+      </table>
+    </div>
 
-    <div class="label">Attendee</div>
-    <div class="attendee-name">{$userName}</div>
+    <div class="holder-section">
+      <div class="label">Ticket Holder</div>
+      <div class="holder-name">{$userName}</div>
+    </div>
 
-    <table class="details-table">
-      <tr>
-        <td>
-          <div class="label">Date</div>
-          <div class="value">{$eventDate}</div>
-        </td>
-        <td>
-          <div class="label">Time</div>
-          <div class="value">{$eventTime}</div>
-        </td>
-        <td>
-          <div class="label">Ticket ID</div>
-          <div class="value" style="font-family:monospace;font-size:13px;">{$ticketId}</div>
-        </td>
-      </tr>
-      <tr>
-        <td colspan="3">
-          <div class="label" style="margin-top:10px;">Venue &amp; Location</div>
-          {$colA}
-        </td>
-      </tr>
-      <tr>
-        <td colspan="3">
-          {$colB}
-        </td>
-      </tr>
-    </table>
+    <div class="ticket-id-section">
+      <div class="label">Ticket ID</div>
+      <div class="value" style="font-family:monospace;">{$ticketId}</div>
+    </div>
   </div>
 
-  <div class="barcode-strip">
-    ID: {$barcode} &nbsp;|&nbsp; Issued by Eventra &copy; {$year}
-  </div>
-
-  <div class="qr-box">
-    <div class="qr-box-label">SCAN TO ENTER</div>
+  <div class="qr-code">
     {$qrHtml}
   </div>
 </div>

@@ -45,6 +45,7 @@ try {
                 'buyer_name'  => $result['data']['buyer_name'],
                 'buyer_email' => $result['data']['buyer_email'],
                 'ticket_id'   => $result['data']['barcode'],
+                'qr_code_path'=> $result['data']['qr_code_path'] ? '/' . ltrim($result['data']['qr_code_path'], '/') : null,
                 'scanned_at'  => date('Y-m-d H:i:s')
             ]
         ]);

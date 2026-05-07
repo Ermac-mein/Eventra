@@ -7,6 +7,7 @@
  * GET ?code=BARCODE
  */
 
+ob_start();
 require_once '../../config/database.php';
 require_once '../../includes/helpers/ticket-helper.php';
 
@@ -100,12 +101,14 @@ try {
     }
 
     // Stream file to client
+    if (ob_get_length()) ob_clean();
     header('Content-Type: application/pdf');
     header('Content-Disposition: attachment; filename="eventra_ticket_' . $barcode . '.pdf"');
     header('Content-Length: ' . filesize($pdfPath));
     header('Cache-Control: no-cache, no-store, must-revalidate');
     header('Pragma: no-cache');
     readfile($pdfPath);
+    exit;
 } catch (PDOException $e) {
     error_log('[download-ticket.php] DB error: ' . $e->getMessage());
     http_response_code(500);
