@@ -144,7 +144,7 @@ try {
                 </div>
                 <div class="detail-item">
                     <span class="label">Ticket Type</span>
-                    <span class="value"><?php echo htmlspecialchars(strtoupper($ticket['ticket_type'] ?? 'Regular')); ?></span>
+                    <span class="value"><?php echo ($ticket['amount'] == 0) ? 'Free' : htmlspecialchars(strtoupper($ticket['ticket_type'] ?? 'Regular')); ?></span>
                 </div>
                 <div class="detail-item">
                     <span class="label">Quantity</span>
@@ -152,7 +152,7 @@ try {
                 </div>
                 <div class="detail-item">
                     <span class="label">Amount Paid</span>
-                    <span class="value">₦<?php echo number_format($ticket['amount'], 2); ?></span>
+                    <span class="value"><?php echo ($ticket['amount'] == 0) ? 'Free' : '₦' . number_format($ticket['amount'], 2); ?></span>
                 </div>
                 <div class="detail-item">
                     <span class="label">Ticket ID</span>

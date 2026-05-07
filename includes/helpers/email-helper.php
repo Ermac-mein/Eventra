@@ -500,34 +500,33 @@ class EmailHelper
                 : 'Free';
         }
 
-        /* ── QR code data-URI or URL ────────────────────── */
+        /* ── QR code data-URI ────────────────────── */
         $qrHtml = '';
-        if (!$forPdf && !empty($ticketData['barcode'])) {
-            // For email: use absolute URL to the generated QR file
-            $qrFile = 'public/assets/event_assets/qrcodes/qr_' . $ticketData['barcode'] . '.png';
+        $staticQrPath = self::normalisePath(
+            $ticketData['qr_path'] ?? (__DIR__ . '/../../public/assets/qrcode.png')
+        );
+        $qrDataUri = self::generateQrDataUri($ticketData, $staticQrPath);
+
+        if ($forPdf && str_starts_with($qrDataUri, 'http')) {
+            $ctx  = stream_context_create(['http' => ['timeout' => 3]]);
+            $data = @file_get_contents($qrDataUri, false, $ctx);
+            $qrDataUri = ($data !== false && $data !== '')
+                ? 'data:image/png;base64,' . base64_encode($data)
+                : '';
+        }
+
+        if ($qrDataUri !== '') {
+            $qrSrc  = htmlspecialchars($qrDataUri, ENT_QUOTES, 'UTF-8');
+            $qrHtml = "<img src=\"{$qrSrc}\" alt=\"QR Code\" width=\"80\" height=\"80\""
+                . " style=\"width:80px;height:80px;display:block;\">";
+        }
+
+        if ($qrHtml === '') {
+            // Fallback to absolute URL if data URI failed
+            $qrFile = 'public/assets/event_assets/qrcodes/qr_' . ($ticketData['barcode'] ?? '') . '.png';
             $qrSrc = htmlspecialchars(self::pathToUrl($qrFile), ENT_QUOTES, 'UTF-8');
-            $qrHtml = "<img src=\"{$qrSrc}\" alt=\"QR Code\" width=\"150\" height=\"150\""
-                . " style=\"width:150px;height:150px;display:block;\">";
-        } else {
-            // For PDF: use base64
-            $staticQrPath = self::normalisePath(
-                $ticketData['qr_path'] ?? (__DIR__ . '/../../public/assets/qrcode.png')
-            );
-            $qrDataUri = self::generateQrDataUri($ticketData, $staticQrPath);
-
-            if ($forPdf && str_starts_with($qrDataUri, 'http')) {
-                $ctx  = stream_context_create(['http' => ['timeout' => 3]]);
-                $data = @file_get_contents($qrDataUri, false, $ctx);
-                $qrDataUri = ($data !== false && $data !== '')
-                    ? 'data:image/png;base64,' . base64_encode($data)
-                    : '';
-            }
-
-            if ($qrDataUri !== '') {
-                $qrSrc  = htmlspecialchars($qrDataUri, ENT_QUOTES, 'UTF-8');
-                $qrHtml = "<img src=\"{$qrSrc}\" alt=\"QR Code\" width=\"150\" height=\"150\""
-                    . " style=\"width:150px;height:150px;display:block;\">";
-            }
+            $qrHtml = "<img src=\"{$qrSrc}\" alt=\"QR Code\" width=\"80\" height=\"80\""
+                . " style=\"width:80px;height:80px;display:block;\">";
         }
 
         if ($qrHtml === '') {
@@ -651,7 +650,7 @@ class EmailHelper
         }
         // Quantity bought
         $qtyBought = isset($ticketData['quantity']) ? (int)$ticketData['quantity'] : 1;
-        $colB .= self::detailRow('Qty Bought', (string)$qtyBought);
+        $colB .= self::detailRow('Qty', (string)$qtyBought);
         if ($organizer !== '') {
             $colB .= self::detailRow('Organizer', $organizer);
         }
@@ -688,128 +687,66 @@ class EmailHelper
 </head>
 <body style="margin:0;padding:40px 10px;background-color:#ffffff;font-family:Arial,'Helvetica Neue',Helvetica,sans-serif;">
 
-<!--  Outer wrapper  -->
 <table width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation">
 <tr><td align="center">
 
-  <!--  Ticket card: max 700 px  -->
   <table width="700" cellpadding="0" cellspacing="0" border="0" role="presentation"
-         style="max-width:700px;background:#0b0b0b;border-radius:16px;overflow:hidden;">
+         background="{$bgImage}"
+         style="max-width:700px;background-color:#111111;background-image:url('{$bgImage}');background-size:cover;background-position:center;border-radius:20px;overflow:hidden;border:none;">
   <tr>
-
-    <!-- ════ LEFT: main ticket body (420 px) ════ -->
-    <td width="420" valign="top"
-        background="{$bgImage}"
-        style="width:420px;background-color:#111111;background-image:url('{$bgImage}');background-size:cover;background-position:center;vertical-align:top;padding:0;">
-
-      <!--  Inner overlay for readability  -->
-      <div style="background: linear-gradient(to right, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.2) 100%); width:100%; height:100%;">
-
-      <!-- Gold top bar -->
-      <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
-        <td height="6" style="height:6px;background:#d4af37;font-size:0;line-height:0;">&nbsp;</td>
-      </tr></table>
-
-      <!-- Main content -->
-      <table width="100%" cellpadding="0" cellspacing="0" border="0" style="padding:28px;">
-      <tr><td style="padding:28px;">
-
-        <!-- LIVE CONCERT badge -->
-        <div style="display:inline-block;font-family:Impact,'Arial Narrow',Arial,sans-serif;
-                    font-size:13px;letter-spacing:5px;color:#d4af37;
-                    border:1.5px solid #d4af37;padding:5px 16px;
-                    margin-bottom:18px;text-transform:uppercase;">LIVE CONCERT</div>
-
-        <!-- Event title -->
-        <div style="font-family:Impact,'Arial Narrow',Arial,sans-serif;
-                    font-size:38px;line-height:1.1;color:#ffffff;
-                    letter-spacing:1px;text-transform:uppercase;
-                    margin-bottom:10px;word-wrap:break-word;">{$eventTitle}</div>
-
-        <!-- Type badge -->
-        {$badgeHtml}
-
-        <!-- Detail columns -->
-        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:18px;">
-        <tr>
-          <td width="50%" valign="top">{$colA}</td>
-          <td width="50%" valign="top">{$colB}</td>
-        </tr>
+    <td valign="top" style="padding:0;margin:0;border:none;">
+      
+      <div style="background: rgba(0,0,0,0.7); width:100%; min-height:360px;">
+        
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="padding:30px;">
+          <tr>
+            <td valign="top">
+              <div style="display:inline-block;font-family:Impact,'Arial Narrow',Arial,sans-serif;font-size:12px;letter-spacing:4px;color:#d4af37;border:1px solid #d4af37;padding:4px 12px;margin-bottom:15px;text-transform:uppercase;">LIVE CONCERT</div>
+              <div style="font-family:Impact,'Arial Narrow',Arial,sans-serif;font-size:36px;line-height:1;color:#ffffff;text-transform:uppercase;margin-bottom:10px;">{$eventTitle}</div>
+              {$badgeHtml}
+            </td>
+            <td valign="top" align="right">
+              <div style="font-family:Arial,sans-serif;font-size:22px;font-weight:900;color:#ffffff;letter-spacing:-1px;">EVENTRA</div>
+            </td>
+          </tr>
+          <tr>
+            <td valign="top" style="padding-top:20px;">
+              <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td width="50%" valign="top">{$colA}</td>
+                  <td width="50%" valign="top">{$colB}</td>
+                </tr>
+              </table>
+            </td>
+            <td valign="bottom" align="right" style="padding-top:20px;">
+              <table cellpadding="0" cellspacing="0" border="0" style="background:#ffffff;border-radius:10px;padding:8px;margin-bottom:8px;">
+                <tr><td align="center" valign="middle">{$qrHtml}</td></tr>
+              </table>
+              <div style="font-family:'Courier New',Courier,monospace;font-size:10px;font-weight:700;color:#ffffff;">{$barcode}</div>
+            </td>
+          </tr>
+          <tr>
+            <td colspan="2" style="padding-top:25px;border-top:1px solid rgba(255,255,255,0.15);">
+              <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td>
+                    <div style="font-family:Arial,sans-serif;font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#ffffff;margin-bottom:4px;">Ticket Holder</div>
+                    <div style="font-family:Arial,sans-serif;font-size:18px;font-weight:800;color:#ffffff;">{$userName}</div>
+                  </td>
+                  <td align="right">
+                    <div style="font-family:Arial,sans-serif;font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#ffffff;margin-bottom:4px;">Ticket ID</div>
+                    <div style="font-family:'Courier New',Courier,monospace;font-size:12px;font-weight:700;color:#ffffff;">{$ticketId}</div>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
         </table>
 
-        <!-- Divider + holder row -->
-        <table width="100%" cellpadding="0" cellspacing="0" border="0"
-               style="margin-top:28px;border-top:1px solid rgba(212,175,55,0.25);padding-top:18px;">
-        <tr>
-          <td valign="middle">
-            <div style="font-family:Arial,sans-serif;font-size:9px;font-weight:700;
-                        letter-spacing:2px;text-transform:uppercase;
-                        color:#ffffff;margin-bottom:4px;">Ticket Holder</div>
-            <div style="font-family:'Arial Narrow',Arial,sans-serif;font-size:20px;
-                        font-weight:800;color:#fff;">{$userName}</div>
-          </td>
-          <td align="right" valign="middle">
-            <div style="font-family:Arial,sans-serif;font-size:9px;font-weight:700;
-                        letter-spacing:2px;text-transform:uppercase;
-                        color:#ffffff;margin-bottom:4px;">Ticket ID</div>
-            <div style="font-family:'Courier New',Courier,monospace;font-size:13px;
-                        font-weight:700;color:#ffffff;">{$ticketId}</div>
-          </td>
-        </tr>
-        </table>
-
-      </td></tr>
-      </table>
       </div>
     </td>
-
-    <!-- ════ PERFORATION (4 px) ════ -->
-    <td width="4" style="width:4px;background:repeating-linear-gradient(
-        to bottom,
-        transparent 0px,transparent 8px,
-        rgba(255,255,255,0.12) 8px,rgba(255,255,255,0.12) 16px
-    );font-size:0;line-height:0;">&nbsp;</td>
-
-    <!-- ════ RIGHT: image + QR stub (276 px) ════ -->
-    <td width="276" valign="top"
-        style="width:276px;background:#181818;vertical-align:top;padding:0;">
-
-
-
-      <!-- Gold divider -->
-      <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
-        <td height="3" style="height:3px;background:#d4af37;font-size:0;line-height:0;">&nbsp;</td>
-      </tr></table>
-
-      <!-- QR section -->
-      <table width="100%" cellpadding="0" cellspacing="0" border="0">
-      <tr><td align="center" style="padding:22px 16px 26px;">
-
-        <div style="font-family:Arial,sans-serif;font-size:9px;letter-spacing:3px;
-                    text-transform:uppercase;color:#ffffff;
-                    margin-bottom:14px;">SCAN TO ENTER</div>
-
-        <table cellpadding="0" cellspacing="0" border="0" align="center"
-               style="background:#ffffff;border-radius:10px;padding:8px;
-                      width:166px;height:166px;margin:0 auto 14px;">
-        <tr><td align="center" valign="middle" style="padding:0;">
-          {$qrHtml}
-        </td></tr>
-        </table>
-
-        <div style="font-family:'Courier New',Courier,monospace;font-size:11px;
-                    font-weight:700;color:#ffffff;letter-spacing:1px;
-                    word-break:break-all;">{$barcode}</div>
-
-      </td></tr>
-      </table>
-
-    </td>
-    <!-- END RIGHT -->
-
   </tr>
   </table>
-  <!-- End ticket card -->
 
 </td></tr>
 </table>
@@ -848,17 +785,17 @@ HTML;
 <meta charset="UTF-8">
 <title>Ticket — {$eventTitle}</title>
 <style>
-  @page { size: 800px 350px; margin: 0; }
+  @page { size: 800px 380px; margin: 0; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
-    width: 800px; height: 350px;
+    width: 800px; height: 380px;
     font-family: 'Helvetica', 'Arial', sans-serif;
     background: #000;
     color: #fff;
     overflow: hidden;
   }
   .ticket {
-    width: 800px; height: 350px;
+    width: 800px; height: 380px;
     position: relative;
     overflow: hidden;
     {$bgStyle}
@@ -866,40 +803,45 @@ HTML;
     background-position: center;
     background-repeat: no-repeat;
   }
-  /* Dark overlay for readability */
   .overlay {
     position: absolute;
     top: 0; left: 0; width: 100%; height: 100%;
-    background: linear-gradient(to right, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.2) 100%);
+    background: rgba(0,0,0,0.7);
   }
   .content {
     position: relative;
     z-index: 10;
-    padding: 30px 40px;
+    padding: 35px 45px;
     height: 100%;
   }
-  .event-title {
-    font-size: 36px;
-    font-weight: 900;
-    text-transform: uppercase;
-    line-height: 1;
-    margin-bottom: 15px;
-    color: #fff;
-    max-width: 500px;
-  }
-  .badge-container {
+  .header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
     margin-bottom: 20px;
   }
+  .event-title {
+    font-size: 38px;
+    font-weight: 900;
+    text-transform: uppercase;
+    line-height: 1.1;
+    margin-bottom: 10px;
+    color: #fff;
+    max-width: 550px;
+  }
+  .brand {
+    font-size: 24px;
+    font-weight: 900;
+    color: #fff;
+    letter-spacing: -1px;
+  }
   .details-container {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 20px;
+  }
+  .details-columns {
     width: 550px;
-  }
-  .details-table {
-    width: 100%;
-    border-collapse: collapse;
-  }
-  .details-table td {
-    vertical-align: top;
-    padding-right: 20px;
   }
   .label {
     font-size: 9px;
@@ -915,37 +857,35 @@ HTML;
     color: #fff;
     margin-bottom: 12px;
   }
-  .holder-section {
-    position: absolute;
-    bottom: 30px;
-    left: 40px;
-  }
-  .holder-name {
-    font-size: 24px;
-    font-weight: 800;
-    color: #fff;
-  }
-  .ticket-id-section {
-    position: absolute;
-    bottom: 30px;
-    left: 300px;
+  .qr-section {
+    text-align: right;
   }
   .qr-code {
-    position: absolute;
-    bottom: 30px;
-    right: 30px;
-    width: 130px;
-    height: 130px;
     background: #fff;
     padding: 8px;
-    border-radius: 4px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    border-radius: 8px;
+    display: inline-block;
+    margin-bottom: 8px;
   }
   .qr-code img {
-    width: 114px;
-    height: 114px;
+    width: 80px;
+    height: 80px;
+  }
+  .footer-row {
+    position: absolute;
+    bottom: 35px;
+    left: 45px;
+    right: 45px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    padding-top: 20px;
+    border-top: 1px solid rgba(255,255,255,0.2);
+  }
+  .holder-name {
+    font-size: 22px;
+    font-weight: 800;
+    color: #fff;
   }
 </style>
 </head>
@@ -954,37 +894,41 @@ HTML;
   <div class="overlay"></div>
   
   <div class="content">
-    <div class="badge-container">
-      {$badgeHtml}
+    <div class="header-row">
+      <div>
+        <div style="margin-bottom: 15px;">{$badgeHtml}</div>
+        <div class="event-title">{$eventTitle}</div>
+      </div>
+      <div class="brand">EVENTRA</div>
     </div>
-    <div class="event-title">{$eventTitle}</div>
     
     <div class="details-container">
-      <table class="details-table">
-        <tr>
-          <td width="50%">
-            {$colA}
-          </td>
-          <td width="50%">
-            {$colB}
-          </td>
-        </tr>
-      </table>
+      <div class="details-columns">
+        <table width="100%">
+          <tr>
+            <td width="50%" valign="top">{$colA}</td>
+            <td width="50%" valign="top">{$colB}</td>
+          </tr>
+        </table>
+      </div>
+      <div class="qr-section">
+        <div class="qr-code">
+          {$qrHtml}
+        </div>
+        <div style="font-family:monospace; font-size:10px;">{$barcode}</div>
+      </div>
     </div>
 
-    <div class="holder-section">
-      <div class="label">Ticket Holder</div>
-      <div class="holder-name">{$userName}</div>
+    <div class="footer-row">
+      <div>
+        <div class="label">Ticket Holder</div>
+        <div class="holder-name">{$userName}</div>
+      </div>
+      <div style="text-align: right;">
+        <div class="label">Ticket ID</div>
+        <div class="value" style="font-family:monospace;">{$ticketId}</div>
+      </div>
     </div>
-
-    <div class="ticket-id-section">
-      <div class="label">Ticket ID</div>
-      <div class="value" style="font-family:monospace;">{$ticketId}</div>
-    </div>
-  </div>
-
-  <div class="qr-code">
-    {$qrHtml}
   </div>
 </div>
 </body>

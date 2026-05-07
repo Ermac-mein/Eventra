@@ -315,7 +315,13 @@ function renderEventSummary(event, quantity, ticketType = 'regular') {
     }
 
     const elCat = document.getElementById('summaryCategory');
-    if (elCat) elCat.textContent = (ticketType.charAt(0).toUpperCase() + ticketType.slice(1)) + ' Ticket';
+    if (elCat) {
+        if (price === 0) {
+            elCat.textContent = 'Free';
+        } else {
+            elCat.textContent = (ticketType.charAt(0).toUpperCase() + ticketType.slice(1)) + ' Ticket';
+        }
+    }
 
     const elDesc = document.getElementById('summaryDescription');
     if (elDesc) elDesc.textContent = event.description || '';
