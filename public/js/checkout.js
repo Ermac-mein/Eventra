@@ -136,13 +136,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                 return;
             }
 
-            // 3. Show security verification (OTP) before proceeding
-            showOTPModal(email, phone, async (otpRef) => {
-                await proceedToPayment(eventId, currentQuantity, currentTicketType, fname, lname, email, phone, payBtn, eventData, otpRef, selectedLocsParam);
-            }, () => {
-                // Cancelled logic is handled within resetPayBtn or via simple return
-                showNotification('Verification required to proceed.', 'info');
-            });
+            // 3. Proceed to payment directly (OTP logic removed)
+            await proceedToPayment(eventId, currentQuantity, currentTicketType, fname, lname, email, phone, payBtn, eventData, null, selectedLocsParam);
+
         });
     }
 
@@ -188,32 +184,14 @@ document.addEventListener('DOMContentLoaded', async () => {
                 sessionStorage.setItem('pending_order', JSON.stringify(orderData));
                 window.location.href = result.authorization_url;
 
-            } else if (result.reason === 'otp_missing_or_expired') {
-                // Paid event only — free events never reach this branch
-                resetPayBtn(eventData, currentQuantity);
-                showOTPModal(email, phone, async (newOtpRef) => {
-                    await proceedToPayment(eventId, currentQuantity, currentTicketType, fname, lname, email, phone, payBtn, eventData, newOtpRef, selectedLocs);
-                }, () => {
-                    resetPayBtn(eventData, currentQuantity);
-                });
-
             } else {
                 Swal.fire('Error', result.message || 'Payment initialization failed.', 'error');
                 resetPayBtn(eventData, currentQuantity);
             }
         } catch (err) {
             const errMsg = err?.message || 'Could not connect to payment server. Please check your connection and try again.';
-            if (errMsg.toLowerCase().includes('otp') || errMsg.toLowerCase().includes('security verification')) {
-                resetPayBtn(eventData, currentQuantity);
-                showOTPModal(email, phone, async (newOtpRef) => {
-                    await proceedToPayment(eventId, currentQuantity, currentTicketType, fname, lname, email, phone, payBtn, eventData, newOtpRef, selectedLocs);
-                }, () => {
-                    resetPayBtn(eventData, currentQuantity);
-                });
-            } else {
-                Swal.fire('Error', errMsg, 'error');
-                resetPayBtn(eventData, currentQuantity);
-            }
+            Swal.fire('Error', errMsg, 'error');
+            resetPayBtn(eventData, currentQuantity);
         }
     }
 

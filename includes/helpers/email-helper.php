@@ -470,7 +470,7 @@ class EmailHelper
         /* ── Sanitise text fields ─────────────────────────── */
         $barcode    = self::esc($ticketData['barcode']   ?? '');
         $ticketId   = self::esc($ticketData['ticket_id'] ?? ($ticketData['barcode'] ?? ''));
-        $eventTitle = self::esc($ticketData['event_name'] ?? 'LIVE CONCERT');
+        $eventTitle = self::esc($ticketData['event_name'] ?? '');
         $userName   = self::esc($ticketData['user_name'] ?? 'Attendee');
         $venue      = self::esc($ticketData['address']   ?? '—');
         $organizer  = self::esc($ticketData['organizer'] ?? '');

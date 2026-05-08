@@ -60,8 +60,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (authorization_url) {
         if (paymentForm) paymentForm.style.display = 'none';
         
-        // Since OTP is now handled on checkout.html, we just proceed to Paystack
-        // If the user lands here with a pending order, we assume they've verified.
+        // OTP logic removed. If the user lands here with a pending order, we assume they've verified or OTP is disabled.
         window.location.href = authorization_url;
         return;
     }
@@ -79,11 +78,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (isFree) {
                 setupFreeEventState(paymentForm, eventData, quantity, ticket_type);
             } else {
-                // If it's not free and has no auth_url, it's likely the old manual OTP flow
-                // Re-enable the form for legacy support if needed, but marketplace is priority
                 if (paymentLoading) paymentLoading.style.display = 'none';
                 if (paymentForm) paymentForm.style.display = 'block';
-                setupLegacyFlow(paymentForm, currentReference, contactInfo, eventId, quantity);
+                // setupLegacyFlow removed as OTP is disabled.
             }
         } else {
             Swal.fire('Error', 'Failed to load event details.', 'error').then(() => {
@@ -171,8 +168,21 @@ async function startPolling(reference) {
                     }
                     
                     if (firstBarcode) {
-                        downloadBtn.href = `/api/tickets/download-ticket.php?code=${firstBarcode}`;
-                        downloadBtn.target = '_blank';
+                        // Populate hidden ticket card for PDF generation
+                        prepareTicketForDownload(order, firstBarcode);
+                        
+                        // Setup client-side download button
+                        downloadBtn.onclick = () => {
+                            const element = document.getElementById('ticket-card');
+                            const opt = {
+                                margin:       0,
+                                filename:     `eventra_ticket_${firstBarcode}.pdf`,
+                                image:        { type: 'jpeg', quality: 0.98 },
+                                html2canvas:  { scale: 2, useCORS: true },
+                                jsPDF:        { unit: 'px', format: [800, 350], orientation: 'landscape' }
+                            };
+                            html2pdf().set(opt).from(element).save();
+                        };
                         actions.style.display = 'flex';
                     }
                     
@@ -349,28 +359,64 @@ function renderSummary(event, qty, ticketType = 'regular') {
     `;
 }
 
-// ─── Legacy OTP Flow (Optional Refactor) ────────────────────────────────────
-// Keeping variables to maintain minimal functionality if form is shown
-let currentReference = 'PAY-' + Math.random().toString(36).substr(2, 9).toUpperCase();
+/**
+ * Populates the hidden #ticket-card with order details for html2pdf.js
+ */
+function prepareTicketForDownload(order, barcode) {
+    const cleanName = (order.event_name || '').replace(/\s*#\d+$/, '');
+    const ticketType = (order.ticket_type || 'regular').toUpperCase();
+    const attendee = order.user_name || (order.contactInfo ? `${order.contactInfo.firstName} ${order.contactInfo.lastName}` : 'Guest');
+    const date = formatDate(order.event_date) || 'TBA';
+    const time = order.event_time || 'TBA';
+    const venue = order.address || order.location || 'See event details';
+    
+    // Update elements
+    const elName = document.getElementById('ticketEventName');
+    const elBadge = document.getElementById('ticketBadge');
+    const elDateTime = document.getElementById('ticketDateTime');
+    const elVenue = document.getElementById('ticketVenue');
+    const elAttendee = document.getElementById('ticketAttendee');
+    const elID = document.getElementById('ticketID');
+    const elBarcodeText = document.getElementById('ticketBarcodeText');
 
-function setupLegacyFlow(form, ref, contact, eid, qty) {
-    form.addEventListener('submit', (e) => {
-        e.preventDefault();
-        
-        // Use the centralized showOTPModal instead of hardcoded ones
-        showOTPModal(
-            contact.email,
-            contact.phone,
-            () => {
-                // OTP verified - enforce redirect to Paystack for paid events
-                reinitializeAndRedirect(eid, qty);
-            },
-            () => {
-                showNotification('Verification cancelled', 'info');
-            }
-        );
-    });
+    if(elName) elName.textContent = cleanName;
+    if(elBadge) elBadge.textContent = ticketType;
+    if(elDateTime) elDateTime.textContent = `${date} | ${time}`;
+    if(elVenue) elVenue.textContent = venue;
+    if(elAttendee) elAttendee.textContent = attendee;
+    if(elID) elID.textContent = barcode;
+    if(elBarcodeText) elBarcodeText.textContent = barcode;
+    
+    // Set banner image
+    const banner = document.getElementById('ticketEventBanner');
+    if (banner) {
+        const relPath = order.image_path ? `../../${order.image_path.replace(/^\/+/ , '')}` : null;
+        const fallback = 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=600&h=400&fit=crop';
+        const imgUrl = (relPath || order.absolute_image_url || fallback);
+        banner.style.backgroundImage = `url('${imgUrl}')`;
+    }
+
+    // Generate QR Code for the ticket
+    const qrContainer = document.getElementById('ticketQR');
+    if (qrContainer) {
+        qrContainer.innerHTML = ''; // Clear previous
+        const qrPayload = `${window.location.origin}/api/tickets/validate-ticket.php?barcode=${encodeURIComponent(barcode)}`;
+        try {
+            new QRCode(qrContainer, {
+                text: qrPayload,
+                width: 130,
+                height: 130,
+                colorDark : "#000000",
+                colorLight : "#ffffff",
+                correctLevel : QRCode.ECC_M
+            });
+        } catch (e) {
+            console.error("Ticket QR generation failed:", e);
+        }
+    }
 }
+
+// ─── Legacy Flows (Removed) ─────────────────────────────────────────────────
 
 // Functions below removed to prevent conflict with otp-modal.js
 // triggerOTP and verifyOTP are now handled by showOTPModal utility
